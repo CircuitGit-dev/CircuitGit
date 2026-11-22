@@ -1,7 +1,7 @@
 {
   "schema": "ic.sim.site.v1",
   "ssh_target": "cadence-server",
-  "remote_runs_root": "/path/to/circuitgit-runs",
+  "remote_runs_root": "/path/to/ic_on_github_runs",
   "cadence_cshrc": "/path/to/cadence/setup.csh",
   "spectre_bin": "/path/to/spectre",
   "ocean_bin": "/path/to/ocean",

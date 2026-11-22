@@ -18,6 +18,8 @@ Simulation controls update the RC analytical reference or export `TRAN.json` and
 
 The startup command builds assets and uses a separate local runtime checkout. It does not submit a simulation. The RC project uses built-in components and needs no PDK. Other projects may require operator-supplied licensed models. Source and configuration commits, run identity, collection and publication are separate stages.
 
+The configured remote run directory must be absolute and end in `ic_on_github_runs`, as required by the existing runner's dedicated-directory guard. Choose an operator-owned directory with that final component; do not point it at a general home or project directory.
+
 The local RC example contains a basic text netlist. To explore its prearranged schematic without setting up a gateway, use the static demo. Full native geometry import is available through the exporter workflow and a local project's geometry manifest.
 
 ## AI and MCP
