@@ -1,0 +1,25 @@
+{
+  "schema": "ic.sim.bundle.v1",
+  "test_id": "transport-fixture-not-adc",
+  "source_root": ".",
+  "entrypoint": "netlist/input.scs",
+  "reviewed_for_distribution": false,
+  "historical_reference": null,
+  "files": [
+    {
+      "source": "transport_fixture.scs",
+      "destination": "netlist/input.scs",
+      "sha256": "7faf17787d9971f18d1c56ff80dd22fa8df00223b0a17946ee8f681e4f26b9a6"
+    }
+  ],
+  "design_id": "transport-fixture",
+  "design_origin": "text-netlist",
+  "simulator": {
+    "profile": "spectre-default",
+    "args": [
+      "-64"
+    ],
+    "output_format": "psfxl"
+  },
+  "external_sha256": {}
+}

@@ -1,0 +1,18 @@
+{
+  "ssh_target": "your-eda-host",
+  "exporter": "/path/to/patched-rnl-virtuoso/bin/rnl-virtuoso",
+  "project": "/path/to/isolated/saved-oa",
+  "library": "your_library",
+  "cell": "your_testbench",
+  "output": "/path/to/unique-output",
+  "env_csh": [
+    "/path/to/cadence.csh",
+    "/path/to/pdk.csh"
+  ],
+  "cdsinit": false,
+  "external": false,
+  "scale": 10,
+  "symbol_views": "symbol_readable symbol",
+  "schematic_views": "schematic",
+  "timeout": "30m"
+}

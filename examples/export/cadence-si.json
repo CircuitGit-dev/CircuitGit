@@ -1,0 +1,26 @@
+{
+  "schema": "ic.netlist.export.v1",
+  "transport": "ssh",
+  "ssh_target": "eda-host",
+  "cds_lib": "/path/to/restored/project/cds.lib",
+  "si_env_template": "cadence-generated-si.env",
+  "library": "your_library",
+  "cell": "your_testbench",
+  "view": "schematic",
+  "simulator": "spectre",
+  "view_list": [
+    "spectre",
+    "veriloga",
+    "cmos_sch",
+    "schematic"
+  ],
+  "stop_list": [
+    "spectre",
+    "veriloga"
+  ],
+  "env_csh": [
+    "/path/to/cadence-setup.csh"
+  ],
+  "output_directory": "/path/to/new/netlist-output",
+  "timeout_seconds": 180
+}

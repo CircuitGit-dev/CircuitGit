@@ -1,0 +1,259 @@
+{
+  "schema": "ic.mcp.dependencies.v1",
+  "resolved_python": "3.12.14",
+  "resolved_platform": "darwin",
+  "packages": [
+    {
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "pypi_metadata": "https://pypi.org/pypi/annotated-types/0.8.0/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "anyio",
+      "version": "4.16.0",
+      "pypi_metadata": "https://pypi.org/pypi/anyio/4.16.0/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "attrs",
+      "version": "26.1.0",
+      "pypi_metadata": "https://pypi.org/pypi/attrs/26.1.0/json",
+      "license": "MIT",
+      "requires_python": ">=3.9",
+      "verified_installed_wheel_sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "cffi",
+      "version": "2.1.1",
+      "pypi_metadata": "https://pypi.org/pypi/cffi/2.1.1/json",
+      "license": "MIT-0",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "f81b3b8f3d4e343550fa4baa0e479bba9f2d29ce9c2e9b51d1ce1718d7442fcf",
+      "allowed_wheel_count": 99
+    },
+    {
+      "name": "click",
+      "version": "8.5.1",
+      "pypi_metadata": "https://pypi.org/pypi/click/8.5.1/json",
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "cryptography",
+      "version": "50.0.2",
+      "pypi_metadata": "https://pypi.org/pypi/cryptography/50.0.2/json",
+      "license": "Apache-2.0 OR BSD-3-Clause",
+      "requires_python": "!=3.9.0,!=3.9.1,>=3.9",
+      "verified_installed_wheel_sha256": "fa8f5efb344d6908a1ce62f4a24e2e5780f825d6f53f5f50ec5ffacac72936cb",
+      "allowed_wheel_count": 58
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0",
+      "pypi_metadata": "https://pypi.org/pypi/h11/0.16.0/json",
+      "license": "MIT",
+      "requires_python": ">=3.8",
+      "verified_installed_wheel_sha256": "63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "httpcore2",
+      "version": "2.16.0",
+      "pypi_metadata": "https://pypi.org/pypi/httpcore2/2.16.0/json",
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.11",
+      "verified_installed_wheel_sha256": "5c4358319f2602d984ad93182c9fee5160f22e9da7babdda870a5e7c4e2dc34f",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "httpx2",
+      "version": "2.16.0",
+      "pypi_metadata": "https://pypi.org/pypi/httpx2/2.16.0/json",
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.11",
+      "verified_installed_wheel_sha256": "fd2c5d7909e8d86fe92d53020c310ca0e4e431b838c207c5754b9bbf0308d49a",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "idna",
+      "version": "3.20",
+      "pypi_metadata": "https://pypi.org/pypi/idna/3.20/json",
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.9",
+      "verified_installed_wheel_sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.26.0",
+      "pypi_metadata": "https://pypi.org/pypi/jsonschema/4.26.0/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "jsonschema-specifications",
+      "version": "2025.9.1",
+      "pypi_metadata": "https://pypi.org/pypi/jsonschema-specifications/2025.9.1/json",
+      "license": "MIT",
+      "requires_python": ">=3.9",
+      "verified_installed_wheel_sha256": "98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "mcp",
+      "version": "2.3.0",
+      "pypi_metadata": "https://pypi.org/pypi/mcp/2.3.0/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "dd0c44c089d16453e8ae31a3877a0054d7a2314caaa81f5e0541b9b1734b2377",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "mcp-types",
+      "version": "2.3.0",
+      "pypi_metadata": "https://pypi.org/pypi/mcp-types/2.3.0/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "968efdbdaedfab06adae40d378a34395f1090c5921d4be3c9cde283aaf76d91d",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "opentelemetry-api",
+      "version": "1.45.2",
+      "pypi_metadata": "https://pypi.org/pypi/opentelemetry-api/1.45.2/json",
+      "license": "Apache-2.0",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "2cbd737377e710ee740d261c94e93fa0f08e6d037c18f17513cc0a2d94479a34",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "pycparser",
+      "version": "3.12",
+      "pypi_metadata": "https://pypi.org/pypi/pycparser/3.12/json",
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.11",
+      "verified_installed_wheel_sha256": "a076f3f489b39b43ed13563a1dafe42447445bec2e294154ec5c57fcdda4c85e",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "pydantic",
+      "version": "2.14.3",
+      "pypi_metadata": "https://pypi.org/pypi/pydantic/2.14.3/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "3f7b347782ab7e4cf4c798496ae3a82787d9f21ec12676a9c564355eeef8daa8",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.50.4",
+      "pypi_metadata": "https://pypi.org/pypi/pydantic_core/2.50.4/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "1e20cbde2b6deb33a51d08cd168454dd9044ec7d4474056f4d98d63f51578783",
+      "allowed_wheel_count": 139
+    },
+    {
+      "name": "PyJWT",
+      "version": "2.15.1",
+      "pypi_metadata": "https://pypi.org/pypi/PyJWT/2.15.1/json",
+      "license": "MIT",
+      "requires_python": ">=3.9",
+      "verified_installed_wheel_sha256": "42d59d631f7768a1028a64c7ff581a9bf7519804daf91fc5b6c56e30eec5e193",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "python-multipart",
+      "version": "0.0.33",
+      "pypi_metadata": "https://pypi.org/pypi/python-multipart/0.0.33/json",
+      "license": "Apache-2.0",
+      "requires_python": ">=3.11",
+      "verified_installed_wheel_sha256": "8f16c07b36add9da6b2ee87d3efcaf0a45a6de9c3d0a5dd94e9ccf7675a7bc45",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "referencing",
+      "version": "0.37.0",
+      "pypi_metadata": "https://pypi.org/pypi/referencing/0.37.0/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "rpds-py",
+      "version": "2026.9.1",
+      "pypi_metadata": "https://pypi.org/pypi/rpds-py/2026.9.1/json",
+      "license": "MIT",
+      "requires_python": ">=3.11",
+      "verified_installed_wheel_sha256": "e21c1429e205828ea886a2293a4a2c8e01f4c25d9893ca330e97a6cf73f52e7b",
+      "allowed_wheel_count": 127
+    },
+    {
+      "name": "sse-starlette",
+      "version": "3.7.0",
+      "pypi_metadata": "https://pypi.org/pypi/sse-starlette/3.7.0/json",
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.11",
+      "verified_installed_wheel_sha256": "f1d3136caa12d129284fca3d2ded79bc9af943320b6472712955fea52a6d3eea",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "starlette",
+      "version": "1.10.0",
+      "pypi_metadata": "https://pypi.org/pypi/starlette/1.10.0/json",
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.11",
+      "verified_installed_wheel_sha256": "478c0ab3b4ced6e82719849c118fa406f0278a3499c1a898cd15cd31bdc38ce4",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "truststore",
+      "version": "0.10.5",
+      "pypi_metadata": "https://pypi.org/pypi/truststore/0.10.5/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.5",
+      "pypi_metadata": "https://pypi.org/pypi/typing-inspection/0.4.5/json",
+      "license": "MIT",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "bc210535442b39e1bf2805e0c7a17dfd6a4ace760c84c7f7d16245d23a6b1c39",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "pypi_metadata": "https://pypi.org/pypi/typing_extensions/4.16.0/json",
+      "license": "PSF-2.0",
+      "requires_python": ">=3.9",
+      "verified_installed_wheel_sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "allowed_wheel_count": 1
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.54.0",
+      "pypi_metadata": "https://pypi.org/pypi/uvicorn/0.54.0/json",
+      "license": "BSD-3-Clause",
+      "requires_python": ">=3.10",
+      "verified_installed_wheel_sha256": "505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf",
+      "allowed_wheel_count": 1
+    }
+  ]
+}

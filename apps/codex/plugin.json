@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ic-workbench",
+  "version": "0.4.1",
+  "description": "Open native schematic, waveform and simulation configuration MCP Apps; review versioned circuits and prepare controlled Spectre workflows for human approval.",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/ic-workbench/SKILL.md",
+      "interface": {
+        "displayName": "CircuitGit Workbench",
+        "shortDescription": "可排列、关闭和恢复的电路工作台",
+        "longDescription": "自动连接本地项目并按需启动工作台后端。使用 Codex 对话和三个 MCP 窗口查看电路、波形、编辑配置，并在宿主中人工确认执行。",
+        "defaultPrompt": [
+          "打开 IC Workbench，列出可用项目和已有仿真结果。",
+          "打开可排列的 IC 工作台，在同一页面查看原理图、波形和仿真配置。"
+        ],
+        "capabilities": [
+          "Read",
+          "Write"
+        ]
+      }
+    }
+  }
+}

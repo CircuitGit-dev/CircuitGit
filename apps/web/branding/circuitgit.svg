@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img"><title>MOS transistor and Git branches with a faint AI backdrop</title>
+<defs><mask id="gate-clearance" maskUnits="userSpaceOnUse"><rect width="256" height="256" fill="white"/><rect x="104" y="116" width="13" height="80" fill="black"/></mask></defs>
+<g fill="#5679B0" opacity="0.11" mask="url(#gate-clearance)"><path fill-rule="evenodd" d="M8 224L69 32H118L179 224H138L125 182H61L48 224ZM93 79L72 146H113Z"/>
+<path d="M186 32H246V63H232V193H246V224H186V193H200V63H186Z"/></g><g transform="translate(16 0)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M108 114H176V40" stroke="#179B78" stroke-width="13"/>
+ <path d="M176 100V93Q176 76 159 76H97Q80 76 80 59V40" stroke="#179B78" stroke-width="13"/>
+ <path d="M108 198H176V224" stroke="#182A36" stroke-width="13"/>
+ <path d="M80 125V187M36 156H80M108 114V198" stroke="#182A36" stroke-width="13"/>
+ <circle cx="80" cy="40" r="14" fill="#179B78"/>
+ <circle cx="176" cy="40" r="14" fill="#179B78"/>
+ <circle cx="176" cy="224" r="14" fill="#182A36"/>
+ </g></svg>

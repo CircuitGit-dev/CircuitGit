@@ -1,0 +1,252 @@
+// The core as WebAssembly: the module the binding builds (rnl_runtime_wasm.wasm), behind one call
+// that takes a request and returns the Document, for a write the netlist written and its Document,
+// for a catalog request the catalog of the packages the core has, or for a drawings request the
+// drawings of objects an earlier build kept. The call is synchronous, so
+// the web viewer runs it in a Worker (worker.js); the tests run it in Node.
+
+/**
+ * What to build: the workspace and how. Fields the core does not know are ignored.
+ *
+ * @typedef {object} Request
+ * @property {import('./core.js').OverlayOptions} [overlays] Optional usage/current SVG inspection overlays.
+ * @property {string[]} [pool] Explicit temporary files searched before package directories.
+ * @property {boolean} [auto_include] Resolve unique undefined subcircuits through the viewer library index.
+ * @property {string} [library_prefix] Internal namespace prefix for indexed pool paths.
+ * @property {Record<string, string>} [library_edits] Applied library text overrides in canonical paths.
+ * @property {string} entry The path of the file to open, as the frontend names it, such as `/w/top.sp`.
+ * @property {Record<string, string>} [files] The texts of the workspace by path, the entry's among them.
+ * @property {string[]} [package_dirs] The directories, among the paths of `files`, whose packages are
+ *   found by name.
+ * @property {"spice" | "spectre"} [dialect] The format of the entry, instead of guessing it from the entry.
+ * @property {Record<string, string>} [formats] The format set for files, by path as in `files`: only
+ *   those the user set. A file not among them is read by its own suffix and first lines; an unknown
+ *   name fails the build. The library index reads its files with them too.
+ * @property {boolean} [std] Use the standard package at the root; true when not given.
+ * @property {string} [std_version] The version of the standard package at the root, whatever the
+ *   files' language version, such as "0.2"; by the language version when not given.
+ * @property {boolean} [svg] Write each level's SVG; true when not given.
+ * @property {boolean} [primitives] Give each level's primitives; false when not given.
+ * @property {boolean} [status] Give each level its solve status, `solve`, what a frontend decides
+ *   from whether to solve it: "fixed", "unsolved", "solved" or "stale"; false when not given.
+ * @property {boolean} [lazy_unplaced] Leave the drawings of the objects without a position,
+ *   `Level.unplaced[].svg` and `primitives`, out of the Document and keep them to give on request
+ *   (`drawings`), until the next build that asks for it; false, the Document carrying them, when
+ *   not given.
+ * @property {{ drawing?: boolean, host?: boolean, model?: boolean }} [parts] The parts of the
+ *   editor interface's snapshot to give: with them, the answer is a snapshot (snapshot.d.ts), with
+ *   the Document as its `drawing` unless `drawing` is false.
+ */
+
+/**
+ * What to write: an edit transaction's ops into its netlist, and how to build what was written.
+ * The netlist is the entry; the other fields are a Request's.
+ *
+ * @typedef {object} WriteRequest
+ * @property {import('./core.js').OverlayOptions} [overlays] Inspection SVG export options.
+ * @property {{ dialect: "spice" | "spectre", netlist: string, author: string, ops: object[], file?: string }} write
+ *   The netlist, without RNL records, its dialect, the author of the records, the ops as the
+ *   editor interface draft writes them, and the name the netlist is saved under when it is known,
+ *   such as `top.net`: a Spectre netlist that is not a `.scs` file is read in the SPICE mode up to
+ *   its `simulator lang=spectre`.
+ * @property {Record<string, string>} [files] Further files, such as packages.
+ * @property {string[]} [package_dirs]
+ * @property {boolean} [std]
+ * @property {string} [std_version]
+ * @property {boolean} [svg]
+ * @property {boolean} [primitives]
+ * @property {boolean} [status]
+ */
+
+/**
+ * What to list: the catalog of the packages the core has, those of `package_dirs` among `files`
+ * and the bundled ones, the standard series (catalog.d.ts).
+ *
+ * @typedef {object} CatalogRequest
+ * @property {{ packages?: string[], all_versions?: boolean }} catalog `packages`: only the packages
+ *   of these names, every package when not given; `all_versions`: every version of each package,
+ *   not only the newest.
+ * @property {Record<string, string>} [files] The frontend's files, among them its packages.
+ * @property {string[]} [package_dirs] The directories, among the paths of `files`, whose packages
+ *   are listed.
+ * @property {boolean} [std] Read each package with the standard package of its language version;
+ *   true when not given.
+ * @property {string} [std_version]
+ */
+
+/**
+ * What to draw: the objects at `items` of `levels[level].unplaced` of the Document that the last
+ * build with `lazy_unplaced` gave, which the core kept the drawings of.
+ *
+ * @typedef {object} DrawingsRequest
+ * @property {{ level: number, items: number[], names?: string[] }} drawings `names`, when given, are
+ *   the objects' names as the Document lists them, which the core checks, so that a request about
+ *   a Document that was built again is refused, not answered with other objects.
+ */
+
+/**
+ * What to list: the formats a file can be read with, and the format each file of `detect`, by path
+ * and text, has when none is set for it.
+ *
+ * @typedef {object} FormatsRequest
+ * @property {{ detect?: Record<string, string> }} formats
+ */
+
+/**
+ * The core, loaded.
+ *
+ * @typedef {object} Core
+ * @property {(request: Request | string) => object} build Build the Document of a request, given as
+ *   an object or as the JSON text `requestText` makes of one. Throws an Error with the core's message
+ *   when there is none, such as when the entry is not among the files.
+ * @property {(request: Request | string) => object} snapshot Build the snapshot of a request with
+ *   `parts`, as build builds the Document.
+ * @property {(request: WriteRequest | string) => { text: string, document: object }} write Write the
+ *   ops of a request into its netlist, and build what was written. Throws an Error with the core's
+ *   message when an op cannot be written.
+ * @property {(request: CatalogRequest | string) => object} catalog List the symbols, definitions and
+ *   sets of the packages the core has, as a catalog request asks.
+ * @property {(request: DrawingsRequest | string) => object[]} drawings The drawings of the objects a
+ *   request names, `{ svg?, primitives? }` each, in order (`UnplacedDrawing` of document.d.ts).
+ *   Throws an Error with the core's message when no build kept drawings, when an object is not
+ *   there, or when `names` are not those of that build.
+ * @property {(request: {library: {reload?: boolean, refresh?: string[]}, pool: string[], files: Record<string, string>, formats?: Record<string, string>} | string) => string[]} library Update the viewer library index, reading its files with the formats set for them; returns read errors.
+ * @property {(request: FormatsRequest | string) => { list: object[], detected: Record<string, string> }} formats
+ *   The formats a file can be read with, and the format each file of `detect` has when none is set.
+ * @property {(request: Request | WriteRequest | CatalogRequest | DrawingsRequest | string) => object} respond
+ *   The core's answer as it gives it: `{ document }`, `{ snapshot }`, `{ written }`, `{ catalog }`,
+ *   `{ drawings }` or `{ error }`. Throws only when the core stops.
+ */
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+/** What a request asks for, by the part of the answer that gives it. */
+const ASKS = {
+  document: "a build without parts",
+  snapshot: "a build with parts",
+  written: "a write",
+  catalog: "a catalog request",
+  drawings: "a drawings request",
+  library: "a library update",
+  formats: "a formats request",
+};
+const REPLACEMENT = String.fromCharCode(0xfffd);
+
+/**
+ * A request as the JSON text the core reads: what JSON.stringify makes of it, so that functions
+ * are left out and a Proxy is read through. A lone surrogate, which JSON.stringify writes as an
+ * escape the core refuses, becomes U+FFFD, as TextEncoder makes it.
+ *
+ * @param {Request} request
+ * @returns {string}
+ */
+export function requestText(request) {
+  // escapes are read one at a time, so that an escaped backslash is not taken for the start of one
+  const escape = /\\(?:u(d[89a-f][0-9a-f]{2})|[^])/g;
+  return (JSON.stringify(request) ?? "null").replace(escape, (e, lone) => (lone ? REPLACEMENT : e));
+}
+
+/**
+ * Load the core.
+ *
+ * @param {string | URL | Response | BufferSource | WebAssembly.Module} wasm The module: where it is,
+ *   the response that fetched it, its bytes, or the module compiled.
+ * @returns {Promise<Core>}
+ */
+export async function loadCore(wasm) {
+  const module = await compile(wasm);
+  let instance = await WebAssembly.instantiate(module, {});
+
+  /**
+   * After a trap the instance must not answer again: make a new one. A page's main thread may refuse
+   * to make one synchronously; it is then made asynchronously, and builds fail until it is there.
+   */
+  function restart() {
+    try {
+      instance = new WebAssembly.Instance(module, {});
+    } catch {
+      instance = null;
+      WebAssembly.instantiate(module, {}).then((i) => (instance = i));
+    }
+  }
+
+  function respond(request) {
+    if (!instance) throw new Error("The core is starting again after a failure; build again in a moment.");
+    const exports = instance.exports;
+    const bytes = encoder.encode(typeof request === "string" ? request : requestText(request));
+    let answer;
+    try {
+      const at = exports.rnl_request(bytes.length) >>> 0;
+      new Uint8Array(exports.memory.buffer, at, bytes.length).set(bytes);
+      const length = exports.rnl_build() >>> 0;
+      answer = text(exports.memory, exports.rnl_response(), length);
+    } catch (e) {
+      // a panic, or a trap such as running out of memory
+      const message = stopMessage(exports);
+      restart();
+      throw new Error(`The core stopped: ${message || e.message}`, { cause: e });
+    }
+    return JSON.parse(answer);
+  }
+
+  /** The part of the answer a call wants, or the core's error. */
+  function part(request, name) {
+    const response = respond(request);
+    if ("error" in response) throw new Error(response.error);
+    if (!(name in response)) throw new Error(`The core answered with no ${name}: the request is not ${ASKS[name]}.`);
+    return response[name];
+  }
+
+  return {
+    respond,
+    build: (request) => part(request, "document"),
+    snapshot: (request) => part(request, "snapshot"),
+    write: (request) => part(request, "written"),
+    catalog: (request) => part(request, "catalog"),
+    drawings: (request) => part(request, "drawings"),
+    library: (request) => part(request, "library"),
+    formats: (request) => part(request, "formats"),
+  };
+}
+
+/** The module compiled, from wherever it is. */
+async function compile(wasm) {
+  if (wasm instanceof WebAssembly.Module) return wasm;
+  if (typeof wasm === "string" || wasm instanceof URL) wasm = await fetchModule(new URL(wasm, globalThis.location?.href));
+  if (wasm instanceof Response) {
+    if (!wasm.ok) throw new Error(`The core could not be loaded from ${wasm.url}: ${wasm.status} ${wasm.statusText}`);
+    // streaming needs the right media type, which a plain file server may not send
+    const type = (wasm.headers.get("content-type") || "").split(";")[0].trim();
+    if (type === "application/wasm" && WebAssembly.compileStreaming) return WebAssembly.compileStreaming(wasm);
+    wasm = await wasm.arrayBuffer();
+  }
+  return WebAssembly.compile(wasm);
+}
+
+/** Fetch the module; in Node, whose fetch does not read files, read a file: URL from the disk. */
+async function fetchModule(url) {
+  if (url.protocol !== "file:") return fetch(url);
+  const { readFile } = await import("node:fs/promises");
+  return readFile(url);
+}
+
+/**
+ * Why the last call stopped: the message the panic hook kept, or that an allocation failed, which
+ * aborts without a panic; "" when the module does not say or cannot be read.
+ */
+function stopMessage(exports) {
+  try {
+    const length = exports.rnl_panic_len() >>> 0;
+    if (length) return text(exports.memory, exports.rnl_panic_message(), length);
+    const failed = exports.rnl_alloc_failed() >>> 0;
+    if (!failed) return "";
+    const used = Math.round(exports.memory.buffer.byteLength / 2 ** 20);
+    return `it ran out of memory, with ${used} MB in use, when it asked for ${failed} bytes more`;
+  } catch {
+    return "";
+  }
+}
+
+/** UTF-8 text in the module's memory. */
+function text(memory, at, length) {
+  return decoder.decode(new Uint8Array(memory.buffer, at >>> 0, length));
+}

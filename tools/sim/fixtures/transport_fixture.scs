@@ -1,0 +1,6 @@
+// Synthetic transport fixture. Never submitted to Spectre in this audit.
+simulator lang=spectre
+global 0
+V0 (in 0) vsource dc=1
+R0 (in 0) resistor r=1k
+tran tran stop=1p

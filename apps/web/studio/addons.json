@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "modules": [
+    "./simulation/index.js",
+    "./versions/index.js",
+    "./ai/index.js",
+    "./plot/index.js",
+    "./help.js",
+    "./connection.js"
+  ]
+}

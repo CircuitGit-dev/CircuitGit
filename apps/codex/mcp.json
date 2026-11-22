@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "ic-workbench": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["-B", "${PLUGIN_ROOT}/plugin_entry.py", "--settings", "${PLUGIN_DATA}/settings.json"],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

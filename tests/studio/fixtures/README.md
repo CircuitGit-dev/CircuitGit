@@ -1,0 +1,1 @@
+Saved real RC publication receipt used only to validate read-only identity display. Derived from prior phase3 jobs/results evidence. Other job rows and waveform arrays are omitted from this focused fixture; original archives/data remain unchanged. No test performs collection or publication.

@@ -1,0 +1,34 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simulation fixture harness</title>
+<style>body{margin:0;font:13px system-ui;background:#e9eef4}aside{padding:10px;background:#163d62;color:white}#frames{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}iframe{border:1px solid #bbc9da;width:100%;height:1050px;background:white;box-sizing:border-box}@media(max-width:700px){#frames{grid-template-columns:1fr;padding:0}iframe{height:1250px}}</style>
+<aside>TEST FIXTURE — independent MCP windows; no gateway, solver, Git or approval execution</aside><main id="frames"></main>
+<script type="module">
+import {createFixture,COMMIT} from './fixture.mjs';
+const query=new URLSearchParams(location.search),bundle=query.get('bundle');
+const saved=await (await fetch('/tests/studio/fixtures/jobs.json')).json();
+const archived=saved.data.jobs[0],newJob={run_id:'fixture-run',project_id:'fixture-project',configuration:'TRAN',source_commit:COMMIT,state:'simulator_complete_pending_measurements'};
+const fixtures=[createFixture(),createFixture({viewDigit:'2',historical:true,jobs:saved.data.jobs,run:archived.run_id,project:archived.associated_project_id||archived.project_id,configuration:archived.configuration,source:archived.source_commit})];
+const records=fixtures.map(f=>({fixture:f,initialized:false,contexts:[]}));
+window.harness={records,errors:[],human(index,state,result){const f=fixtures[index],rid=[...f.receipts.keys()].at(-1);f.human(rid,state,result);if(result?.run_id)f.updateRows([newJob]);return rid;},async teardown(index){const record=records[index];record.frame.contentWindow.postMessage({jsonrpc:'2.0',id:'teardown-'+index,method:'ui/resource-teardown',params:{}},new URL(record.frame.src).origin);}};
+window.addEventListener('message',async event=>{
+  const record=records.find(r=>r.frame?.contentWindow===event.source);if(!record||event.origin!==new URL(record.frame.src).origin)return;
+  const m=event.data;if(m?.jsonrpc!=='2.0')return;
+  const send=message=>event.source.postMessage({jsonrpc:'2.0',...message},event.origin);
+  if(m.method==='ui/notifications/initialized'){
+    record.initialized=true;send({method:'ui/notifications/tool-input',params:{arguments:{project_id:record.fixture.snapshot().identity.project_id}}});
+    send({method:'ui/notifications/tool-result',params:{structuredContent:{ok:true,data:record.fixture.snapshot()}}});return;
+  }
+  if(!m.id)return;
+  try{
+    if(m.method==='ui/initialize')send({id:m.id,result:{protocolVersion:'2026-01-26',hostCapabilities:{serverTools:{},updateModelContext:{structuredContent:true}},hostContext:{containerDimensions:{height:1050},availableDisplayModes:['inline','fullscreen'],displayMode:'inline'}}});
+    else if(m.method==='tools/call'){
+      const result=await record.fixture.host.call(m.params.name,m.params.arguments);
+      // Engineering data deliberately only exists in _meta, matching the real host contract.
+      const model=result.view?{view:result.view,kind:result.kind,available:true}:result;
+      send({id:m.id,result:{structuredContent:{ok:true,data:model},_meta:{icWorkbench:{data:result}}}});
+    }else if(m.method==='ui/update-model-context'){record.contexts.push(m.params.structuredContent);send({id:m.id,result:{}});}
+    else if(m.method==='ui/request-display-mode')send({id:m.id,result:{mode:m.params.mode}});
+    else if(m.method)throw Error('unexpected host method '+m.method);
+  }catch(error){window.harness.errors.push(error.message);send({id:m.id,result:{structuredContent:{ok:false,error:{code:'fixture_error',message:error.message}}}});}
+});
+for(const record of records){const frame=document.createElement('iframe');record.frame=frame;frame.title='Simulation '+records.indexOf(record);frame.src=bundle;document.querySelector('#frames').append(frame);}
+</script>

@@ -1,0 +1,17 @@
+*.oa binary
+*.dm binary
+*.tar.gz binary
+*.png binary
+*.gds binary
+*.gdsii binary
+*.oas binary
+*.py text eol=lf
+*.scs text eol=lf
+*.va text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+# Preserve captured Cadence bytes, including generated whitespace.
+design/native/** -text -whitespace
+design/original-sar-reference/** -text -whitespace
+*.scs -whitespace
+*.oa- binary

@@ -1,0 +1,15 @@
+# IC on GitHub development
+
+Read `docs/architecture.md` before restructuring modules. `workspace.json` records the only application asset roots.
+
+- Edit `apps/web/` for browser integration, `apps/codex/` for plugin/CLI and existing app-server adapters, `modules/` for shared behavior, and `contracts/` for interfaces. `web/` and `dist/` are generated and ignored. Never patch generated output as the only fix.
+- Shared browser modules cannot import `apps/`. Inject gateway/context APIs. Keep `window.open`, `window.opener` and host window lifecycle in the browser adapter. The RNL vendor renderer still has single-document globals; do not claim multi-document isolation or native Codex mounting until implemented and tested.
+- `apps/codex/icwb/ai.py`, `host.py`, `rpc.py`, `sessions.py` remain the optional web AI bridge for compatibility. Native Codex should invoke MCP tools directly; it should not start a second model session through that bridge.
+- Gateway operation implementation lives in `modules/gateway_client/ic_gateway/`. Tool schema changes are made in its `contracts.py`; regenerate `contracts/ic-tools.v1.json` and check drift.
+- Use `python3 -B tools/dev/build.py all`, `python3 -B tools/dev/check_structure.py`, and affected tests. `tools/workbench/launch.py` builds web assets before startup. `tools/ai/ic_workbench.py` remains a compatibility command; new integrations use `apps/codex/ic_workbench.py` or the built `dist/ic-workbench/` package.
+- `projects/`, `design/`, `sim/`, `results/` and `validation/` are versioned engineering data/evidence. Keep identity paths and historical hash records intact during code work. `tools/sim/` has pinned integrity evidence; do not refactor it as collateral cleanup.
+- Local `config/*.local.json`, credentials, active state, PDK/model files and licenses stay outside committed application packages. Builds use explicit roots and do not package engineering data or private runtime state.
+- Before updating a running service, inspect active AI turns and pending approvals. Do not interrupt or replay them. Preserve isolated runtime source commits, waveforms and site settings. Separate process restart from build/publication; builds do not start models, simulations, SSH, or GitHub writes.
+- Saved waveform catalog viewing is independent of current schematic freshness. Schematic probes still need exact source/geometry/terminal mappings. Do not restore the regressed Esc-to-open popup behavior as an incidental refactor.
+- Ordinary circuit and MCP operations retain manual approvals. A user-authorized web developer session may use the server-configured `development_access: "full"` with native full access and no per-command approvals, scoped to that new model thread; do not change global Codex settings or self-resolve existing circuit approvals. Permission failures stop dependent operations.
+- A developer session may build and publish requested local frontend changes into the configured `web/` output after checking them. Static frontend publication does not require a gateway restart or a separate management session. Preserve active turns and their receipts when arranging backend restarts.

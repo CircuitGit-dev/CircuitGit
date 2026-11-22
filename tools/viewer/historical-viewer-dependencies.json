@@ -1,0 +1,571 @@
+{
+  "schema": "ic.workbench.viewer-dependencies.v1",
+  "owner": "\u7535\u8def\u56fe\u8fc1\u79fb",
+  "viewer": "0.5.1",
+  "core": "0.5.3",
+  "upstream_commit": "a240fe6bd952a28d0b7497c5c394b6c04d1f6d9c",
+  "scope": "full project hierarchy + specialized Switch/idealOTA + flatRC",
+  "files": [
+    {
+      "path": "viewer-adapter/README.md",
+      "sha256": "65a032e83498ec6e26cc1379933b50cf94df63d20e1de80f8ec8d02825d42347"
+    },
+    {
+      "path": "viewer-adapter/ic-selection-bridge.js",
+      "sha256": "0a954a43dafddeb23bc19be644a22816411f43f1f0e66958c33ada4f9a68ae0e"
+    },
+    {
+      "path": "viewer-adapter/index.js",
+      "sha256": "f7f41058c382cd6764128202c0d7de9c84655568820beedc7b8c2e7ed23ee7ca"
+    },
+    {
+      "path": "viewer-adapter/source-map.js",
+      "sha256": "59e0c66a0afe6f85bb275c083f5830cd8f6c153857606238edce2f15f15ea816"
+    },
+    {
+      "path": "vendor/rnl-viewer/LICENSE",
+      "sha256": "5a925c4a80bbecd05e5dc8636b04ec818563711e77bc9046e0349ebbd6859d80"
+    },
+    {
+      "path": "vendor/rnl-viewer/LICENSES/CC0-1.0.txt",
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    },
+    {
+      "path": "vendor/rnl-viewer/LICENSES/OFL-1.1.txt",
+      "sha256": "8eea8287e5876b539670cadb82e99f9a7afddec6f6730811be1daf25d2e9bcfd"
+    },
+    {
+      "path": "vendor/rnl-viewer/THIRD_PARTY_NOTICES.md",
+      "sha256": "b64643e9c5deb76e7a2a91b7dde4fb4e016f329f99042c92fec7d8f105db4bd9"
+    },
+    {
+      "path": "vendor/rnl-viewer/about.json",
+      "sha256": "5433ba3f94e8f960bfd457dabec448c0fae5e18c61045b5de8d1ae4a8781b76a"
+    },
+    {
+      "path": "vendor/rnl-viewer/background.js",
+      "sha256": "40e42e15c3060e9684d79461ab1abeabcd44a9549a18ebd2a853c038360a90ca"
+    },
+    {
+      "path": "vendor/rnl-viewer/commands.js",
+      "sha256": "998fe1d1947bbebe98696462d925ccf627f7f2ae9563679ba9b238f1078fa30a"
+    },
+    {
+      "path": "vendor/rnl-viewer/commands.json",
+      "sha256": "4cb8ab59fe101c8b03877c8445ad5f56ff31ef5defeb92a9d6021ececa46e3a8"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/LICENSE",
+      "sha256": "5a925c4a80bbecd05e5dc8636b04ec818563711e77bc9046e0349ebbd6859d80"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/LICENSES/CC0-1.0.txt",
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/LICENSES/OFL-1.1.txt",
+      "sha256": "8eea8287e5876b539670cadb82e99f9a7afddec6f6730811be1daf25d2e9bcfd"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/README.md",
+      "sha256": "13909808f81413322130a6c61cb2907fc4c4ab2fd336cbf56c1a5c1b5f8a586e"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/catalog.d.ts",
+      "sha256": "6ceb5487f474e019f1261e873d17ac87d2d0779a605af28854040e4f18c09330"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/client.d.ts",
+      "sha256": "e464b498b70e0406600a27bfe247d4ee443162013d17778fc5bff7811e47c22f"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/client.js",
+      "sha256": "aa8bd1a241c495c2fc2786330d70bce128bd31f66b8a9c462d46f8292fb2efca"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/core.d.ts",
+      "sha256": "d9f8f0c4521b1883754dc7369a237f8d640ea9e6a0aa9b5811e4053c8c626b32"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/core.js",
+      "sha256": "245127a3cb87577c2f52a3eddd8ab6c836fa501d86b652f5bc19f14b2a709bba"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/document.d.ts",
+      "sha256": "6da08c3b78a56e91eccabd2ac1bd6d3b8c409d4fd9885647688e182f06dd737a"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/manifest.d.ts",
+      "sha256": "9ae8a93ffc6b6879b3c598a82c1bfcacbef06b2a03ba20aa7ee217be5e566418"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/manifest.js",
+      "sha256": "ddeb9b056d4c5ced45c51f512f9f0b6656781c92e8f66c830a266748ed46355f"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/package.json",
+      "sha256": "c3a84a917c29f684fab3eb19735e54064c89ae43f3f4bd6b46959f1d87580063"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/packages.js",
+      "sha256": "ff997d6bce18b010502ba0eb6c3e1a5decce1f186e222917b634fc6ad3c1a273"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/rnl_runtime_wasm.wasm",
+      "sha256": "01fc0c1faf2a41774095792f8e3d8db0a2f1eaeb9b6663f45ad4fe1fe75a000b"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/snapshot.d.ts",
+      "sha256": "10020d38a5cec8a714cd8e1a5f09a4565d863c0bf3464189e18354a63c9bc31e"
+    },
+    {
+      "path": "vendor/rnl-viewer/core/worker.js",
+      "sha256": "13fba5145c9a4b910bf40cc1eb51b2a63bb9c080f4e1fceb67d2ba64ffdc7fcb"
+    },
+    {
+      "path": "vendor/rnl-viewer/dialog.js",
+      "sha256": "6f397d724843ac704672aa547c4c330f0c3429fc1533376e41b7b9028a3ba635"
+    },
+    {
+      "path": "vendor/rnl-viewer/display.js",
+      "sha256": "c3fdeab2afc3a199d0c64587cb81179776d56abcabba32164a2a38d087d6e4d0"
+    },
+    {
+      "path": "vendor/rnl-viewer/drawing.js",
+      "sha256": "aadc9197f81c7c0294e6303ffe7b99a53e0295415bea607feb5dcdcd26465706"
+    },
+    {
+      "path": "vendor/rnl-viewer/editor.js",
+      "sha256": "2e9edb344d8da3029c186323236c17d1c9f1cac07d63952ea76837aa8b2935d2"
+    },
+    {
+      "path": "vendor/rnl-viewer/edits.js",
+      "sha256": "e33bb608ac4f43353147095e6a5f013b35a6c55359366ef8d7fb1040eeae299c"
+    },
+    {
+      "path": "vendor/rnl-viewer/embed.css",
+      "sha256": "24379bf9d49edc06fad3c52c8ae5483c7fb8089abd90674ced6f6fc9c84052c8"
+    },
+    {
+      "path": "vendor/rnl-viewer/embed.js",
+      "sha256": "76903cdfe71b9b44ee5576fa90cb866240fc5b389058535865cbc41d8473cb74"
+    },
+    {
+      "path": "vendor/rnl-viewer/export-image.js",
+      "sha256": "098c0d887242e25303fc9924e279adcedbcc601a4f7e2f971eb45e606829cf52"
+    },
+    {
+      "path": "vendor/rnl-viewer/file-associations.js",
+      "sha256": "48bbfa18d347edea7ca1acd99b34d36e7eb8af34102fa6efc836a4d88ab7a0aa"
+    },
+    {
+      "path": "vendor/rnl-viewer/fonts/OFL.txt",
+      "sha256": "8eea8287e5876b539670cadb82e99f9a7afddec6f6730811be1daf25d2e9bcfd"
+    },
+    {
+      "path": "vendor/rnl-viewer/fonts/fonts.css",
+      "sha256": "37a43d0ab626b89387d4a35b8faf0a4824893d73c201d4e4d8065cf0c65c6731"
+    },
+    {
+      "path": "vendor/rnl-viewer/formats.js",
+      "sha256": "d17418e04f224e0d629fcb0d996ebe2f8782355b4b8cfe6575882846bf6089fe"
+    },
+    {
+      "path": "vendor/rnl-viewer/full-viewer-api.js",
+      "sha256": "d3c0493867f383a9e7c6bf7449a0e31de6bc4347f33d274e4d92ab14bb209a98"
+    },
+    {
+      "path": "vendor/rnl-viewer/grid.js",
+      "sha256": "d767a0061e0ce318474dda151685b836efed48003b02daf371f3bebe41ffc661"
+    },
+    {
+      "path": "vendor/rnl-viewer/hierarchy.js",
+      "sha256": "00962e7ce6f4b05bcfb870d9277982f347dbc3e1ed4ce48271403fa0aea988c3"
+    },
+    {
+      "path": "vendor/rnl-viewer/hits.js",
+      "sha256": "db951f7a7b0fc4ae0ad21f8bc8e7599cb96f8021e962a3ff689641adf145229f"
+    },
+    {
+      "path": "vendor/rnl-viewer/hover.js",
+      "sha256": "3fa0e3ebd85c0a9c84e17590bb5cd413b6bfef4b3e5967b08bb00d8f042fe6d9"
+    },
+    {
+      "path": "vendor/rnl-viewer/i18n.js",
+      "sha256": "e4e10e6f85541086cf37465322eb0644de011b03d95fae9c793901ae28602447"
+    },
+    {
+      "path": "vendor/rnl-viewer/ic-selection-bridge.js",
+      "sha256": "0a954a43dafddeb23bc19be644a22816411f43f1f0e66958c33ada4f9a68ae0e"
+    },
+    {
+      "path": "vendor/rnl-viewer/icons/apple-touch-icon.png",
+      "sha256": "89c2750e3aea74dab33b17704ad49e7b506a072c6fe4cce5bbe26b4f6a02af76"
+    },
+    {
+      "path": "vendor/rnl-viewer/icons/favicon-32.png",
+      "sha256": "bf6c13dad0868eab21dd1bbc66d54c09f46425bb8c9a9ffaf8b38b90640d54de"
+    },
+    {
+      "path": "vendor/rnl-viewer/icons/favicon.svg",
+      "sha256": "074bacb9625d823c5539f29c264e19ca0c40e3d34ce3ec137629225ad44427d9"
+    },
+    {
+      "path": "vendor/rnl-viewer/index.html",
+      "sha256": "15cea41cceee6749ba9a1fe41b96500c15da30bb0a64f3d22db3fd95c9c7293b"
+    },
+    {
+      "path": "vendor/rnl-viewer/inline-startup-1.js",
+      "sha256": "1db39aa29aeaaa0c7ffa35a341d1937d7caabb6a0c690681a895a480e4b6f769"
+    },
+    {
+      "path": "vendor/rnl-viewer/inline-startup-2.js",
+      "sha256": "4ec47fc59901a2d7dc668d405ea7a4c4f029ec6e0f460207fc7af3a5fabb25ef"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/bundled.json",
+      "sha256": "048e3ce43ecb29c810d5d3991c83c5804353c646c06fec9aa96e5a630ef6cb00"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/index.json",
+      "sha256": "a2361af20d57f330f5f9ad698f9ca13aaef95cb3fe25615aec3cc940555098da"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-std-core.rnl",
+      "sha256": "3ab41ae999379a3d1277dec870c9f09bb139c6840d21a5e79416ffcb3ce46af3"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-std-fill.rnl",
+      "sha256": "b000e0b21bcb904982b2548f65aa75baf1e115bbea31018e14a12738667f0851"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-std-layout.rnl",
+      "sha256": "00045c5468dbb00807ec6b9097b1430924cd17d8276dc09c43e8e1f9c6d60599"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-std-semantics.rnl",
+      "sha256": "32af209bbbf9a6527945000fa34cadf4c9f10b0f404484809b68d9aa3ecfda91"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-std-style.rnl",
+      "sha256": "4b7c54336b7fde4b0c8d1a6dee4dee233598ffd03eddd4bc44e0c1b91aaeb783"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-std-symbols.rnl",
+      "sha256": "78520048597b96645e16de666652bee16a0215a957870c0f1194f178f1dd2c67"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-std-virtual.rnl",
+      "sha256": "2966a0e0f733dbef13bc4b14bc80c22671049659e258c60111113efa830b51af"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-std.rnl",
+      "sha256": "f8a0acea4bf9041ef362d52ce669b87466d7d6de47085c6caacfd6ab24da2fd3"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.2/rnl-zh.rnl",
+      "sha256": "773e9cede0b7fb4ec1fa0791a1b997b9afb60282085fbb81cb81668e0fa28ac7"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-core.rnl",
+      "sha256": "5e062a8d50ea653bd3d80fae117a657690d0cf75cdefd825fb9c28f6887747ff"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-fill.rnl",
+      "sha256": "df10818a6258ab299a541cab87d47affcf6b90a77558cdafaf649460b9e70b5e"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-full.rnl",
+      "sha256": "4b76837ce9aed14ea229c8733159a205a461ccd6c3846e6bcf0fe4a5c9b68f50"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-functional.rnl",
+      "sha256": "7cfd168169c4d3bd06202859e3a52c09dce5f96b73d3fc8a47afde2fd3952819"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-logic.rnl",
+      "sha256": "d5ba55b37144cac5946f556fe0c240a59920c4f4a5b5d3307061fd23bd69f878"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-no-labels.rnl",
+      "sha256": "3874d456c04399c744db1d1e541cb9dff362d47cc83c370c4363c050fd4f3438"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-rf.rnl",
+      "sha256": "3c7eec6476c8abc03aeda996f59b5b656451319443fc804cd2e37fc946a7d1a5"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-signal-flow.rnl",
+      "sha256": "783ac794f0526346d3f2ca57192f5a73ebf203ac20f4832ebda3ae7ded1ea358"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-spectre.rnl",
+      "sha256": "0d17ede5db4c2e5b605e326f7c157bb4ef9c014398475304dd1b37a0627cbe1b"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-spice.rnl",
+      "sha256": "3f07507dc4faded7010f2d5241e990fb92326bf9b9835d5d4939484c22ba08af"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-structures.rnl",
+      "sha256": "137c4dd80dfede1ef4a87ca934e3d6a6a10e13d7d62d22111feb8c5a5feba338"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std-style.rnl",
+      "sha256": "53d4db5e4376eaa59ae9a4eb9f6716f1830a381ac1a5fc16b54c12071f7ac3e9"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-std.rnl",
+      "sha256": "7818dfee0614047d0959abf228dc2710b6d13e5aaced280863f8f88a9b1d53c2"
+    },
+    {
+      "path": "vendor/rnl-viewer/libraries/standard/0.3/rnl-zh.rnl",
+      "sha256": "7ab1d2b665b61b3dabb8132ffea1fcc607d83e0eaf0c9666d2503c2bd80797fd"
+    },
+    {
+      "path": "vendor/rnl-viewer/library-files.js",
+      "sha256": "ec84be1b715fb46577bedcc62e06f681496566e242ceef96091ba68546b4a052"
+    },
+    {
+      "path": "vendor/rnl-viewer/line-window.js",
+      "sha256": "c9afcea768096407b1d694634ec5b83f47f28fc2e9aaca81c2d4a34b172dd715"
+    },
+    {
+      "path": "vendor/rnl-viewer/loading.js",
+      "sha256": "05de295ae9344b63ef07110557785ddfbd019270d0d8ac9e3dac8f8bb162da1f"
+    },
+    {
+      "path": "vendor/rnl-viewer/locales/de.json",
+      "sha256": "fdd8b16bec44b5fdc8dd7944e273fc89b7ceac293638b745adfb490b9d1ecd73"
+    },
+    {
+      "path": "vendor/rnl-viewer/locales/es.json",
+      "sha256": "984458dd05222121eaa7877967810b07c3b5415080df31aa3457e81ba5faaf04"
+    },
+    {
+      "path": "vendor/rnl-viewer/locales/fr.json",
+      "sha256": "4c890e6db4a0522f036afb851aed1ad99ceb0dc36d80050c91d37748f3793bc1"
+    },
+    {
+      "path": "vendor/rnl-viewer/locales/ja.json",
+      "sha256": "6212d2ff94320349430ceedbb5346576238a0592f9870d36ebe55a40f43df466"
+    },
+    {
+      "path": "vendor/rnl-viewer/locales/ko.json",
+      "sha256": "b8d7959b9128ce85c02c5c05363ed513956c077e254138ae37da29955f6cec70"
+    },
+    {
+      "path": "vendor/rnl-viewer/locales/languages.json",
+      "sha256": "7bd63010e81f98fcd43b03e1dcbd161d3a30108f4152fc68c1731b8e956c8b42"
+    },
+    {
+      "path": "vendor/rnl-viewer/locales/zh-CN.json",
+      "sha256": "2761cfbde2032c1c5edf83d370636deff780859d6b4d3b2e42a875e78460c930"
+    },
+    {
+      "path": "vendor/rnl-viewer/locales/zh-Hant.json",
+      "sha256": "e19efd9e42f620dedc57da1bedf374ff9afe40b6ba3c850c7592bd536a023130"
+    },
+    {
+      "path": "vendor/rnl-viewer/main.js",
+      "sha256": "5bace4cf11f69bc8a8e8162ad7515cf4b9bfadeb046e81e5320238c6c5acaa2b"
+    },
+    {
+      "path": "vendor/rnl-viewer/manifest-bar.js",
+      "sha256": "9e9d4a20a1d3ec5c82815383a807d9bc9e3257f573053e778a568a96c3785947"
+    },
+    {
+      "path": "vendor/rnl-viewer/manifest.js",
+      "sha256": "05181ac0405ca47064e5ee5d82b1d04f3f05685586f6b009116d5233595429ec"
+    },
+    {
+      "path": "vendor/rnl-viewer/memory-cache.js",
+      "sha256": "d739d66bf8a54343b979e5b4f79d68bb17908d0602ac4582550978411b297e4a"
+    },
+    {
+      "path": "vendor/rnl-viewer/menubar.js",
+      "sha256": "62d3699dcdbf0eecd6d9891cbe3bdb84982620c7d38c0e1cddbc6e8541f152df"
+    },
+    {
+      "path": "vendor/rnl-viewer/navigation.js",
+      "sha256": "8766e1020f9966620cac35311990a655d48e7f779c02b8a1f28a2963362571e4"
+    },
+    {
+      "path": "vendor/rnl-viewer/netlist-colors.js",
+      "sha256": "a27abceb19b380f55ec9f8f9de2236a1fba4d8e01eabe6f7998ed61fa626963a"
+    },
+    {
+      "path": "vendor/rnl-viewer/open.js",
+      "sha256": "f448f488a2ebdfbc756c003b5a73564f4384c5de08171ab35ec04d704667f458"
+    },
+    {
+      "path": "vendor/rnl-viewer/package-offers.js",
+      "sha256": "24818d7b377d43af1a0388cf0384227848ac84409225b865ab10f6320e0f3d9e"
+    },
+    {
+      "path": "vendor/rnl-viewer/panels.js",
+      "sha256": "55e5eccd3e7fee50a917252e7ae61d73be5a5af7687ff45ff6d4ade7c8197469"
+    },
+    {
+      "path": "vendor/rnl-viewer/picker.js",
+      "sha256": "2bb09f01d662edea4b74ad05ffacc2485b8074353347930c8bba264fd96e73c0"
+    },
+    {
+      "path": "vendor/rnl-viewer/pool.js",
+      "sha256": "c1c6c41c34cb98911dee2ff138f8f4e8d4d4df471099622dd722fd4ba23e7d28"
+    },
+    {
+      "path": "vendor/rnl-viewer/preload-queue.js",
+      "sha256": "00dbe7e7a891dbc3279eaa8d7667cadcc9e2a7479781430dde865e1458e04a1f"
+    },
+    {
+      "path": "vendor/rnl-viewer/preload.js",
+      "sha256": "a7a339c08779fd4c280e187bbd5cc550dae0d8d703204c47e5734bf3f49242c3"
+    },
+    {
+      "path": "vendor/rnl-viewer/problems.js",
+      "sha256": "454f46f3b9cfd93004e8388b24785f649ffa20704c5dbc02c4b76560f18923ee"
+    },
+    {
+      "path": "vendor/rnl-viewer/project.js",
+      "sha256": "46489d7a37eb909e36d8454d1121cceb68ebbfb08d3fdfd2ef7b03549fc68de6"
+    },
+    {
+      "path": "vendor/rnl-viewer/provenance.json",
+      "sha256": "6a63f03473e9d8a8e06eefed3c1484b5e44954bbe39353f5e11731d6f7829c3e"
+    },
+    {
+      "path": "vendor/rnl-viewer/public-packages/catalog.json",
+      "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+    },
+    {
+      "path": "vendor/rnl-viewer/public-packages.js",
+      "sha256": "9b6cb298d9a49c87a2f67e65abc4a16a14f9b8bffccb1b6049f38abc24d43db6"
+    },
+    {
+      "path": "vendor/rnl-viewer/public-packages.json",
+      "sha256": "7bb5e8c0cd3dfadbc4a0e7b99996df694ff418c34d14a9af7fa5edf186af13b0"
+    },
+    {
+      "path": "vendor/rnl-viewer/roots.js",
+      "sha256": "11610213e5c915873cfe06e26d49216c596865100bff6db0c8c826b0860da286"
+    },
+    {
+      "path": "vendor/rnl-viewer/selection.js",
+      "sha256": "039880a083d6d74f8e0aae07a08c6ea0091cbbc686c5bd14201c226a22ef28ae"
+    },
+    {
+      "path": "vendor/rnl-viewer/shell.js",
+      "sha256": "0a3862f3ed7817d8a4eb3bedbc200987369a8ab69eec58ae7e413569bd10e3bd"
+    },
+    {
+      "path": "vendor/rnl-viewer/shells/web.js",
+      "sha256": "a3b1beac55e5c4ee7794439388a0bc6628549ceaf2307b62f9cfe40c89cd4965"
+    },
+    {
+      "path": "vendor/rnl-viewer/solve-settings.js",
+      "sha256": "0a68625b9601d30e517b33efcc29a9dc73a846cdbd5f42f9ce9f99fad4826dba"
+    },
+    {
+      "path": "vendor/rnl-viewer/solve.js",
+      "sha256": "e0f5b25d0e7e1555133378829cfb1138e17846065428ec130f2ff020dcae76fb"
+    },
+    {
+      "path": "vendor/rnl-viewer/source-path.js",
+      "sha256": "17dc0848b6a243d83a63f348721a8fb0b4131791e2990d4c007217c221cb63df"
+    },
+    {
+      "path": "vendor/rnl-viewer/startup.js",
+      "sha256": "9b9bf2d5036424ce57e0be51874cab215b5199767c755eaf8c17ba39b9a74a25"
+    },
+    {
+      "path": "vendor/rnl-viewer/state.js",
+      "sha256": "d564ed67bca11c4209f42f29a1d8faa30e089a091edfa2e22c5733e1f7332425"
+    },
+    {
+      "path": "vendor/rnl-viewer/style.css",
+      "sha256": "170ce7fcc2265c758f32b8aff933b7b405d6b4706c05574f2ccd6053bc012ec6"
+    },
+    {
+      "path": "vendor/rnl-viewer/subcircuits.js",
+      "sha256": "458cf5fedfb06c64450aa0f9b879ed3f15aefca1c0802ffed556ae2883b7a1a4"
+    },
+    {
+      "path": "vendor/rnl-viewer/svg-viewer.js",
+      "sha256": "27a4840244985b833e4322f7deb85498a0713edccd0dc1ab9ba9146c9141dcad"
+    },
+    {
+      "path": "vendor/rnl-viewer/symbol.js",
+      "sha256": "4594225388f0eeb54ffa0c9109c496421d0b4d9a2ec5c65cb337aef72abcf1f6"
+    },
+    {
+      "path": "vendor/rnl-viewer/syntax.js",
+      "sha256": "e397cc51f7002f3e91cad7f06da478c0290f43f2fceea74af14495200dff64a0"
+    },
+    {
+      "path": "vendor/rnl-viewer/text-find.js",
+      "sha256": "465fd8bc36dea2071a111e1fceff29f4f9af21e8fc445d2cb8c2b3ab52996ebd"
+    },
+    {
+      "path": "vendor/rnl-viewer/text-lines.js",
+      "sha256": "b5f62f59fd535333f0610c7d8955b50ae26ec4d781a149e26cf5a4804b4ae4cd"
+    },
+    {
+      "path": "vendor/rnl-viewer/text.js",
+      "sha256": "4f40e4c89609eb7411d1e2a6d27ccf66fa5c0d41b1d7ae4346e8268d534d265b"
+    },
+    {
+      "path": "vendor/rnl-viewer/touch-gestures.js",
+      "sha256": "8c1d760834f8fd8f01343b4a58a729f0726e56408623f7fd731f1335c837793a"
+    },
+    {
+      "path": "vendor/rnl-viewer/unplaced.js",
+      "sha256": "87929afadcd56d6365ad55d43a91b6ba0d0e6f2f3323428f36535b8e37b2553e"
+    },
+    {
+      "path": "vendor/rnl-viewer/updates.js",
+      "sha256": "65ad9bc6d11f8513a2c4d6921ab66352dfc3614165a69416ea2fa7c2032ecdd8"
+    },
+    {
+      "path": "vendor/rnl-viewer/usages.js",
+      "sha256": "91da00db3fff494462da4e55582607bb9d7eb7b89d16059101833f162170ec63"
+    },
+    {
+      "path": "vendor/rnl-viewer/util.js",
+      "sha256": "9ed4807f21170a3d2991f31f4cfa7179c09552dc7e961c0b98cf5366d47bbe52"
+    },
+    {
+      "path": "vendor/rnl-viewer/viewer-api-contract.js",
+      "sha256": "adc7435b7bbb949f8dcd48f4cbfc29e9215ee49c6897afdf03e296f7acb9d0d6"
+    },
+    {
+      "path": "vendor/rnl-viewer/viewer-api.js",
+      "sha256": "02b3b50dd2467c73ad56f1ca799c6ba5bc4104193680fa517fe2fa4a9b322024"
+    },
+    {
+      "path": "vendor/rnl-viewer/virtual-selection.js",
+      "sha256": "9b032af1eb8466d0d48e54babaf313908c239fb22b7d996081ae40fb5922cac2"
+    },
+    {
+      "path": "vendor/rnl-viewer/visit-source.js",
+      "sha256": "f12dc6994af03f12df8ca987c69f574e8d0808bcba168d1c7a3e7a6a30eb012c"
+    },
+    {
+      "path": "vendor/rnl-viewer/window-session.js",
+      "sha256": "598aa9e0e9f1e9abb98d492cb0e8aa9947bc405ce100955a2798ed8fad0bff15"
+    },
+    {
+      "path": "vendor/rnl-viewer/zip.js",
+      "sha256": "5175c4d7f0b19ad505bcd86244899085ca155537861c3efada117d224b48496f"
+    }
+  ],
+  "notes": "Owner supplied same-origin external startup scripts, compatible with strict CSP; no inline script policy relaxation."
+}

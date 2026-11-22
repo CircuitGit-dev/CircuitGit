@@ -1,0 +1,37 @@
+{
+  "schema": "ic.workspace.assets.v1",
+  "application": {
+    "source": "apps/web",
+    "mount": ""
+  },
+  "shared": [
+    {
+      "source": "modules/workspace",
+      "mount": "modules/workspace"
+    },
+    {
+      "source": "modules/schematic",
+      "mount": "modules/schematic"
+    },
+    {
+      "source": "modules/waveforms",
+      "mount": "modules/waveforms"
+    },
+    {
+      "source": "modules/simulation",
+      "mount": "modules/simulation"
+    }
+  ],
+  "output": "web",
+  "codex": {
+    "source": "apps/codex",
+    "shared_library": "modules/gateway_client/ic_gateway"
+  },
+  "data_roots": [
+    "projects",
+    "design",
+    "sim",
+    "results",
+    "validation"
+  ]
+}

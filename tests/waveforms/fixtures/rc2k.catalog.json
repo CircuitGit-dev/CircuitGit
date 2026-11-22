@@ -1,0 +1,88 @@
+{
+  "schema": "ic.waveforms.v1",
+  "run_id": "20261109T071529Z-ba49b4ff1c-955216aa",
+  "source_commit": "ba49b4ff1cecf8efa9b03dd46f755dac53a2bd8e",
+  "source_hashes": {
+    "projects/rc-smoke/template/bundle.json": "4357e0890e6001c35ca79cb6e596c8b362a67680a63c9be178827d00f011bb99",
+    "projects/rc-smoke/template/netlist/input.scs": "854d80eb8ad5dab05d75872c4dc1290034392a28aeb363585707fff0a3656788",
+    "projects/rc-smoke/circuit.scs": "60ce700d49d49d44e5b7b2f5671b12c5480f798c8cd1fd00e4a706ead86d2dbf",
+    "projects/rc-smoke/configurations/TRAN.json": "7bf5f8a44857310d9532bb4c62f7ee42befe688904f4edf15c3dc68c880b0bec"
+  },
+  "staged_sources": [
+    {
+      "destination": "netlist/input.scs",
+      "staged_sha256": "60ce700d49d49d44e5b7b2f5671b12c5480f798c8cd1fd00e4a706ead86d2dbf"
+    }
+  ],
+  "effective_config_sha256": "68758e5cbedad73e00d1006d414a7a92ee31c2c3f606bd46a09db59004c53569",
+  "archive_sha256": "de1423feb9210a9e0aba6980ca1a655e8756247651d24f66b66bdeacbb058515",
+  "raw_signature": "8ed53643f05247a8b5eb1f629bd542603afd1a10c347d7d42be6257f1a5fa2b6",
+  "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+  "csv_sha256": "cf8448f0449050dee06bfc2e7058202aa97efdf8de1f47e738dba141d44593ae",
+  "analyses": [
+    {
+      "id": "tran",
+      "kind": "transient",
+      "x_unit": "s",
+      "family": false
+    }
+  ],
+  "signals": [
+    {
+      "id": "s_6c8d453759193fe7b1e33bcc11825f98",
+      "psf_name": "in",
+      "label": "in",
+      "analysis": "tran",
+      "quantity": "voltage",
+      "unit": "V",
+      "polarity": null,
+      "status": "available",
+      "sample_count": 2401,
+      "domain": [
+        0.0,
+        1.20000000000005e-08
+      ],
+      "x_unit": "s",
+      "data_basis": "OCEAN_resampled_CSV",
+      "name_evidence": "exact name in same-run OCEAN export receipt and matching CSV header"
+    },
+    {
+      "id": "s_f7eb6b7dcd32a94b81ed8a3d9406d841",
+      "psf_name": "out",
+      "label": "out",
+      "analysis": "tran",
+      "quantity": "voltage",
+      "unit": "V",
+      "polarity": null,
+      "status": "available",
+      "sample_count": 2401,
+      "domain": [
+        0.0,
+        1.20000000000005e-08
+      ],
+      "x_unit": "s",
+      "data_basis": "OCEAN_resampled_CSV",
+      "name_evidence": "exact name in same-run OCEAN export receipt and matching CSV header"
+    }
+  ],
+  "coverage": "exported_subset",
+  "raw_catalog_complete": false,
+  "unexported_status": "saved_state_unknown",
+  "data_basis": "OCEAN_resampled_CSV",
+  "limits": {
+    "max_display_points": 10000,
+    "max_csv_rows": 200000,
+    "max_signals": 32
+  },
+  "unsupported": [
+    "ac",
+    "complex",
+    "dc_sweep",
+    "corner_family",
+    "monte_carlo_family"
+  ],
+  "extraction": {
+    "enabled": false,
+    "state": "requires_coordinator_slot"
+  }
+}

@@ -1,0 +1,4 @@
+# Runtime requires CPython >=3.9,<4 and only its standard library.
+# No pip packages, npm packages or bundled credentials are required by CLI/MCP/AI host.
+# External installed services: IC gateway HTTP v1; Codex app-server experimental dynamicTools.
+# Verified local Codex target: 0.167.0-alpha.3.2. Unsupported protocol fails closed.

@@ -1,0 +1,32 @@
+{
+  "upstream_commit": "e60b0dd750779106b7533cc3eed250e326926a16",
+  "upstream_version": "0.9.5",
+  "patch_sha256": "c5400d48db290d267a5172db2140b388c6655508de171ffb4431a82e90a959b3",
+  "files": [
+    {
+      "path": "rnl-virtuoso.il",
+      "original_sha256": "992c52c6fcbd5707f0564b511fbd1e9c812f1d9f216450198b0de5ebbe481eb7",
+      "patched_sha256": "c968f8dcfbe0e333e84bc5b1a142667eee2371a4736daceb5674671f782d8bfa"
+    },
+    {
+      "path": "cmd/rnl-virtuoso/native.go",
+      "original_sha256": "53c3d97d2c167b57b55a1cc9e3c76004f36e0df74cc15d964e21e1c0065d56c8",
+      "patched_sha256": "39c1f66fdebe9f6fa78a11187c4a1411199da62a94fc253ae9472a2bf413d159"
+    },
+    {
+      "path": "cmd/rnl-virtuoso/main.go",
+      "original_sha256": "bc5c4e0646e8ad0a6cd38ec870f6d15f9bde68b4e4edbb92eea09fc32a69476f",
+      "patched_sha256": "22da423fecf5f4d2fc69871dbaf4b69a67b61fe026d201755805e09ab0a0501b"
+    },
+    {
+      "path": "cmd/rnl-virtuoso/va_function_scope_test.go",
+      "original_sha256": null,
+      "patched_sha256": "eebaaa3db447d353772531a6361668ab9749e69f1470f9e0a38dd681e2dafe29"
+    },
+    {
+      "path": "cmd/rnl-virtuoso/ignored_figures.go",
+      "original_sha256": null,
+      "patched_sha256": "2e254492776a6143dbf6a13735a49be17a88091faab4b6a88f4af5835cdefa8b"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "ic.workbench.offline.v1",
+  "source_path": "projects/rc-smoke/circuit.scs",
+  "source_commit": null,
+  "sha256": "854d80eb8ad5dab05d75872c4dc1290034392a28aeb363585707fff0a3656788",
+  "source_type": "public_rc_example",
+  "note": "PDK-free RC example provided with CircuitGit. No historical simulator result is claimed.",
+  "repository": "joshuazeng713/CircuitGit",
+  "branch": "main",
+  "path": "projects/rc-smoke/circuit.scs",
+  "commit": null,
+  "project_id": "rc-smoke",
+  "name": "RC public example"
+}

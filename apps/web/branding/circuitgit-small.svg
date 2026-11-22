@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img"><title>CircuitGit — MOS transistor and revision branch</title><g transform="translate(16 0)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M108 114H176V40" stroke="#179B78" stroke-width="13"/>
+ <path d="M176 100V93Q176 76 159 76H97Q80 76 80 59V40" stroke="#179B78" stroke-width="13"/>
+ <path d="M108 198H176V224" stroke="#182A36" stroke-width="13"/>
+ <path d="M80 125V187M36 156H80M108 114V198" stroke="#182A36" stroke-width="13"/>
+ <circle cx="80" cy="40" r="14" fill="#179B78"/>
+ <circle cx="176" cy="40" r="14" fill="#179B78"/>
+ <circle cx="176" cy="224" r="14" fill="#182A36"/>
+ </g></svg>

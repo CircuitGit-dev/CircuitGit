@@ -1,0 +1,32 @@
+{
+  "schema": "ic.sim.bundle.v1",
+  "design_origin": "text-netlist",
+  "design_id": "rc-smoke",
+  "test_id": "rc-smoke-transient",
+  "test": "tran",
+  "source_root": ".",
+  "entrypoint": "netlist/input.scs",
+  "reviewed_for_distribution": true,
+  "external_sha256": {},
+  "simulator": {
+    "profile": "spectre-default",
+    "args": [
+      "-64",
+      "+lqtimeout",
+      "30"
+    ],
+    "output_format": "psfxl"
+  },
+  "configuration": {
+    "stop_s": 1.2e-08,
+    "R_ohm": 1000,
+    "C_F": 1e-12
+  },
+  "files": [
+    {
+      "source": "netlist/input.scs",
+      "destination": "netlist/input.scs",
+      "sha256": "854d80eb8ad5dab05d75872c4dc1290034392a28aeb363585707fff0a3656788"
+    }
+  ]
+}

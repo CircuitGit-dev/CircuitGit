@@ -1,0 +1,20 @@
+{
+  "schema": "ic.workbench.project.v1",
+  "id": "rc-smoke",
+  "name": "R/C Spectre smoke",
+  "source_path": "projects/rc-smoke/circuit.scs",
+  "configurations": [
+    {
+      "id": "TRAN",
+      "name": "Transient12ns",
+      "configuration_path": "projects/rc-smoke/configurations/TRAN.json",
+      "bundle_template": "projects/rc-smoke/template/bundle.json",
+      "source_replacements": [
+        {
+          "source": "projects/rc-smoke/circuit.scs",
+          "destination": "netlist/input.scs"
+        }
+      ]
+    }
+  ]
+}

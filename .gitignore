@@ -221,3 +221,37 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# CircuitGit local state and generated packages
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+*.local.json
+.env
+.env.*
+!.env.example
+runs/
+test-scratch/
+scratch/
+restored/
+*.cdslck
+*.cdslck.*
+*.log
+psf/
+ahdlSimDB/
+.codex_runs/
+.cadence/
+private/
+.local/
+test-results/
+node_modules/
+*.key
+*.pem
+
+# Generated application packages; edit apps/, modules/ and contracts/ instead.
+/web/
+/dist/
+.test-state/
+
+/site/

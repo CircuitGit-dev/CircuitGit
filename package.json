@@ -1,0 +1,33 @@
+{
+  "name": "circuitgit",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "test": "node --test tests/demo/*.test.mjs tests/context/*.test.mjs tests/waveforms/*.test.mjs tests/studio/*.test.mjs tests/viewer-vendor.test.mjs",
+    "test:browser": "node tests/demo/browser.mjs",
+    "serve": "python3 -B -m http.server 8765 --bind 127.0.0.1 --directory web",
+    "test:live": "node tests/live.test.mjs",
+    "test:viewer-browser": "node tests/viewer-browser.test.mjs",
+    "build:web": "python3 -B tools/dev/build.py web",
+    "build:codex": "python3 -B tools/dev/build.py codex",
+    "build": "python3 -B tools/dev/build.py all",
+    "check:structure": "python3 -B tools/dev/check_structure.py",
+    "pretest": "python3 -B tools/dev/build.py web",
+    "preserve": "python3 -B tools/dev/build.py web",
+    "test:modules": "node --test tests/native/model.test.mjs tests/context/*.test.mjs tests/waveforms/mapping.test.mjs tests/studio/*.test.mjs",
+    "test:architecture": "python3 -B tests/architecture/test_structure.py",
+    "test:architecture:browser": "node tests/architecture/browser.mjs",
+    "build:pages": "python3 -B tools/dev/build_pages.py",
+    "test:engineering": "node --test tests/core.test.mjs tests/viewer-mapping.test.mjs tests/viewer-hierarchy.test.mjs tests/viewer-vendor.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "description": "AI-native circuit design, versioned on GitHub.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joshuazeng713/CircuitGit.git"
+  },
+  "license": "MIT"
+}

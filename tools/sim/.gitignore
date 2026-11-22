@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+site.local.json
+runs/
+test-scratch/
+*.raw/
+*.ahdlSimDB/
+*.cdslck*
+*.log
+*.tar.gz

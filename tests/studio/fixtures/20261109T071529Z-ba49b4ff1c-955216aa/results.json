@@ -1,0 +1,208 @@
+{
+  "ok": true,
+  "data": {
+    "job_id": "20261109T071529Z-ba49b4ff1c-955216aa",
+    "state": "collected",
+    "collection": {
+      "sha256": "de1423feb9210a9e0aba6980ca1a655e8756247651d24f66b66bdeacbb058515",
+      "bytes": 105213,
+      "file_count": 28,
+      "contains_full_raw": true,
+      "included": "all regular files from run tree",
+      "excluded": [
+        "ahdl compiled cache",
+        "exports packaging scratch",
+        "launch_once directory"
+      ],
+      "summary": {
+        "execution_success": true,
+        "scientific_acceptance": false,
+        "source_commit": "ba49b4ff1cecf8efa9b03dd46f755dac53a2bd8e",
+        "configuration": {
+          "template_reference": {
+            "stop_s": 1.2e-08,
+            "R_ohm": 1000,
+            "C_F": 1e-12
+          },
+          "workbench": {
+            "description": "Built-in resistor/capacitor transient smoke; no PDK",
+            "parameters": {},
+            "analysis": {},
+            "simulator": {
+              "profile": "spectre-default",
+              "args": [
+                "-64",
+                "+lqtimeout",
+                "30"
+              ],
+              "output_format": "psfxl"
+            },
+            "postprocess": {
+              "signals": [
+                {
+                  "name": "in",
+                  "unit": "V"
+                },
+                {
+                  "name": "out",
+                  "unit": "V"
+                }
+              ],
+              "start_s": 0,
+              "end_s": 1.2e-08,
+              "step_s": 5e-12,
+              "max_display_points": 1600
+            }
+          },
+          "effective_parameters": {},
+          "effective_tran": "tran tran stop=12n maxstep=50p",
+          "effective_entrypoint_sha256": "60ce700d49d49d44e5b7b2f5671b12c5480f798c8cd1fd00e4a706ead86d2dbf",
+          "device_values_authority": "canonical source and staged netlist; template_reference is historical metadata"
+        },
+        "metrics": [],
+        "postprocess_phase": "complete",
+        "simulator_footer": [
+          "spectre completes with 0 errors, 0 warnings, and 1 notice."
+        ]
+      },
+      "collected_at": "2026-11-09T07:19:59.497648+00:00"
+    },
+    "metrics": [
+      {
+        "name": "simulator_exit_code",
+        "value": 0,
+        "unit": "code",
+        "scope": "execution"
+      }
+    ],
+    "summary": {
+      "execution_success": true,
+      "scientific_acceptance": false,
+      "source_commit": "ba49b4ff1cecf8efa9b03dd46f755dac53a2bd8e",
+      "configuration": {
+        "template_reference": {
+          "stop_s": 1.2e-08,
+          "R_ohm": 1000,
+          "C_F": 1e-12
+        },
+        "workbench": {
+          "description": "Built-in resistor/capacitor transient smoke; no PDK",
+          "parameters": {},
+          "analysis": {},
+          "simulator": {
+            "profile": "spectre-default",
+            "args": [
+              "-64",
+              "+lqtimeout",
+              "30"
+            ],
+            "output_format": "psfxl"
+          },
+          "postprocess": {
+            "signals": [
+              {
+                "name": "in",
+                "unit": "V"
+              },
+              {
+                "name": "out",
+                "unit": "V"
+              }
+            ],
+            "start_s": 0,
+            "end_s": 1.2e-08,
+            "step_s": 5e-12,
+            "max_display_points": 1600
+          }
+        },
+        "effective_parameters": {},
+        "effective_tran": "tran tran stop=12n maxstep=50p",
+        "effective_entrypoint_sha256": "60ce700d49d49d44e5b7b2f5671b12c5480f798c8cd1fd00e4a706ead86d2dbf",
+        "device_values_authority": "canonical source and staged netlist; template_reference is historical metadata"
+      },
+      "metrics": [],
+      "postprocess_phase": "complete",
+      "simulator_footer": [
+        "spectre completes with 0 errors, 0 warnings, and 1 notice."
+      ]
+    },
+    "waveform_status": "actual OCEAN export from this run PSFXL",
+    "artifacts": [
+      {
+        "name": "full-results.tar.gz",
+        "bytes": 105213,
+        "url": "/api/jobs/20261109T071529Z-ba49b4ff1c-955216aa/artifacts/full-results.tar.gz",
+        "sha256": "de1423feb9210a9e0aba6980ca1a655e8756247651d24f66b66bdeacbb058515"
+      },
+      {
+        "name": "result-summary.json",
+        "bytes": 1359,
+        "url": "/api/jobs/20261109T071529Z-ba49b4ff1c-955216aa/artifacts/result-summary.json",
+        "sha256": null
+      },
+      {
+        "name": "archive-files.json",
+        "bytes": 4061,
+        "url": "/api/jobs/20261109T071529Z-ba49b4ff1c-955216aa/artifacts/archive-files.json",
+        "sha256": null
+      },
+      {
+        "name": "latest-status.log",
+        "bytes": 740,
+        "url": "/api/jobs/20261109T071529Z-ba49b4ff1c-955216aa/artifacts/latest-status.log",
+        "sha256": null
+      },
+      {
+        "name": "waveforms.csv",
+        "bytes": 92256,
+        "url": "/api/jobs/20261109T071529Z-ba49b4ff1c-955216aa/artifacts/waveforms.csv",
+        "sha256": null
+      },
+      {
+        "name": "waveforms.json",
+        "bytes": 174115,
+        "url": "/api/jobs/20261109T071529Z-ba49b4ff1c-955216aa/artifacts/waveforms.json",
+        "sha256": null
+      },
+      {
+        "name": "waveforms.png",
+        "bytes": 44107,
+        "url": "/api/jobs/20261109T071529Z-ba49b4ff1c-955216aa/artifacts/waveforms.png",
+        "sha256": null
+      }
+    ],
+    "publication": {
+      "status": "published",
+      "archive_commit": "94bc51ec82dc8a2d1bc9c5b5736423bd92b5c7e7",
+      "branch": "codex/results/20261109T071529Z-ba49b4ff1c-955216aa",
+      "source_commit": "ba49b4ff1cecf8efa9b03dd46f755dac53a2bd8e",
+      "release_tag": "sim-20261109T071529Z-ba49b4ff1c-955216aa",
+      "full_archive_sha256": "de1423feb9210a9e0aba6980ca1a655e8756247651d24f66b66bdeacbb058515",
+      "release_id": 438833842,
+      "release_url": "https://github.com/analog-topology-synth/IC_on_Github/releases/tag/sim-20261109T071529Z-ba49b4ff1c-955216aa",
+      "release_target_commitish": "4730846e8e70fe0915efc016b16bf17b1a65102b",
+      "assets": [
+        {
+          "id": 726595315,
+          "name": "full-results.tar.gz",
+          "size": 105213,
+          "sha256": "de1423feb9210a9e0aba6980ca1a655e8756247651d24f66b66bdeacbb058515",
+          "digest": "sha256:de1423feb9210a9e0aba6980ca1a655e8756247651d24f66b66bdeacbb058515",
+          "url": "https://github.com/analog-topology-synth/IC_on_Github/releases/download/sim-20261109T071529Z-ba49b4ff1c-955216aa/full-results.tar.gz",
+          "verified": true
+        },
+        {
+          "id": 726595373,
+          "name": "waveforms.png",
+          "size": 44107,
+          "sha256": "91bb971c3c4dd5ae156cc9d54a410a5e303279ceea53be08496202003bb4e04b",
+          "digest": "sha256:91bb971c3c4dd5ae156cc9d54a410a5e303279ceea53be08496202003bb4e04b",
+          "url": "https://github.com/analog-topology-synth/IC_on_Github/releases/download/sim-20261109T071529Z-ba49b4ff1c-955216aa/waveforms.png",
+          "verified": true
+        }
+      ],
+      "verified_at": "2026-11-09T07:20:16.210206+00:00",
+      "verification_status": "complete"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "description": "Built-in resistor/capacitor transient smoke; no PDK",
+  "parameters": {},
+  "analysis": {},
+  "simulator": {
+    "profile": "spectre-default",
+    "args": [
+      "-64",
+      "+lqtimeout",
+      "30"
+    ],
+    "output_format": "psfxl"
+  },
+  "postprocess": {
+    "signals": [
+      {
+        "name": "in",
+        "unit": "V"
+      },
+      {
+        "name": "out",
+        "unit": "V"
+      }
+    ],
+    "start_s": 0,
+    "end_s": 1.2e-08,
+    "step_s": 5e-12,
+    "max_display_points": 1600
+  }
+}

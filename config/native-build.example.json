@@ -1,0 +1,20 @@
+{
+  "export_root": "../scratch/your-project-export",
+  "output": "../scratch/native-bundle-new",
+  "repository": "..",
+  "source_index_module": "../web/viewer-adapter/source-map.js",
+  "standard_packages": "../web/vendor/rnl-viewer/libraries/standard/0.3",
+  "id": "your-project-native",
+  "project_id": "your-project",
+  "source": {
+    "path": "projects/your-project/circuit.scs",
+    "commit": "REPLACE_WITH_EXPORT_SOURCE_FULL_COMMIT",
+    "sha256": "REPLACE_WITH_EXPORT_SOURCE_SHA256"
+  },
+  "snapshot_sha256": "REPLACE_WITH_SAVED_OA_SNAPSHOT_MANIFEST_SHA256",
+  "upstream": {
+    "commit": "e60b0dd750779106b7533cc3eed250e326926a16",
+    "version": "0.9.5"
+  },
+  "additional_verified_fragments": []
+}

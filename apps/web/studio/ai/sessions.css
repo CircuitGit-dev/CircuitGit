@@ -1,0 +1,100 @@
+.ic-ai-sessions {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg, #15222d);
+  background: var(--panel, #fff);
+  font: 12px/1.4 system-ui, sans-serif;
+}
+.ic-ai-sessions [hidden] { display: none !important; }
+.ic-ai-sessions-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 29px;
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--line, #dce4e9);
+}
+.ic-ai-session-tabs { display: flex; gap: 4px; flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.ic-ai-session-actions { display: flex; flex: 0 0 auto; gap: 4px; }
+.ic-ai-sessions-bar button {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  min-height: 24px;
+  margin: 0;
+  border: 1px solid var(--line, #ccd7de);
+  border-radius: 4px;
+  padding: 2px 7px;
+  color: inherit;
+  background: var(--bg, #f5f7f9);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ic-ai-sessions-bar button:disabled { opacity: .55; cursor: default; }
+.ic-ai-session-tab { display: inline-flex; align-items: center; gap: 6px; }
+.ic-ai-session-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.ic-ai-session-tab[aria-selected=true] { border-color: var(--accent, #327a9c); box-shadow: inset 0 -2px var(--accent, #327a9c); background: var(--panel, #fff); }
+.ic-ai-session-badge { color: var(--warning, #856019); font-size: 11px; }
+.ic-ai-sessions-message { padding: 3px 10px; overflow-wrap: anywhere; color: var(--error, #a3392e); }
+.ic-ai-session-panels { grid-row: 3; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
+.ic-ai-session-panel { box-sizing: border-box; height: 100%; min-height: 0; min-width: 0; overflow: hidden; }
+.ic-ai-session-panel[hidden] { display: none !important; }
+.ic-ai-session-dialog {
+  box-sizing: border-box;
+  width: min(420px, 92vw);
+  max-width: 92vw;
+  padding: 16px;
+  border: 1px solid var(--line, #ccd7de);
+  border-radius: 6px;
+  background: var(--panel, #fff);
+  color: var(--fg, #15222d);
+  font: 13px/1.5 system-ui, sans-serif;
+}
+.ic-ai-session-dialog::backdrop { background: #0005; }
+.ic-ai-session-dialog form { display: grid; gap: 12px; }
+.ic-ai-session-dialog label { display: grid; gap: 5px; }
+.ic-ai-session-dialog input { box-sizing: border-box; width: 100%; padding: 6px 8px; border: 1px solid var(--line, #ccd7de); color: inherit; background: var(--bg, #fff); font: inherit; }
+.ic-ai-session-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.ic-ai-session-dialog button { padding: 4px 12px; font: inherit; }
+.ic-ai-session-dialog-error { margin: 0; color: var(--error, #a3392e); overflow-wrap: anywhere; }
+.ic-ai-manager { width: min(720px, 94vw); max-width: 94vw; max-height: 85vh; padding: 0; }
+.ic-ai-manager[open] { display: flex; flex-direction: column; gap: 0; }
+.ic-ai-manager-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line, #dce4e9); }
+.ic-ai-manager-header > strong { flex: 1; font-size: 15px; }
+.ic-ai-manager-count { color: var(--muted, #687c87); font-size: 12px; }
+.ic-ai-manager-toolbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px; }
+.ic-ai-manager-toolbar input { flex: 1; min-width: 0; border-radius: 5px; }
+.ic-ai-manager-toolbar button { flex: 0 0 auto; }
+.ic-ai-manager-notice { flex: none; margin: 0; padding: 0 16px; color: var(--muted, #687c87); }
+.ic-ai-manager-notice:empty { display: none; }
+.ic-ai-manager-list { flex: 1; min-height: 80px; overflow: auto; overscroll-behavior: contain; padding: 8px 12px 12px; }
+.ic-ai-manager-row { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--line, #e5ecf1); border-radius: 5px; }
+.ic-ai-manager-row.is-current { background: var(--bg, #f2f6fc); }
+.ic-ai-manager-info { flex: 1; min-width: 0; }
+.ic-ai-manager-info > strong { display: inline; font-size: 13px; overflow-wrap: anywhere; }
+.ic-ai-manager-state { display: inline-block; margin-left: 8px; color: var(--muted, #687c87); font-size: 11px; }
+.ic-ai-manager-meta, .ic-ai-manager-reason { display: block; margin-top: 4px; color: var(--muted, #687c87); font-size: 11px; overflow-wrap: anywhere; }
+.ic-ai-manager-reason:empty { display: none; }
+.ic-ai-manager-actions { display: flex; flex: 0 0 auto; gap: 5px; }
+.ic-ai-session-dialog button { border: 1px solid var(--line, #ccd7de); border-radius: 5px; background: var(--panel, #fff); color: inherit; cursor: pointer; }
+.ic-ai-session-dialog button:disabled { opacity: .45; cursor: default; }
+.ic-ai-session-dialog .ic-ai-delete { color: #a33b32; }
+.ic-ai-manager-empty { color: var(--muted, #687c87); text-align: center; padding: 24px 12px; }
+.ic-ai-sessions button:focus-visible,
+.ic-ai-session-dialog button:focus-visible,
+.ic-ai-session-dialog input:focus-visible { outline: 2px solid var(--accent, #327a9c); outline-offset: -2px; }
+@media (max-width: 650px) {
+  .ic-ai-sessions-bar { padding-inline: 4px; gap: 4px; }
+  .ic-ai-session-name { max-width: 100px; }
+  .ic-ai-sessions-bar button { padding-inline: 5px; }
+  .ic-ai-manager-row { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .ic-ai-manager-actions { align-self: flex-end; flex-wrap: wrap; }
+  .ic-ai-manager-toolbar { flex-wrap: wrap; }
+  .ic-ai-manager-toolbar input { flex-basis: 100%; }
+}

@@ -1,0 +1,9 @@
+{
+  "package": "dockview-core",
+  "version": "4.13.1",
+  "license": "MIT",
+  "tarball": "https://registry.npmjs.org/dockview-core/-/dockview-core-4.13.1.tgz",
+  "integrity": "sha512-+7vR0ZEoL8CNck6NqDVUMqBT22niwBu5CMMI137dZ3c8NDc7c5Si+3dGEqQgM4lNtHBLAtvypo1C4p21J2wkiQ==",
+  "sha256": "912b8706123d21ef9dd5d2abc054e48ecc1b56bb1316176f58b5446f4eaaf15f",
+  "transform": "Removed absent source-map reference; otherwise npm bundled ESM unchanged."
+}

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "revision": 1,
+  "project": {
+    "id": "rc-smoke",
+    "sourceCommit": "ba49b4ff1cecf8efa9b03dd46f755dac53a2bd8e"
+  },
+  "file": {
+    "path": "projects/rc-smoke/circuit.scs",
+    "currentTextSha256": "60ce700d49d49d44e5b7b2f5671b12c5480f798c8cd1fd00e4a706ead86d2dbf",
+    "persistedSha256": "60ce700d49d49d44e5b7b2f5671b12c5480f798c8cd1fd00e4a706ead86d2dbf",
+    "dirty": false
+  },
+  "geometry": {
+    "state": "ready",
+    "sourceMatch": true,
+    "bundleCommit": "ba49b4ff1cecf8efa9b03dd46f755dac53a2bd8e",
+    "manifestSha256": "71c8132c4b2c9c8e24e6e0bf6be2a2a7f59d05d79c86929f1c253b681daf8bff",
+    "nativeReady": false,
+    "evidenceScope": "derived test geometry, not OA"
+  },
+  "run": {
+    "runId": "20261109T071529Z-ba49b4ff1c-955216aa",
+    "sourceCommit": "ba49b4ff1cecf8efa9b03dd46f755dac53a2bd8e"
+  },
+  "selection": null
+}

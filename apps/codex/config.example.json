@@ -1,0 +1,9 @@
+{
+  "gateway_url": "http://127.0.0.1:8766",
+  "state_dir": "./state",
+  "timeout_seconds": 30,
+  "codex_bin": "codex",
+  "development_workspace": null,
+  "development_access": "manual",
+  "disabled_operations": []
+}

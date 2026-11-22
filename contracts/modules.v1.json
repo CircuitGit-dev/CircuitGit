@@ -1,0 +1,11 @@
+{
+  "schema": "ic.module.catalog.v1",
+  "purpose": "Source inventory for host adapters; not a runtime capability advertisement",
+  "modules": [
+    {"id":"schematic", "entry":"modules/schematic/native-model.js", "kind":"source-and-geometry-model", "host_requirements":["RNL renderer", "verified source identity"], "limitation":"RNL renderer remains a single-document web adapter under apps/web/vendor"},
+    {"id":"waveforms", "entry":"modules/waveforms/panel.js", "kind":"dom-panel", "host_requirements":["root DOM element", "contextAdapter", "data API: jobs/catalog/mapping/waveform"], "stylesheet":"modules/waveforms/style.css"},
+    {"id":"simulation", "entry":"modules/simulation/panel.js", "kind":"dom-panel", "host_requirements":["Studio host v1", "gateway API", "simulation slot", "contextAdapter", "browser confirmation"], "stylesheet":"modules/simulation/style.css"},
+    {"id":"workspace", "entry":"modules/workspace/context.js", "kind":"context-store", "host_requirements":["source bytes", "optional verified export reader"]},
+    {"id":"gateway-client", "entry":"modules/gateway_client/ic_gateway/service.py", "kind":"python-service", "host_requirements":["loopback gateway URL", "private durable state directory"], "tool_contract":"contracts/ic-tools.v1.json"}
+  ]
+}

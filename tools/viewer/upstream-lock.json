@@ -1,0 +1,15 @@
+{
+  "upstream_repository": "https://github.com/rich-netlist/rnl",
+  "upstream_commit": "a240fe6bd952a28d0b7497c5c394b6c04d1f6d9c",
+  "viewer_version": "0.5.1",
+  "runtime_package": "@rich-netlist/runtime",
+  "runtime_version": "0.5.3",
+  "runtime_tarball": "https://registry.npmjs.org/@rich-netlist/runtime/-/runtime-0.5.3.tgz",
+  "runtime_integrity": "sha512-r9YzoAN8Bttp2eFZ/70mqo6euku/wFP4TN2qn7bTR/2CfKcrAadn10uRe55Gs4PAQqEPS1jL/rkg5Y1m6J82Bw==",
+  "runtime_archive_sha256": "5ed6c43853bc305897c2c66681acd1138be9d61806579b0205d0f65bd2e015c2",
+  "licenses": [
+    "MIT",
+    "CC0-1.0",
+    "OFL-1.1"
+  ]
+}

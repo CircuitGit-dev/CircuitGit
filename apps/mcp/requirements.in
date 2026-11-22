@@ -1,0 +1,2 @@
+# Optional portable server only. Existing Python3.9 plugin/CLI has no SDK dependency.
+mcp==2.3.0

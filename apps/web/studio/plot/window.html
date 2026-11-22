@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>RNL · 独立波形窗口</title><link rel="stylesheet" href="../../waveforms/panel.css"><link rel="stylesheet" href="./window.css"></head>
+<body><header><div><strong>RNL · Waveforms</strong><span id="plot-mode">未开启探针</span></div><button id="exit-probe" type="button">退出探针 Esc</button></header>
+<p id="connection" role="status">正在连接主窗口…</p><p id="window-provenance">等待真实工程与已保存运行。</p>
+<p id="probe-feedback" role="status"></p><main id="waveform-mount"></main>
+<script type="module" src="./window.js"></script></body></html>

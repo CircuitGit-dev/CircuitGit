@@ -1,0 +1,42 @@
+// CircuitGit public example: fixed, hand-authored RNL geometry. No PDK required.
+// @RNL(type="header") { @VERSION("0.3") }
+simulator lang=spectre
+global 0
+V0 (in 0) vsource type=pulse val0=0 val1=1 delay=1n rise=10p fall=10p width=5n period=10n
+R0 (in out) resistor r=1k
+C0 (out 0) capacitor c=1p
+tran tran stop=12n maxstep=50p
+save in out
+saveOptions options save=selected
+// @RNL {
+// %res = @DEFINE-SYMBOL(box=[-5,-1,5,1]) {
+//   (-5,0) @PIN(terminal=1); (5,0) @PIN(terminal=2);
+//   @LINE {(-5,0) (-3,0) (-2.5,0.8) (-1.5,-0.8) (-0.5,0.8) (0.5,-0.8) (1.5,0.8) (2.5,-0.8) (3,0) (5,0)};
+//   ? @TEXT("${name}",key="name",halign="middle") => @PLACE(0,2.5);
+//   (0,-2) @TEXT("1 kOhm",halign="middle")
+// };
+// %cap = @DEFINE-SYMBOL(box=[-2,-4,2,4]) {
+//   (0,4) @PIN(terminal=1); (0,-4) @PIN(terminal=2);
+//   @LINE {(0,4) (0,0.5)}; @LINE {(-2,0.5) (2,0.5)};
+//   @LINE {(-2,-0.5) (2,-0.5)}; @LINE {(0,-0.5) (0,-4)};
+//   ? @TEXT("${name}",key="name") => @PLACE(3,1.2);
+//   (3,-1.2) @TEXT("1 pF")
+// };
+// %voltage = @DEFINE-SYMBOL(box=[-2,-4,2,4]) {
+//   (0,4) @PIN(terminal=1); (0,-4) @PIN(terminal=2);
+//   (0,0) @CIRCLE(radius=2); @LINE {(0,4) (0,2)}; @LINE {(0,-2) (0,-4)};
+//   @LINE {(-0.6,0.8) (0.6,0.8)}; @LINE {(0,0.2) (0,1.4)}; @LINE {(-0.6,-0.8) (0.6,-0.8)};
+//   ? @TEXT("${name}",key="name",halign="end") => @PLACE(-3,1.2);
+//   (-3,-1.2) @TEXT("0 - 1 V",halign="end")
+// };
+// #"R0" @SET-SYMBOL %res; #"R0" @PLACE(0,4);
+// #"C0" @SET-SYMBOL %cap; #"C0" @PLACE(12,0);
+// #"V0" @SET-SYMBOL %voltage; #"V0" @PLACE(-12,0);
+// %wi = &"in" @WIRE(mode="straight") {#"V0":1 #"R0":1};
+// %wo = &"out" @WIRE(mode="straight") {#"R0":2 #"C0":1};
+// %wg = &"0" @WIRE(mode="straight") {#"V0":2 (0,-4) #"C0":2};
+// @LINE {(0,-4) (0,-4.7)};
+// @LINE {(-1.5,-4.7) (1.5,-4.7)}; @LINE {(-1,-5.3) (1,-5.3)}; @LINE {(-0.5,-5.9) (0.5,-5.9)};
+// %wi @TEXT("in",halign="middle") => @PLACE(-8.5,5.2);
+// %wo @TEXT("out",halign="middle") => @PLACE(8.5,5.2)
+// }
