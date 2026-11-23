@@ -203,7 +203,8 @@ class BootstrapTests(unittest.TestCase):
             self.assertEqual(launch.call_args.args[0],[str(python),'-E','-s','-B',str(entry),'--port','8769'])
             launch.reset_mock()
             with patch.object(bootstrap.sys,'prefix',str(python.parent.parent)), \
-                    patch.object(bootstrap.sys,'flags',SimpleNamespace(ignore_environment=1,no_user_site=1)):
+                    patch.object(bootstrap.sys,'flags',SimpleNamespace(ignore_environment=1,no_user_site=1)), \
+                    patch.dict('os.environ',bootstrap.safe_environment(),clear=True):
                 self.assertEqual(bootstrap.run_entrypoint(entry, callback,argv=[],root=self.root),12)
             launch.assert_not_called()
 
@@ -218,6 +219,46 @@ class BootstrapTests(unittest.TestCase):
             self.assertEqual(launch.call_args.args[0][1:4],['-E','-s','-B'])
             self.assertNotIn('PYTHONPATH',launch.call_args.kwargs['env'])
             self.assertNotIn('PYTHONUSERBASE',launch.call_args.kwargs['env'])
+
+    def test_clean_flags_still_reexec_when_environment_would_pollute_a_later_child(self):
+        python = self.root / '.local/python/verified/bin/python'
+        with patch.object(bootstrap,'ensure_python',return_value=python), \
+                patch.object(bootstrap.sys,'prefix',str(python.parent.parent)), \
+                patch.object(bootstrap.sys,'flags',SimpleNamespace(ignore_environment=1,no_user_site=1)), \
+                patch.dict('os.environ',{'PYTHONPATH':'/another-project','PYTHONUSERBASE':'/global-user'}), \
+                patch.object(bootstrap.subprocess,'call',return_value=0) as launch:
+            original=dict(bootstrap.os.environ)
+            self.assertEqual(bootstrap.run_entrypoint(self.root/'launch.py',lambda:self.fail('Must clean inherited environment'),argv=[],root=self.root),0)
+            self.assertNotIn('PYTHONPATH',launch.call_args.kwargs['env'])
+            self.assertNotIn('PYTHONUSERBASE',launch.call_args.kwargs['env'])
+            self.assertEqual(dict(bootstrap.os.environ),original,'The caller environment is never modified')
+            with patch.dict('os.environ',launch.call_args.kwargs['env'],clear=True):
+                self.assertEqual(dict(bootstrap.os.environ),bootstrap.safe_environment(),'Cleaning must be idempotent')
+
+    def test_real_nested_python_child_cannot_import_from_inherited_pythonpath(self):
+        # Verify the exact failure mode: a clean-flag entry later starts plain -B
+        # Python. Only package selection/prefix/flags are mocked; both downstream
+        # Python processes are real and run this no-network temporary script.
+        alien=self.root/'unrelated modules';alien.mkdir()
+        (alien/'bootstrap_pollution.py').write_text('unrelated = True\n')
+        output=self.root/'child-result.json';entry=self.root/'inherited-entry.py'
+        code="import importlib.util,json,os; print(json.dumps({'pythonpath':os.environ.get('PYTHONPATH'),'polluted':importlib.util.find_spec('bootstrap_pollution') is not None}))"
+        entry.write_text('import subprocess,sys\nfrom pathlib import Path\n'
+                         'result=subprocess.run([sys.executable,"-B","-c",'+repr(code)+'],capture_output=True,text=True,check=True)\n'
+                         'Path(sys.argv[1]).write_text(result.stdout)\n')
+        python=Path(bootstrap.sys.executable)
+        def application():
+            reply=subprocess.run([str(python),'-B','-c',code],capture_output=True,text=True,check=True)
+            output.write_text(reply.stdout)
+            return 0
+        with patch.object(bootstrap,'ensure_python',return_value=python), \
+                patch.object(bootstrap.sys,'prefix',str(python.parent.parent)), \
+                patch.object(bootstrap.sys,'flags',SimpleNamespace(ignore_environment=1,no_user_site=1)), \
+                patch.dict('os.environ',{'PYTHONPATH':str(alien)}):
+            original=dict(bootstrap.os.environ)
+            self.assertEqual(bootstrap.run_entrypoint(entry,application,argv=[str(output)],root=self.root),0)
+            self.assertEqual(dict(bootstrap.os.environ),original)
+        self.assertEqual(json.loads(output.read_text()),{'pythonpath':None,'polluted':False})
 
     def test_direct_entry_help_and_config_only_do_not_initialize_dependencies(self):
         with patch.object(bootstrap, 'ensure_python', side_effect=AssertionError('No setup')), \

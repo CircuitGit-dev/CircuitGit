@@ -257,7 +257,10 @@ def run_entrypoint(entry, application_main, *, argv=None, root=ROOT):
         print('[CircuitGit] ' + str(error), file=sys.stderr, flush=True)
         return 1
     if (Path(sys.prefix).resolve() == python.parent.parent.resolve()
-            and sys.flags.ignore_environment and sys.flags.no_user_site):
+            and sys.flags.ignore_environment and sys.flags.no_user_site
+            and dict(os.environ) == safe_environment()):
+        # -E ignores overrides in this interpreter but leaves them in environ.
+        # A later ordinary Python child must not inherit those stale overrides.
         return application_main()
     return subprocess.call([str(python), '-E', '-s', '-B', str(entry), *arguments],
                            cwd=str(root), env=safe_environment())
