@@ -48,8 +48,15 @@ Available views are source text, simulation inputs and documentation. This RC en
                  'files': [readme, provenance, *PUBLIC_DOCS]}]}
     plan = json.loads((ROOT / 'tools/library/adc-import-plan.json').read_text())
     info = next(x for x in plan['additional_libraries'] if x['id'] == 'basics')
-    write(ROOT / 'lib/basics/library.json', dump({'schema': 'circuitgit.library.v1', **info, 'cells': [cell]}), args.check)
-    print(json.dumps({'status': 'verified' if args.check else 'registered', 'library': 'basics', 'cells': 1,
+    manifest_path = ROOT / 'lib/basics/library.json'
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {'schema': 'circuitgit.library.v1', **info, 'cells': []}
+    if manifest.get('schema') != 'circuitgit.library.v1' or manifest.get('id') != 'basics' or not isinstance(manifest.get('cells'), list):
+        raise ValueError('Existing basics manifest identity or cells are invalid')
+    cells = [cell if current.get('id') == cell['id'] and current != cell else current for current in manifest['cells']]
+    if not any(current.get('id') == cell['id'] for current in manifest['cells']):
+        cells.insert(0, cell)
+    write(manifest_path, dump({**manifest, 'cells': cells}), args.check)
+    print(json.dumps({'status': 'verified' if args.check else 'registered', 'library': 'basics', 'cells': len(cells),
                       'referenced_files': len(files), 'network_calls': 0, 'simulation_calls': 0}))
 
 
