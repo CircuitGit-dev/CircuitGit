@@ -1,4 +1,4 @@
-name: Spectre operator workflow (manual and protected)
+name: Spectre operator workflow (configured and protected)
 on:
   workflow_dispatch:
     inputs:
@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       operation:
-        description: Submit/collect prepare human-reviewed requests; CI never approves them
+        description: Submit/collect follow the installed manual or scoped-direct operator policy
         type: choice
         options: [submit, plan, preflight, collect, results]
         default: submit

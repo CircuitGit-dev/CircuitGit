@@ -12,7 +12,7 @@ import sys
 TRUSTED = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(TRUSTED / 'tools/dev'))
 sys.path.insert(0, str(TRUSTED / 'tools/workbench'))
-from build_library import collect, path_at
+from build_library import collect, path_at, view_aliases
 from configuration import load_configuration
 
 ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\Z')
@@ -93,7 +93,47 @@ def selections(root, cells, benches):
     return selected, states
 
 
-def closure(root, files):
+def closure(root, files, aliases=None, entry=None):
+    if aliases is not None:
+        require(isinstance(files, list) and 0 < len(files) <= 4096 and all(isinstance(name, str) for name in files)
+                and len(files) == len(set(files)), 'Invalid canonical source inventory')
+        require(isinstance(entry, str) and entry in files, 'Aliased view needs its declared physical entry')
+        aliases = view_aliases({'files': files, 'aliases': aliases})
+        allowed, external, references = set(files), set(), {}
+        # Validate every physical member, including currently unreferenced assemblies.
+        # Relative dependencies are resolved only in their reachable logical context.
+        for name in files:
+            path = path_at(root, name)
+            if path.suffix not in ('.scs', '.va', '.v', '.rnl'):
+                references[name] = []; continue
+            text = path.read_text(); require('\x00' not in text, 'NUL in circuit source: ' + name)
+            refs = re.findall(r'^\s*(?:include|ahdl_include|`include)\s+"([^"\n]+)"', text, re.M)
+            for declaration in re.findall(r'@USE-PACKAGE\(([^)]*)\)', text):
+                path_ref = re.search(r'\bpath\s*=\s*"([^"\n]+)"', declaration)
+                package = re.search(r'\bname\s*=\s*"([^"\n]+)"', declaration)
+                require(path_ref or package, 'Invalid native package declaration: ' + name)
+                refs.append(path_ref[1] if path_ref else package[1] + '.rnl')
+            for ref in refs:
+                if re.fullmatch(r'@EXTERNAL_[A-Z0-9_]+@', ref) or ref in ('constants.vams', 'disciplines.vams'):
+                    continue
+                require(not ref.startswith('/') and not any(c in ref for c in '\\:$%?#')
+                        and not any(ord(c) < 32 or ord(c) == 127 for c in ref), 'Nonportable include in ' + name)
+            references[name] = refs
+        done = set()
+        def visit(logical, active):
+            require(logical not in active and len(active) < 64, 'Cyclic/excessive include hierarchy: ' + logical)
+            if logical in done: return
+            canonical = aliases.get(logical, logical)
+            require(canonical in allowed, 'Missing include/package from declared view closure: ' + logical)
+            for ref in references[canonical]:
+                if re.fullmatch(r'@EXTERNAL_[A-Z0-9_]+@', ref) or ref in ('constants.vams', 'disciplines.vams'):
+                    external.add(ref); continue
+                target = posixpath.normpath(posixpath.join(posixpath.dirname(logical), ref))
+                require(aliases.get(target, target) in allowed, 'Missing include/package from declared view closure: ' + logical + ' -> ' + ref)
+                visit(target, active | {logical})
+            done.add(logical)
+        visit(entry, set())
+        return sorted(external)
     allowed = set(files); external = set(); edges = {}
     for name in allowed:
         path = path_at(root, name)
@@ -143,9 +183,9 @@ def run(root, registry_path=None, base=None, head=None):
         for view in cell['views']:
             if view['kind'] not in ('rnl', 'spectre'): continue
             try:
-                closure(root, view['files'])
+                closure(root, view['files'], aliases=view.get('aliases'), entry=view['entry'])
                 if view['kind'] == 'rnl': report['rnl_views'].append({'library_id': identity[0], 'cell_id': identity[1], 'view_id': view['id'],
-                    'entry': view['entry'], 'level': view.get('level'), 'files': view['files']})
+                    'entry': view['entry'], 'level': view.get('level'), 'files': view['files'], **({'aliases': view['aliases']} if 'aliases' in view else {})})
             except ValueError as error: report['errors'].append(str(error))
     for tid in chosen:
         row = benches[tid]; identity = (row['library_id'], row['cell_id'])
@@ -160,7 +200,17 @@ def run(root, registry_path=None, base=None, head=None):
             result['configuration_sha256'] = hashlib.sha256(raw).hexdigest()
             views = [v for v in cells[identity]['views'] if row['configuration_path'] in v['files']]
             files = sorted({p for v in views for p in v['files']})
-            result['external_dependencies'] = closure(root, files)
+            if any('aliases' in view for view in views):
+                external = set(); legacy = set()
+                for view in views:
+                    if 'aliases' in view:
+                        external.update(closure(root, view['files'], view['aliases'], view['entry']))
+                    else:
+                        legacy.update(view['files'])
+                if legacy: external.update(closure(root, sorted(legacy)))
+                result['external_dependencies'] = sorted(external)
+            else:
+                result['external_dependencies'] = closure(root, files)
             result['input_hashes'] = {p: hashlib.sha256(path_at(root, p).read_bytes()).hexdigest() for p in files}
             if row.get('requires_external_models') or result['external_dependencies']:
                 result['simulation_status'] = 'blocked_external_models'

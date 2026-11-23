@@ -1,51 +1,48 @@
-# GitHub仿真迁移方案与清单
+# Git 电路源与独立 Spectre 流程
 
-最终源码接口是 `portable/INTERFACE.md`。最小项目主线为 `design_id=real-sar-20261106`，TOP=PIPE_TOP_F4_RS9_N06，TB=TB_PIPE_RS9_N06，history=Interactive.0，LOW/NYQUIST。ideal、MDAC分别保留，不覆盖成同一baseline。
+当前流程从 Git 中的电路源、RNL 图形和选定 testbench 配置出发，编译并核对输入后通过授权站点提交独立 Spectre 作业，再收集日志、波形与后处理结果。不需要恢复 OA 或运行 Virtuoso CIW。
 
-## 三层保存
+`tools/workbench/ic_sim.py` 是唯一 standalone runner 实现。`tools/sim/ic_sim.py` 仅保留旧 CLI/Python 导入兼容，实际函数与 runner hash 指向该实现。Bundle 和 site 字段详见[仿真接口](../tools/sim/INTERFACE.md)。网页、Agent 和远端调度使用现有网关授权与持久回执；旧 CLI 不替代这些管理规则。
 
-| 层 | 保存内容 | 不进入此层 |
-|---|---|---|
-| 私有Git项目 | 项目自有OA/semantic、源网表、VA、测试bundle、save/solver参数、分析代码、受审结果摘要与hash清单 | PDK/model body、凭据、许可证配置值、运行cache/lock、大PSF |
-| 本地机器配置 | site.local.json、SSH alias、服务器路径、个人输出目录 | 不提交Git，不把.env原样复制到其他机器 |
-| 授权服务器 | 站点Cadence/PDK、外部stdcell adapter、隔离ic_on_github_runs/<run_id>及结果 | 不复用活动ADE目录、CIW或历史submission ID |
+## 数据与运行边界
 
-Maestro的active.state/maestro.sdb、test_states、表达式等作为原生配置快照由主会话OA闭包承接；同时以可diff的JSON保存真实测试参数与求解选项。锁文件、消息数据库、历史results和.codex_runs不作为可执行源。编辑新的配置应在隔离副本中；当前活动ADE保持原样。
+| 位置 | 保存内容 |
+|---|---|
+| Git 电路库 | 所属 RNL/电气源、参数与保存信号配置、testbench 选择、受审摘要和来源记录 |
+| 本地私有配置 | SSH alias、站点路径、外部模型映射、连接凭据、运行状态与操作回执 |
+| 授权远端 | 独立 Spectre 进程、站点 PDK/许可证、每次运行的隔离输入/输出目录 |
+| 结果归档 | 与原 source/config/run 身份绑定的日志、波形、校验记录和已验证指标 |
 
-## 清单
+源网表可以直接进入 bundle。每个输入文件有精确 hash，include/Verilog-A 依赖需要显式闭合；外部模型通过站点 alias 引用，不自动复制进 Git。RNL 图形编辑与 Spectre 源的同步必须由实际修改和验证证明，不能只靠文件同名推断。
 
-- [x] 定位并hash原始7项测试的netlist/log/config及Nov6波形。
-- [x] 识别real-SAR5个VA快照、save文件、discontinuity=robust数值include。
-- [x] 显式记录PDK七个section、外部SVT/LVT库、内联ULVT定义边界。
-- [x] 独立CSV数值交叉检查；保留MDAC失败结论。
-- [x] 实现通用plan/preflight/run/status/collect；既有文本网表可以直接进入bundle。
-- [x] 修复csh登录壳多行引号；真实只读preflight与768字节binary回环通过。
-- [x] 离线shell测试：hash/依赖/路径拒绝、损坏tar、原子run目录、单次launch、失败终态。
-- [ ] 主会话提交正式OA/netlist闭包、ULVT adapter及规范bundle；不得仅把原始结果目录复制进Git。
-- [ ] 当前许可证checkout与site setup→真实Spectre新运行验证。
-- [ ] 真实结果回收与独立OCEAN指标复算；不在本轮启动昂贵仿真。
-- [ ] PDK递归文件锁定/版本清单、原始AHDL源码绑定；历史bundle无法用当前hash自动补证。
+## 执行和恢复
 
-## 一条命令与恢复
-
-本轮只执行过plan/preflight。未来bundle完成审查和commit后，通用命令为：
+从仓库根目录运行无网络的示例计划：
 
 ```bash
-python3 tools/sim/ic_sim.py --site ~/.config/ic-on-github/site.local.json run --bundle sim/bundles/real-sar-low/bundle.json --execute --raw --results .sim-runs
+python3 -B tools/workbench/ic_sim.py --site config/site.example.json plan --bundle tools/sim/fixtures/bundle.json
 ```
 
-路径中的bundle名称由集成人最终确定，不能未经核实就视作已经存在。`run`包含预检、冻结清单、staging、单次提交、等待、collect；源码commit及配置hash随run.json保留。来源history是参考标签，新run_id不写回Maestro。断线/超时保留receipt，执行status/collect；不新建run来重试未知结果。此原型不提供自动kill/清理。
+这个 fixture 只检查传输/输入组织，未获准执行，也不代表 ADC 仿真。实际运行使用操作者自己的受审 bundle 和私有 site：
 
-模型与setup在提交前和job开始时验hash。服务器目录隔离是工作目录及输出路径约束，并非容器/权限沙箱；正式源包仍需审查绝对输出文件路径。对于外部PWL/波形等额外输入，需显式列入files并使用包内相对路径。工具不会自行打包PDK。
+```bash
+python3 -B tools/workbench/ic_sim.py --site /absolute/site.local.json preflight --bundle /absolute/bundle.json
+python3 -B tools/workbench/ic_sim.py --site /absolute/site.local.json run --bundle /absolute/bundle.json --execute --raw --results /absolute/run-results
+```
 
-GitHub hosted CI仅运行离线静态检查。授权服务器执行Spectre，未来可由人工workflow_dispatch或可信自托管runner触发；本轮只提供静态workflow模板，没有安装runner或配置secrets。
+`plan` 不联网；`preflight` 会检查授权远端。`run --execute` 检查受审文件、Git 提交、输入和外部模型 hash，创建独立目录并进行单次提交。模型、setup 和工具来源随运行回执保留。默认结果目录属于 canonical runner；集成时建议显式传 `--results`。
 
-## 本地设置、后处理与比较
+断线、超时或不确定结果必须沿用原 receipt 查询/收集，不能改 key 或另开运行来重试：
 
-保留Fin/Fs/cycle/N/Tper的一致性：Nov6 1GS/s，N=16，cycle1/7，Fin62.5/437.5MHz，Tfft4ns，stop24ns。源参数必须在原声明处修改，不能追加覆盖依赖表达式。quantizer=2Vpp与input=1.8Vpp独立；不得为了匹配输入而缩小满量程。
+```bash
+python3 -B tools/workbench/ic_sim.py --site /absolute/site.local.json status --receipt /absolute/run-results/RUN_ID/run.json
+python3 -B tools/workbench/ic_sim.py --site /absolute/site.local.json collect --receipt /absolute/run-results/RUN_ID/run.json --raw
+```
 
-real-SAR采样n4…19，末级读码n+2.45ns，保持值n+0.40ns，粗码/残差n+0.98ns。保留非二进制权重216/140/72/38/20/12/6/4/2/1及既有极性。C=256K+Q−128；电压中心重建(C+0.5)/2048−1。FFT用16点矩形相干窗，SNDR排除DC和基波；不可擅用正弦拟合/校准扣误差。
+运行成功 footer 与退出码只证明求解器完成。PSFXL/OCEAN/CSV 的读取与科学测量另行核对；配置、结果归档与指标均需保留原运行身份。未知状态不自动取消、清理或重复提交。
 
-优先保留PSFXL及独立OCEAN导出。原 `postprocess_Interactive.1_exprfix.ocn` 可作表达式参考，但其绝对PSF和输出路径需改为run相对路径，且只能在自己的OCEAN进程中运行。当前CLI不自动执行它，通用bridge ASCII parser也不能直接读PSFXL。
+## CI 与历史
 
-参考演讲HTML已读取并留在evidence/reference.html；本轮仅采用其文本化、可审查的组织思路，未引入Rich Netlist依赖或据此宣称工具兼容性。
+公共 GitHub CI 可验证源码、配置、include 闭包和 RNL。真实 Spectre 需要已配置的授权执行环境，不能从静态检查通过推断模型或许可证可用。现行 TB 选择与工作流见[TB CI](circuit-ci.md)。
+
+2026-11-09 的 real-SAR、ideal 和 MDAC 导入使用各自原始设置与测量约定；历史波形和失败结论保持原样。Maestro/OA 导出在当时作为配置来源，不是当前执行依赖。原始迁移清单、采样/译码/FFT 约定及当时尚未完成的验证可查阅[固定历史版本](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/docs/simulation-migration-plan.md)。不要把历史未完成事项、私有路径或旧结果当作当前新运行的验收。

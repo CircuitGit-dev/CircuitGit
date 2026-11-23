@@ -1,7 +1,7 @@
 name: simulation-static
 on:
   pull_request:
-    paths: ['tools/sim/**', '.github/workflows/sim-static.yml']
+    paths: ['tools/sim/**', 'tools/workbench/ic_sim.py', '.github/workflows/sim-static.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,9 +14,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Offline runner and shell tests
-        working-directory: tools/sim
-        run: python -B test_ic_sim.py
+        run: python -B tools/sim/test_ic_sim.py
       - name: Offline generic bundle hash plan
-        working-directory: tools/sim
         run: |
-          python -B ic_sim.py --site site.local.example.json plan --bundle fixtures/bundle.json
+          python -B tools/workbench/ic_sim.py --site config/site.example.json plan --bundle tools/sim/fixtures/bundle.json

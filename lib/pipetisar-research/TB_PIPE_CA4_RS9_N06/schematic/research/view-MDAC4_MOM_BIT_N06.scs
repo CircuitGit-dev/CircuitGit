@@ -1,4 +1,0 @@
-// Explicit saved-library assembly.
-simulator lang=spectre
-include "Switch.scs"
-include "MDAC4_MOM_BIT_N06.scs"

@@ -17,8 +17,9 @@ import sys
 import time
 from urllib.parse import urlsplit
 from .service import Service,Failure,check,atom,SCHEMAS
+from .library import CONFIG_KEYS as LIBRARY_CONFIG_KEYS
 
-SETTINGS_KEYS={'schema','gateway_url','state_dir','workbench_config','disabled_operations'}
+SETTINGS_KEYS={'schema','gateway_url','state_dir','workbench_config','disabled_operations'} | LIBRARY_CONFIG_KEYS
 TOOL_NAMES={'ic_plugin_status','ic_plugin_connect'}
 
 
@@ -44,6 +45,7 @@ class PluginRuntime:
         cfg={'gateway_url':self.settings['gateway_url'] if self.settings else 'http://127.0.0.1:8766',
              'state_dir':self.settings['state_dir'] if self.settings else str(self.settings_path.parent/'state'),
              'timeout_seconds':30,'disabled_operations':self.settings.get('disabled_operations',[]) if self.settings else []}
+        if self.settings: cfg.update({key: self.settings[key] for key in LIBRARY_CONFIG_KEYS if key in self.settings})
         self.service=Service(cfg)
         self.control=self.service.state/'plugin-runtime';self.control.mkdir(parents=True,exist_ok=True)
 

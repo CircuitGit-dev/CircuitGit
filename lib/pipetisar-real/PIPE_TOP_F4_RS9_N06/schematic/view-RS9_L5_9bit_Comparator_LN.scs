@@ -1,3 +1,0 @@
-// Explicit native hierarchy assembly; no automatic inclusion.
-simulator lang=spectre
-include "RS9_L5_9bit_Comparator_LN.scs"

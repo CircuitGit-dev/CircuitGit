@@ -1,3 +1,0 @@
-// Explicit saved-library assembly.
-simulator lang=spectre
-include "RS9_L6_9bit_REF_Logic.scs"

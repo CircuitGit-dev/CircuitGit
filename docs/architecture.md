@@ -19,7 +19,8 @@ tools/
   dev/                       offline builds and boundary checks
   workbench/                 installed gateway/compiler/runner/publisher
   ai/                        compatibility entrypoints only
-  sim/, native_geometry/, …  existing reproducible EDA/export tooling
+  sim/                      compatibility CLI, offline runner tests and historical records
+  native_geometry/          processing/validation of previously imported geometry
 projects/, design/, sim/    authoritative sources and historical design/input snapshots
 lib/                       reviewed public libraries, cell views and provenance
 results/, validation/       historical results, provenance and acceptance evidence
@@ -62,7 +63,7 @@ python3 -B dist/ic-workbench/ic_workbench.py --json schema
 python3 -B tools/ai/ic_workbench.py --json schema
 ```
 
-The web build maps `apps/web` to the static root and shared modules to `/modules/…`. It rewrites only relative references to registered assets, preserving old URLs such as `/vendor/rnl-viewer/index.html`, `/studio/plot/window.html`, `/waveforms/panel.js` and `/legacy-dashboard.html`. Source imports continue to work for Node unit tests; built imports are checked separately. No source symlinks or external static roots are introduced.
+The web build maps `apps/web` to the static root and shared modules to `/modules/…`. It rewrites only relative references to registered assets, preserving the viewer, plot and waveform routes such as `/vendor/rnl-viewer/index.html`, `/studio/plot/window.html` and `/waveforms/panel.js`. The retired dashboard and its exclusive root app/styles/AI mount have been removed; `/` opens the RNL Studio. Source imports continue to work for Node unit tests; built imports are checked separately. No source symlinks or external static roots are introduced.
 
 The plugin build copies `apps/codex`, the shared Python client into `lib/ic_gateway`, and the fixed gateway execution modules into `gateway/`. It does not include engineering snapshots, result archives, runtime state or local config. A minimal gateway status page is bundled; if the configured repository has a built web application, the automatically started gateway continues to serve it. The legacy diagnostic AI sidecar assets under `apps/codex/web/` remain for `serve-ai` compatibility.
 
@@ -75,6 +76,10 @@ The optional browser `developer` permission mode creates a native Codex developm
 Application code, editable design data, historical snapshots, and runtime state have different lifecycles. This migration moves application code only. Existing `projects`, `design`, `sim`, `results`, `validation` paths and bytes remain unchanged; archived hashes and fixed runtime commits are not recalculated to disguise differences.
 
 Do not move PDK dependencies into shared modules. Production site credentials and remote directory identities remain in private configuration. AI turn history is runtime state and must not be added to Git to preserve a UI layout.
+
+`tools/workbench/ic_sim.py` is the only standalone Spectre runner implementation. `tools/sim/ic_sim.py` forwards CLI and Python imports, including callers using `spec_from_file_location`; runner hashes and default directories come from the canonical implementation. The old OA capture/restore, batch netlist export and rnl-virtuoso export launcher are no longer application entrypoints. Their historical import instructions and fixed Git source references are described in [native geometry migration](native-geometry-migration.md). Existing provenance, exporter hashes and licenses remain historical evidence.
+
+Current library work edits owned RNL, electrical source and configuration files directly. Selected configurations produce pinned simulation input for an independently configured remote Spectre process; no Virtuoso session is needed to edit a library or submit that standalone runner. External model and licensed simulator availability are checked separately from source editing. Historical `tools/check_project.py` integrity checks still require the original private engineering snapshot; the public checkout does not synthesize missing archives or rewrite their recorded hashes.
 
 The public library extension uses `lib/catalog.json` and per-library manifests. The Pages publisher copies only the explicitly reviewed view inventories into `library-files/`; application/plugin builds still exclude engineering snapshots. Library browsing uses the existing RNL source/geometry loader and is independent of AI node project selection. Opening a library schematic clears the RC analytical data, and cells without a registered runtime project cannot submit a simulation. See [circuit libraries](circuit-libraries.md).
 

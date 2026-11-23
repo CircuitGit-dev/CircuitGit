@@ -61,7 +61,7 @@ def confirmation_html(origin, state, rid, csrf, local_url, script_nonce):
 <title>授权 CircuitGit 连接本机</title><style nonce="''' + script_nonce + '''">
 body{font:15px system-ui;max-width:470px;margin:40px auto;padding:24px;color:#244336;background:#f4f8f5}h1{font-size:23px}p{line-height:1.7}strong{overflow-wrap:anywhere}button{font:inherit;border:1px solid #b8cfc1;border-radius:8px;padding:12px 18px;cursor:pointer;margin:12px 8px 0 0}#allow{color:white;background:#177652}small{color:#647b6c}#status{min-height:40px}</style>
 <h1>连接本机 Codex</h1><p>允许以下网站使用这台电脑上的 CircuitGit 项目和 Codex 对话吗？</p><strong>''' + html.escape(origin) + '''</strong>
-<p>授权后会检查本机 Codex 登录状态。需要登录时，由 Codex 打开官方登录页。账号凭据保留在本机，电路修改和仿真继续使用人工审批。</p>
+<p>授权后会检查本机 Codex 登录状态。需要登录时，由 Codex 打开官方登录页。账号凭据保留在本机，连接后可直接保存电路、记录检查点、恢复版本、提交 Git 和创建或更新 PR；远端仿真使用已配置的授权范围。</p>
 <button id="allow">允许并连接</button><button id="deny">取消</button><p id="status" role="status"></p><small>这是本机连接确认，不会启动模型消息或仿真。</small>
 <script nonce="''' + script_nonce + '''">
 const c=''' + config + ''';

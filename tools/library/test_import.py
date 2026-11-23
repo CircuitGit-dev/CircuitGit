@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import import_adc as imp
+import deduplicate as canonical
 
 
 class NativeImportTests(unittest.TestCase):
@@ -22,9 +23,11 @@ class NativeImportTests(unittest.TestCase):
                 p = json.loads((imp.ROOT / cell['directory'] / 'docs/provenance.json').read_text())
                 view = next(v for v in cell['views'] if v['kind'] == 'rnl')
                 self.assertEqual(view['level'], p['native_level'])
-                self.assertEqual(set(view['files']), {f['path'] for f in p['files']})
+                snapshot = canonical.view_snapshot(imp.ROOT, view)
+                aliases = view.get('aliases', {})
+                self.assertEqual(set(view['files']), {aliases.get(f['path'], f['path']) for f in p['files']})
                 for f in p['files']:
-                    raw = (imp.ROOT / f['path']).read_bytes()
+                    raw = snapshot[f['path']]
                     self.assertEqual(imp.digest(raw), f['sha256'])
                     if f['transformation'] == 'none':
                         self.assertEqual(f['source_sha256'], f['sha256'])
@@ -38,11 +41,24 @@ class NativeImportTests(unittest.TestCase):
 
     def test_spectre_and_rnl_dependency_closures(self):
         for lib in self.plan['libraries']:
+            manifest = json.loads((imp.ROOT / 'lib' / lib['id'] / 'library.json').read_text())
+            cells = {cell['id']: cell for cell in manifest['cells']}
             for c in lib['cells']:
-                folder = imp.ROOT / 'lib' / lib['id'] / c['id'] / ('symbol' if c['symbol_only'] else 'schematic')
+                view = next(v for v in cells[c['id']]['views'] if v['kind'] == 'rnl')
+                snapshot = canonical.view_snapshot(imp.ROOT, view)
+                canonical.verify_dependencies(snapshot)
+                folder = Path('lib') / lib['id'] / c['id'] / ('symbol' if c['symbol_only'] else 'schematic')
                 for name in c['files']:
-                    for dep in imp.includes((folder / name).read_text()):
+                    for dep in imp.includes(snapshot[(folder / name).as_posix()].decode('utf-8')):
                         self.assertIn((Path(name).parent / imp.relative(dep)).as_posix(), c['files'])
+
+    def test_canonical_migration_preserves_historical_evidence(self):
+        path = imp.ROOT / canonical.REPORT
+        if not path.exists():
+            self.skipTest('Canonical migration is not applied')
+        result = canonical.verify(imp.ROOT, json.loads(path.read_bytes()))
+        self.assertEqual(result['verified_rnl_views'], 96)
+        self.assertTrue(result['original_snapshots_identical'])
 
     def test_partial_export_and_non_runnable_status_are_explicit(self):
         report = json.loads((imp.ROOT / 'lib/validation/native-render.json').read_text())
@@ -78,12 +94,16 @@ class NativeImportTests(unittest.TestCase):
         plan = copy.deepcopy(self.plan)
         library = copy.deepcopy(plan['libraries'][0])
         cell = next(c for c in library['cells'] if c['id'] == 'Switch')
+        manifest = json.loads((imp.ROOT / 'lib/pipetisar-real/library.json').read_bytes())
+        current = next(c for c in manifest['cells'] if c['id'] == 'Switch')
+        view = next(v for v in current['views'] if v['kind'] == 'rnl')
+        snapshot = canonical.view_snapshot(imp.ROOT, view)
         library['cells'] = [cell]
         seed = Path(tmp) / 'seed'
         for name in cell['files']:
             dest = seed / plan['source_root'] / name
             dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes((imp.ROOT / 'lib/pipetisar-real/Switch/schematic' / name).read_bytes())
+            dest.write_bytes(snapshot['lib/pipetisar-real/Switch/schematic/' + name])
         return seed, plan, library
 
     def test_changed_source_pin_rejected(self):

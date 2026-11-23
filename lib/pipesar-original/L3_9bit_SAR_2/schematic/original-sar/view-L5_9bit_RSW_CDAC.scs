@@ -1,4 +1,0 @@
-// Explicit saved-library assembly.
-simulator lang=spectre
-include "L6_9bit_RSW.scs"
-include "L5_9bit_RSW_CDAC.scs"

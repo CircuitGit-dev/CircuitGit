@@ -1,3 +1,0 @@
-// Explicit saved-library assembly.
-simulator lang=spectre
-include "RS9_L8_9bit_CDAC_UNIT.scs"

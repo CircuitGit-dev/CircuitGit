@@ -1,4 +1,0 @@
-// Explicit native hierarchy assembly; no automatic inclusion.
-simulator lang=spectre
-include "RS9_L8_9bit_CDAC_UNIT.scs"
-include "RS9_L7_9bit_CDAC.scs"

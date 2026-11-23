@@ -1,0 +1,6911 @@
+{
+  "schema": "circuitgit.library-sources.v1",
+  "library_id": "pipetisar-real",
+  "cell_id": "TB_PIPE_RS9_N06",
+  "targets": {
+    "PIPE_LOW": {
+      "template_source": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/project.scs",
+      "template_sha256": "79057c5663690718c54004896eb155d1d176f1826ff4e45a66f108ce83c1d4c8",
+      "destination": "netlist/project.scs"
+    },
+    "PIPE_NYQUIST": {
+      "template_source": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/project.scs",
+      "template_sha256": "79057c5663690718c54004896eb155d1d176f1826ff4e45a66f108ce83c1d4c8",
+      "destination": "netlist/project.scs"
+    }
+  },
+  "subcircuits": [
+    {
+      "target_subcircuit": "Switch",
+      "source": "lib/pipetisar-real/Switch/schematic/Switch.scs",
+      "source_subcircuit": "Switch",
+      "source_ports": [
+        "A",
+        "B",
+        "ctrl"
+      ],
+      "target_ports": [
+        "A",
+        "B",
+        "ctrl"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 3,
+        "instances": {
+          "R0": {
+            "master": "resistor",
+            "terminals": 2
+          },
+          "W0": {
+            "master": "relay",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "fa4d3ead3fc45a5a890a9013d872511955053037e117613bca3596f4aecaab9f",
+        "electrical_sha256": "fb5622cf2f40a79b7c5a16bbaf8020ef32f2b52b85fc7160917227d24df4177f",
+        "template_electrical_sha256": "fb5622cf2f40a79b7c5a16bbaf8020ef32f2b52b85fc7160917227d24df4177f",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "PIPE_OTA_Diff_Ideal",
+      "source": "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/PIPE_OTA_Diff_Ideal.scs",
+      "source_subcircuit": "PIPE_OTA_Diff_Ideal",
+      "source_ports": [
+        "Vcmo",
+        "Vdd",
+        "Vin",
+        "Vinb",
+        "Vout",
+        "Voutb"
+      ],
+      "target_ports": [
+        "Vcmo",
+        "Vdd",
+        "Vin",
+        "Vinb",
+        "Vout",
+        "Voutb"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 8,
+        "instances": {
+          "I0": {
+            "master": "isource",
+            "terminals": 2
+          },
+          "E4": {
+            "master": "vcvs",
+            "terminals": 4
+          },
+          "R0": {
+            "master": "resistor",
+            "terminals": 2
+          },
+          "R4": {
+            "master": "resistor",
+            "terminals": 2
+          },
+          "G0": {
+            "master": "vccs",
+            "terminals": 4
+          },
+          "G1": {
+            "master": "vccs",
+            "terminals": 4
+          },
+          "G3": {
+            "master": "vccs",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "df37cb211fc2ad01a914a64c3e3cc608a865afb9f3dd2e5e3622cc572d9cb8f3",
+        "electrical_sha256": "f2c45d8b5d4b9d766d72b7700bb7a2759ef7fa476a3b8cfa34f5567639c417d8",
+        "template_electrical_sha256": "f2c45d8b5d4b9d766d72b7700bb7a2759ef7fa476a3b8cfa34f5567639c417d8",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "PIPE_MDAC4_G8_SC",
+      "source": "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/PIPE_MDAC4_G8_SC.scs",
+      "source_subcircuit": "PIPE_MDAC4_G8_SC",
+      "source_ports": [
+        "AMP",
+        "DACN",
+        "DACP",
+        "RESET",
+        "RON",
+        "ROP",
+        "TRACK",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VSS"
+      ],
+      "target_ports": [
+        "AMP",
+        "DACN",
+        "DACP",
+        "RESET",
+        "RON",
+        "ROP",
+        "TRACK",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VSS"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 12,
+        "instances": {
+          "XOTA": {
+            "master": "PIPE_OTA_Diff_Ideal",
+            "terminals": 6
+          },
+          "CFN": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CSN": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CFP": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CSP": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "XLIMIT": {
+            "master": "PIPE_RailClamp",
+            "terminals": 4
+          },
+          "S_RESETN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "S_DACN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "S_INN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "S_RESETP": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "S_DACP": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "S_INP": {
+            "master": "Switch",
+            "terminals": 3
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "dc7ba378f12ea121e951c039d4b9f9adf9853f860fc510c5140a276fa52b9529",
+        "electrical_sha256": "fd4dc1cbfddd6374ef2c198fa59c5f8a9e713c7f8bb26bfda126345132467549",
+        "template_electrical_sha256": "fd4dc1cbfddd6374ef2c198fa59c5f8a9e713c7f8bb26bfda126345132467549",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L5_9bit_Bootstrap",
+      "source": "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/RS9_L5_9bit_Bootstrap.scs",
+      "source_subcircuit": "RS9_L5_9bit_Bootstrap",
+      "source_ports": [
+        "CLK",
+        "VBST",
+        "VDD",
+        "VIN",
+        "VSS"
+      ],
+      "target_ports": [
+        "CLK",
+        "VBST",
+        "VDD",
+        "VIN",
+        "VSS"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 12,
+        "instances": {
+          "M9": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M6": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M5": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M1": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M2": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M10": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M3": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M0": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M4": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "C1": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "M7": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M8": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "9b879b2fb1c6918606317875f3bfc1370f2c6380b34c747c013a3cc9ff5f78b6",
+        "electrical_sha256": "01cb3e6c9e7d09622604cd8580119c5bcd9f09e1fcd3efb6fd902259a1be1b25",
+        "template_electrical_sha256": "01cb3e6c9e7d09622604cd8580119c5bcd9f09e1fcd3efb6fd902259a1be1b25",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L5_9bit_Comparator_LN",
+      "source": "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/RS9_L5_9bit_Comparator_LN.scs",
+      "source_subcircuit": "RS9_L5_9bit_Comparator_LN",
+      "source_ports": [
+        "CLKC",
+        "COMPN",
+        "COMPP",
+        "VCALB",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VSS"
+      ],
+      "target_ports": [
+        "CLKC",
+        "COMPN",
+        "COMPP",
+        "VCALB",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VSS"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 22,
+        "instances": {
+          "M26": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M24": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M13": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M17": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M16": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M10": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M1": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M18": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M27": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M25": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M23": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M19": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M20": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M21": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M22": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M11": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M12": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M8": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M15": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M14": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M0": {
+            "master": "nch_mac",
+            "terminals": 4
+          },
+          "M2": {
+            "master": "nch_mac",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "0a140be5bbab33219cac46318b553c18e0f1369130f8953c1a96e5d24ea3f46e",
+        "electrical_sha256": "20df84050aa874857b32711ceb4c43bb5b37757a0a422fd90ed6790f37d76a7d",
+        "template_electrical_sha256": "20df84050aa874857b32711ceb4c43bb5b37757a0a422fd90ed6790f37d76a7d",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L6_SR_latch_1",
+      "source": "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/RS9_L6_SR_latch_1.scs",
+      "source_subcircuit": "RS9_L6_SR_latch_1",
+      "source_ports": [
+        "CLK",
+        "COMPN",
+        "COMPP",
+        "D",
+        "DON",
+        "DOP",
+        "ENB",
+        "NEXTB",
+        "RDY",
+        "RST",
+        "VDD",
+        "VSS"
+      ],
+      "target_ports": [
+        "CLK",
+        "COMPN",
+        "COMPP",
+        "D",
+        "DON",
+        "DOP",
+        "ENB",
+        "NEXTB",
+        "RDY",
+        "RST",
+        "VDD",
+        "VSS"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 13,
+        "instances": {
+          "I15": {
+            "master": "DFQD1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I4": {
+            "master": "ND2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I5": {
+            "master": "ND2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I6": {
+            "master": "ND2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I12": {
+            "master": "NR2D1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I2": {
+            "master": "NR2D1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I0": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I13": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I3": {
+            "master": "NR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I7": {
+            "master": "NR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I10": {
+            "master": "NR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I11": {
+            "master": "INVD2BWP12T30P140LVT",
+            "terminals": 4
+          },
+          "I39": {
+            "master": "INVD2BWP12T30P140LVT",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": [
+          "RS9_L6_SR_latch_1"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "ce0a6d9829738e79bc917c8d8d0053c359a5e459e6203ce70f7595e777ff9182",
+        "electrical_sha256": "1e60d0c3c5677ce6828c330bb371892ef0d270f80b381010933a17d85189b715",
+        "template_electrical_sha256": "1e60d0c3c5677ce6828c330bb371892ef0d270f80b381010933a17d85189b715",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L6_9bit_REF_Logic",
+      "source": "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/RS9_L6_9bit_REF_Logic.scs",
+      "source_subcircuit": "RS9_L6_9bit_REF_Logic",
+      "source_ports": [
+        "CLKT",
+        "CLKTB",
+        "DN_9",
+        "DN_8",
+        "DN_7",
+        "DN_6",
+        "DN_5",
+        "DN_4",
+        "DN_3",
+        "DN_2",
+        "DN_1",
+        "DP_9",
+        "DP_8",
+        "DP_7",
+        "DP_6",
+        "DP_5",
+        "DP_4",
+        "DP_3",
+        "DP_2",
+        "DP_1",
+        "RNN_9",
+        "RNN_8",
+        "RNN_7",
+        "RNN_6",
+        "RNN_5",
+        "RNN_4",
+        "RNN_3",
+        "RNN_2",
+        "RNN_1",
+        "RNP_9",
+        "RNP_8",
+        "RNP_7",
+        "RNP_6",
+        "RNP_5",
+        "RNP_4",
+        "RNP_3",
+        "RNP_2",
+        "RNP_1",
+        "RPN_9",
+        "RPN_8",
+        "RPN_7",
+        "RPN_6",
+        "RPN_5",
+        "RPN_4",
+        "RPN_3",
+        "RPN_2",
+        "RPN_1",
+        "RPP_9",
+        "RPP_8",
+        "RPP_7",
+        "RPP_6",
+        "RPP_5",
+        "RPP_4",
+        "RPP_3",
+        "RPP_2",
+        "RPP_1",
+        "VDD",
+        "VSS"
+      ],
+      "target_ports": [
+        "CLKT",
+        "CLKTB",
+        "DN\\<9\\>",
+        "DN\\<8\\>",
+        "DN\\<7\\>",
+        "DN\\<6\\>",
+        "DN\\<5\\>",
+        "DN\\<4\\>",
+        "DN\\<3\\>",
+        "DN\\<2\\>",
+        "DN\\<1\\>",
+        "DP\\<9\\>",
+        "DP\\<8\\>",
+        "DP\\<7\\>",
+        "DP\\<6\\>",
+        "DP\\<5\\>",
+        "DP\\<4\\>",
+        "DP\\<3\\>",
+        "DP\\<2\\>",
+        "DP\\<1\\>",
+        "RNN\\<9\\>",
+        "RNN\\<8\\>",
+        "RNN\\<7\\>",
+        "RNN\\<6\\>",
+        "RNN\\<5\\>",
+        "RNN\\<4\\>",
+        "RNN\\<3\\>",
+        "RNN\\<2\\>",
+        "RNN\\<1\\>",
+        "RNP\\<9\\>",
+        "RNP\\<8\\>",
+        "RNP\\<7\\>",
+        "RNP\\<6\\>",
+        "RNP\\<5\\>",
+        "RNP\\<4\\>",
+        "RNP\\<3\\>",
+        "RNP\\<2\\>",
+        "RNP\\<1\\>",
+        "RPN\\<9\\>",
+        "RPN\\<8\\>",
+        "RPN\\<7\\>",
+        "RPN\\<6\\>",
+        "RPN\\<5\\>",
+        "RPN\\<4\\>",
+        "RPN\\<3\\>",
+        "RPN\\<2\\>",
+        "RPN\\<1\\>",
+        "RPP\\<9\\>",
+        "RPP\\<8\\>",
+        "RPP\\<7\\>",
+        "RPP\\<6\\>",
+        "RPP\\<5\\>",
+        "RPP\\<4\\>",
+        "RPP\\<3\\>",
+        "RPP\\<2\\>",
+        "RPP\\<1\\>",
+        "VDD",
+        "VSS"
+      ],
+      "identifiers": {
+        "DN_1": "DN\\<1\\>",
+        "DN_2": "DN\\<2\\>",
+        "DN_3": "DN\\<3\\>",
+        "DN_4": "DN\\<4\\>",
+        "DN_5": "DN\\<5\\>",
+        "DN_6": "DN\\<6\\>",
+        "DN_7": "DN\\<7\\>",
+        "DN_8": "DN\\<8\\>",
+        "DN_9": "DN\\<9\\>",
+        "DP_1": "DP\\<1\\>",
+        "DP_2": "DP\\<2\\>",
+        "DP_3": "DP\\<3\\>",
+        "DP_4": "DP\\<4\\>",
+        "DP_5": "DP\\<5\\>",
+        "DP_6": "DP\\<6\\>",
+        "DP_7": "DP\\<7\\>",
+        "DP_8": "DP\\<8\\>",
+        "DP_9": "DP\\<9\\>",
+        "I18_1": "I18\\<1\\>",
+        "I18_2": "I18\\<2\\>",
+        "I18_3": "I18\\<3\\>",
+        "I18_4": "I18\\<4\\>",
+        "I18_5": "I18\\<5\\>",
+        "I19_1": "I19\\<1\\>",
+        "I19_2": "I19\\<2\\>",
+        "I19_3": "I19\\<3\\>",
+        "I19_4": "I19\\<4\\>",
+        "I19_5": "I19\\<5\\>",
+        "I20_1": "I20\\<1\\>",
+        "I20_2": "I20\\<2\\>",
+        "I20_3": "I20\\<3\\>",
+        "I20_4": "I20\\<4\\>",
+        "I20_5": "I20\\<5\\>",
+        "I21_1": "I21\\<1\\>",
+        "I21_2": "I21\\<2\\>",
+        "I21_3": "I21\\<3\\>",
+        "I21_4": "I21\\<4\\>",
+        "I21_5": "I21\\<5\\>",
+        "RNN_1": "RNN\\<1\\>",
+        "RNN_2": "RNN\\<2\\>",
+        "RNN_3": "RNN\\<3\\>",
+        "RNN_4": "RNN\\<4\\>",
+        "RNN_5": "RNN\\<5\\>",
+        "RNN_6": "RNN\\<6\\>",
+        "RNN_7": "RNN\\<7\\>",
+        "RNN_8": "RNN\\<8\\>",
+        "RNN_9": "RNN\\<9\\>",
+        "RNP_1": "RNP\\<1\\>",
+        "RNP_2": "RNP\\<2\\>",
+        "RNP_3": "RNP\\<3\\>",
+        "RNP_4": "RNP\\<4\\>",
+        "RNP_5": "RNP\\<5\\>",
+        "RNP_6": "RNP\\<6\\>",
+        "RNP_7": "RNP\\<7\\>",
+        "RNP_8": "RNP\\<8\\>",
+        "RNP_9": "RNP\\<9\\>",
+        "RPN_1": "RPN\\<1\\>",
+        "RPN_2": "RPN\\<2\\>",
+        "RPN_3": "RPN\\<3\\>",
+        "RPN_4": "RPN\\<4\\>",
+        "RPN_5": "RPN\\<5\\>",
+        "RPN_6": "RPN\\<6\\>",
+        "RPN_7": "RPN\\<7\\>",
+        "RPN_8": "RPN\\<8\\>",
+        "RPN_9": "RPN\\<9\\>",
+        "RPP_1": "RPP\\<1\\>",
+        "RPP_2": "RPP\\<2\\>",
+        "RPP_3": "RPP\\<3\\>",
+        "RPP_4": "RPP\\<4\\>",
+        "RPP_5": "RPP\\<5\\>",
+        "RPP_6": "RPP\\<6\\>",
+        "RPP_7": "RPP\\<7\\>",
+        "RPP_8": "RPP\\<8\\>",
+        "RPP_9": "RPP\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 36,
+        "instances": {
+          "I32": {
+            "master": "AN2D2BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I12": {
+            "master": "AN2D2BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I19_5": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I19_4": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I19_3": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I19_2": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I19_1": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I21_5": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I21_4": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I21_3": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I21_2": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I21_1": {
+            "master": "OR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I18_5": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I18_4": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I18_3": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I18_2": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I18_1": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I20_5": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I20_4": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I20_3": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I20_2": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I20_1": {
+            "master": "AN2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I33": {
+            "master": "OR2D2BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I13": {
+            "master": "OR2D2BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I4": {
+            "master": "AN2D1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I10": {
+            "master": "AN2D1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I17": {
+            "master": "NR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I15": {
+            "master": "NR2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I5": {
+            "master": "OR2D1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I11": {
+            "master": "OR2D1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I16": {
+            "master": "ND2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I14": {
+            "master": "ND2D0BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I29": {
+            "master": "ND2D4BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I34": {
+            "master": "ND2D4BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I31": {
+            "master": "NR2D4BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I37": {
+            "master": "NR2D4BWP12T30P140LVT",
+            "terminals": 5
+          }
+        },
+        "alias_count": 74,
+        "identifier_counts": {
+          "DN_1": 3,
+          "DN_2": 3,
+          "DN_3": 3,
+          "DN_4": 3,
+          "DN_5": 3,
+          "DN_6": 3,
+          "DN_7": 3,
+          "DN_8": 3,
+          "DN_9": 3,
+          "DP_1": 3,
+          "DP_2": 3,
+          "DP_3": 3,
+          "DP_4": 3,
+          "DP_5": 3,
+          "DP_6": 3,
+          "DP_7": 3,
+          "DP_8": 3,
+          "DP_9": 3,
+          "I18_1": 1,
+          "I18_2": 1,
+          "I18_3": 1,
+          "I18_4": 1,
+          "I18_5": 1,
+          "I19_1": 1,
+          "I19_2": 1,
+          "I19_3": 1,
+          "I19_4": 1,
+          "I19_5": 1,
+          "I20_1": 1,
+          "I20_2": 1,
+          "I20_3": 1,
+          "I20_4": 1,
+          "I20_5": 1,
+          "I21_1": 1,
+          "I21_2": 1,
+          "I21_3": 1,
+          "I21_4": 1,
+          "I21_5": 1,
+          "RNN_1": 2,
+          "RNN_2": 2,
+          "RNN_3": 2,
+          "RNN_4": 2,
+          "RNN_5": 2,
+          "RNN_6": 2,
+          "RNN_7": 2,
+          "RNN_8": 2,
+          "RNN_9": 2,
+          "RNP_1": 2,
+          "RNP_2": 2,
+          "RNP_3": 2,
+          "RNP_4": 2,
+          "RNP_5": 2,
+          "RNP_6": 2,
+          "RNP_7": 2,
+          "RNP_8": 2,
+          "RNP_9": 2,
+          "RPN_1": 2,
+          "RPN_2": 2,
+          "RPN_3": 2,
+          "RPN_4": 2,
+          "RPN_5": 2,
+          "RPN_6": 2,
+          "RPN_7": 2,
+          "RPN_8": 2,
+          "RPN_9": 2,
+          "RPP_1": 2,
+          "RPP_2": 2,
+          "RPP_3": 2,
+          "RPP_4": 2,
+          "RPP_5": 2,
+          "RPP_6": 2,
+          "RPP_7": 2,
+          "RPP_8": 2,
+          "RPP_9": 2
+        },
+        "indexed_identifiers": [
+          "DN_1",
+          "DN_2",
+          "DN_3",
+          "DN_4",
+          "DN_5",
+          "DN_6",
+          "DN_7",
+          "DN_8",
+          "DN_9",
+          "DP_1",
+          "DP_2",
+          "DP_3",
+          "DP_4",
+          "DP_5",
+          "DP_6",
+          "DP_7",
+          "DP_8",
+          "DP_9",
+          "I18_1",
+          "I18_2",
+          "I18_3",
+          "I18_4",
+          "I18_5",
+          "I19_1",
+          "I19_2",
+          "I19_3",
+          "I19_4",
+          "I19_5",
+          "I20_1",
+          "I20_2",
+          "I20_3",
+          "I20_4",
+          "I20_5",
+          "I21_1",
+          "I21_2",
+          "I21_3",
+          "I21_4",
+          "I21_5",
+          "RNN_1",
+          "RNN_2",
+          "RNN_3",
+          "RNN_4",
+          "RNN_5",
+          "RNN_6",
+          "RNN_7",
+          "RNN_8",
+          "RNN_9",
+          "RNP_1",
+          "RNP_2",
+          "RNP_3",
+          "RNP_4",
+          "RNP_5",
+          "RNP_6",
+          "RNP_7",
+          "RNP_8",
+          "RNP_9",
+          "RPN_1",
+          "RPN_2",
+          "RPN_3",
+          "RPN_4",
+          "RPN_5",
+          "RPN_6",
+          "RPN_7",
+          "RPN_8",
+          "RPN_9",
+          "RPP_1",
+          "RPP_2",
+          "RPP_3",
+          "RPP_4",
+          "RPP_5",
+          "RPP_6",
+          "RPP_7",
+          "RPP_8",
+          "RPP_9"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "41e1c718ee33fe912350faf0b1fcc275389bca4f4be8b536f16aefc49fbff569",
+        "electrical_sha256": "c2c0cabd9220b9215732940ef220e5525f8c0fd13ebe002347f68457de35009d",
+        "template_electrical_sha256": "ad409a2479e9868ef4986f98b771e4c1d7e3c08ea3bc4179cf518874f6febee2",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L5_9bit_SAR_Logic_1",
+      "source": "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/RS9_L5_9bit_SAR_Logic_1.scs",
+      "source_subcircuit": "RS9_L5_9bit_SAR_Logic_1",
+      "source_ports": [
+        "CLKAE",
+        "CLKAEB",
+        "CLKB",
+        "CLKB_B",
+        "CLKC",
+        "CLKD",
+        "COMPN",
+        "COMPP",
+        "D_9",
+        "D_8",
+        "D_7",
+        "D_6",
+        "D_5",
+        "D_4",
+        "D_3",
+        "D_2",
+        "D_1",
+        "D_0",
+        "DN_9",
+        "DN_8",
+        "DN_7",
+        "DN_6",
+        "DN_5",
+        "DN_4",
+        "DN_3",
+        "DN_2",
+        "DN_1",
+        "DN_0",
+        "DONE",
+        "DP_9",
+        "DP_8",
+        "DP_7",
+        "DP_6",
+        "DP_5",
+        "DP_4",
+        "DP_3",
+        "DP_2",
+        "DP_1",
+        "DP_0",
+        "RNN_9",
+        "RNN_8",
+        "RNN_7",
+        "RNN_6",
+        "RNN_5",
+        "RNN_4",
+        "RNN_3",
+        "RNN_2",
+        "RNN_1",
+        "RNP_9",
+        "RNP_8",
+        "RNP_7",
+        "RNP_6",
+        "RNP_5",
+        "RNP_4",
+        "RNP_3",
+        "RNP_2",
+        "RNP_1",
+        "RPN_9",
+        "RPN_8",
+        "RPN_7",
+        "RPN_6",
+        "RPN_5",
+        "RPN_4",
+        "RPN_3",
+        "RPN_2",
+        "RPN_1",
+        "RPP_9",
+        "RPP_8",
+        "RPP_7",
+        "RPP_6",
+        "RPP_5",
+        "RPP_4",
+        "RPP_3",
+        "RPP_2",
+        "RPP_1",
+        "VDD",
+        "VSS"
+      ],
+      "target_ports": [
+        "CLKAE",
+        "CLKAEB",
+        "CLKB",
+        "CLKB_B",
+        "CLKC",
+        "CLKD",
+        "COMPN",
+        "COMPP",
+        "D\\<9\\>",
+        "D\\<8\\>",
+        "D\\<7\\>",
+        "D\\<6\\>",
+        "D\\<5\\>",
+        "D\\<4\\>",
+        "D\\<3\\>",
+        "D\\<2\\>",
+        "D\\<1\\>",
+        "D\\<0\\>",
+        "DN\\<9\\>",
+        "DN\\<8\\>",
+        "DN\\<7\\>",
+        "DN\\<6\\>",
+        "DN\\<5\\>",
+        "DN\\<4\\>",
+        "DN\\<3\\>",
+        "DN\\<2\\>",
+        "DN\\<1\\>",
+        "DN\\<0\\>",
+        "DONE",
+        "DP\\<9\\>",
+        "DP\\<8\\>",
+        "DP\\<7\\>",
+        "DP\\<6\\>",
+        "DP\\<5\\>",
+        "DP\\<4\\>",
+        "DP\\<3\\>",
+        "DP\\<2\\>",
+        "DP\\<1\\>",
+        "DP\\<0\\>",
+        "RNN\\<9\\>",
+        "RNN\\<8\\>",
+        "RNN\\<7\\>",
+        "RNN\\<6\\>",
+        "RNN\\<5\\>",
+        "RNN\\<4\\>",
+        "RNN\\<3\\>",
+        "RNN\\<2\\>",
+        "RNN\\<1\\>",
+        "RNP\\<9\\>",
+        "RNP\\<8\\>",
+        "RNP\\<7\\>",
+        "RNP\\<6\\>",
+        "RNP\\<5\\>",
+        "RNP\\<4\\>",
+        "RNP\\<3\\>",
+        "RNP\\<2\\>",
+        "RNP\\<1\\>",
+        "RPN\\<9\\>",
+        "RPN\\<8\\>",
+        "RPN\\<7\\>",
+        "RPN\\<6\\>",
+        "RPN\\<5\\>",
+        "RPN\\<4\\>",
+        "RPN\\<3\\>",
+        "RPN\\<2\\>",
+        "RPN\\<1\\>",
+        "RPP\\<9\\>",
+        "RPP\\<8\\>",
+        "RPP\\<7\\>",
+        "RPP\\<6\\>",
+        "RPP\\<5\\>",
+        "RPP\\<4\\>",
+        "RPP\\<3\\>",
+        "RPP\\<2\\>",
+        "RPP\\<1\\>",
+        "VDD",
+        "VSS"
+      ],
+      "identifiers": {
+        "DN_0": "DN\\<0\\>",
+        "DN_1": "DN\\<1\\>",
+        "DN_2": "DN\\<2\\>",
+        "DN_3": "DN\\<3\\>",
+        "DN_4": "DN\\<4\\>",
+        "DN_5": "DN\\<5\\>",
+        "DN_6": "DN\\<6\\>",
+        "DN_7": "DN\\<7\\>",
+        "DN_8": "DN\\<8\\>",
+        "DN_9": "DN\\<9\\>",
+        "DP_0": "DP\\<0\\>",
+        "DP_1": "DP\\<1\\>",
+        "DP_2": "DP\\<2\\>",
+        "DP_3": "DP\\<3\\>",
+        "DP_4": "DP\\<4\\>",
+        "DP_5": "DP\\<5\\>",
+        "DP_6": "DP\\<6\\>",
+        "DP_7": "DP\\<7\\>",
+        "DP_8": "DP\\<8\\>",
+        "DP_9": "DP\\<9\\>",
+        "D_0": "D\\<0\\>",
+        "D_1": "D\\<1\\>",
+        "D_2": "D\\<2\\>",
+        "D_3": "D\\<3\\>",
+        "D_4": "D\\<4\\>",
+        "D_5": "D\\<5\\>",
+        "D_6": "D\\<6\\>",
+        "D_7": "D\\<7\\>",
+        "D_8": "D\\<8\\>",
+        "D_9": "D\\<9\\>",
+        "ENB_0": "ENB\\<0\\>",
+        "ENB_1": "ENB\\<1\\>",
+        "ENB_2": "ENB\\<2\\>",
+        "ENB_3": "ENB\\<3\\>",
+        "ENB_4": "ENB\\<4\\>",
+        "ENB_5": "ENB\\<5\\>",
+        "ENB_6": "ENB\\<6\\>",
+        "ENB_7": "ENB\\<7\\>",
+        "ENB_8": "ENB\\<8\\>",
+        "ENB_9": "ENB\\<9\\>",
+        "EN_0": "EN\\<0\\>",
+        "I24_0": "I24\\<0\\>",
+        "I24_1": "I24\\<1\\>",
+        "I24_2": "I24\\<2\\>",
+        "I24_3": "I24\\<3\\>",
+        "I24_4": "I24\\<4\\>",
+        "I24_5": "I24\\<5\\>",
+        "I24_6": "I24\\<6\\>",
+        "I24_7": "I24\\<7\\>",
+        "I24_8": "I24\\<8\\>",
+        "I24_9": "I24\\<9\\>",
+        "RNN_1": "RNN\\<1\\>",
+        "RNN_2": "RNN\\<2\\>",
+        "RNN_3": "RNN\\<3\\>",
+        "RNN_4": "RNN\\<4\\>",
+        "RNN_5": "RNN\\<5\\>",
+        "RNN_6": "RNN\\<6\\>",
+        "RNN_7": "RNN\\<7\\>",
+        "RNN_8": "RNN\\<8\\>",
+        "RNN_9": "RNN\\<9\\>",
+        "RNP_1": "RNP\\<1\\>",
+        "RNP_2": "RNP\\<2\\>",
+        "RNP_3": "RNP\\<3\\>",
+        "RNP_4": "RNP\\<4\\>",
+        "RNP_5": "RNP\\<5\\>",
+        "RNP_6": "RNP\\<6\\>",
+        "RNP_7": "RNP\\<7\\>",
+        "RNP_8": "RNP\\<8\\>",
+        "RNP_9": "RNP\\<9\\>",
+        "RPN_1": "RPN\\<1\\>",
+        "RPN_2": "RPN\\<2\\>",
+        "RPN_3": "RPN\\<3\\>",
+        "RPN_4": "RPN\\<4\\>",
+        "RPN_5": "RPN\\<5\\>",
+        "RPN_6": "RPN\\<6\\>",
+        "RPN_7": "RPN\\<7\\>",
+        "RPN_8": "RPN\\<8\\>",
+        "RPN_9": "RPN\\<9\\>",
+        "RPP_1": "RPP\\<1\\>",
+        "RPP_2": "RPP\\<2\\>",
+        "RPP_3": "RPP\\<3\\>",
+        "RPP_4": "RPP\\<4\\>",
+        "RPP_5": "RPP\\<5\\>",
+        "RPP_6": "RPP\\<6\\>",
+        "RPP_7": "RPP\\<7\\>",
+        "RPP_8": "RPP\\<8\\>",
+        "RPP_9": "RPP\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 23,
+        "instances": {
+          "I12": {
+            "master": "NR2D1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I8": {
+            "master": "NR2D1BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I9": {
+            "master": "INVD2BWP12T30P140LVT",
+            "terminals": 4
+          },
+          "I52": {
+            "master": "DFCND1BWP12T30P140LVT",
+            "terminals": 7
+          },
+          "I50": {
+            "master": "BUFFD2BWP12T30P140LVT",
+            "terminals": 4
+          },
+          "I49": {
+            "master": "INVD4BWP12T30P140LVT",
+            "terminals": 4
+          },
+          "I25": {
+            "master": "AN2D4BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I24_9": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_8": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_7": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_6": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_5": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_4": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_3": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_2": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_1": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I24_0": {
+            "master": "RS9_L6_SR_latch_1",
+            "terminals": 12
+          },
+          "I29": {
+            "master": "NR2D4BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I16": {
+            "master": "INVD8BWP12T30P140LVT",
+            "terminals": 4
+          },
+          "I48": {
+            "master": "ND2D2BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I17": {
+            "master": "ND2D2BWP12T30P140LVT",
+            "terminals": 5
+          },
+          "I10": {
+            "master": "INVD0BWP12T30P140LVT",
+            "terminals": 4
+          },
+          "I38": {
+            "master": "RS9_L6_9bit_REF_Logic",
+            "terminals": 58
+          }
+        },
+        "alias_count": 87,
+        "identifier_counts": {
+          "DN_0": 2,
+          "DN_1": 3,
+          "DN_2": 3,
+          "DN_3": 3,
+          "DN_4": 3,
+          "DN_5": 3,
+          "DN_6": 3,
+          "DN_7": 3,
+          "DN_8": 3,
+          "DN_9": 3,
+          "DP_0": 2,
+          "DP_1": 3,
+          "DP_2": 3,
+          "DP_3": 3,
+          "DP_4": 3,
+          "DP_5": 3,
+          "DP_6": 3,
+          "DP_7": 3,
+          "DP_8": 3,
+          "DP_9": 3,
+          "D_0": 2,
+          "D_1": 2,
+          "D_2": 2,
+          "D_3": 2,
+          "D_4": 2,
+          "D_5": 2,
+          "D_6": 2,
+          "D_7": 2,
+          "D_8": 2,
+          "D_9": 2,
+          "ENB_0": 2,
+          "ENB_1": 2,
+          "ENB_2": 2,
+          "ENB_3": 2,
+          "ENB_4": 2,
+          "ENB_5": 2,
+          "ENB_6": 2,
+          "ENB_7": 2,
+          "ENB_8": 2,
+          "ENB_9": 2,
+          "EN_0": 4,
+          "I24_0": 1,
+          "I24_1": 1,
+          "I24_2": 1,
+          "I24_3": 1,
+          "I24_4": 1,
+          "I24_5": 1,
+          "I24_6": 1,
+          "I24_7": 1,
+          "I24_8": 1,
+          "I24_9": 1,
+          "RNN_1": 2,
+          "RNN_2": 2,
+          "RNN_3": 2,
+          "RNN_4": 2,
+          "RNN_5": 2,
+          "RNN_6": 2,
+          "RNN_7": 2,
+          "RNN_8": 2,
+          "RNN_9": 2,
+          "RNP_1": 2,
+          "RNP_2": 2,
+          "RNP_3": 2,
+          "RNP_4": 2,
+          "RNP_5": 2,
+          "RNP_6": 2,
+          "RNP_7": 2,
+          "RNP_8": 2,
+          "RNP_9": 2,
+          "RPN_1": 2,
+          "RPN_2": 2,
+          "RPN_3": 2,
+          "RPN_4": 2,
+          "RPN_5": 2,
+          "RPN_6": 2,
+          "RPN_7": 2,
+          "RPN_8": 2,
+          "RPN_9": 2,
+          "RPP_1": 2,
+          "RPP_2": 2,
+          "RPP_3": 2,
+          "RPP_4": 2,
+          "RPP_5": 2,
+          "RPP_6": 2,
+          "RPP_7": 2,
+          "RPP_8": 2,
+          "RPP_9": 2
+        },
+        "indexed_identifiers": [
+          "DN_0",
+          "DN_1",
+          "DN_2",
+          "DN_3",
+          "DN_4",
+          "DN_5",
+          "DN_6",
+          "DN_7",
+          "DN_8",
+          "DN_9",
+          "DP_0",
+          "DP_1",
+          "DP_2",
+          "DP_3",
+          "DP_4",
+          "DP_5",
+          "DP_6",
+          "DP_7",
+          "DP_8",
+          "DP_9",
+          "D_0",
+          "D_1",
+          "D_2",
+          "D_3",
+          "D_4",
+          "D_5",
+          "D_6",
+          "D_7",
+          "D_8",
+          "D_9",
+          "ENB_0",
+          "ENB_1",
+          "ENB_2",
+          "ENB_3",
+          "ENB_4",
+          "ENB_5",
+          "ENB_6",
+          "ENB_7",
+          "ENB_8",
+          "ENB_9",
+          "EN_0",
+          "I24_0",
+          "I24_1",
+          "I24_2",
+          "I24_3",
+          "I24_4",
+          "I24_5",
+          "I24_6",
+          "I24_7",
+          "I24_8",
+          "I24_9",
+          "RNN_1",
+          "RNN_2",
+          "RNN_3",
+          "RNN_4",
+          "RNN_5",
+          "RNN_6",
+          "RNN_7",
+          "RNN_8",
+          "RNN_9",
+          "RNP_1",
+          "RNP_2",
+          "RNP_3",
+          "RNP_4",
+          "RNP_5",
+          "RNP_6",
+          "RNP_7",
+          "RNP_8",
+          "RNP_9",
+          "RPN_1",
+          "RPN_2",
+          "RPN_3",
+          "RPN_4",
+          "RPN_5",
+          "RPN_6",
+          "RPN_7",
+          "RPN_8",
+          "RPN_9",
+          "RPP_1",
+          "RPP_2",
+          "RPP_3",
+          "RPP_4",
+          "RPP_5",
+          "RPP_6",
+          "RPP_7",
+          "RPP_8",
+          "RPP_9",
+          "RS9_L5_9bit_SAR_Logic_1",
+          "RS9_L6_SR_latch_1"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "448efb1d50068e832fbf6e967857c15fd4195af35da747be7b055de60d17032f",
+        "electrical_sha256": "bc03048e6ca990be2f9f2a385e55a8e16d7f553be838ce0f8973506a95b7f52c",
+        "template_electrical_sha256": "cdb9efe14667b07f1270fb1761a788d4bd7b74a388afe41dc2baefed208aa997",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L8_9bit_CDAC_UNIT",
+      "source": "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+      "source_subcircuit": "RS9_L8_9bit_CDAC_UNIT",
+      "source_ports": [
+        "BOT",
+        "TOP"
+      ],
+      "target_ports": [
+        "BOT",
+        "TOP"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 1,
+        "instances": {
+          "C0": {
+            "master": "capacitor",
+            "terminals": 2
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "7eccc7793e8e250824819510c6dd16aa6199dc40f0fc0d9556e7a30cceda8295",
+        "electrical_sha256": "9089091525bcb7872522425fc9fcd5b73b2ae71da48004e750cca7bed322c6c2",
+        "template_electrical_sha256": "9089091525bcb7872522425fc9fcd5b73b2ae71da48004e750cca7bed322c6c2",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L7_9bit_CDAC",
+      "source": "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/RS9_L7_9bit_CDAC.scs",
+      "source_subcircuit": "RS9_L7_9bit_CDAC",
+      "source_ports": [
+        "BOT_9",
+        "BOT_8",
+        "BOT_7",
+        "BOT_6",
+        "BOT_5",
+        "BOT_4",
+        "BOT_3",
+        "BOT_2",
+        "BOT_1",
+        "BOT_0",
+        "TOP",
+        "VSS"
+      ],
+      "target_ports": [
+        "BOT\\<9\\>",
+        "BOT\\<8\\>",
+        "BOT\\<7\\>",
+        "BOT\\<6\\>",
+        "BOT\\<5\\>",
+        "BOT\\<4\\>",
+        "BOT\\<3\\>",
+        "BOT\\<2\\>",
+        "BOT\\<1\\>",
+        "BOT\\<0\\>",
+        "TOP",
+        "VSS"
+      ],
+      "identifiers": {
+        "BOT_0": "BOT\\<0\\>",
+        "BOT_1": "BOT\\<1\\>",
+        "BOT_2": "BOT\\<2\\>",
+        "BOT_3": "BOT\\<3\\>",
+        "BOT_4": "BOT\\<4\\>",
+        "BOT_5": "BOT\\<5\\>",
+        "BOT_6": "BOT\\<6\\>",
+        "BOT_7": "BOT\\<7\\>",
+        "BOT_8": "BOT\\<8\\>",
+        "BOT_9": "BOT\\<9\\>",
+        "I14_1": "I14\\<1\\>",
+        "I14_2": "I14\\<2\\>",
+        "I15_1": "I15\\<1\\>",
+        "I15_2": "I15\\<2\\>",
+        "I15_3": "I15\\<3\\>",
+        "I16_1": "I16\\<1\\>",
+        "I16_2": "I16\\<2\\>",
+        "I16_3": "I16\\<3\\>",
+        "I16_4": "I16\\<4\\>",
+        "I16_5": "I16\\<5\\>",
+        "I16_6": "I16\\<6\\>",
+        "I17_1": "I17\\<1\\>",
+        "I17_10": "I17\\<10\\>",
+        "I17_2": "I17\\<2\\>",
+        "I17_3": "I17\\<3\\>",
+        "I17_4": "I17\\<4\\>",
+        "I17_5": "I17\\<5\\>",
+        "I17_6": "I17\\<6\\>",
+        "I17_7": "I17\\<7\\>",
+        "I17_8": "I17\\<8\\>",
+        "I17_9": "I17\\<9\\>",
+        "I18_1": "I18\\<1\\>",
+        "I18_10": "I18\\<10\\>",
+        "I18_11": "I18\\<11\\>",
+        "I18_12": "I18\\<12\\>",
+        "I18_13": "I18\\<13\\>",
+        "I18_14": "I18\\<14\\>",
+        "I18_15": "I18\\<15\\>",
+        "I18_16": "I18\\<16\\>",
+        "I18_17": "I18\\<17\\>",
+        "I18_18": "I18\\<18\\>",
+        "I18_19": "I18\\<19\\>",
+        "I18_2": "I18\\<2\\>",
+        "I18_3": "I18\\<3\\>",
+        "I18_4": "I18\\<4\\>",
+        "I18_5": "I18\\<5\\>",
+        "I18_6": "I18\\<6\\>",
+        "I18_7": "I18\\<7\\>",
+        "I18_8": "I18\\<8\\>",
+        "I18_9": "I18\\<9\\>",
+        "I19_1": "I19\\<1\\>",
+        "I19_10": "I19\\<10\\>",
+        "I19_11": "I19\\<11\\>",
+        "I19_12": "I19\\<12\\>",
+        "I19_13": "I19\\<13\\>",
+        "I19_14": "I19\\<14\\>",
+        "I19_15": "I19\\<15\\>",
+        "I19_16": "I19\\<16\\>",
+        "I19_17": "I19\\<17\\>",
+        "I19_18": "I19\\<18\\>",
+        "I19_19": "I19\\<19\\>",
+        "I19_2": "I19\\<2\\>",
+        "I19_20": "I19\\<20\\>",
+        "I19_21": "I19\\<21\\>",
+        "I19_22": "I19\\<22\\>",
+        "I19_23": "I19\\<23\\>",
+        "I19_24": "I19\\<24\\>",
+        "I19_25": "I19\\<25\\>",
+        "I19_26": "I19\\<26\\>",
+        "I19_27": "I19\\<27\\>",
+        "I19_28": "I19\\<28\\>",
+        "I19_29": "I19\\<29\\>",
+        "I19_3": "I19\\<3\\>",
+        "I19_30": "I19\\<30\\>",
+        "I19_31": "I19\\<31\\>",
+        "I19_32": "I19\\<32\\>",
+        "I19_33": "I19\\<33\\>",
+        "I19_34": "I19\\<34\\>",
+        "I19_35": "I19\\<35\\>",
+        "I19_36": "I19\\<36\\>",
+        "I19_4": "I19\\<4\\>",
+        "I19_5": "I19\\<5\\>",
+        "I19_6": "I19\\<6\\>",
+        "I19_7": "I19\\<7\\>",
+        "I19_8": "I19\\<8\\>",
+        "I19_9": "I19\\<9\\>",
+        "I20_1": "I20\\<1\\>",
+        "I20_10": "I20\\<10\\>",
+        "I20_11": "I20\\<11\\>",
+        "I20_12": "I20\\<12\\>",
+        "I20_13": "I20\\<13\\>",
+        "I20_14": "I20\\<14\\>",
+        "I20_15": "I20\\<15\\>",
+        "I20_16": "I20\\<16\\>",
+        "I20_17": "I20\\<17\\>",
+        "I20_18": "I20\\<18\\>",
+        "I20_19": "I20\\<19\\>",
+        "I20_2": "I20\\<2\\>",
+        "I20_20": "I20\\<20\\>",
+        "I20_21": "I20\\<21\\>",
+        "I20_22": "I20\\<22\\>",
+        "I20_23": "I20\\<23\\>",
+        "I20_24": "I20\\<24\\>",
+        "I20_25": "I20\\<25\\>",
+        "I20_26": "I20\\<26\\>",
+        "I20_27": "I20\\<27\\>",
+        "I20_28": "I20\\<28\\>",
+        "I20_29": "I20\\<29\\>",
+        "I20_3": "I20\\<3\\>",
+        "I20_30": "I20\\<30\\>",
+        "I20_31": "I20\\<31\\>",
+        "I20_32": "I20\\<32\\>",
+        "I20_33": "I20\\<33\\>",
+        "I20_34": "I20\\<34\\>",
+        "I20_35": "I20\\<35\\>",
+        "I20_36": "I20\\<36\\>",
+        "I20_37": "I20\\<37\\>",
+        "I20_38": "I20\\<38\\>",
+        "I20_39": "I20\\<39\\>",
+        "I20_4": "I20\\<4\\>",
+        "I20_40": "I20\\<40\\>",
+        "I20_41": "I20\\<41\\>",
+        "I20_42": "I20\\<42\\>",
+        "I20_43": "I20\\<43\\>",
+        "I20_44": "I20\\<44\\>",
+        "I20_45": "I20\\<45\\>",
+        "I20_46": "I20\\<46\\>",
+        "I20_47": "I20\\<47\\>",
+        "I20_48": "I20\\<48\\>",
+        "I20_49": "I20\\<49\\>",
+        "I20_5": "I20\\<5\\>",
+        "I20_50": "I20\\<50\\>",
+        "I20_51": "I20\\<51\\>",
+        "I20_52": "I20\\<52\\>",
+        "I20_53": "I20\\<53\\>",
+        "I20_54": "I20\\<54\\>",
+        "I20_55": "I20\\<55\\>",
+        "I20_56": "I20\\<56\\>",
+        "I20_57": "I20\\<57\\>",
+        "I20_58": "I20\\<58\\>",
+        "I20_59": "I20\\<59\\>",
+        "I20_6": "I20\\<6\\>",
+        "I20_60": "I20\\<60\\>",
+        "I20_61": "I20\\<61\\>",
+        "I20_62": "I20\\<62\\>",
+        "I20_63": "I20\\<63\\>",
+        "I20_64": "I20\\<64\\>",
+        "I20_65": "I20\\<65\\>",
+        "I20_66": "I20\\<66\\>",
+        "I20_67": "I20\\<67\\>",
+        "I20_68": "I20\\<68\\>",
+        "I20_69": "I20\\<69\\>",
+        "I20_7": "I20\\<7\\>",
+        "I20_70": "I20\\<70\\>",
+        "I20_8": "I20\\<8\\>",
+        "I20_9": "I20\\<9\\>",
+        "I21_1": "I21\\<1\\>",
+        "I21_10": "I21\\<10\\>",
+        "I21_100": "I21\\<100\\>",
+        "I21_101": "I21\\<101\\>",
+        "I21_102": "I21\\<102\\>",
+        "I21_103": "I21\\<103\\>",
+        "I21_104": "I21\\<104\\>",
+        "I21_105": "I21\\<105\\>",
+        "I21_106": "I21\\<106\\>",
+        "I21_107": "I21\\<107\\>",
+        "I21_108": "I21\\<108\\>",
+        "I21_11": "I21\\<11\\>",
+        "I21_12": "I21\\<12\\>",
+        "I21_13": "I21\\<13\\>",
+        "I21_14": "I21\\<14\\>",
+        "I21_15": "I21\\<15\\>",
+        "I21_16": "I21\\<16\\>",
+        "I21_17": "I21\\<17\\>",
+        "I21_18": "I21\\<18\\>",
+        "I21_19": "I21\\<19\\>",
+        "I21_2": "I21\\<2\\>",
+        "I21_20": "I21\\<20\\>",
+        "I21_21": "I21\\<21\\>",
+        "I21_22": "I21\\<22\\>",
+        "I21_23": "I21\\<23\\>",
+        "I21_24": "I21\\<24\\>",
+        "I21_25": "I21\\<25\\>",
+        "I21_26": "I21\\<26\\>",
+        "I21_27": "I21\\<27\\>",
+        "I21_28": "I21\\<28\\>",
+        "I21_29": "I21\\<29\\>",
+        "I21_3": "I21\\<3\\>",
+        "I21_30": "I21\\<30\\>",
+        "I21_31": "I21\\<31\\>",
+        "I21_32": "I21\\<32\\>",
+        "I21_33": "I21\\<33\\>",
+        "I21_34": "I21\\<34\\>",
+        "I21_35": "I21\\<35\\>",
+        "I21_36": "I21\\<36\\>",
+        "I21_37": "I21\\<37\\>",
+        "I21_38": "I21\\<38\\>",
+        "I21_39": "I21\\<39\\>",
+        "I21_4": "I21\\<4\\>",
+        "I21_40": "I21\\<40\\>",
+        "I21_41": "I21\\<41\\>",
+        "I21_42": "I21\\<42\\>",
+        "I21_43": "I21\\<43\\>",
+        "I21_44": "I21\\<44\\>",
+        "I21_45": "I21\\<45\\>",
+        "I21_46": "I21\\<46\\>",
+        "I21_47": "I21\\<47\\>",
+        "I21_48": "I21\\<48\\>",
+        "I21_49": "I21\\<49\\>",
+        "I21_5": "I21\\<5\\>",
+        "I21_50": "I21\\<50\\>",
+        "I21_51": "I21\\<51\\>",
+        "I21_52": "I21\\<52\\>",
+        "I21_53": "I21\\<53\\>",
+        "I21_54": "I21\\<54\\>",
+        "I21_55": "I21\\<55\\>",
+        "I21_56": "I21\\<56\\>",
+        "I21_57": "I21\\<57\\>",
+        "I21_58": "I21\\<58\\>",
+        "I21_59": "I21\\<59\\>",
+        "I21_6": "I21\\<6\\>",
+        "I21_60": "I21\\<60\\>",
+        "I21_61": "I21\\<61\\>",
+        "I21_62": "I21\\<62\\>",
+        "I21_63": "I21\\<63\\>",
+        "I21_64": "I21\\<64\\>",
+        "I21_65": "I21\\<65\\>",
+        "I21_66": "I21\\<66\\>",
+        "I21_67": "I21\\<67\\>",
+        "I21_68": "I21\\<68\\>",
+        "I21_69": "I21\\<69\\>",
+        "I21_7": "I21\\<7\\>",
+        "I21_70": "I21\\<70\\>",
+        "I21_71": "I21\\<71\\>",
+        "I21_72": "I21\\<72\\>",
+        "I21_73": "I21\\<73\\>",
+        "I21_74": "I21\\<74\\>",
+        "I21_75": "I21\\<75\\>",
+        "I21_76": "I21\\<76\\>",
+        "I21_77": "I21\\<77\\>",
+        "I21_78": "I21\\<78\\>",
+        "I21_79": "I21\\<79\\>",
+        "I21_8": "I21\\<8\\>",
+        "I21_80": "I21\\<80\\>",
+        "I21_81": "I21\\<81\\>",
+        "I21_82": "I21\\<82\\>",
+        "I21_83": "I21\\<83\\>",
+        "I21_84": "I21\\<84\\>",
+        "I21_85": "I21\\<85\\>",
+        "I21_86": "I21\\<86\\>",
+        "I21_87": "I21\\<87\\>",
+        "I21_88": "I21\\<88\\>",
+        "I21_89": "I21\\<89\\>",
+        "I21_9": "I21\\<9\\>",
+        "I21_90": "I21\\<90\\>",
+        "I21_91": "I21\\<91\\>",
+        "I21_92": "I21\\<92\\>",
+        "I21_93": "I21\\<93\\>",
+        "I21_94": "I21\\<94\\>",
+        "I21_95": "I21\\<95\\>",
+        "I21_96": "I21\\<96\\>",
+        "I21_97": "I21\\<97\\>",
+        "I21_98": "I21\\<98\\>",
+        "I21_99": "I21\\<99\\>"
+      },
+      "contract": {
+        "body_statements": 256,
+        "instances": {
+          "I21_1": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_2": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_3": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_4": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_5": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_6": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_7": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_8": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_9": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_10": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_11": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_12": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_13": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_14": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_15": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_16": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_17": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_18": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_19": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_20": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_21": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_22": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_23": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_24": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_25": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_26": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_27": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_28": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_29": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_30": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_31": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_32": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_33": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_34": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_35": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_36": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_37": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_38": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_39": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_40": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_41": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_42": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_43": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_44": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_45": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_46": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_47": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_48": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_49": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_50": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_51": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_52": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_53": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_54": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_55": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_56": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_57": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_58": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_59": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_60": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_61": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_62": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_63": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_64": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_65": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_66": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_67": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_68": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_69": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_70": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_71": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_72": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_73": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_74": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_75": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_76": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_77": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_78": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_79": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_80": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_81": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_82": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_83": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_84": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_85": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_86": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_87": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_88": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_89": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_90": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_91": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_92": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_93": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_94": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_95": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_96": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_97": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_98": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_99": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_100": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_101": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_102": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_103": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_104": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_105": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_106": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_107": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I21_108": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_1": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_2": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_3": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_4": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_5": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_6": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_7": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_8": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_9": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_10": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_11": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_12": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_13": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_14": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_15": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_16": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_17": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_18": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_19": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_20": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_21": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_22": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_23": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_24": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_25": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_26": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_27": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_28": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_29": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_30": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_31": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_32": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_33": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_34": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_35": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_36": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_37": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_38": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_39": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_40": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_41": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_42": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_43": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_44": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_45": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_46": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_47": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_48": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_49": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_50": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_51": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_52": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_53": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_54": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_55": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_56": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_57": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_58": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_59": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_60": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_61": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_62": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_63": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_64": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_65": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_66": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_67": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_68": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_69": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I20_70": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_1": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_2": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_3": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_4": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_5": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_6": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_7": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_8": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_9": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_10": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_11": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_12": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_13": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_14": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_15": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_16": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_17": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_18": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_19": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_20": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_21": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_22": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_23": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_24": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_25": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_26": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_27": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_28": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_29": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_30": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_31": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_32": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_33": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_34": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_35": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I19_36": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_1": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_2": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_3": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_4": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_5": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_6": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_7": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_8": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_9": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_10": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_11": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_12": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_13": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_14": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_15": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_16": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_17": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_18": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I18_19": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_1": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_2": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_3": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_4": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_5": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_6": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_7": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_8": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_9": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I17_10": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I16_1": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I16_2": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I16_3": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I16_4": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I16_5": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I16_6": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I15_1": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I15_2": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I15_3": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I12": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I14_1": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I14_2": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          },
+          "I13": {
+            "master": "RS9_L8_9bit_CDAC_UNIT",
+            "terminals": 2
+          }
+        },
+        "alias_count": 264,
+        "identifier_counts": {
+          "BOT_0": 2,
+          "BOT_1": 2,
+          "BOT_2": 3,
+          "BOT_3": 4,
+          "BOT_4": 7,
+          "BOT_5": 11,
+          "BOT_6": 20,
+          "BOT_7": 37,
+          "BOT_8": 71,
+          "BOT_9": 109,
+          "I14_1": 1,
+          "I14_2": 1,
+          "I15_1": 1,
+          "I15_2": 1,
+          "I15_3": 1,
+          "I16_1": 1,
+          "I16_2": 1,
+          "I16_3": 1,
+          "I16_4": 1,
+          "I16_5": 1,
+          "I16_6": 1,
+          "I17_10": 1,
+          "I17_1": 1,
+          "I17_2": 1,
+          "I17_3": 1,
+          "I17_4": 1,
+          "I17_5": 1,
+          "I17_6": 1,
+          "I17_7": 1,
+          "I17_8": 1,
+          "I17_9": 1,
+          "I18_10": 1,
+          "I18_11": 1,
+          "I18_12": 1,
+          "I18_13": 1,
+          "I18_14": 1,
+          "I18_15": 1,
+          "I18_16": 1,
+          "I18_17": 1,
+          "I18_18": 1,
+          "I18_19": 1,
+          "I18_1": 1,
+          "I18_2": 1,
+          "I18_3": 1,
+          "I18_4": 1,
+          "I18_5": 1,
+          "I18_6": 1,
+          "I18_7": 1,
+          "I18_8": 1,
+          "I18_9": 1,
+          "I19_10": 1,
+          "I19_11": 1,
+          "I19_12": 1,
+          "I19_13": 1,
+          "I19_14": 1,
+          "I19_15": 1,
+          "I19_16": 1,
+          "I19_17": 1,
+          "I19_18": 1,
+          "I19_19": 1,
+          "I19_1": 1,
+          "I19_20": 1,
+          "I19_21": 1,
+          "I19_22": 1,
+          "I19_23": 1,
+          "I19_24": 1,
+          "I19_25": 1,
+          "I19_26": 1,
+          "I19_27": 1,
+          "I19_28": 1,
+          "I19_29": 1,
+          "I19_2": 1,
+          "I19_30": 1,
+          "I19_31": 1,
+          "I19_32": 1,
+          "I19_33": 1,
+          "I19_34": 1,
+          "I19_35": 1,
+          "I19_36": 1,
+          "I19_3": 1,
+          "I19_4": 1,
+          "I19_5": 1,
+          "I19_6": 1,
+          "I19_7": 1,
+          "I19_8": 1,
+          "I19_9": 1,
+          "I20_10": 1,
+          "I20_11": 1,
+          "I20_12": 1,
+          "I20_13": 1,
+          "I20_14": 1,
+          "I20_15": 1,
+          "I20_16": 1,
+          "I20_17": 1,
+          "I20_18": 1,
+          "I20_19": 1,
+          "I20_1": 1,
+          "I20_20": 1,
+          "I20_21": 1,
+          "I20_22": 1,
+          "I20_23": 1,
+          "I20_24": 1,
+          "I20_25": 1,
+          "I20_26": 1,
+          "I20_27": 1,
+          "I20_28": 1,
+          "I20_29": 1,
+          "I20_2": 1,
+          "I20_30": 1,
+          "I20_31": 1,
+          "I20_32": 1,
+          "I20_33": 1,
+          "I20_34": 1,
+          "I20_35": 1,
+          "I20_36": 1,
+          "I20_37": 1,
+          "I20_38": 1,
+          "I20_39": 1,
+          "I20_3": 1,
+          "I20_40": 1,
+          "I20_41": 1,
+          "I20_42": 1,
+          "I20_43": 1,
+          "I20_44": 1,
+          "I20_45": 1,
+          "I20_46": 1,
+          "I20_47": 1,
+          "I20_48": 1,
+          "I20_49": 1,
+          "I20_4": 1,
+          "I20_50": 1,
+          "I20_51": 1,
+          "I20_52": 1,
+          "I20_53": 1,
+          "I20_54": 1,
+          "I20_55": 1,
+          "I20_56": 1,
+          "I20_57": 1,
+          "I20_58": 1,
+          "I20_59": 1,
+          "I20_5": 1,
+          "I20_60": 1,
+          "I20_61": 1,
+          "I20_62": 1,
+          "I20_63": 1,
+          "I20_64": 1,
+          "I20_65": 1,
+          "I20_66": 1,
+          "I20_67": 1,
+          "I20_68": 1,
+          "I20_69": 1,
+          "I20_6": 1,
+          "I20_70": 1,
+          "I20_7": 1,
+          "I20_8": 1,
+          "I20_9": 1,
+          "I21_100": 1,
+          "I21_101": 1,
+          "I21_102": 1,
+          "I21_103": 1,
+          "I21_104": 1,
+          "I21_105": 1,
+          "I21_106": 1,
+          "I21_107": 1,
+          "I21_108": 1,
+          "I21_10": 1,
+          "I21_11": 1,
+          "I21_12": 1,
+          "I21_13": 1,
+          "I21_14": 1,
+          "I21_15": 1,
+          "I21_16": 1,
+          "I21_17": 1,
+          "I21_18": 1,
+          "I21_19": 1,
+          "I21_1": 1,
+          "I21_20": 1,
+          "I21_21": 1,
+          "I21_22": 1,
+          "I21_23": 1,
+          "I21_24": 1,
+          "I21_25": 1,
+          "I21_26": 1,
+          "I21_27": 1,
+          "I21_28": 1,
+          "I21_29": 1,
+          "I21_2": 1,
+          "I21_30": 1,
+          "I21_31": 1,
+          "I21_32": 1,
+          "I21_33": 1,
+          "I21_34": 1,
+          "I21_35": 1,
+          "I21_36": 1,
+          "I21_37": 1,
+          "I21_38": 1,
+          "I21_39": 1,
+          "I21_3": 1,
+          "I21_40": 1,
+          "I21_41": 1,
+          "I21_42": 1,
+          "I21_43": 1,
+          "I21_44": 1,
+          "I21_45": 1,
+          "I21_46": 1,
+          "I21_47": 1,
+          "I21_48": 1,
+          "I21_49": 1,
+          "I21_4": 1,
+          "I21_50": 1,
+          "I21_51": 1,
+          "I21_52": 1,
+          "I21_53": 1,
+          "I21_54": 1,
+          "I21_55": 1,
+          "I21_56": 1,
+          "I21_57": 1,
+          "I21_58": 1,
+          "I21_59": 1,
+          "I21_5": 1,
+          "I21_60": 1,
+          "I21_61": 1,
+          "I21_62": 1,
+          "I21_63": 1,
+          "I21_64": 1,
+          "I21_65": 1,
+          "I21_66": 1,
+          "I21_67": 1,
+          "I21_68": 1,
+          "I21_69": 1,
+          "I21_6": 1,
+          "I21_70": 1,
+          "I21_71": 1,
+          "I21_72": 1,
+          "I21_73": 1,
+          "I21_74": 1,
+          "I21_75": 1,
+          "I21_76": 1,
+          "I21_77": 1,
+          "I21_78": 1,
+          "I21_79": 1,
+          "I21_7": 1,
+          "I21_80": 1,
+          "I21_81": 1,
+          "I21_82": 1,
+          "I21_83": 1,
+          "I21_84": 1,
+          "I21_85": 1,
+          "I21_86": 1,
+          "I21_87": 1,
+          "I21_88": 1,
+          "I21_89": 1,
+          "I21_8": 1,
+          "I21_90": 1,
+          "I21_91": 1,
+          "I21_92": 1,
+          "I21_93": 1,
+          "I21_94": 1,
+          "I21_95": 1,
+          "I21_96": 1,
+          "I21_97": 1,
+          "I21_98": 1,
+          "I21_99": 1,
+          "I21_9": 1
+        },
+        "indexed_identifiers": [
+          "BOT_0",
+          "BOT_1",
+          "BOT_2",
+          "BOT_3",
+          "BOT_4",
+          "BOT_5",
+          "BOT_6",
+          "BOT_7",
+          "BOT_8",
+          "BOT_9",
+          "I14_1",
+          "I14_2",
+          "I15_1",
+          "I15_2",
+          "I15_3",
+          "I16_1",
+          "I16_2",
+          "I16_3",
+          "I16_4",
+          "I16_5",
+          "I16_6",
+          "I17_1",
+          "I17_10",
+          "I17_2",
+          "I17_3",
+          "I17_4",
+          "I17_5",
+          "I17_6",
+          "I17_7",
+          "I17_8",
+          "I17_9",
+          "I18_1",
+          "I18_10",
+          "I18_11",
+          "I18_12",
+          "I18_13",
+          "I18_14",
+          "I18_15",
+          "I18_16",
+          "I18_17",
+          "I18_18",
+          "I18_19",
+          "I18_2",
+          "I18_3",
+          "I18_4",
+          "I18_5",
+          "I18_6",
+          "I18_7",
+          "I18_8",
+          "I18_9",
+          "I19_1",
+          "I19_10",
+          "I19_11",
+          "I19_12",
+          "I19_13",
+          "I19_14",
+          "I19_15",
+          "I19_16",
+          "I19_17",
+          "I19_18",
+          "I19_19",
+          "I19_2",
+          "I19_20",
+          "I19_21",
+          "I19_22",
+          "I19_23",
+          "I19_24",
+          "I19_25",
+          "I19_26",
+          "I19_27",
+          "I19_28",
+          "I19_29",
+          "I19_3",
+          "I19_30",
+          "I19_31",
+          "I19_32",
+          "I19_33",
+          "I19_34",
+          "I19_35",
+          "I19_36",
+          "I19_4",
+          "I19_5",
+          "I19_6",
+          "I19_7",
+          "I19_8",
+          "I19_9",
+          "I20_1",
+          "I20_10",
+          "I20_11",
+          "I20_12",
+          "I20_13",
+          "I20_14",
+          "I20_15",
+          "I20_16",
+          "I20_17",
+          "I20_18",
+          "I20_19",
+          "I20_2",
+          "I20_20",
+          "I20_21",
+          "I20_22",
+          "I20_23",
+          "I20_24",
+          "I20_25",
+          "I20_26",
+          "I20_27",
+          "I20_28",
+          "I20_29",
+          "I20_3",
+          "I20_30",
+          "I20_31",
+          "I20_32",
+          "I20_33",
+          "I20_34",
+          "I20_35",
+          "I20_36",
+          "I20_37",
+          "I20_38",
+          "I20_39",
+          "I20_4",
+          "I20_40",
+          "I20_41",
+          "I20_42",
+          "I20_43",
+          "I20_44",
+          "I20_45",
+          "I20_46",
+          "I20_47",
+          "I20_48",
+          "I20_49",
+          "I20_5",
+          "I20_50",
+          "I20_51",
+          "I20_52",
+          "I20_53",
+          "I20_54",
+          "I20_55",
+          "I20_56",
+          "I20_57",
+          "I20_58",
+          "I20_59",
+          "I20_6",
+          "I20_60",
+          "I20_61",
+          "I20_62",
+          "I20_63",
+          "I20_64",
+          "I20_65",
+          "I20_66",
+          "I20_67",
+          "I20_68",
+          "I20_69",
+          "I20_7",
+          "I20_70",
+          "I20_8",
+          "I20_9",
+          "I21_1",
+          "I21_10",
+          "I21_100",
+          "I21_101",
+          "I21_102",
+          "I21_103",
+          "I21_104",
+          "I21_105",
+          "I21_106",
+          "I21_107",
+          "I21_108",
+          "I21_11",
+          "I21_12",
+          "I21_13",
+          "I21_14",
+          "I21_15",
+          "I21_16",
+          "I21_17",
+          "I21_18",
+          "I21_19",
+          "I21_2",
+          "I21_20",
+          "I21_21",
+          "I21_22",
+          "I21_23",
+          "I21_24",
+          "I21_25",
+          "I21_26",
+          "I21_27",
+          "I21_28",
+          "I21_29",
+          "I21_3",
+          "I21_30",
+          "I21_31",
+          "I21_32",
+          "I21_33",
+          "I21_34",
+          "I21_35",
+          "I21_36",
+          "I21_37",
+          "I21_38",
+          "I21_39",
+          "I21_4",
+          "I21_40",
+          "I21_41",
+          "I21_42",
+          "I21_43",
+          "I21_44",
+          "I21_45",
+          "I21_46",
+          "I21_47",
+          "I21_48",
+          "I21_49",
+          "I21_5",
+          "I21_50",
+          "I21_51",
+          "I21_52",
+          "I21_53",
+          "I21_54",
+          "I21_55",
+          "I21_56",
+          "I21_57",
+          "I21_58",
+          "I21_59",
+          "I21_6",
+          "I21_60",
+          "I21_61",
+          "I21_62",
+          "I21_63",
+          "I21_64",
+          "I21_65",
+          "I21_66",
+          "I21_67",
+          "I21_68",
+          "I21_69",
+          "I21_7",
+          "I21_70",
+          "I21_71",
+          "I21_72",
+          "I21_73",
+          "I21_74",
+          "I21_75",
+          "I21_76",
+          "I21_77",
+          "I21_78",
+          "I21_79",
+          "I21_8",
+          "I21_80",
+          "I21_81",
+          "I21_82",
+          "I21_83",
+          "I21_84",
+          "I21_85",
+          "I21_86",
+          "I21_87",
+          "I21_88",
+          "I21_89",
+          "I21_9",
+          "I21_90",
+          "I21_91",
+          "I21_92",
+          "I21_93",
+          "I21_94",
+          "I21_95",
+          "I21_96",
+          "I21_97",
+          "I21_98",
+          "I21_99"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "4336854bd974ecba3a9b90ce58de8427e66960787a8e3921c7014419dbc6d2e1",
+        "electrical_sha256": "3b37d63525b1287df25706bd9b31ee13d4d08e2b5bbbf62830eae98de9fad671",
+        "template_electrical_sha256": "4980f639345beeb4e40924c93858b3f99710d1cb649b12a3b425306ef14d3c50",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L6_9bit_RSW",
+      "source": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/RS9_L6_9bit_RSW.scs",
+      "source_subcircuit": "RS9_L6_9bit_RSW",
+      "source_ports": [
+        "BOT_9",
+        "BOT_8",
+        "BOT_7",
+        "BOT_6",
+        "BOT_5",
+        "BOT_4",
+        "BOT_3",
+        "BOT_2",
+        "BOT_1",
+        "BOT_0",
+        "DACENB",
+        "RN_9",
+        "RN_8",
+        "RN_7",
+        "RN_6",
+        "RN_5",
+        "RN_4",
+        "RN_3",
+        "RN_2",
+        "RN_1",
+        "RP_9",
+        "RP_8",
+        "RP_7",
+        "RP_6",
+        "RP_5",
+        "RP_4",
+        "RP_3",
+        "RP_2",
+        "RP_1",
+        "VBST",
+        "VDD",
+        "VIN",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "target_ports": [
+        "BOT\\<9\\>",
+        "BOT\\<8\\>",
+        "BOT\\<7\\>",
+        "BOT\\<6\\>",
+        "BOT\\<5\\>",
+        "BOT\\<4\\>",
+        "BOT\\<3\\>",
+        "BOT\\<2\\>",
+        "BOT\\<1\\>",
+        "BOT\\<0\\>",
+        "DACENB",
+        "RN\\<9\\>",
+        "RN\\<8\\>",
+        "RN\\<7\\>",
+        "RN\\<6\\>",
+        "RN\\<5\\>",
+        "RN\\<4\\>",
+        "RN\\<3\\>",
+        "RN\\<2\\>",
+        "RN\\<1\\>",
+        "RP\\<9\\>",
+        "RP\\<8\\>",
+        "RP\\<7\\>",
+        "RP\\<6\\>",
+        "RP\\<5\\>",
+        "RP\\<4\\>",
+        "RP\\<3\\>",
+        "RP\\<2\\>",
+        "RP\\<1\\>",
+        "VBST",
+        "VDD",
+        "VIN",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "identifiers": {
+        "BOT_0": "BOT\\<0\\>",
+        "BOT_1": "BOT\\<1\\>",
+        "BOT_2": "BOT\\<2\\>",
+        "BOT_3": "BOT\\<3\\>",
+        "BOT_4": "BOT\\<4\\>",
+        "BOT_5": "BOT\\<5\\>",
+        "BOT_6": "BOT\\<6\\>",
+        "BOT_7": "BOT\\<7\\>",
+        "BOT_8": "BOT\\<8\\>",
+        "BOT_9": "BOT\\<9\\>",
+        "RN_1": "RN\\<1\\>",
+        "RN_2": "RN\\<2\\>",
+        "RN_3": "RN\\<3\\>",
+        "RN_4": "RN\\<4\\>",
+        "RN_5": "RN\\<5\\>",
+        "RN_6": "RN\\<6\\>",
+        "RN_7": "RN\\<7\\>",
+        "RN_8": "RN\\<8\\>",
+        "RN_9": "RN\\<9\\>",
+        "RP_1": "RP\\<1\\>",
+        "RP_2": "RP\\<2\\>",
+        "RP_3": "RP\\<3\\>",
+        "RP_4": "RP\\<4\\>",
+        "RP_5": "RP\\<5\\>",
+        "RP_6": "RP\\<6\\>",
+        "RP_7": "RP\\<7\\>",
+        "RP_8": "RP\\<8\\>",
+        "RP_9": "RP\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 29,
+        "instances": {
+          "M27": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M38": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M37": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M36": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M15": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M127": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M99": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M31": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M29": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M33": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M32": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M40": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M26": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M34": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M28": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M43": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M42": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M41": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M39": {
+            "master": "nch_lvt_mac",
+            "terminals": 4
+          },
+          "M5": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M0": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M105": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M7": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M10": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M6": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M12": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M4": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M9": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M8": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          }
+        },
+        "alias_count": 28,
+        "identifier_counts": {
+          "BOT_0": 3,
+          "BOT_1": 4,
+          "BOT_2": 4,
+          "BOT_3": 4,
+          "BOT_4": 4,
+          "BOT_5": 4,
+          "BOT_6": 4,
+          "BOT_7": 4,
+          "BOT_8": 4,
+          "BOT_9": 4,
+          "RN_1": 2,
+          "RN_2": 2,
+          "RN_3": 2,
+          "RN_4": 2,
+          "RN_5": 2,
+          "RN_6": 2,
+          "RN_7": 2,
+          "RN_8": 2,
+          "RN_9": 2,
+          "RP_1": 2,
+          "RP_2": 2,
+          "RP_3": 2,
+          "RP_4": 2,
+          "RP_5": 2,
+          "RP_6": 2,
+          "RP_7": 2,
+          "RP_8": 2,
+          "RP_9": 2
+        },
+        "indexed_identifiers": [
+          "BOT_0",
+          "BOT_1",
+          "BOT_2",
+          "BOT_3",
+          "BOT_4",
+          "BOT_5",
+          "BOT_6",
+          "BOT_7",
+          "BOT_8",
+          "BOT_9",
+          "RN_1",
+          "RN_2",
+          "RN_3",
+          "RN_4",
+          "RN_5",
+          "RN_6",
+          "RN_7",
+          "RN_8",
+          "RN_9",
+          "RP_1",
+          "RP_2",
+          "RP_3",
+          "RP_4",
+          "RP_5",
+          "RP_6",
+          "RP_7",
+          "RP_8",
+          "RP_9"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "8cd9a527cfea02f1bb84ad6ffb78d5672551cec007009a10b2821875f3fce362",
+        "electrical_sha256": "ff09c1f10c97ff5b14c9fac807d2de9349afbd7f1c19560294cbd696d11d4a81",
+        "template_electrical_sha256": "08d43a1898983cc797dfc4b787e11534e0bee77acfb1f85642e2d4b5c30d4389",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L5_9bit_RSW_CDAC",
+      "source": "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/RS9_L5_9bit_RSW_CDAC.scs",
+      "source_subcircuit": "RS9_L5_9bit_RSW_CDAC",
+      "source_ports": [
+        "BOT_9",
+        "BOT_8",
+        "BOT_7",
+        "BOT_6",
+        "BOT_5",
+        "BOT_4",
+        "BOT_3",
+        "BOT_2",
+        "BOT_1",
+        "BOT_0",
+        "CLKBB",
+        "DVDD",
+        "DVSS",
+        "RN_9",
+        "RN_8",
+        "RN_7",
+        "RN_6",
+        "RN_5",
+        "RN_4",
+        "RN_3",
+        "RN_2",
+        "RN_1",
+        "RP_9",
+        "RP_8",
+        "RP_7",
+        "RP_6",
+        "RP_5",
+        "RP_4",
+        "RP_3",
+        "RP_2",
+        "RP_1",
+        "TOP",
+        "VBST",
+        "VIN",
+        "VREFN",
+        "VREFP"
+      ],
+      "target_ports": [
+        "BOT\\<9\\>",
+        "BOT\\<8\\>",
+        "BOT\\<7\\>",
+        "BOT\\<6\\>",
+        "BOT\\<5\\>",
+        "BOT\\<4\\>",
+        "BOT\\<3\\>",
+        "BOT\\<2\\>",
+        "BOT\\<1\\>",
+        "BOT\\<0\\>",
+        "CLKBB",
+        "DVDD",
+        "DVSS",
+        "RN\\<9\\>",
+        "RN\\<8\\>",
+        "RN\\<7\\>",
+        "RN\\<6\\>",
+        "RN\\<5\\>",
+        "RN\\<4\\>",
+        "RN\\<3\\>",
+        "RN\\<2\\>",
+        "RN\\<1\\>",
+        "RP\\<9\\>",
+        "RP\\<8\\>",
+        "RP\\<7\\>",
+        "RP\\<6\\>",
+        "RP\\<5\\>",
+        "RP\\<4\\>",
+        "RP\\<3\\>",
+        "RP\\<2\\>",
+        "RP\\<1\\>",
+        "TOP",
+        "VBST",
+        "VIN",
+        "VREFN",
+        "VREFP"
+      ],
+      "identifiers": {
+        "BOT_0": "BOT\\<0\\>",
+        "BOT_1": "BOT\\<1\\>",
+        "BOT_2": "BOT\\<2\\>",
+        "BOT_3": "BOT\\<3\\>",
+        "BOT_4": "BOT\\<4\\>",
+        "BOT_5": "BOT\\<5\\>",
+        "BOT_6": "BOT\\<6\\>",
+        "BOT_7": "BOT\\<7\\>",
+        "BOT_8": "BOT\\<8\\>",
+        "BOT_9": "BOT\\<9\\>",
+        "RN_1": "RN\\<1\\>",
+        "RN_2": "RN\\<2\\>",
+        "RN_3": "RN\\<3\\>",
+        "RN_4": "RN\\<4\\>",
+        "RN_5": "RN\\<5\\>",
+        "RN_6": "RN\\<6\\>",
+        "RN_7": "RN\\<7\\>",
+        "RN_8": "RN\\<8\\>",
+        "RN_9": "RN\\<9\\>",
+        "RP_1": "RP\\<1\\>",
+        "RP_2": "RP\\<2\\>",
+        "RP_3": "RP\\<3\\>",
+        "RP_4": "RP\\<4\\>",
+        "RP_5": "RP\\<5\\>",
+        "RP_6": "RP\\<6\\>",
+        "RP_7": "RP\\<7\\>",
+        "RP_8": "RP\\<8\\>",
+        "RP_9": "RP\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 2,
+        "instances": {
+          "I4": {
+            "master": "RS9_L7_9bit_CDAC",
+            "terminals": 12
+          },
+          "I3": {
+            "master": "RS9_L6_9bit_RSW",
+            "terminals": 35
+          }
+        },
+        "alias_count": 28,
+        "identifier_counts": {
+          "BOT_0": 3,
+          "BOT_1": 3,
+          "BOT_2": 3,
+          "BOT_3": 3,
+          "BOT_4": 3,
+          "BOT_5": 3,
+          "BOT_6": 3,
+          "BOT_7": 3,
+          "BOT_8": 3,
+          "BOT_9": 3,
+          "RN_1": 2,
+          "RN_2": 2,
+          "RN_3": 2,
+          "RN_4": 2,
+          "RN_5": 2,
+          "RN_6": 2,
+          "RN_7": 2,
+          "RN_8": 2,
+          "RN_9": 2,
+          "RP_1": 2,
+          "RP_2": 2,
+          "RP_3": 2,
+          "RP_4": 2,
+          "RP_5": 2,
+          "RP_6": 2,
+          "RP_7": 2,
+          "RP_8": 2,
+          "RP_9": 2
+        },
+        "indexed_identifiers": [
+          "BOT_0",
+          "BOT_1",
+          "BOT_2",
+          "BOT_3",
+          "BOT_4",
+          "BOT_5",
+          "BOT_6",
+          "BOT_7",
+          "BOT_8",
+          "BOT_9",
+          "RN_1",
+          "RN_2",
+          "RN_3",
+          "RN_4",
+          "RN_5",
+          "RN_6",
+          "RN_7",
+          "RN_8",
+          "RN_9",
+          "RP_1",
+          "RP_2",
+          "RP_3",
+          "RP_4",
+          "RP_5",
+          "RP_6",
+          "RP_7",
+          "RP_8",
+          "RP_9"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "6b61f44dd8acd80d6797777862b4d6019bdc64aa9e5f9d92a8ff0576b10595e0",
+        "electrical_sha256": "e99716a1a2d91089d1d9e292b1cb1d82334c3da5d6f30b524eb49778ca1d9565",
+        "template_electrical_sha256": "802e2908a3d5f0f2e0796e1939871a458d52422ed7fd9a8d03519a1a98b52078",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "RS9_L3_9bit_SAR_2",
+      "source": "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L3_9bit_SAR_2.scs",
+      "source_subcircuit": "RS9_L3_9bit_SAR_2",
+      "source_ports": [
+        "AVDD",
+        "AVSS",
+        "CLKA",
+        "CLKAE",
+        "CLKB",
+        "CLKC",
+        "CLKD",
+        "D_9",
+        "D_8",
+        "D_7",
+        "D_6",
+        "D_5",
+        "D_4",
+        "D_3",
+        "D_2",
+        "D_1",
+        "D_0",
+        "DONE",
+        "DVDD",
+        "DVSS",
+        "TOPNB",
+        "TOPPB",
+        "VBSTN",
+        "VBSTP",
+        "VCALB",
+        "VCM",
+        "VINN",
+        "VINP",
+        "VREFN",
+        "VREFP"
+      ],
+      "target_ports": [
+        "AVDD",
+        "AVSS",
+        "CLKA",
+        "CLKAE",
+        "CLKB",
+        "CLKC",
+        "CLKD",
+        "D\\<9\\>",
+        "D\\<8\\>",
+        "D\\<7\\>",
+        "D\\<6\\>",
+        "D\\<5\\>",
+        "D\\<4\\>",
+        "D\\<3\\>",
+        "D\\<2\\>",
+        "D\\<1\\>",
+        "D\\<0\\>",
+        "DONE",
+        "DVDD",
+        "DVSS",
+        "TOPNB",
+        "TOPPB",
+        "VBSTN",
+        "VBSTP",
+        "VCALB",
+        "VCM",
+        "VINN",
+        "VINP",
+        "VREFN",
+        "VREFP"
+      ],
+      "identifiers": {
+        "BOTN_0": "BOTN\\<0\\>",
+        "BOTN_1": "BOTN\\<1\\>",
+        "BOTN_2": "BOTN\\<2\\>",
+        "BOTN_3": "BOTN\\<3\\>",
+        "BOTN_4": "BOTN\\<4\\>",
+        "BOTN_5": "BOTN\\<5\\>",
+        "BOTN_6": "BOTN\\<6\\>",
+        "BOTN_7": "BOTN\\<7\\>",
+        "BOTN_8": "BOTN\\<8\\>",
+        "BOTN_9": "BOTN\\<9\\>",
+        "BOTP_0": "BOTP\\<0\\>",
+        "BOTP_1": "BOTP\\<1\\>",
+        "BOTP_2": "BOTP\\<2\\>",
+        "BOTP_3": "BOTP\\<3\\>",
+        "BOTP_4": "BOTP\\<4\\>",
+        "BOTP_5": "BOTP\\<5\\>",
+        "BOTP_6": "BOTP\\<6\\>",
+        "BOTP_7": "BOTP\\<7\\>",
+        "BOTP_8": "BOTP\\<8\\>",
+        "BOTP_9": "BOTP\\<9\\>",
+        "DN_0": "DN\\<0\\>",
+        "DN_1": "DN\\<1\\>",
+        "DN_2": "DN\\<2\\>",
+        "DN_3": "DN\\<3\\>",
+        "DN_4": "DN\\<4\\>",
+        "DN_5": "DN\\<5\\>",
+        "DN_6": "DN\\<6\\>",
+        "DN_7": "DN\\<7\\>",
+        "DN_8": "DN\\<8\\>",
+        "DN_9": "DN\\<9\\>",
+        "DP_0": "DP\\<0\\>",
+        "DP_1": "DP\\<1\\>",
+        "DP_2": "DP\\<2\\>",
+        "DP_3": "DP\\<3\\>",
+        "DP_4": "DP\\<4\\>",
+        "DP_5": "DP\\<5\\>",
+        "DP_6": "DP\\<6\\>",
+        "DP_7": "DP\\<7\\>",
+        "DP_8": "DP\\<8\\>",
+        "DP_9": "DP\\<9\\>",
+        "D_0": "D\\<0\\>",
+        "D_1": "D\\<1\\>",
+        "D_2": "D\\<2\\>",
+        "D_3": "D\\<3\\>",
+        "D_4": "D\\<4\\>",
+        "D_5": "D\\<5\\>",
+        "D_6": "D\\<6\\>",
+        "D_7": "D\\<7\\>",
+        "D_8": "D\\<8\\>",
+        "D_9": "D\\<9\\>",
+        "RNN_1": "RNN\\<1\\>",
+        "RNN_2": "RNN\\<2\\>",
+        "RNN_3": "RNN\\<3\\>",
+        "RNN_4": "RNN\\<4\\>",
+        "RNN_5": "RNN\\<5\\>",
+        "RNN_6": "RNN\\<6\\>",
+        "RNN_7": "RNN\\<7\\>",
+        "RNN_8": "RNN\\<8\\>",
+        "RNN_9": "RNN\\<9\\>",
+        "RNP_1": "RNP\\<1\\>",
+        "RNP_2": "RNP\\<2\\>",
+        "RNP_3": "RNP\\<3\\>",
+        "RNP_4": "RNP\\<4\\>",
+        "RNP_5": "RNP\\<5\\>",
+        "RNP_6": "RNP\\<6\\>",
+        "RNP_7": "RNP\\<7\\>",
+        "RNP_8": "RNP\\<8\\>",
+        "RNP_9": "RNP\\<9\\>",
+        "RPN_1": "RPN\\<1\\>",
+        "RPN_2": "RPN\\<2\\>",
+        "RPN_3": "RPN\\<3\\>",
+        "RPN_4": "RPN\\<4\\>",
+        "RPN_5": "RPN\\<5\\>",
+        "RPN_6": "RPN\\<6\\>",
+        "RPN_7": "RPN\\<7\\>",
+        "RPN_8": "RPN\\<8\\>",
+        "RPN_9": "RPN\\<9\\>",
+        "RPP_1": "RPP\\<1\\>",
+        "RPP_2": "RPP\\<2\\>",
+        "RPP_3": "RPP\\<3\\>",
+        "RPP_4": "RPP\\<4\\>",
+        "RPP_5": "RPP\\<5\\>",
+        "RPP_6": "RPP\\<6\\>",
+        "RPP_7": "RPP\\<7\\>",
+        "RPP_8": "RPP\\<8\\>",
+        "RPP_9": "RPP\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 8,
+        "instances": {
+          "M1": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "M0": {
+            "master": "pch_lvt_mac",
+            "terminals": 4
+          },
+          "I16": {
+            "master": "RS9_L5_9bit_Bootstrap",
+            "terminals": 5
+          },
+          "I15": {
+            "master": "RS9_L5_9bit_Bootstrap",
+            "terminals": 5
+          },
+          "I0": {
+            "master": "RS9_L5_9bit_Comparator_LN",
+            "terminals": 9
+          },
+          "I1": {
+            "master": "RS9_L5_9bit_SAR_Logic_1",
+            "terminals": 77
+          },
+          "I17": {
+            "master": "RS9_L5_9bit_RSW_CDAC",
+            "terminals": 36
+          },
+          "I18": {
+            "master": "RS9_L5_9bit_RSW_CDAC",
+            "terminals": 36
+          }
+        },
+        "alias_count": 86,
+        "identifier_counts": {
+          "BOTN_0": 1,
+          "BOTN_1": 1,
+          "BOTN_2": 1,
+          "BOTN_3": 1,
+          "BOTN_4": 1,
+          "BOTN_5": 1,
+          "BOTN_6": 1,
+          "BOTN_7": 1,
+          "BOTN_8": 1,
+          "BOTN_9": 1,
+          "BOTP_0": 1,
+          "BOTP_1": 1,
+          "BOTP_2": 1,
+          "BOTP_3": 1,
+          "BOTP_4": 1,
+          "BOTP_5": 1,
+          "BOTP_6": 1,
+          "BOTP_7": 1,
+          "BOTP_8": 1,
+          "BOTP_9": 1,
+          "DN_0": 1,
+          "DN_1": 1,
+          "DN_2": 1,
+          "DN_3": 1,
+          "DN_4": 1,
+          "DN_5": 1,
+          "DN_6": 1,
+          "DN_7": 1,
+          "DN_8": 1,
+          "DN_9": 1,
+          "DP_0": 1,
+          "DP_1": 1,
+          "DP_2": 1,
+          "DP_3": 1,
+          "DP_4": 1,
+          "DP_5": 1,
+          "DP_6": 1,
+          "DP_7": 1,
+          "DP_8": 1,
+          "DP_9": 1,
+          "D_0": 2,
+          "D_1": 2,
+          "D_2": 2,
+          "D_3": 2,
+          "D_4": 2,
+          "D_5": 2,
+          "D_6": 2,
+          "D_7": 2,
+          "D_8": 2,
+          "D_9": 2,
+          "RNN_1": 2,
+          "RNN_2": 2,
+          "RNN_3": 2,
+          "RNN_4": 2,
+          "RNN_5": 2,
+          "RNN_6": 2,
+          "RNN_7": 2,
+          "RNN_8": 2,
+          "RNN_9": 2,
+          "RNP_1": 2,
+          "RNP_2": 2,
+          "RNP_3": 2,
+          "RNP_4": 2,
+          "RNP_5": 2,
+          "RNP_6": 2,
+          "RNP_7": 2,
+          "RNP_8": 2,
+          "RNP_9": 2,
+          "RPN_1": 2,
+          "RPN_2": 2,
+          "RPN_3": 2,
+          "RPN_4": 2,
+          "RPN_5": 2,
+          "RPN_6": 2,
+          "RPN_7": 2,
+          "RPN_8": 2,
+          "RPN_9": 2,
+          "RPP_1": 2,
+          "RPP_2": 2,
+          "RPP_3": 2,
+          "RPP_4": 2,
+          "RPP_5": 2,
+          "RPP_6": 2,
+          "RPP_7": 2,
+          "RPP_8": 2,
+          "RPP_9": 2
+        },
+        "indexed_identifiers": [
+          "BOTN_0",
+          "BOTN_1",
+          "BOTN_2",
+          "BOTN_3",
+          "BOTN_4",
+          "BOTN_5",
+          "BOTN_6",
+          "BOTN_7",
+          "BOTN_8",
+          "BOTN_9",
+          "BOTP_0",
+          "BOTP_1",
+          "BOTP_2",
+          "BOTP_3",
+          "BOTP_4",
+          "BOTP_5",
+          "BOTP_6",
+          "BOTP_7",
+          "BOTP_8",
+          "BOTP_9",
+          "DN_0",
+          "DN_1",
+          "DN_2",
+          "DN_3",
+          "DN_4",
+          "DN_5",
+          "DN_6",
+          "DN_7",
+          "DN_8",
+          "DN_9",
+          "DP_0",
+          "DP_1",
+          "DP_2",
+          "DP_3",
+          "DP_4",
+          "DP_5",
+          "DP_6",
+          "DP_7",
+          "DP_8",
+          "DP_9",
+          "D_0",
+          "D_1",
+          "D_2",
+          "D_3",
+          "D_4",
+          "D_5",
+          "D_6",
+          "D_7",
+          "D_8",
+          "D_9",
+          "RNN_1",
+          "RNN_2",
+          "RNN_3",
+          "RNN_4",
+          "RNN_5",
+          "RNN_6",
+          "RNN_7",
+          "RNN_8",
+          "RNN_9",
+          "RNP_1",
+          "RNP_2",
+          "RNP_3",
+          "RNP_4",
+          "RNP_5",
+          "RNP_6",
+          "RNP_7",
+          "RNP_8",
+          "RNP_9",
+          "RPN_1",
+          "RPN_2",
+          "RPN_3",
+          "RPN_4",
+          "RPN_5",
+          "RPN_6",
+          "RPN_7",
+          "RPN_8",
+          "RPN_9",
+          "RPP_1",
+          "RPP_2",
+          "RPP_3",
+          "RPP_4",
+          "RPP_5",
+          "RPP_6",
+          "RPP_7",
+          "RPP_8",
+          "RPP_9",
+          "RS9_L3_9bit_SAR_2",
+          "RS9_L5_9bit_SAR_Logic_1"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "749874408ad6245a7a7799eb502da128c5df666689106952f07f0093aac5e458",
+        "electrical_sha256": "abd04d6c9e009a4d8429c89803ee9f96daefd618f6021b7d901e3201ca5462d6",
+        "template_electrical_sha256": "b7a72477b0800ef15ace259c82aec9c90cf339fd633e32fa40d1da48d1503170",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "PIPE_SAR9_Real_N06",
+      "source": "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/PIPE_SAR9_Real_N06.scs",
+      "source_subcircuit": "PIPE_SAR9_Real_N06",
+      "source_ports": [
+        "BUSY",
+        "DONE",
+        "KIN_3",
+        "KIN_2",
+        "KIN_1",
+        "KIN_0",
+        "KOUT_3",
+        "KOUT_2",
+        "KOUT_1",
+        "KOUT_0",
+        "OVF",
+        "Q_8",
+        "Q_7",
+        "Q_6",
+        "Q_5",
+        "Q_4",
+        "Q_3",
+        "Q_2",
+        "Q_1",
+        "Q_0",
+        "STEP",
+        "TRACK",
+        "VCM",
+        "VDAC",
+        "VDD",
+        "VH",
+        "VIN",
+        "VIP",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "target_ports": [
+        "BUSY",
+        "DONE",
+        "KIN\\<3\\>",
+        "KIN\\<2\\>",
+        "KIN\\<1\\>",
+        "KIN\\<0\\>",
+        "KOUT\\<3\\>",
+        "KOUT\\<2\\>",
+        "KOUT\\<1\\>",
+        "KOUT\\<0\\>",
+        "OVF",
+        "Q\\<8\\>",
+        "Q\\<7\\>",
+        "Q\\<6\\>",
+        "Q\\<5\\>",
+        "Q\\<4\\>",
+        "Q\\<3\\>",
+        "Q\\<2\\>",
+        "Q\\<1\\>",
+        "Q\\<0\\>",
+        "STEP",
+        "TRACK",
+        "VCM",
+        "VDAC",
+        "VDD",
+        "VH",
+        "VIN",
+        "VIP",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "identifiers": {
+        "KIN_0": "KIN\\<0\\>",
+        "KIN_1": "KIN\\<1\\>",
+        "KIN_2": "KIN\\<2\\>",
+        "KIN_3": "KIN\\<3\\>",
+        "KOUT_0": "KOUT\\<0\\>",
+        "KOUT_1": "KOUT\\<1\\>",
+        "KOUT_2": "KOUT\\<2\\>",
+        "KOUT_3": "KOUT\\<3\\>",
+        "Q_0": "Q\\<0\\>",
+        "Q_1": "Q\\<1\\>",
+        "Q_2": "Q\\<2\\>",
+        "Q_3": "Q\\<3\\>",
+        "Q_4": "Q\\<4\\>",
+        "Q_5": "Q\\<5\\>",
+        "Q_6": "Q\\<6\\>",
+        "Q_7": "Q\\<7\\>",
+        "Q_8": "Q\\<8\\>",
+        "RAW_0": "RAW\\<0\\>",
+        "RAW_1": "RAW\\<1\\>",
+        "RAW_2": "RAW\\<2\\>",
+        "RAW_3": "RAW\\<3\\>",
+        "RAW_4": "RAW\\<4\\>",
+        "RAW_5": "RAW\\<5\\>",
+        "RAW_6": "RAW\\<6\\>",
+        "RAW_7": "RAW\\<7\\>",
+        "RAW_8": "RAW\\<8\\>",
+        "RAW_9": "RAW\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 2,
+        "instances": {
+          "XIO": {
+            "master": "RS9_IO_N06",
+            "terminals": 44
+          },
+          "XCORE": {
+            "master": "RS9_L3_9bit_SAR_2",
+            "terminals": 30
+          }
+        },
+        "alias_count": 27,
+        "identifier_counts": {
+          "KIN_0": 2,
+          "KIN_1": 2,
+          "KIN_2": 2,
+          "KIN_3": 2,
+          "KOUT_0": 2,
+          "KOUT_1": 2,
+          "KOUT_2": 2,
+          "KOUT_3": 2,
+          "Q_0": 2,
+          "Q_1": 2,
+          "Q_2": 2,
+          "Q_3": 2,
+          "Q_4": 2,
+          "Q_5": 2,
+          "Q_6": 2,
+          "Q_7": 2,
+          "Q_8": 2,
+          "RAW_0": 2,
+          "RAW_1": 2,
+          "RAW_2": 2,
+          "RAW_3": 2,
+          "RAW_4": 2,
+          "RAW_5": 2,
+          "RAW_6": 2,
+          "RAW_7": 2,
+          "RAW_8": 2,
+          "RAW_9": 2
+        },
+        "indexed_identifiers": [
+          "KIN_0",
+          "KIN_1",
+          "KIN_2",
+          "KIN_3",
+          "KOUT_0",
+          "KOUT_1",
+          "KOUT_2",
+          "KOUT_3",
+          "Q_0",
+          "Q_1",
+          "Q_2",
+          "Q_3",
+          "Q_4",
+          "Q_5",
+          "Q_6",
+          "Q_7",
+          "Q_8",
+          "RAW_0",
+          "RAW_1",
+          "RAW_2",
+          "RAW_3",
+          "RAW_4",
+          "RAW_5",
+          "RAW_6",
+          "RAW_7",
+          "RAW_8",
+          "RAW_9",
+          "RS9_L3_9bit_SAR_2"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "8deaeaaca2f3c497226c6214fb9857f4bfc72f084d03055c310d01f4f63909ff",
+        "electrical_sha256": "60f5110d0902e91285d13b248abb7d62bf918fc6c9f13b0be66ca09c580d297e",
+        "template_electrical_sha256": "5d710a75a889f118039428e663f3400846ce40460679061a169b30ebbb3246b6",
+        "equivalence": "statements"
+      }
+    },
+    {
+      "target_subcircuit": "L4_stage1_flash_comparator",
+      "source": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/L4_stage1_flash_comparator.scs",
+      "source_subcircuit": "L4_stage1_flash_comparator",
+      "source_ports": [
+        "D",
+        "DN",
+        "DP",
+        "PHI1BSTN",
+        "PHI1BSTP",
+        "PHI1EN",
+        "PHI1EP",
+        "PHI1EPBST",
+        "PHI2N",
+        "PHI2P",
+        "VB",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VOSN",
+        "VOSP",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "target_ports": [
+        "D",
+        "DN",
+        "DP",
+        "PHI1BSTN",
+        "PHI1BSTP",
+        "PHI1EN",
+        "PHI1EP",
+        "PHI1EPBST",
+        "PHI2N",
+        "PHI2P",
+        "VB",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VOSN",
+        "VOSP",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 39,
+        "instances": {
+          "M1": {
+            "master": "nch_mac",
+            "terminals": 4
+          },
+          "M0": {
+            "master": "nch_mac",
+            "terminals": 4
+          },
+          "I13": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "I16": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "I3": {
+            "master": "trans_ulvt_mac_pcell_0",
+            "terminals": 6
+          },
+          "I7": {
+            "master": "trans_ulvt_mac_pcell_0",
+            "terminals": 6
+          },
+          "I5": {
+            "master": "trans_ulvt_mac_pcell_0",
+            "terminals": 6
+          },
+          "I8": {
+            "master": "trans_ulvt_mac_pcell_0",
+            "terminals": 6
+          },
+          "C3": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "C4": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "M58": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M87": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M12": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M21": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M22": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M30": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M31": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M37": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M38": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M57": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M56": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M62": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M23": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M32": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M10": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M9": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M8": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M68": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M47": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M33": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M55": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M78": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M36": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M77": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M41": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M42": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M43": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M44": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M63": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": [
+          "trans_ulvt_mac_pcell_0"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "4a8a8443e67064b6ab2ab15052a81f9fb0fad377608298d31014387af6019838",
+        "electrical_sha256": "64eeac2cdd43210cf0c23d8e9952613c0221ade8f181b59b902e69e845558002",
+        "template_electrical_sha256": "64eeac2cdd43210cf0c23d8e9952613c0221ade8f181b59b902e69e845558002",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "L4_stage1_flash_bootstrapper",
+      "source": "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/L4_stage1_flash_bootstrapper.scs",
+      "source_subcircuit": "L4_stage1_flash_bootstrapper",
+      "source_ports": [
+        "CLKN",
+        "VBSTN",
+        "VBSTP",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VSS"
+      ],
+      "target_ports": [
+        "CLKN",
+        "VBSTN",
+        "VBSTP",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VSS"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 22,
+        "instances": {
+          "C3": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "C2": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "C0": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "C1": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "M1": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M6": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M20": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M19": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M18": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M21": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M12": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M15": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M11": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M13": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M0": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M8": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M17": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M25": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M27": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M28": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M7": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M26": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "bb19b34492248147477aac885a8f542e1cdbd4b466cc777383ac5359d4f4b648",
+        "electrical_sha256": "16ccea777204098ce3915d94eba0fec274f9cf7fbbf13c86864fb26f846f8060",
+        "template_electrical_sha256": "16ccea777204098ce3915d94eba0fec274f9cf7fbbf13c86864fb26f846f8060",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "L4_stage1_flash_clkbooster",
+      "source": "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/L4_stage1_flash_clkbooster.scs",
+      "source_subcircuit": "L4_stage1_flash_clkbooster",
+      "source_ports": [
+        "CLKN",
+        "CLKNBUF",
+        "CLKPBST",
+        "CLKPBUF",
+        "VDD",
+        "VSS"
+      ],
+      "target_ports": [
+        "CLKN",
+        "CLKNBUF",
+        "CLKPBST",
+        "CLKPBUF",
+        "VDD",
+        "VSS"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 12,
+        "instances": {
+          "C0": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "M19": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M15": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M24": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M21": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M23": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M10": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M5": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M4": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M9": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M0": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          },
+          "M7": {
+            "master": "pch_ulvt_mac",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "0dcfd168211b2d00940d856cf5dc459af67dc90b04e0023adade37aeac1d49d8",
+        "electrical_sha256": "885a295fe072746b012dd9cc98cfc9e937af6fa99961c829c1a553f6c5f927f0",
+        "template_electrical_sha256": "885a295fe072746b012dd9cc98cfc9e937af6fa99961c829c1a553f6c5f927f0",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "L4_stage1_flash4_encoder",
+      "source": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/L4_stage1_flash4_encoder.scs",
+      "source_subcircuit": "L4_stage1_flash4_encoder",
+      "source_ports": [
+        "BIN_3",
+        "BIN_2",
+        "BIN_1",
+        "BIN_0",
+        "D_14",
+        "D_13",
+        "D_12",
+        "D_11",
+        "D_10",
+        "D_9",
+        "D_8",
+        "D_7",
+        "D_6",
+        "D_5",
+        "D_4",
+        "D_3",
+        "D_2",
+        "D_1",
+        "D_0",
+        "VDD",
+        "VSS"
+      ],
+      "target_ports": [
+        "BIN\\<3\\>",
+        "BIN\\<2\\>",
+        "BIN\\<1\\>",
+        "BIN\\<0\\>",
+        "D\\<14\\>",
+        "D\\<13\\>",
+        "D\\<12\\>",
+        "D\\<11\\>",
+        "D\\<10\\>",
+        "D\\<9\\>",
+        "D\\<8\\>",
+        "D\\<7\\>",
+        "D\\<6\\>",
+        "D\\<5\\>",
+        "D\\<4\\>",
+        "D\\<3\\>",
+        "D\\<2\\>",
+        "D\\<1\\>",
+        "D\\<0\\>",
+        "VDD",
+        "VSS"
+      ],
+      "identifiers": {
+        "BIN_0": "BIN\\<0\\>",
+        "BIN_1": "BIN\\<1\\>",
+        "BIN_2": "BIN\\<2\\>",
+        "BIN_3": "BIN\\<3\\>",
+        "D_0": "D\\<0\\>",
+        "D_1": "D\\<1\\>",
+        "D_10": "D\\<10\\>",
+        "D_11": "D\\<11\\>",
+        "D_12": "D\\<12\\>",
+        "D_13": "D\\<13\\>",
+        "D_14": "D\\<14\\>",
+        "D_2": "D\\<2\\>",
+        "D_3": "D\\<3\\>",
+        "D_4": "D\\<4\\>",
+        "D_5": "D\\<5\\>",
+        "D_6": "D\\<6\\>",
+        "D_7": "D\\<7\\>",
+        "D_8": "D\\<8\\>",
+        "D_9": "D\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 42,
+        "instances": {
+          "XN41": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN40": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN39": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN38": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN37": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN36": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN35": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN34": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN33": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN32": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN31": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN30": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN29": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN28": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN27": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN26": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN25": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN24": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN23": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN22": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN21": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN20": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN19": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN18": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN17": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN16": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN15": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN14": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN13": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN12": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN11": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN10": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN9": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN8": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN7": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN6": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN5": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN4": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN3": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN2": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN1": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XN0": {
+            "master": "ND2D0BWP12T30P140ULVT",
+            "terminals": 5
+          }
+        },
+        "alias_count": 19,
+        "identifier_counts": {
+          "BIN_0": 2,
+          "BIN_1": 2,
+          "BIN_2": 2,
+          "BIN_3": 2,
+          "D_0": 2,
+          "D_10": 2,
+          "D_11": 5,
+          "D_12": 2,
+          "D_13": 5,
+          "D_14": 3,
+          "D_1": 4,
+          "D_2": 2,
+          "D_3": 4,
+          "D_4": 2,
+          "D_5": 4,
+          "D_6": 2,
+          "D_7": 5,
+          "D_8": 2,
+          "D_9": 4
+        },
+        "indexed_identifiers": [
+          "BIN_0",
+          "BIN_1",
+          "BIN_2",
+          "BIN_3",
+          "D_0",
+          "D_1",
+          "D_10",
+          "D_11",
+          "D_12",
+          "D_13",
+          "D_14",
+          "D_2",
+          "D_3",
+          "D_4",
+          "D_5",
+          "D_6",
+          "D_7",
+          "D_8",
+          "D_9"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "e3c9e3fa8726344033208e0da2d2ace76542b69084b26b375d9aba4fd26e48fe",
+        "electrical_sha256": "1c2bf0c1e7cf1edd193093cd510b0ac0d62458121f068ba102f7a7ae9730c128",
+        "template_electrical_sha256": "7673a5319fa6241931e0164330eba07adcfb3e01d8d9fd4a8597f89611147b3f",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "L4_stage1_flash4_rdac_FS2",
+      "source": "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/L4_stage1_flash4_rdac_FS2.scs",
+      "source_subcircuit": "L4_stage1_flash4_rdac_FS2",
+      "source_ports": [
+        "VREF_14",
+        "VREF_13",
+        "VREF_12",
+        "VREF_11",
+        "VREF_10",
+        "VREF_9",
+        "VREF_8",
+        "VREF_7",
+        "VREF_6",
+        "VREF_5",
+        "VREF_4",
+        "VREF_3",
+        "VREF_2",
+        "VREF_1",
+        "VREF_0",
+        "VREFN",
+        "VREFP"
+      ],
+      "target_ports": [
+        "VREF\\<14\\>",
+        "VREF\\<13\\>",
+        "VREF\\<12\\>",
+        "VREF\\<11\\>",
+        "VREF\\<10\\>",
+        "VREF\\<9\\>",
+        "VREF\\<8\\>",
+        "VREF\\<7\\>",
+        "VREF\\<6\\>",
+        "VREF\\<5\\>",
+        "VREF\\<4\\>",
+        "VREF\\<3\\>",
+        "VREF\\<2\\>",
+        "VREF\\<1\\>",
+        "VREF\\<0\\>",
+        "VREFN",
+        "VREFP"
+      ],
+      "identifiers": {
+        "VREF_0": "VREF\\<0\\>",
+        "VREF_1": "VREF\\<1\\>",
+        "VREF_10": "VREF\\<10\\>",
+        "VREF_11": "VREF\\<11\\>",
+        "VREF_12": "VREF\\<12\\>",
+        "VREF_13": "VREF\\<13\\>",
+        "VREF_14": "VREF\\<14\\>",
+        "VREF_2": "VREF\\<2\\>",
+        "VREF_3": "VREF\\<3\\>",
+        "VREF_4": "VREF\\<4\\>",
+        "VREF_5": "VREF\\<5\\>",
+        "VREF_6": "VREF\\<6\\>",
+        "VREF_7": "VREF\\<7\\>",
+        "VREF_8": "VREF\\<8\\>",
+        "VREF_9": "VREF\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 16,
+        "instances": {
+          "R15": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R14": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R13": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R12": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R11": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R10": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R9": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R8": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R7": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R6": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R5": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R4": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R3": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R2": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R1": {
+            "master": "rnods",
+            "terminals": 2
+          },
+          "R0": {
+            "master": "rnods",
+            "terminals": 2
+          }
+        },
+        "alias_count": 15,
+        "identifier_counts": {
+          "VREF_0": 3,
+          "VREF_10": 3,
+          "VREF_11": 3,
+          "VREF_12": 3,
+          "VREF_13": 3,
+          "VREF_14": 3,
+          "VREF_1": 3,
+          "VREF_2": 3,
+          "VREF_3": 3,
+          "VREF_4": 3,
+          "VREF_5": 3,
+          "VREF_6": 3,
+          "VREF_7": 3,
+          "VREF_8": 3,
+          "VREF_9": 3
+        },
+        "indexed_identifiers": [
+          "VREF_0",
+          "VREF_1",
+          "VREF_10",
+          "VREF_11",
+          "VREF_12",
+          "VREF_13",
+          "VREF_14",
+          "VREF_2",
+          "VREF_3",
+          "VREF_4",
+          "VREF_5",
+          "VREF_6",
+          "VREF_7",
+          "VREF_8",
+          "VREF_9"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "20ffd496197096244a519330bed05b62f73185bcafa9a0b23b69da431ec0cf88",
+        "electrical_sha256": "644f44298c1afbc8ce810a793dad201b788c81a529106dfb17c82d0d2d335e94",
+        "template_electrical_sha256": "246a0669ca8fa1d91b045101f3dd743a2f093a1becdad6784e64991960515a8b",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "L3_stage1_flash4_FS2",
+      "source": "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/L3_stage1_flash4_FS2.scs",
+      "source_subcircuit": "L3_stage1_flash4_FS2",
+      "source_ports": [
+        "BIN_3",
+        "BIN_2",
+        "BIN_1",
+        "BIN_0",
+        "D_14",
+        "D_13",
+        "D_12",
+        "D_11",
+        "D_10",
+        "D_9",
+        "D_8",
+        "D_7",
+        "D_6",
+        "D_5",
+        "D_4",
+        "D_3",
+        "D_2",
+        "D_1",
+        "D_0",
+        "DN_14",
+        "DN_13",
+        "DN_12",
+        "DN_11",
+        "DN_10",
+        "DN_9",
+        "DN_8",
+        "DN_7",
+        "DN_6",
+        "DN_5",
+        "DN_4",
+        "DN_3",
+        "DN_2",
+        "DN_1",
+        "DN_0",
+        "DP_14",
+        "DP_13",
+        "DP_12",
+        "DP_11",
+        "DP_10",
+        "DP_9",
+        "DP_8",
+        "DP_7",
+        "DP_6",
+        "DP_5",
+        "DP_4",
+        "DP_3",
+        "DP_2",
+        "DP_1",
+        "DP_0",
+        "IB_A",
+        "IB_B",
+        "PHI1EN",
+        "PHI1N",
+        "PHI2N",
+        "PHI2P",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VOSN_14",
+        "VOSN_13",
+        "VOSN_12",
+        "VOSN_11",
+        "VOSN_10",
+        "VOSN_9",
+        "VOSN_8",
+        "VOSN_7",
+        "VOSN_6",
+        "VOSN_5",
+        "VOSN_4",
+        "VOSN_3",
+        "VOSN_2",
+        "VOSN_1",
+        "VOSN_0",
+        "VOSP_14",
+        "VOSP_13",
+        "VOSP_12",
+        "VOSP_11",
+        "VOSP_10",
+        "VOSP_9",
+        "VOSP_8",
+        "VOSP_7",
+        "VOSP_6",
+        "VOSP_5",
+        "VOSP_4",
+        "VOSP_3",
+        "VOSP_2",
+        "VOSP_1",
+        "VOSP_0",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "target_ports": [
+        "BIN\\<3\\>",
+        "BIN\\<2\\>",
+        "BIN\\<1\\>",
+        "BIN\\<0\\>",
+        "D\\<14\\>",
+        "D\\<13\\>",
+        "D\\<12\\>",
+        "D\\<11\\>",
+        "D\\<10\\>",
+        "D\\<9\\>",
+        "D\\<8\\>",
+        "D\\<7\\>",
+        "D\\<6\\>",
+        "D\\<5\\>",
+        "D\\<4\\>",
+        "D\\<3\\>",
+        "D\\<2\\>",
+        "D\\<1\\>",
+        "D\\<0\\>",
+        "DN\\<14\\>",
+        "DN\\<13\\>",
+        "DN\\<12\\>",
+        "DN\\<11\\>",
+        "DN\\<10\\>",
+        "DN\\<9\\>",
+        "DN\\<8\\>",
+        "DN\\<7\\>",
+        "DN\\<6\\>",
+        "DN\\<5\\>",
+        "DN\\<4\\>",
+        "DN\\<3\\>",
+        "DN\\<2\\>",
+        "DN\\<1\\>",
+        "DN\\<0\\>",
+        "DP\\<14\\>",
+        "DP\\<13\\>",
+        "DP\\<12\\>",
+        "DP\\<11\\>",
+        "DP\\<10\\>",
+        "DP\\<9\\>",
+        "DP\\<8\\>",
+        "DP\\<7\\>",
+        "DP\\<6\\>",
+        "DP\\<5\\>",
+        "DP\\<4\\>",
+        "DP\\<3\\>",
+        "DP\\<2\\>",
+        "DP\\<1\\>",
+        "DP\\<0\\>",
+        "IB_A",
+        "IB_B",
+        "PHI1EN",
+        "PHI1N",
+        "PHI2N",
+        "PHI2P",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VOSN\\<14\\>",
+        "VOSN\\<13\\>",
+        "VOSN\\<12\\>",
+        "VOSN\\<11\\>",
+        "VOSN\\<10\\>",
+        "VOSN\\<9\\>",
+        "VOSN\\<8\\>",
+        "VOSN\\<7\\>",
+        "VOSN\\<6\\>",
+        "VOSN\\<5\\>",
+        "VOSN\\<4\\>",
+        "VOSN\\<3\\>",
+        "VOSN\\<2\\>",
+        "VOSN\\<1\\>",
+        "VOSN\\<0\\>",
+        "VOSP\\<14\\>",
+        "VOSP\\<13\\>",
+        "VOSP\\<12\\>",
+        "VOSP\\<11\\>",
+        "VOSP\\<10\\>",
+        "VOSP\\<9\\>",
+        "VOSP\\<8\\>",
+        "VOSP\\<7\\>",
+        "VOSP\\<6\\>",
+        "VOSP\\<5\\>",
+        "VOSP\\<4\\>",
+        "VOSP\\<3\\>",
+        "VOSP\\<2\\>",
+        "VOSP\\<1\\>",
+        "VOSP\\<0\\>",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "identifiers": {
+        "BIN_0": "BIN\\<0\\>",
+        "BIN_1": "BIN\\<1\\>",
+        "BIN_2": "BIN\\<2\\>",
+        "BIN_3": "BIN\\<3\\>",
+        "DN_0": "DN\\<0\\>",
+        "DN_1": "DN\\<1\\>",
+        "DN_10": "DN\\<10\\>",
+        "DN_11": "DN\\<11\\>",
+        "DN_12": "DN\\<12\\>",
+        "DN_13": "DN\\<13\\>",
+        "DN_14": "DN\\<14\\>",
+        "DN_2": "DN\\<2\\>",
+        "DN_3": "DN\\<3\\>",
+        "DN_4": "DN\\<4\\>",
+        "DN_5": "DN\\<5\\>",
+        "DN_6": "DN\\<6\\>",
+        "DN_7": "DN\\<7\\>",
+        "DN_8": "DN\\<8\\>",
+        "DN_9": "DN\\<9\\>",
+        "DP_0": "DP\\<0\\>",
+        "DP_1": "DP\\<1\\>",
+        "DP_10": "DP\\<10\\>",
+        "DP_11": "DP\\<11\\>",
+        "DP_12": "DP\\<12\\>",
+        "DP_13": "DP\\<13\\>",
+        "DP_14": "DP\\<14\\>",
+        "DP_2": "DP\\<2\\>",
+        "DP_3": "DP\\<3\\>",
+        "DP_4": "DP\\<4\\>",
+        "DP_5": "DP\\<5\\>",
+        "DP_6": "DP\\<6\\>",
+        "DP_7": "DP\\<7\\>",
+        "DP_8": "DP\\<8\\>",
+        "DP_9": "DP\\<9\\>",
+        "D_0": "D\\<0\\>",
+        "D_1": "D\\<1\\>",
+        "D_10": "D\\<10\\>",
+        "D_11": "D\\<11\\>",
+        "D_12": "D\\<12\\>",
+        "D_13": "D\\<13\\>",
+        "D_14": "D\\<14\\>",
+        "D_2": "D\\<2\\>",
+        "D_3": "D\\<3\\>",
+        "D_4": "D\\<4\\>",
+        "D_5": "D\\<5\\>",
+        "D_6": "D\\<6\\>",
+        "D_7": "D\\<7\\>",
+        "D_8": "D\\<8\\>",
+        "D_9": "D\\<9\\>",
+        "VOSN_0": "VOSN\\<0\\>",
+        "VOSN_1": "VOSN\\<1\\>",
+        "VOSN_10": "VOSN\\<10\\>",
+        "VOSN_11": "VOSN\\<11\\>",
+        "VOSN_12": "VOSN\\<12\\>",
+        "VOSN_13": "VOSN\\<13\\>",
+        "VOSN_14": "VOSN\\<14\\>",
+        "VOSN_2": "VOSN\\<2\\>",
+        "VOSN_3": "VOSN\\<3\\>",
+        "VOSN_4": "VOSN\\<4\\>",
+        "VOSN_5": "VOSN\\<5\\>",
+        "VOSN_6": "VOSN\\<6\\>",
+        "VOSN_7": "VOSN\\<7\\>",
+        "VOSN_8": "VOSN\\<8\\>",
+        "VOSN_9": "VOSN\\<9\\>",
+        "VOSP_0": "VOSP\\<0\\>",
+        "VOSP_1": "VOSP\\<1\\>",
+        "VOSP_10": "VOSP\\<10\\>",
+        "VOSP_11": "VOSP\\<11\\>",
+        "VOSP_12": "VOSP\\<12\\>",
+        "VOSP_13": "VOSP\\<13\\>",
+        "VOSP_14": "VOSP\\<14\\>",
+        "VOSP_2": "VOSP\\<2\\>",
+        "VOSP_3": "VOSP\\<3\\>",
+        "VOSP_4": "VOSP\\<4\\>",
+        "VOSP_5": "VOSP\\<5\\>",
+        "VOSP_6": "VOSP\\<6\\>",
+        "VOSP_7": "VOSP\\<7\\>",
+        "VOSP_8": "VOSP\\<8\\>",
+        "VOSP_9": "VOSP\\<9\\>",
+        "VREF_0": "VREF\\<0\\>",
+        "VREF_1": "VREF\\<1\\>",
+        "VREF_10": "VREF\\<10\\>",
+        "VREF_11": "VREF\\<11\\>",
+        "VREF_12": "VREF\\<12\\>",
+        "VREF_13": "VREF\\<13\\>",
+        "VREF_14": "VREF\\<14\\>",
+        "VREF_2": "VREF\\<2\\>",
+        "VREF_3": "VREF\\<3\\>",
+        "VREF_4": "VREF\\<4\\>",
+        "VREF_5": "VREF\\<5\\>",
+        "VREF_6": "VREF\\<6\\>",
+        "VREF_7": "VREF\\<7\\>",
+        "VREF_8": "VREF\\<8\\>",
+        "VREF_9": "VREF\\<9\\>",
+        "XCA_0": "XCA\\<0\\>",
+        "XCA_1": "XCA\\<1\\>",
+        "XCA_2": "XCA\\<2\\>",
+        "XCA_3": "XCA\\<3\\>",
+        "XCA_4": "XCA\\<4\\>",
+        "XCA_5": "XCA\\<5\\>",
+        "XCA_6": "XCA\\<6\\>",
+        "XCA_7": "XCA\\<7\\>",
+        "XCB_10": "XCB\\<10\\>",
+        "XCB_11": "XCB\\<11\\>",
+        "XCB_12": "XCB\\<12\\>",
+        "XCB_13": "XCB\\<13\\>",
+        "XCB_14": "XCB\\<14\\>",
+        "XCB_8": "XCB\\<8\\>",
+        "XCB_9": "XCB\\<9\\>"
+      },
+      "contract": {
+        "body_statements": 29,
+        "instances": {
+          "XCB_14": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCB_13": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCB_12": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCB_11": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCB_10": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCB_9": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCB_8": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCA_7": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCA_6": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCA_5": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCA_4": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCA_3": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCA_2": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCA_1": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XCA_0": {
+            "master": "L4_stage1_flash_comparator",
+            "terminals": 20
+          },
+          "XBOOT_B": {
+            "master": "L4_stage1_flash_bootstrapper",
+            "terminals": 7
+          },
+          "XBOOT_A": {
+            "master": "L4_stage1_flash_bootstrapper",
+            "terminals": 7
+          },
+          "XCLK_B": {
+            "master": "L4_stage1_flash_clkbooster",
+            "terminals": 6
+          },
+          "XCLK_A": {
+            "master": "L4_stage1_flash_clkbooster",
+            "terminals": 6
+          },
+          "M0_B": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M0_A": {
+            "master": "nch_ulvt_mac",
+            "terminals": 4
+          },
+          "M1_B": {
+            "master": "nch_mac",
+            "terminals": 4
+          },
+          "M24_B": {
+            "master": "nch_mac",
+            "terminals": 4
+          },
+          "M1_A": {
+            "master": "nch_mac",
+            "terminals": 4
+          },
+          "M24_A": {
+            "master": "nch_mac",
+            "terminals": 4
+          },
+          "C0_B": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "C0_A": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "XENC": {
+            "master": "L4_stage1_flash4_encoder",
+            "terminals": 21
+          },
+          "XRDAC": {
+            "master": "L4_stage1_flash4_rdac_FS2",
+            "terminals": 17
+          }
+        },
+        "alias_count": 109,
+        "identifier_counts": {
+          "BIN_0": 2,
+          "BIN_1": 2,
+          "BIN_2": 2,
+          "BIN_3": 2,
+          "DN_0": 2,
+          "DN_10": 2,
+          "DN_11": 2,
+          "DN_12": 2,
+          "DN_13": 2,
+          "DN_14": 2,
+          "DN_1": 2,
+          "DN_2": 2,
+          "DN_3": 2,
+          "DN_4": 2,
+          "DN_5": 2,
+          "DN_6": 2,
+          "DN_7": 2,
+          "DN_8": 2,
+          "DN_9": 2,
+          "DP_0": 2,
+          "DP_10": 2,
+          "DP_11": 2,
+          "DP_12": 2,
+          "DP_13": 2,
+          "DP_14": 2,
+          "DP_1": 2,
+          "DP_2": 2,
+          "DP_3": 2,
+          "DP_4": 2,
+          "DP_5": 2,
+          "DP_6": 2,
+          "DP_7": 2,
+          "DP_8": 2,
+          "DP_9": 2,
+          "D_0": 3,
+          "D_10": 3,
+          "D_11": 3,
+          "D_12": 3,
+          "D_13": 3,
+          "D_14": 3,
+          "D_1": 3,
+          "D_2": 3,
+          "D_3": 3,
+          "D_4": 3,
+          "D_5": 3,
+          "D_6": 3,
+          "D_7": 3,
+          "D_8": 3,
+          "D_9": 3,
+          "VOSN_0": 2,
+          "VOSN_10": 2,
+          "VOSN_11": 2,
+          "VOSN_12": 2,
+          "VOSN_13": 2,
+          "VOSN_14": 2,
+          "VOSN_1": 2,
+          "VOSN_2": 2,
+          "VOSN_3": 2,
+          "VOSN_4": 2,
+          "VOSN_5": 2,
+          "VOSN_6": 2,
+          "VOSN_7": 2,
+          "VOSN_8": 2,
+          "VOSN_9": 2,
+          "VOSP_0": 2,
+          "VOSP_10": 2,
+          "VOSP_11": 2,
+          "VOSP_12": 2,
+          "VOSP_13": 2,
+          "VOSP_14": 2,
+          "VOSP_1": 2,
+          "VOSP_2": 2,
+          "VOSP_3": 2,
+          "VOSP_4": 2,
+          "VOSP_5": 2,
+          "VOSP_6": 2,
+          "VOSP_7": 2,
+          "VOSP_8": 2,
+          "VOSP_9": 2,
+          "VREF_0": 3,
+          "VREF_10": 3,
+          "VREF_11": 3,
+          "VREF_12": 3,
+          "VREF_13": 3,
+          "VREF_14": 3,
+          "VREF_1": 3,
+          "VREF_2": 3,
+          "VREF_3": 3,
+          "VREF_4": 3,
+          "VREF_5": 3,
+          "VREF_6": 3,
+          "VREF_7": 3,
+          "VREF_8": 3,
+          "VREF_9": 3,
+          "XCA_0": 1,
+          "XCA_1": 1,
+          "XCA_2": 1,
+          "XCA_3": 1,
+          "XCA_4": 1,
+          "XCA_5": 1,
+          "XCA_6": 1,
+          "XCA_7": 1,
+          "XCB_10": 1,
+          "XCB_11": 1,
+          "XCB_12": 1,
+          "XCB_13": 1,
+          "XCB_14": 1,
+          "XCB_8": 1,
+          "XCB_9": 1
+        },
+        "indexed_identifiers": [
+          "BIN_0",
+          "BIN_1",
+          "BIN_2",
+          "BIN_3",
+          "DN_0",
+          "DN_1",
+          "DN_10",
+          "DN_11",
+          "DN_12",
+          "DN_13",
+          "DN_14",
+          "DN_2",
+          "DN_3",
+          "DN_4",
+          "DN_5",
+          "DN_6",
+          "DN_7",
+          "DN_8",
+          "DN_9",
+          "DP_0",
+          "DP_1",
+          "DP_10",
+          "DP_11",
+          "DP_12",
+          "DP_13",
+          "DP_14",
+          "DP_2",
+          "DP_3",
+          "DP_4",
+          "DP_5",
+          "DP_6",
+          "DP_7",
+          "DP_8",
+          "DP_9",
+          "D_0",
+          "D_1",
+          "D_10",
+          "D_11",
+          "D_12",
+          "D_13",
+          "D_14",
+          "D_2",
+          "D_3",
+          "D_4",
+          "D_5",
+          "D_6",
+          "D_7",
+          "D_8",
+          "D_9",
+          "VOSN_0",
+          "VOSN_1",
+          "VOSN_10",
+          "VOSN_11",
+          "VOSN_12",
+          "VOSN_13",
+          "VOSN_14",
+          "VOSN_2",
+          "VOSN_3",
+          "VOSN_4",
+          "VOSN_5",
+          "VOSN_6",
+          "VOSN_7",
+          "VOSN_8",
+          "VOSN_9",
+          "VOSP_0",
+          "VOSP_1",
+          "VOSP_10",
+          "VOSP_11",
+          "VOSP_12",
+          "VOSP_13",
+          "VOSP_14",
+          "VOSP_2",
+          "VOSP_3",
+          "VOSP_4",
+          "VOSP_5",
+          "VOSP_6",
+          "VOSP_7",
+          "VOSP_8",
+          "VOSP_9",
+          "VREF_0",
+          "VREF_1",
+          "VREF_10",
+          "VREF_11",
+          "VREF_12",
+          "VREF_13",
+          "VREF_14",
+          "VREF_2",
+          "VREF_3",
+          "VREF_4",
+          "VREF_5",
+          "VREF_6",
+          "VREF_7",
+          "VREF_8",
+          "VREF_9",
+          "XCA_0",
+          "XCA_1",
+          "XCA_2",
+          "XCA_3",
+          "XCA_4",
+          "XCA_5",
+          "XCA_6",
+          "XCA_7",
+          "XCB_10",
+          "XCB_11",
+          "XCB_12",
+          "XCB_13",
+          "XCB_14",
+          "XCB_8",
+          "XCB_9"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "273f5e85e1f5682765bb8ff18ef1cff7cef3bfeb145c82355375639e6b17fc5e",
+        "electrical_sha256": "5bf89cb892386a457c35fdf2e13f57627988ccb8fc7f3b4126a13c217f2c91a8",
+        "template_electrical_sha256": "adf870cacf8eb8ec946fe76a646de3d5ef0b0096d095e14228daa3cfe7d9f8ce",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "PIPE_TOP_F4_RS9_N06",
+      "source": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_TOP_F4_RS9_N06.scs",
+      "source_subcircuit": "PIPE_TOP_F4_RS9_N06",
+      "source_ports": [
+        "AMP",
+        "BIN_3",
+        "BIN_2",
+        "BIN_1",
+        "BIN_0",
+        "CHANNEL",
+        "CODE_11",
+        "CODE_10",
+        "CODE_9",
+        "CODE_8",
+        "CODE_7",
+        "CODE_6",
+        "CODE_5",
+        "CODE_4",
+        "CODE_3",
+        "CODE_2",
+        "CODE_1",
+        "CODE_0",
+        "D_14",
+        "D_13",
+        "D_12",
+        "D_11",
+        "D_10",
+        "D_9",
+        "D_8",
+        "D_7",
+        "D_6",
+        "D_5",
+        "D_4",
+        "D_3",
+        "D_2",
+        "D_1",
+        "D_0",
+        "DA",
+        "DB",
+        "IB_A",
+        "IB_B",
+        "OVERFLOW",
+        "RECON",
+        "RON",
+        "ROP",
+        "TA",
+        "TB",
+        "TRACK",
+        "VALID",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "target_ports": [
+        "AMP",
+        "BIN\\<3\\>",
+        "BIN\\<2\\>",
+        "BIN\\<1\\>",
+        "BIN\\<0\\>",
+        "CHANNEL",
+        "CODE\\<11\\>",
+        "CODE\\<10\\>",
+        "CODE\\<9\\>",
+        "CODE\\<8\\>",
+        "CODE\\<7\\>",
+        "CODE\\<6\\>",
+        "CODE\\<5\\>",
+        "CODE\\<4\\>",
+        "CODE\\<3\\>",
+        "CODE\\<2\\>",
+        "CODE\\<1\\>",
+        "CODE\\<0\\>",
+        "D\\<14\\>",
+        "D\\<13\\>",
+        "D\\<12\\>",
+        "D\\<11\\>",
+        "D\\<10\\>",
+        "D\\<9\\>",
+        "D\\<8\\>",
+        "D\\<7\\>",
+        "D\\<6\\>",
+        "D\\<5\\>",
+        "D\\<4\\>",
+        "D\\<3\\>",
+        "D\\<2\\>",
+        "D\\<1\\>",
+        "D\\<0\\>",
+        "DA",
+        "DB",
+        "IB_A",
+        "IB_B",
+        "OVERFLOW",
+        "RECON",
+        "RON",
+        "ROP",
+        "TA",
+        "TB",
+        "TRACK",
+        "VALID",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "identifiers": {
+        "BIN_0": "BIN\\<0\\>",
+        "BIN_1": "BIN\\<1\\>",
+        "BIN_2": "BIN\\<2\\>",
+        "BIN_3": "BIN\\<3\\>",
+        "CODE_0": "CODE\\<0\\>",
+        "CODE_1": "CODE\\<1\\>",
+        "CODE_10": "CODE\\<10\\>",
+        "CODE_11": "CODE\\<11\\>",
+        "CODE_2": "CODE\\<2\\>",
+        "CODE_3": "CODE\\<3\\>",
+        "CODE_4": "CODE\\<4\\>",
+        "CODE_5": "CODE\\<5\\>",
+        "CODE_6": "CODE\\<6\\>",
+        "CODE_7": "CODE\\<7\\>",
+        "CODE_8": "CODE\\<8\\>",
+        "CODE_9": "CODE\\<9\\>",
+        "C_BIN_0": "C_BIN\\<0\\>",
+        "C_BIN_1": "C_BIN\\<1\\>",
+        "C_BIN_2": "C_BIN\\<2\\>",
+        "C_BIN_3": "C_BIN\\<3\\>",
+        "C_DN_0": "C_DN\\<0\\>",
+        "C_DN_1": "C_DN\\<1\\>",
+        "C_DN_10": "C_DN\\<10\\>",
+        "C_DN_11": "C_DN\\<11\\>",
+        "C_DN_12": "C_DN\\<12\\>",
+        "C_DN_13": "C_DN\\<13\\>",
+        "C_DN_14": "C_DN\\<14\\>",
+        "C_DN_2": "C_DN\\<2\\>",
+        "C_DN_3": "C_DN\\<3\\>",
+        "C_DN_4": "C_DN\\<4\\>",
+        "C_DN_5": "C_DN\\<5\\>",
+        "C_DN_6": "C_DN\\<6\\>",
+        "C_DN_7": "C_DN\\<7\\>",
+        "C_DN_8": "C_DN\\<8\\>",
+        "C_DN_9": "C_DN\\<9\\>",
+        "C_DP_0": "C_DP\\<0\\>",
+        "C_DP_1": "C_DP\\<1\\>",
+        "C_DP_10": "C_DP\\<10\\>",
+        "C_DP_11": "C_DP\\<11\\>",
+        "C_DP_12": "C_DP\\<12\\>",
+        "C_DP_13": "C_DP\\<13\\>",
+        "C_DP_14": "C_DP\\<14\\>",
+        "C_DP_2": "C_DP\\<2\\>",
+        "C_DP_3": "C_DP\\<3\\>",
+        "C_DP_4": "C_DP\\<4\\>",
+        "C_DP_5": "C_DP\\<5\\>",
+        "C_DP_6": "C_DP\\<6\\>",
+        "C_DP_7": "C_DP\\<7\\>",
+        "C_DP_8": "C_DP\\<8\\>",
+        "C_DP_9": "C_DP\\<9\\>",
+        "C_D_0": "C_D\\<0\\>",
+        "C_D_1": "C_D\\<1\\>",
+        "C_D_10": "C_D\\<10\\>",
+        "C_D_11": "C_D\\<11\\>",
+        "C_D_12": "C_D\\<12\\>",
+        "C_D_13": "C_D\\<13\\>",
+        "C_D_14": "C_D\\<14\\>",
+        "C_D_2": "C_D\\<2\\>",
+        "C_D_3": "C_D\\<3\\>",
+        "C_D_4": "C_D\\<4\\>",
+        "C_D_5": "C_D\\<5\\>",
+        "C_D_6": "C_D\\<6\\>",
+        "C_D_7": "C_D\\<7\\>",
+        "C_D_8": "C_D\\<8\\>",
+        "C_D_9": "C_D\\<9\\>",
+        "DN_0": "DN\\<0\\>",
+        "DN_1": "DN\\<1\\>",
+        "DN_10": "DN\\<10\\>",
+        "DN_11": "DN\\<11\\>",
+        "DN_12": "DN\\<12\\>",
+        "DN_13": "DN\\<13\\>",
+        "DN_14": "DN\\<14\\>",
+        "DN_2": "DN\\<2\\>",
+        "DN_3": "DN\\<3\\>",
+        "DN_4": "DN\\<4\\>",
+        "DN_5": "DN\\<5\\>",
+        "DN_6": "DN\\<6\\>",
+        "DN_7": "DN\\<7\\>",
+        "DN_8": "DN\\<8\\>",
+        "DN_9": "DN\\<9\\>",
+        "DP_0": "DP\\<0\\>",
+        "DP_1": "DP\\<1\\>",
+        "DP_10": "DP\\<10\\>",
+        "DP_11": "DP\\<11\\>",
+        "DP_12": "DP\\<12\\>",
+        "DP_13": "DP\\<13\\>",
+        "DP_14": "DP\\<14\\>",
+        "DP_2": "DP\\<2\\>",
+        "DP_3": "DP\\<3\\>",
+        "DP_4": "DP\\<4\\>",
+        "DP_5": "DP\\<5\\>",
+        "DP_6": "DP\\<6\\>",
+        "DP_7": "DP\\<7\\>",
+        "DP_8": "DP\\<8\\>",
+        "DP_9": "DP\\<9\\>",
+        "D_0": "D\\<0\\>",
+        "D_1": "D\\<1\\>",
+        "D_10": "D\\<10\\>",
+        "D_11": "D\\<11\\>",
+        "D_12": "D\\<12\\>",
+        "D_13": "D\\<13\\>",
+        "D_14": "D\\<14\\>",
+        "D_2": "D\\<2\\>",
+        "D_3": "D\\<3\\>",
+        "D_4": "D\\<4\\>",
+        "D_5": "D\\<5\\>",
+        "D_6": "D\\<6\\>",
+        "D_7": "D\\<7\\>",
+        "D_8": "D\\<8\\>",
+        "D_9": "D\\<9\\>",
+        "KA_0": "KA\\<0\\>",
+        "KA_1": "KA\\<1\\>",
+        "KA_2": "KA\\<2\\>",
+        "KA_3": "KA\\<3\\>",
+        "KB_0": "KB\\<0\\>",
+        "KB_1": "KB\\<1\\>",
+        "KB_2": "KB\\<2\\>",
+        "KB_3": "KB\\<3\\>",
+        "K_0": "K\\<0\\>",
+        "K_1": "K\\<1\\>",
+        "K_2": "K\\<2\\>",
+        "K_3": "K\\<3\\>",
+        "QA_0": "QA\\<0\\>",
+        "QA_1": "QA\\<1\\>",
+        "QA_2": "QA\\<2\\>",
+        "QA_3": "QA\\<3\\>",
+        "QA_4": "QA\\<4\\>",
+        "QA_5": "QA\\<5\\>",
+        "QA_6": "QA\\<6\\>",
+        "QA_7": "QA\\<7\\>",
+        "QA_8": "QA\\<8\\>",
+        "QB_0": "QB\\<0\\>",
+        "QB_1": "QB\\<1\\>",
+        "QB_2": "QB\\<2\\>",
+        "QB_3": "QB\\<3\\>",
+        "QB_4": "QB\\<4\\>",
+        "QB_5": "QB\\<5\\>",
+        "QB_6": "QB\\<6\\>",
+        "QB_7": "QB\\<7\\>",
+        "QB_8": "QB\\<8\\>"
+      },
+      "contract": {
+        "body_statements": 72,
+        "instances": {
+          "XRA": {
+            "master": "PIPE_MDAC4_G8_SC",
+            "terminals": 12
+          },
+          "S_BN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "S_BP": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "S_AN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "S_AP": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "XCLK": {
+            "master": "PIPE_Clock250_250_500",
+            "terminals": 11
+          },
+          "XSARB": {
+            "master": "PIPE_SAR9_Real_N06",
+            "terminals": 31
+          },
+          "XSARA": {
+            "master": "PIPE_SAR9_Real_N06",
+            "terminals": 31
+          },
+          "XMERGE": {
+            "master": "RS9_Merge_N06",
+            "terminals": 48
+          },
+          "CPROBE7": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CPROBE6": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CPROBE5": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CPROBE4": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CPROBE3": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CPROBE2": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CPROBE1": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CPROBE0": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_BIN_3": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_BIN_2": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_BIN_1": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_BIN_0": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_14": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_13": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_12": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_11": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_10": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_9": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_8": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_7": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_6": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_5": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_4": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_3": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_2": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_1": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DN_0": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_14": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_13": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_12": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_11": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_10": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_9": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_8": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_7": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_6": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_5": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_4": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_3": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_2": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_1": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_DP_0": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_14": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_13": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_12": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_11": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_10": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_9": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_8": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_7": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_6": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_5": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_4": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_3": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_2": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_1": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "C_D_0": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CH_BN": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CH_BP": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CH_AN": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "CH_AP": {
+            "master": "capacitor",
+            "terminals": 2
+          },
+          "XFLASH": {
+            "master": "L3_stage1_flash4_FS2",
+            "terminals": 92
+          },
+          "XDAC": {
+            "master": "PIPE_ThermDAC4_FS2",
+            "terminals": 26
+          }
+        },
+        "alias_count": 140,
+        "identifier_counts": {
+          "BIN_0": 3,
+          "BIN_1": 3,
+          "BIN_2": 3,
+          "BIN_3": 3,
+          "CODE_0": 2,
+          "CODE_10": 2,
+          "CODE_11": 2,
+          "CODE_1": 2,
+          "CODE_2": 2,
+          "CODE_3": 2,
+          "CODE_4": 2,
+          "CODE_5": 2,
+          "CODE_6": 2,
+          "CODE_7": 2,
+          "CODE_8": 2,
+          "CODE_9": 2,
+          "C_BIN_0": 1,
+          "C_BIN_1": 1,
+          "C_BIN_2": 1,
+          "C_BIN_3": 1,
+          "C_DN_0": 1,
+          "C_DN_10": 1,
+          "C_DN_11": 1,
+          "C_DN_12": 1,
+          "C_DN_13": 1,
+          "C_DN_14": 1,
+          "C_DN_1": 1,
+          "C_DN_2": 1,
+          "C_DN_3": 1,
+          "C_DN_4": 1,
+          "C_DN_5": 1,
+          "C_DN_6": 1,
+          "C_DN_7": 1,
+          "C_DN_8": 1,
+          "C_DN_9": 1,
+          "C_DP_0": 1,
+          "C_DP_10": 1,
+          "C_DP_11": 1,
+          "C_DP_12": 1,
+          "C_DP_13": 1,
+          "C_DP_14": 1,
+          "C_DP_1": 1,
+          "C_DP_2": 1,
+          "C_DP_3": 1,
+          "C_DP_4": 1,
+          "C_DP_5": 1,
+          "C_DP_6": 1,
+          "C_DP_7": 1,
+          "C_DP_8": 1,
+          "C_DP_9": 1,
+          "C_D_0": 1,
+          "C_D_10": 1,
+          "C_D_11": 1,
+          "C_D_12": 1,
+          "C_D_13": 1,
+          "C_D_14": 1,
+          "C_D_1": 1,
+          "C_D_2": 1,
+          "C_D_3": 1,
+          "C_D_4": 1,
+          "C_D_5": 1,
+          "C_D_6": 1,
+          "C_D_7": 1,
+          "C_D_8": 1,
+          "C_D_9": 1,
+          "DN_0": 2,
+          "DN_10": 2,
+          "DN_11": 2,
+          "DN_12": 2,
+          "DN_13": 2,
+          "DN_14": 2,
+          "DN_1": 2,
+          "DN_2": 2,
+          "DN_3": 2,
+          "DN_4": 2,
+          "DN_5": 2,
+          "DN_6": 2,
+          "DN_7": 2,
+          "DN_8": 2,
+          "DN_9": 2,
+          "DP_0": 2,
+          "DP_10": 2,
+          "DP_11": 2,
+          "DP_12": 2,
+          "DP_13": 2,
+          "DP_14": 2,
+          "DP_1": 2,
+          "DP_2": 2,
+          "DP_3": 2,
+          "DP_4": 2,
+          "DP_5": 2,
+          "DP_6": 2,
+          "DP_7": 2,
+          "DP_8": 2,
+          "DP_9": 2,
+          "D_0": 4,
+          "D_10": 4,
+          "D_11": 4,
+          "D_12": 4,
+          "D_13": 4,
+          "D_14": 4,
+          "D_1": 4,
+          "D_2": 4,
+          "D_3": 4,
+          "D_4": 4,
+          "D_5": 4,
+          "D_6": 4,
+          "D_7": 4,
+          "D_8": 4,
+          "D_9": 4,
+          "KA_0": 2,
+          "KA_1": 2,
+          "KA_2": 2,
+          "KA_3": 2,
+          "KB_0": 2,
+          "KB_1": 2,
+          "KB_2": 2,
+          "KB_3": 2,
+          "K_0": 3,
+          "K_1": 3,
+          "K_2": 3,
+          "K_3": 3,
+          "QA_0": 2,
+          "QA_1": 2,
+          "QA_2": 2,
+          "QA_3": 2,
+          "QA_4": 2,
+          "QA_5": 2,
+          "QA_6": 2,
+          "QA_7": 2,
+          "QA_8": 2,
+          "QB_0": 2,
+          "QB_1": 2,
+          "QB_2": 2,
+          "QB_3": 2,
+          "QB_4": 2,
+          "QB_5": 2,
+          "QB_6": 2,
+          "QB_7": 2,
+          "QB_8": 2
+        },
+        "indexed_identifiers": [
+          "BIN_0",
+          "BIN_1",
+          "BIN_2",
+          "BIN_3",
+          "CODE_0",
+          "CODE_1",
+          "CODE_10",
+          "CODE_11",
+          "CODE_2",
+          "CODE_3",
+          "CODE_4",
+          "CODE_5",
+          "CODE_6",
+          "CODE_7",
+          "CODE_8",
+          "CODE_9",
+          "C_BIN_0",
+          "C_BIN_1",
+          "C_BIN_2",
+          "C_BIN_3",
+          "C_DN_0",
+          "C_DN_1",
+          "C_DN_10",
+          "C_DN_11",
+          "C_DN_12",
+          "C_DN_13",
+          "C_DN_14",
+          "C_DN_2",
+          "C_DN_3",
+          "C_DN_4",
+          "C_DN_5",
+          "C_DN_6",
+          "C_DN_7",
+          "C_DN_8",
+          "C_DN_9",
+          "C_DP_0",
+          "C_DP_1",
+          "C_DP_10",
+          "C_DP_11",
+          "C_DP_12",
+          "C_DP_13",
+          "C_DP_14",
+          "C_DP_2",
+          "C_DP_3",
+          "C_DP_4",
+          "C_DP_5",
+          "C_DP_6",
+          "C_DP_7",
+          "C_DP_8",
+          "C_DP_9",
+          "C_D_0",
+          "C_D_1",
+          "C_D_10",
+          "C_D_11",
+          "C_D_12",
+          "C_D_13",
+          "C_D_14",
+          "C_D_2",
+          "C_D_3",
+          "C_D_4",
+          "C_D_5",
+          "C_D_6",
+          "C_D_7",
+          "C_D_8",
+          "C_D_9",
+          "DN_0",
+          "DN_1",
+          "DN_10",
+          "DN_11",
+          "DN_12",
+          "DN_13",
+          "DN_14",
+          "DN_2",
+          "DN_3",
+          "DN_4",
+          "DN_5",
+          "DN_6",
+          "DN_7",
+          "DN_8",
+          "DN_9",
+          "DP_0",
+          "DP_1",
+          "DP_10",
+          "DP_11",
+          "DP_12",
+          "DP_13",
+          "DP_14",
+          "DP_2",
+          "DP_3",
+          "DP_4",
+          "DP_5",
+          "DP_6",
+          "DP_7",
+          "DP_8",
+          "DP_9",
+          "D_0",
+          "D_1",
+          "D_10",
+          "D_11",
+          "D_12",
+          "D_13",
+          "D_14",
+          "D_2",
+          "D_3",
+          "D_4",
+          "D_5",
+          "D_6",
+          "D_7",
+          "D_8",
+          "D_9",
+          "KA_0",
+          "KA_1",
+          "KA_2",
+          "KA_3",
+          "KB_0",
+          "KB_1",
+          "KB_2",
+          "KB_3",
+          "K_0",
+          "K_1",
+          "K_2",
+          "K_3",
+          "PIPE_Clock250_250_500",
+          "QA_0",
+          "QA_1",
+          "QA_2",
+          "QA_3",
+          "QA_4",
+          "QA_5",
+          "QA_6",
+          "QA_7",
+          "QA_8",
+          "QB_0",
+          "QB_1",
+          "QB_2",
+          "QB_3",
+          "QB_4",
+          "QB_5",
+          "QB_6",
+          "QB_7",
+          "QB_8"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "6d6fb46895e0877d003c6d08a954dd592e864382321cf5c9998100880b86e0b5",
+        "electrical_sha256": "cc0349e34e03c85670752296cbdc657f5c9f5077107db98dd552df83249d0668",
+        "template_electrical_sha256": "624f1e11ee9af56e6e49f779e73b288c40881d4eaace89292e942fc9457afd9e",
+        "equivalence": "statements"
+      }
+    }
+  ]
+}

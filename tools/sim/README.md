@@ -1,20 +1,17 @@
-# PIPETISAR 独立仿真原型
+# Standalone Spectre 兼容入口
 
-这是通用 standalone Spectre CLI 可集成包，不是新仿真结果。Nov6 real-SAR 的两个24ns测试是迁移参考 profile；正式项目 bundle 由主会话生成。ideal baseline、real-SAR、MDAC 的历史身份与设置在 `historical-runs.json`，其验收范围不同。
+唯一 runner 实现位于 [`tools/workbench/ic_sim.py`](../workbench/ic_sim.py)。本目录的 `ic_sim.py` 保留旧命令和 Python 导入兼容，函数、默认运行目录及来源 hash 都指向该实现。Bundle/site/receipt 约定见 [INTERFACE.md](INTERFACE.md)。
 
-先读 [INTERFACE.md](INTERFACE.md)。本轮不接 Rich Netlist。主会话负责权威 OA、schematic、项目源闭包及 Git 写入。
+从仓库根目录做离线检查：
 
 ```bash
-python3 -B test_ic_sim.py
-python3 -B ic_sim.py --site site.local.example.json plan --bundle fixtures/bundle.json
+python3 -B tools/sim/test_ic_sim.py
+python3 -B tests/architecture/test_sim_compat.py
+python3 -B tools/workbench/ic_sim.py --site config/site.example.json plan --bundle tools/sim/fixtures/bundle.json
 ```
 
-以上命令完全离线。fixture 只测试传输配置，不是 ADC。已有文本网表可直接列入 bundle，不必先经过 OA/bridge。纯文本网表用 `design_origin=text-netlist`，无需伪造 library/history。用户或原生 netlister 决定电路；本 CLI 不网表化 OA。
+fixture 只验证传输和输入组织，不是 ADC，也未获准执行。已有 Spectre 文本可直接列入 bundle，无需 OA、bridge 或 Virtuoso。RNL 由工作台编辑和验证，实际仿真使用所选配置编译出的电气源与显式依赖。
 
-`simulator.profile=nov6-aps2` 明确选择历史 `-64 +aps +mt=2`；默认 `spectre-default` 仅指定 `-64`。其他设计可用 `simulator.args` 和 `output_format` 指定自己的求解参数。tran、容差、参数、save 仍来自源网表，不会静默套用 PIPETISAR 设置。
+`run --execute --raw` 在受审 Git 源、私有站点、外部模型和许可证满足要求后执行单次提交与结果收集。普通 GitHub CI 只运行离线检查；`ci/sim-static.yml.example` 是示例模板。网页和 MCP 使用现有网关配置及操作回执，不能把 CLI 兼容入口当作额外授权。
 
-集成后，把模板复制为忽略的 `site.local.json` 并填写外部模型路径。人工检查项目闭包/厂商边界后才设置 bundle 的 `reviewed_for_distribution=true`，然后提交 Git。不要把历史 source commit 填成新 commit；旧来源由 history 和原始哈希追踪，未来 run 自动记录当时的实际 commit。
-
-`run --execute --raw` 在前置条件齐备后，一条命令完成预检、隔离 staging、单次提交、等待和结果回收。它没有在真实 Spectre 上演练。普通 GitHub CI 可参考 `ci/sim-static.yml.example`，只能运行离线检查。
-
-回收的 PSFXL 仍需独立 OCEAN/CSV 科学后处理。`simulator_complete_pending_measurements` 只说明求解器成功，不能据此验收电路。MDAC LOW 的 2.017 LSB12 误差仍失败；本包不改变该结论。早期制备的 real-SAR 候选闭包已移至迁移工作目录的 `prepared-candidates/`，不属于 portable 包；正式集成采用主会话生成的 `sim/bundles/*`。
+`historical-runs.json` 保留早期 real-SAR、ideal 与 MDAC 的历史身份和测量设置，不表示当前进行过新仿真。已有 provenance/hash 保持原样。当前流程见[独立仿真文档](../../docs/simulation-migration-plan.md)，原始导入背景见[历史原图迁移](../../docs/native-geometry-migration.md)。

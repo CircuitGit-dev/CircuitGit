@@ -1,13 +1,13 @@
 // Build bounded RNL documents with the trusted bundled WASM, never a simulator.
 import {readFileSync,writeFileSync,lstatSync,realpathSync} from 'node:fs';
-import {resolve,dirname,relative,sep} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {resolve,sep} from 'node:path';
 import {loadCore} from '../../apps/web/vendor/rnl-viewer/core/core.js';
+import {repositoryPath,viewAliases} from '../../apps/web/library/model.js';
 const [rootArg,input,output]=process.argv.slice(2),root=realpathSync(rootArg);
 const source=JSON.parse(readFileSync(input,'utf8')),results=[];
 const core=await loadCore(readFileSync(new URL('../../apps/web/vendor/rnl-viewer/core/rnl_runtime_wasm.wasm',import.meta.url)));
 const safe=name=>{
-  if(typeof name!=='string'||!name.match(/^(lib|projects)\//)||name.split('/').some(x=>!x||x==='.'||x==='..')||/[\\:%?#\x00-\x1f]/.test(name))throw Error('Unsafe RNL inventory path');
+  repositoryPath(name);
   const path=resolve(root,name);if(!realpathSync(path).startsWith(root+sep)||lstatSync(path).isSymbolicLink())throw Error('RNL path outside checkout');
   const raw=readFileSync(path);if(raw.length>10*1024*1024)throw Error('Oversized RNL source');return raw.toString('utf8');
 };
@@ -15,9 +15,11 @@ if(!Array.isArray(source.rnl_views)||source.rnl_views.length>5000)throw Error('I
 for(const view of source.rnl_views){
   const row={library_id:view.library_id,cell_id:view.cell_id,view_id:view.view_id,entry:view.entry,status:'passed'};
   try{
-    if(!Array.isArray(view.files)||view.files.length>2000||!view.files.includes(view.entry))throw Error('Invalid RNL closure');
+    if(!Array.isArray(view.files)||!view.files.length||view.files.length>4096||new Set(view.files).size!==view.files.length||!view.files.includes(view.entry))throw Error('Invalid RNL closure');
+    const aliases=viewAliases(view);
     const files=Object.fromEntries(view.files.map(name=>['/'+name,safe(name)]));
     if(Object.values(files).reduce((n,s)=>n+Buffer.byteLength(s),0)>30*1024*1024)throw Error('Oversized RNL closure');
+    for(const [logical,canonical] of Object.entries(aliases))files['/'+logical]=files['/'+canonical];
     const doc=core.build({entry:'/'+view.entry,files,svg:true,primitives:false});
     row.errors=(doc.diagnostics||[]).filter(d=>d.severity==='error').slice(0,50);
     row.levels=(doc.levels||[]).length;

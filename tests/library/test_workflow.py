@@ -89,6 +89,165 @@ class LibraryWorkflowTest(unittest.TestCase):
         review = self.workflow.preview_commit("demo", "gain", self.head(), title="Update resistor", body="Use the reviewed source value.")
         return self.workflow.confirm(review["review_id"], key)
 
+    def execute(self, operation, key, **args):
+        return self.workflow.execute(operation, {"library_id": "demo", "cell_id": "gain", **args}, key)
+
+    def group_args(self):
+        geometry = "lib/demo/gain/geometry/gain.json"
+        self.write(geometry, '{"x":1}\n')
+        self.manifest["cells"][0]["views"].append({"id": "geometry", "kind": "json", "entry": geometry, "files": [geometry]})
+        self.write("lib/demo/library.json", self.manifest)
+        self.git("add", geometry, "lib/demo/library.json")
+        self.git("commit", "-m", "Register synthetic geometry")
+        return [{"path": self.path, "content": self.after, "base_sha256": self.sha(self.before)},
+                {"path": geometry, "content": '{"x":2}\n', "base_sha256": self.sha('{"x":1}\n')}]
+
+    def test_direct_save_replays_original_receipt_without_revalidating_old_hash(self):
+        args = {"path": self.path, "content": self.after, "base_sha256": self.sha(self.before)}
+        result = self.execute("save", "direct-save-key", **args)
+        self.assertEqual(result["state"], "complete")
+        self.assertEqual(self.execute("save", "direct-save-key", **args), result)
+        # Durable intent survives helper reconstruction and an unrelated later source edit.
+        workflow = MOD.LibraryWorkflow(self.root, "fixture/circuits")
+        self.write(self.path, self.after + "// outside editor\n")
+        self.assertEqual(workflow.execute("save", {"library_id": "demo", "cell_id": "gain", **args}, "direct-save-key"), result)
+        self.assertEqual(len(workflow.checkpoints("demo", "gain")["checkpoints"]), 1)
+        for changed in ({**args, "content": self.before}, {**args, "path": self.shared}):
+            with self.assertRaises(MOD.WorkflowError) as failure:
+                self.execute("save", "direct-save-key", **changed)
+            self.assertEqual(failure.exception.code, "conflict")
+
+    def test_direct_commit_restore_ci_and_explicit_repeated_edit(self):
+        original_revision = self.workflow.current("demo", "gain")["revision"]
+        saved = self.execute("save", "direct-first-save", path=self.path, content=self.after, base_sha256=self.sha(self.before))
+        self.execute("restore", "direct-restore-key", path=self.path, base_sha256=self.sha(self.after),
+                     checkpoint_id=saved["checkpoint_id"], checkpoint_version="before")
+        restored_revision = self.workflow.current("demo", "gain")["revision"]
+        self.assertNotEqual(original_revision, restored_revision)
+        second = self.execute("save", "direct-second-save", path=self.path, content=self.after, base_sha256=self.sha(self.before))
+        self.assertNotEqual(saved["review_id"], second["review_id"])
+        committed = self.execute("commit", "direct-commit-key", base_commit=self.head(), title="Update circuit", body="Increase the resistor value.")
+        self.assertEqual(committed["state"], "complete")
+        self.assertEqual(self.workflow.history("demo", "gain")["commits"][0]["title"], "Update circuit")
+        ci = self.execute("ci", "direct-ci-key", enabled=True, testbench_ids=["gain-check"], base_sha256=None)
+        self.assertEqual(ci["state"], "complete")
+        self.assertEqual(self.workflow.get_ci("demo", "gain")["execution_status"], "not_checked")
+
+    def test_direct_request_receipts_distinguish_missing_prepared_and_unknown(self):
+        self.assertEqual(self.workflow.receipt(idempotency_key="missing-key")["state"], "not_found")
+        args = {"path": self.path, "content": self.after, "base_sha256": self.sha(self.before)}
+        with patch.object(self.workflow, "confirm", side_effect=MOD.WorkflowError("conflict", "Synthetic stop before dispatch")):
+            with self.assertRaises(MOD.WorkflowError):
+                self.execute("save", "prepared-key", **args)
+        prepared = self.workflow.receipt(idempotency_key="prepared-key")
+        self.assertEqual(prepared["state"], "prepared")
+        self.assertFalse(prepared["dispatched"])
+        with patch.object(self.workflow, "_apply_save", side_effect=OSError("Synthetic disk failure")) as apply:
+            with self.assertRaises(MOD.WorkflowError):
+                self.execute("save", "unknown-key", **args)
+            self.assertEqual(self.execute("save", "unknown-key", **args)["state"], "unknown")
+            self.assertEqual(apply.call_count, 1)
+
+    def test_grouped_save_captures_netlist_and_geometry_and_replays_once(self):
+        files = self.group_args()
+        result = self.execute("save_files", "group-save-key", files=files)
+        self.assertEqual(result["state"], "complete")
+        self.assertEqual(result["files"], [row["path"] for row in files])
+        self.assertEqual(self.execute("save_files", "group-save-key", files=files), result)
+        checkpoints = self.workflow.checkpoints("demo", "gain")["checkpoints"]
+        self.assertEqual(len(checkpoints), 2)
+        self.assertEqual({row["group_id"] for row in checkpoints}, {result["operation_id"]})
+        for row in files:
+            self.assertEqual((self.root / row["path"]).read_text(), row["content"])
+        for checkpoint in checkpoints:
+            for hash_key in ("before_sha256", "sha256"):
+                self.assertTrue((self.workflow.state / "objects" / checkpoint[hash_key]).is_file())
+
+    def test_grouped_stale_hash_or_foreign_scope_rejects_before_any_write(self):
+        files = self.group_args()
+        files[1]["base_sha256"] = "f" * 64
+        with self.assertRaises(MOD.WorkflowError):
+            self.execute("save_files", "group-stale-key", files=files)
+        self.assertEqual((self.root / self.path).read_text(), self.before)
+        self.assertEqual((self.root / files[1]["path"]).read_text(), '{"x":1}\n')
+        self.assertEqual(self.workflow.checkpoints("demo", "gain")["checkpoints"], [])
+        files[1] = {"path": self.shared, "content": "// changed\n", "base_sha256": self.sha("// shared read-only source\n")}
+        with self.assertRaises(MOD.WorkflowError):
+            self.execute("save_files", "group-foreign-key", files=files)
+
+    def test_grouped_second_failure_rolls_back_even_after_replace_then_fsync_error(self):
+        files = self.group_args()
+        original = self.workflow._replace_source
+        calls = []
+        def replace(path, raw, expected):
+            calls.append((path, raw))
+            original(path, raw, expected)
+            if path == files[1]["path"] and raw == files[1]["content"].encode():
+                raise OSError("Synthetic failure after successful rename")
+        with patch.object(self.workflow, "_replace_source", side_effect=replace):
+            result = self.execute("save_files", "group-rollback-key", files=files)
+        self.assertEqual(result["state"], "rolled_back")
+        self.assertTrue(all(row["restored"] for row in result["files"]))
+        self.assertEqual((self.root / self.path).read_text(), self.before)
+        self.assertEqual((self.root / files[1]["path"]).read_text(), '{"x":1}\n')
+        with patch.object(self.workflow, "_replace_source") as replace:
+            self.assertEqual(self.execute("save_files", "group-rollback-key", files=files), result)
+            replace.assert_not_called()
+        for row in self.workflow.checkpoints("demo", "gain")["checkpoints"]:
+            self.assertEqual(row["state"], "rolled_back")
+            with self.assertRaises(MOD.WorkflowError):
+                self.workflow._checkpoint(row["checkpoint_id"])
+
+    def test_grouped_failure_preserves_external_edit_and_reports_partial(self):
+        files = self.group_args()
+        original = self.workflow._replace_source
+        def replace(path, raw, expected):
+            if path == files[1]["path"]:
+                self.write(self.path, self.before + "// concurrent external edit\n")
+                raise OSError("Synthetic second-source write failure")
+            original(path, raw, expected)
+        with patch.object(self.workflow, "_replace_source", side_effect=replace):
+            result = self.execute("save_files", "group-partial-key", files=files)
+        self.assertEqual(result["state"], "partial")
+        self.assertFalse(result["automatic_retry"])
+        self.assertEqual((self.root / self.path).read_text(), self.before + "// concurrent external edit\n")
+        self.assertEqual(result["rollback_errors"], [{"path": self.path, "code": "conflict"}])
+        self.assertEqual(self.execute("save_files", "group-partial-key", files=files), result)
+
+    def test_revision_tracks_readonly_dependencies_and_catalog_includes_unbound_cells(self):
+        baseline = self.workflow.current("demo", "gain")
+        self.assertEqual(baseline["revision"], baseline["fingerprint"])
+        self.assertEqual(self.workflow.read_file("demo", "gain", self.path)["revision"], baseline["revision"])
+        self.write(self.shared, "// shared dependency modified outside this cell\n")
+        changed = self.workflow.current("demo", "gain")
+        self.assertEqual(changed["changes"], [])
+        self.assertFalse(changed["dirty"])
+        self.assertNotEqual(changed["revision"], baseline["revision"])
+        self.assertEqual(self.workflow.checkpoints("demo", "gain")["revision"], changed["revision"])
+        catalog = self.workflow.catalog()
+        gain, rc = catalog["libraries"][0]["cells"]
+        self.assertEqual(gain["source_path"], self.path)
+        self.assertIsNone(gain["project_id"])
+        self.assertEqual(rc["source_path"], "projects/rc-smoke/circuit.scs")
+        self.assertEqual(catalog["repository"], "fixture/circuits")
+
+    def test_catalog_prefers_owned_electrical_cell_source_over_native_view_wrapper(self):
+        wrapper = "lib/demo/gain/netlist/view-gain.scs"
+        self.write(wrapper, 'simulator lang=spectre\ninclude "gain.scs"\n')
+        source_view = self.manifest["cells"][0]["views"][0]
+        source_view.update(kind="rnl", entry=wrapper, files=[wrapper, self.path, self.shared])
+        self.write("lib/demo/library.json", self.manifest)
+        self.git("add", wrapper, "lib/demo/library.json")
+        self.git("commit", "-m", "Declare synthetic native assembly")
+        cells = self.workflow.catalog()["libraries"][0]["cells"]
+        self.assertEqual(cells[0]["source_path"], self.path)
+        self.assertEqual(cells[1]["source_path"], "projects/rc-smoke/circuit.scs")
+        description = self.workflow.describe("demo", "gain")
+        by_path = {row["path"]: row["editable"] for row in description["files"]}
+        self.assertTrue(by_path[wrapper])
+        self.assertTrue(by_path[self.path])
+        self.assertFalse(by_path[self.shared])
+
     def test_describe_uses_committed_scope_and_snapshot_match_is_informational(self):
         description = self.workflow.describe("demo", "gain", self.path, "f" * 64)
         self.assertFalse(description["snapshot_matches_head"])
@@ -288,8 +447,8 @@ class LibraryWorkflowTest(unittest.TestCase):
                 return json.dumps({"url": "https://github.com/fixture/circuits/pull/7", "state": "OPEN", "headRefName": review["payload"]["pr_branch"], "headRefOid": committed["commit"], "baseRefName": "main"}).encode()
             return b"https://github.com/fixture/circuits/pull/7\n"
         with patch.object(self.workflow, "_git", side_effect=git), patch.object(self.workflow, "_gh", side_effect=gh):
-            receipt = self.workflow.confirm(review["review_id"], "pr-stable-key")
-            self.assertEqual(self.workflow.confirm(review["review_id"], "pr-stable-key"), receipt)
+            receipt = self.execute("pr", "pr-stable-key", commit=committed["commit"], title="Adjust resistor", body="Line one\nLine two")
+            self.assertEqual(self.execute("pr", "pr-stable-key", commit=committed["commit"], title="Adjust resistor", body="Line one\nLine two"), receipt)
         self.assertEqual([args[0] for args in commands], ["ls-remote", "push"])
         self.assertEqual(commands[1][-1], committed["commit"] + ":refs/heads/" + review["payload"]["pr_branch"])
         self.assertFalse(any("force" in value for value in commands[1]))

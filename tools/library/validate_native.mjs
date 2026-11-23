@@ -5,12 +5,15 @@ import {resolve, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {loadCore} from '../../apps/web/vendor/rnl-viewer/core/core.js';
+import {validateLibrary,viewAliases} from '../../apps/web/library/model.js';
 
 const root = resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const args = process.argv.slice(2);
 const option = flag => args.includes(flag) ? args[args.indexOf(flag) + 1] : null;
 const seed = option('--seed-root');
 const output = option('--report');
+const baselinePath = option('--baseline');
+const baseline = baselinePath ? JSON.parse(readFileSync(resolve(baselinePath), 'utf8')) : null;
 const plan = JSON.parse(readFileSync(join(root, 'tools/library/adc-import-plan.json')));
 const sha = data => createHash('sha256').update(data).digest('hex');
 const wasm = readFileSync(join(root, 'apps/web/vendor/rnl-viewer/core/rnl_runtime_wasm.wasm'));
@@ -23,17 +26,19 @@ const geometry = (doc, level) => level.hits.map(({kind, points, objects}) => ({
 
 if (seed) assert.equal(sha(readFileSync(join(seed, plan.source_manifest))), plan.source_manifest_sha256);
 for (const library of plan.libraries) {
-  const manifest = JSON.parse(readFileSync(join(root, 'lib', library.id, 'library.json')));
+  const manifest = validateLibrary(JSON.parse(readFileSync(join(root, 'lib', library.id, 'library.json'))), library.id);
   for (const cell of library.cells) {
     const record = manifest.cells.find(c => c.id === cell.id);
     assert(record, `Missing library cell ${library.id}/${cell.id}`);
     const view = record.views.find(v => v.kind === 'rnl');
     assert.equal(view.level, cell.native_level);
     const prefix = `lib/${library.id}/${cell.id}/${view.id}/`;
+    const aliases = viewAliases(view);
     const files = {};
     for (const name of cell.files) {
-      assert(view.files.includes(prefix + name));
-      files['/native/' + name] = readFileSync(join(root, prefix, name), 'utf8');
+      const canonical = aliases[prefix + name] || prefix + name;
+      assert(view.files.includes(canonical));
+      files['/native/' + name] = readFileSync(join(root, canonical), 'utf8');
     }
     const request = {entry: '/native/' + cell.entry, files, auto_include: false};
     const doc = core.build(request);
@@ -74,8 +79,19 @@ for (const library of plan.libraries) {
       selected_svg_sha256: sha(level.svg), diagnostic_counts: doc.diagnostics.reduce((a,d) => (a[d.severity]=(a[d.severity]||0)+1,a), {})});
   }
 }
+if (baseline) {
+  assert.equal(baseline.renderer_wasm_sha256, sha(wasm), 'Historical renderer differs');
+  assert.equal(baseline.views.length, rows.length, 'Historical view coverage differs');
+  for (const row of rows) {
+    const before = baseline.views.find(old => old.library === row.library && old.cell === row.cell && old.view === row.view);
+    assert(before, `Missing historical view ${row.library}/${row.cell}/${row.view}`);
+    for (const field of ['level', 'selected_hit_geometry_sha256', 'selected_svg_sha256', 'retained_levels', 'viewer_instance_definitions'])
+      assert.equal(row[field], before[field], `Changed ${field}: ${row.library}/${row.cell}/${row.view}`);
+  }
+}
 const report = {schema: 'circuitgit.native-validation.v1', renderer_wasm_sha256: sha(wasm),
   checked_views: rows.length, source_comparison: !!seed, auto_include: false, auto_layout: false,
+  historical_render_comparison: !!baseline, historical_render_matches: baseline ? true : null,
   simulation_performed: false, native_export_fidelity: 'partial',
   limitations: ['Dynamic parameter/terminal labels were already omitted by the source exporter.',
     'Omitted external transmission-gate implementation is an empty interface with six unplaced ports; it is not a runnable model.',
@@ -85,4 +101,5 @@ if (output) {
   writeFileSync(path, JSON.stringify(report, null, 2) + '\n');
 }
 console.log(JSON.stringify({views: rows.length, passed: rows.length, source_comparison: !!seed,
+  historical_render_matches: baseline ? true : null,
   external_interface_views: rows.filter(r => r.external_interface_stub).length, auto_layout: false}));

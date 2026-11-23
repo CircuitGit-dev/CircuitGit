@@ -49,3 +49,25 @@ test('byte limits and malformed UTF-8 are rejected; cancellation propagates',asy
   const utf=createLibraryClient({baseURL:'https://example.test/library-files/',fetcher:async()=>new Response(new Uint8Array([255]))});await assert.rejects(utf.loadView({...view,files:[entry]}),/UTF-8/);
   const abort=new AbortController();abort.abort();const cancelled=fixture();await assert.rejects(cancelled.client.loadView(view,{signal:abort.signal}),{name:'AbortError'});
 });
+test('canonical sources are fetched once while original include paths remain in memory',async()=>{
+  const canonical='lib/packages/synthetic/resistor.scs',secondAlias='lib/another/cell/support/circuit.scs';
+  const f=fixture(),content=f.data.get(dependency);f.data.delete(dependency);f.data.set(canonical,content);
+  const aliased={...view,files:[entry,canonical],aliases:{[dependency]:canonical,[secondAlias]:canonical}};
+  const manifest=structuredClone(library);manifest.cells[0].views[0]=aliased;validateLibrary(manifest,'synthetic');
+  const bundle=await f.client.loadView(aliased);
+  assert.deepEqual(bundle.paths,[entry,canonical]);assert.equal(f.records.length,2);assert.ok(f.records.every(row=>!row.url.endsWith('/support/circuit.scs')));
+  assert.equal(bundle.bytes,Buffer.byteLength(f.data.get(entry))+Buffer.byteLength(content));
+  for(const path of [canonical,dependency,secondAlias]){assert.equal(await bundle.source.read('/'+path),content);assert.equal(await (await bundle.source.files.get('/'+path)()).text(),content);}
+  f.data.set(canonical,'// Canonical edit');const updated=await f.client.loadView(aliased);
+  assert.equal(updated.source.snapshot['/'+dependency],'// Canonical edit');assert.equal(updated.source.snapshot['/'+secondAlias],'// Canonical edit');
+});
+test('invalid alias authority is rejected before any file request',async()=>{
+  const canonical='lib/packages/synthetic/resistor.scs',unknown='lib/packages/synthetic/missing.scs';
+  const cases=[null,[],{[dependency]:unknown},{[entry]:canonical},{'lib/../escape.scs':canonical},{[dependency]:'lib/%2e%2e/escape.scs'},Object.fromEntries(Array.from({length:8193},(_,i)=>['lib/virtual/'+i+'.scs',canonical]))];
+  for(const aliases of cases){const f=fixture(),bad={...view,files:[entry,canonical],aliases};await assert.rejects(f.client.loadView(bad));assert.equal(f.records.length,0);const manifest=structuredClone(library);manifest.cells[0].views[0]=bad;assert.throws(()=>validateLibrary(manifest,'synthetic'));}
+  const f=fixture();await assert.rejects(f.client.loadView({...view,entry:dependency,files:[entry,canonical],aliases:{[dependency]:canonical}}),/缺少入口/);assert.equal(f.records.length,0);
+});
+test('identity aliases are allowed without extra fetches and missing canonical bytes fail closed',async()=>{
+  const f=fixture(),bundle=await f.client.loadView({...view,aliases:{[entry]:entry}});assert.equal(bundle.text,f.data.get(entry));assert.equal(f.records.length,2);
+  const canonical='lib/packages/synthetic/missing.scs';await assert.rejects(f.client.loadView({...view,files:[entry,canonical],aliases:{[dependency]:canonical}}),/读取失败/);
+});

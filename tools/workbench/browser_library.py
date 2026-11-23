@@ -1,4 +1,4 @@
-"""Finite library operations with local, grant-bound human review of frozen diffs."""
+"""Finite library operations authorized by an existing origin-bound browser grant."""
 import hashlib
 import html
 import json
@@ -6,8 +6,9 @@ import secrets
 import threading
 import time
 
-READS = {'describe', 'read_file', 'current', 'history', 'commit_detail', 'checkpoints', 'get_ci', 'receipt', 'pr_status'}
+READS = {'catalog', 'describe', 'read_file', 'current', 'history', 'commit_detail', 'checkpoints', 'get_ci', 'receipt', 'pr_status'}
 PREVIEWS = {'preview_save', 'preview_commit', 'preview_restore', 'preview_pr', 'preview_ci'}
+EXECUTIONS = {'save', 'save_files', 'commit', 'restore', 'pr', 'ci'}
 
 
 class LocalLibrary:
@@ -15,10 +16,11 @@ class LocalLibrary:
         self.workflow, self.pairing, self.local_url, self.clock = workflow, pairing, local_url, clock
         self.lock = threading.RLock()
         self.reviews, self.tickets = {}, {}
+        self.running_executions = {}
 
     def activity(self):
         with self.lock:
-            return {'running_actions': sum(row['state'] == 'running' for row in self.tickets.values())}
+            return {'running_actions': sum(self.running_executions.values()) + sum(row['state'] == 'running' for row in self.tickets.values())}
 
     def identity(self, token, origin):
         if not self.pairing.accepts(token, origin):
@@ -50,9 +52,33 @@ class LocalLibrary:
             if args: raise ValueError('Capability takes no arguments')
             return {'available': True, 'schema': 'circuitgit.library-workflow.v1',
                     'repository': self.workflow.repository, 'root': str(self.workflow.root),
-                    'human_review': 'local-window', 'operations': sorted(READS | PREVIEWS)}
+                    'authorization': 'paired-browser', 'human_review': 'not-required',
+                    'operations': sorted(READS | PREVIEWS | EXECUTIONS), 'execute_operations': sorted(EXECUTIONS)}
         if operation not in READS: raise ValueError('Unknown library read operation')
+        if operation == 'receipt':
+            key = args.get('idempotency_key')
+            oid = hashlib.sha256(key.encode()).hexdigest() if isinstance(key, str) else args.get('operation_id')
+            with self.lock:
+                if isinstance(oid, str) and self.running_executions.get(oid):
+                    return {'operation_id': oid, 'state': 'running', 'automatic_retry': False}
         return getattr(self.workflow, operation)(**args)
+
+    def execute(self, operation, args, idempotency_key, token, origin):
+        self.identity(token, origin)
+        if not isinstance(operation, str) or operation not in EXECUTIONS or not isinstance(args, dict):
+            raise ValueError('Unknown finite library execution')
+        if not isinstance(idempotency_key, str) or not 8 <= len(idempotency_key) <= 160 or any(ord(c) < 32 for c in idempotency_key):
+            raise ValueError('A stable idempotency key is required')
+        oid = hashlib.sha256(idempotency_key.encode()).hexdigest()
+        with self.lock:
+            self.running_executions[oid] = self.running_executions.get(oid, 0) + 1
+        try:
+            return self.workflow.execute(operation, args, idempotency_key)
+        finally:
+            with self.lock:
+                self.running_executions[oid] -= 1
+                if not self.running_executions[oid]:
+                    del self.running_executions[oid]
 
     def prepare(self, operation, args, token, origin):
         owner = self.identity(token, origin)

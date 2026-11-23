@@ -116,6 +116,57 @@ class BuildLibraryTest(unittest.TestCase):
         self.assertEqual((self.root / legacy).read_bytes(), original)
         self.assertEqual({p for p in paths if p.endswith("circuit.scs")}, {legacy})
 
+    def test_alias_publication_copies_only_canonical_physical_files(self):
+        canonical = "lib/reusable/device/netlist/device.scs"
+        contents = (self.root / self.dependency).read_bytes()
+        self.write(canonical, contents)
+        self.write(self.dependency, "// obsolete unlisted duplicate must not be published\n")
+        self.view["files"] = [self.entry, canonical]
+        self.view["aliases"] = {self.dependency: canonical}
+        self.save()
+        report = BUILD.publish(self.root, self.output)
+        paths = [row["path"] for row in report["files"]]
+        self.assertIn(canonical, paths)
+        self.assertNotIn(self.dependency, paths)
+        self.assertFalse((self.output / "library-files" / self.dependency).exists())
+        self.assertEqual((self.output / "library-files" / canonical).read_bytes(), contents)
+        manifest = json.loads((self.output / "library-files/lib/fixture/library.json").read_bytes())
+        self.assertEqual(manifest["cells"][0]["views"][0]["aliases"], {self.dependency: canonical})
+
+    def test_alias_targets_must_be_declared_without_shadowing_physical_sources(self):
+        outside = "lib/reusable/device/netlist/device.scs"
+        self.write(outside, "// exists but is not in this view\n")
+        for aliases in ({self.dependency: self.entry}, {"lib/fixture/gain/virtual.scs": outside}):
+            with self.subTest(aliases=aliases):
+                self.view["aliases"] = aliases; self.save()
+                with self.assertRaisesRegex(ValueError, "canonical file without shadowing"):
+                    BUILD.collect(self.root)
+
+    def test_alias_types_paths_and_mapping_count_are_bounded(self):
+        cases = [None, [], "not-a-map", {"lib/fixture/gain/virtual.scs": None},
+                 {"lib/fixture/gain/virtual.scs": [self.dependency]},
+                 {"lib/fixture/../private.scs": self.dependency},
+                 {"https://fixture.invalid/source.scs": self.dependency},
+                 {"lib/fixture/%2e%2e/source.scs": self.dependency},
+                 {"lib/fixture/gain/private/source.scs": self.dependency},
+                 {"lib/fixture/gain/v" + str(i) + ".scs": self.dependency for i in range(8193)}]
+        for index, aliases in enumerate(cases):
+            with self.subTest(case=index):
+                self.view["aliases"] = aliases; self.save()
+                with self.assertRaises(ValueError): BUILD.collect(self.root)
+
+    def test_large_physical_closure_accepts_more_than_2000_but_not_more_than_4096(self):
+        for index in range(2001):
+            path = self.directory + "/netlist/fixture-" + str(index) + ".scs"
+            self.write(path, "// bounded synthetic source\n")
+            self.view["files"].append(path)
+        self.save()
+        self.assertEqual(BUILD.collect(self.root)["views"], 1)
+        self.view["files"] = [self.entry] + [self.directory + "/netlist/unused-" + str(i) + ".scs" for i in range(4096)]
+        self.save()
+        with self.assertRaisesRegex(ValueError, "closure"):
+            BUILD.collect(self.root)
+
     def test_absent_and_empty_catalogs_remain_supported(self):
         absent = self.temp / "legacy-repo"
         absent.mkdir()

@@ -203,11 +203,20 @@ class LibraryProjectTests(unittest.TestCase):
             self.gateway.override_file = lambda value: {**value, **update}
             with self.subTest(update=update), self.assertRaises(Failure): self.s.call('read', {'project_id':'library-filter'})
 
-    def test_missing_include_closure_and_external_model_remain_blockers(self):
+    def test_missing_include_blocks_edit_but_models_are_checked_at_remote_execution(self):
         current = self.ws.file(SOURCE)
-        for include in ('missing.scs','@EXTERNAL_PDK_MAIN@'):
+        for include in ('missing.scs','@EXTERNAL_BAD!@'):
             with self.subTest(include=include), self.assertRaises((ValueError, KeyError)):
                 self.ws.preview(self.ws.head(), [{'path':SOURCE,'sha256':current['sha256'],'content':current['content']+'include "'+include+'"\n'}])
+        source=current['content']+'include "@EXTERNAL_PDK_MAIN@"\n'
+        preview=self.ws.preview(self.ws.head(), [{'path':SOURCE,'sha256':current['sha256'],'content':source}])
+        self.assertTrue(preview['review_id'])
+        project,config=self.ws.select('library-filter','TRAN')
+        bundle,files,_=self.ws.compile_inputs(project,config,self.ws.head(),{SOURCE:source.encode()})
+        proof=self.ws.validate_compiled(bundle,files)
+        self.assertEqual(proof['required_remote_aliases'],['PDK_MAIN'])
+        self.assertFalse(proof['remote_models_checked'])
+        self.assertFalse(proof['simulation_started'])
         self.assertTrue(self.ws.clean())
 
     def test_library_version_history_excludes_other_cell_and_unlisted_files(self):

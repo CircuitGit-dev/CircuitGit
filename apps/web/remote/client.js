@@ -13,8 +13,9 @@ export function createNodeClient({url,accessCode,fetchImpl=fetch,timeout=45000,o
   let secret=accessCode,closed=false;const pending=new Set();
   async function request(path,{method='GET',body}={}) {
     if(closed)throw Error('节点已断开。');
-    const library=['/library/read','/library/prepare','/library/review-request'].includes(path);
-    if(!['GET','POST'].includes(method)||(!path.startsWith('/ai/')&&path!=='/node/info'&&!library))throw Error('请求不属于运行节点接口。');
+    const library=['/library/read','/library/prepare','/library/review-request','/library/execute'].includes(path);
+    const simulation=path==='/simulation/execute';
+    if(!['GET','POST'].includes(method)||(!path.startsWith('/ai/')&&path!=='/node/info'&&!library&&!simulation))throw Error('请求不属于运行节点接口。');
     const target=new URL(base+(path==='/node/info'?path:'/api'+path));
     const expected=new URL(base);
     if(target.origin!==expected.origin||!target.pathname.startsWith(expected.pathname.replace(/\/$/,'')+'/'))throw Error('节点接口越界。');

@@ -1,8 +1,8 @@
 """Finite, cell-scoped source lifecycle for an explicitly configured public checkout.
 
-The caller owns pairing and human confirmation. Only a locally approved review
-may reach ``confirm``; there is deliberately no HTTP server or approval boolean
-here. GitHub is contacted only by a confirmed PR review. All durable workflow
+The caller owns browser pairing or agent authorization. ``execute`` freezes the
+exact authorized request before dispatch; optional previews share the same
+durable implementation. There is no HTTP server or approval boolean here. All workflow
 state lives below .local, outside the public library and application packages.
 """
 import contextlib
@@ -77,8 +77,9 @@ def branch_name(value):
 
 
 class LibraryWorkflow:
-    READ_OPERATIONS = frozenset({"describe", "read_file", "current", "history", "commit_detail", "checkpoints", "get_ci", "review", "receipt", "pr_status"})
+    READ_OPERATIONS = frozenset({"catalog", "describe", "read_file", "current", "history", "commit_detail", "checkpoints", "get_ci", "review", "receipt", "pr_status"})
     PREPARE_OPERATIONS = frozenset({"preview_save", "preview_commit", "preview_restore", "preview_pr", "preview_ci"})
+    EXECUTE_OPERATIONS = frozenset({"save", "save_files", "commit", "restore", "pr", "ci"})
 
     def __init__(self, root, repository, base_branch="main", state_dir=None, ci_registry=None, gh_bin="gh"):
         self.root = Path(root).resolve(strict=True)
@@ -223,15 +224,15 @@ class LibraryWorkflow:
         require(isinstance(value, dict), "Committed library metadata must be an object")
         return value, digest(raw)
 
-    def _scope(self, library_id, cell_id):
+    def _scope(self, library_id, cell_id, snapshot=None):
         lid, cid = identifier(library_id), identifier(cell_id)
-        head = self._head()
-        catalog, catalog_hash = self._json_blob(head, "lib/catalog.json")
+        head = self._head() if snapshot is None else snapshot[0]
+        catalog, catalog_hash = self._json_blob(head, "lib/catalog.json") if snapshot is None else snapshot[1:3]
         require(catalog.get("schema") == "circuitgit.libraries.v1" and isinstance(catalog.get("libraries"), list), "Invalid committed catalog")
         choices = [item for item in catalog["libraries"] if isinstance(item, dict) and item.get("id") == lid]
         manifest_path = "lib/" + lid + "/library.json"
         require(len(choices) == 1 and choices[0].get("manifest") == manifest_path, "Library identity is not uniquely registered")
-        manifest, manifest_hash = self._json_blob(head, manifest_path)
+        manifest, manifest_hash = self._json_blob(head, manifest_path) if snapshot is None else snapshot[3:5]
         require(manifest.get("schema") == "circuitgit.library.v1" and manifest.get("id") == lid and isinstance(manifest.get("cells"), list), "Invalid committed library identity")
         choices = [item for item in manifest["cells"] if isinstance(item, dict) and item.get("id") == cid]
         directory = "lib/" + lid + "/" + cid
@@ -302,28 +303,77 @@ class LibraryWorkflow:
                 "source_match": match, "snapshot_matches_head": match, "scope_hash": scope["scope_hash"],
                 "committer": self._identity(),
                 "files": [{"path": p, "editable": p in scope["editable"] and p != scope["ci_path"]} for p in sorted(scope["paths"])],
-                "capabilities": {"read": True, "save": True, "commit": self._branch() is not None,
+                "capabilities": {"read": True, "save": True, "save_files": True, "execute": True, "commit": self._branch() is not None,
                                  "restore": True, "pr": True, "ci": bool(self._cell_testbenches(scope))},
                 "provenance_note": "Recorded import provenance remains historical; saved source edits are new working revisions."}
+
+    def catalog(self):
+        head = self._head()
+        catalog, catalog_hash = self._json_blob(head, "lib/catalog.json")
+        require(catalog.get("schema") == "circuitgit.libraries.v1" and isinstance(catalog.get("libraries"), list), "Invalid committed catalog")
+        libraries, seen = [], set()
+        for item in catalog["libraries"]:
+            require(isinstance(item, dict), "Invalid catalog library")
+            lid = identifier(item.get("id"))
+            require(lid not in seen and item.get("manifest") == "lib/" + lid + "/library.json", "Library is not uniquely registered")
+            seen.add(lid)
+            manifest, manifest_hash = self._json_blob(head, item["manifest"])
+            require(manifest.get("schema") == "circuitgit.library.v1" and manifest.get("id") == lid and isinstance(manifest.get("cells"), list), "Invalid committed library")
+            cells = []
+            for cell in manifest["cells"]:
+                require(isinstance(cell, dict), "Invalid registered cell")
+                cid = identifier(cell.get("id"))
+                scope = self._scope(lid, cid, (head, catalog, catalog_hash, manifest, manifest_hash))
+                candidates = sorted(cell["views"], key=lambda row: {"spectre": 0, "rnl": 1}.get(row.get("kind"), 2))
+                source = next((row["entry"] for row in candidates if row.get("kind") == "spectre" and row["entry"] in scope["editable"]), None)
+                if source is None:
+                    source = next((path for row in candidates if row.get("kind") == "rnl" for path in sorted(row["files"])
+                                   if path.startswith(cell["directory"] + "/") and PurePosixPath(path).name == cid + ".scs"
+                                   and path in scope["editable"]), None)
+                if source is None:
+                    source = next((row["entry"] for row in candidates if row["entry"] in scope["editable"] and row["entry"] != scope["ci_path"]), None)
+                if source is None:
+                    source = next(iter(sorted(scope["editable"] - {scope["ci_path"]})), None)
+                cells.append({key: cell.get(key) for key in ("id", "name", "directory", "views", "project_id", "requires_external_models", "kind")})
+                cells[-1]["source_path"] = source
+            libraries.append({"id": lid, "name": manifest.get("name", item.get("name", lid)), "cells": cells})
+        result = {"schema": SCHEMA, "repository": self.repository, "base_commit": head, "libraries": libraries}
+        require(len(canonical(result).encode()) <= MAX_OUTPUT, "Library catalog exceeds output bounds", "output_limit", 413)
+        require(self._head() == head, "Library history changed while reading catalog", "conflict", 409)
+        return result
+
+    def _revision(self, scope, files=None):
+        """Observe the full readable closure, including dependencies owned by other cells."""
+        files = files if files is not None else {path: self._file(path) for path in sorted(scope["paths"])}
+        checkpoints = []
+        for path in (self.state / "checkpoints").glob("*.json"):
+            record = self._record(path)
+            if (record.get("library_id"), record.get("cell_id")) == (scope["library_id"], scope["cell_id"]):
+                checkpoints.append(path.stem)
+        return digest({"head": scope["head"], "scope": scope["scope_hash"], "checkpoints": sorted(checkpoints),
+                       "files": {path: digest(raw) if raw is not None else None for path, raw in files.items()}})
 
     def read_file(self, library_id, cell_id, path):
         scope = self._scope(library_id, cell_id)
         require(path in scope["paths"], "File is not in this cell's committed inventory", "out_of_scope", 403)
-        raw, committed = self._file(path), self._blob(scope["head"], path)
+        observed = {source: self._file(source) for source in sorted(scope["paths"])}
+        raw, committed = observed[path], self._blob(scope["head"], path)
         require(raw is not None, "Source file is missing", "not_found", 404)
         try:
             content = raw.decode("utf-8")
         except UnicodeError:
             raise WorkflowError("not_text", "This source is not editable UTF-8 text") from None
-        return {"path": path, "content": content, "text": content, "sha256": digest(raw),
+        revision = self._revision(scope, observed)
+        return {"path": path, "content": content, "text": content, "sha256": digest(raw), "revision": revision, "fingerprint": revision,
                 "head_sha256": digest(committed) if committed is not None else None, "base_commit": scope["head"],
                 "editable": path in scope["editable"] and path != scope["ci_path"]}
 
     def current(self, library_id, cell_id):
         scope = self._scope(library_id, cell_id)
         changes, diffs = [], []
+        observed = {path: self._file(path) for path in sorted(scope["paths"])}
         for path in sorted(scope["owned"]):
-            before, after = self._blob(scope["head"], path), self._file(path)
+            before, after = self._blob(scope["head"], path), observed[path]
             if before == after:
                 continue
             changes.append({"path": path, "status": "A" if before is None else "D" if after is None else "M",
@@ -332,7 +382,8 @@ class LibraryWorkflow:
             diffs.append(self._diff(path, before, after))
         diff = "".join(diffs)
         require(len(diff.encode()) <= MAX_DIFF, "Cell diff exceeds the review limit", "diff_limit", 413)
-        return {"schema": SCHEMA, "library_id": library_id, "cell_id": cell_id, "base_commit": scope["head"],
+        revision = self._revision(scope, observed)
+        return {"schema": SCHEMA, "library_id": library_id, "cell_id": cell_id, "base_commit": scope["head"], "revision": revision, "fingerprint": revision,
                 "branch": self._branch(), "changes": changes, "dirty": bool(changes), "diff": diff}
 
     def _reachable(self, commit, head):
@@ -424,6 +475,25 @@ class LibraryWorkflow:
         require(content is None or text is None or content == text, "Conflicting source content")
         return self._save_review(scope, path, content if content is not None else text, base_sha256)
 
+    def _preview_save_files(self, library_id, cell_id, files):
+        scope = self._scope(library_id, cell_id)
+        require(isinstance(files, list) and 1 <= len(files) <= 32, "Grouped save requires 1–32 cell files")
+        changes, diffs, seen = [], [], set()
+        for item in files:
+            require(isinstance(item, dict) and set(item) == {"path", "base_sha256", "content"}, "Each grouped file needs path, base_sha256 and content")
+            path = relative_path(item["path"])
+            require(path not in seen and path in scope["editable"] and path != scope["ci_path"], "Grouped save must contain distinct editable files owned by one cell", "out_of_scope", 403)
+            seen.add(path)
+            before, after = self._file(path), self._content(path, item["content"])
+            require(item["base_sha256"] == (digest(before) if before is not None else None), "Grouped source changed; read all files again", "conflict", 409)
+            require(before != after, "Each grouped file must contain a change")
+            changes.append({**item, "sha256": digest(after), "checkpoint_base": self._checkpoint_base(scope, path)})
+            diffs.append(self._diff(path, before, after))
+        diff = "".join(diffs)
+        require(len(diff.encode()) <= MAX_DIFF, "Grouped diff exceeds the review limit", "diff_limit", 413)
+        return self._review(scope, "save_files", {"files": [row["path"] for row in changes], "changes": changes}, diff,
+                            "Save coordinated cell source checkpoints")
+
     def _checkpoint(self, checkpoint_id):
         require(isinstance(checkpoint_id, str) and HASH.fullmatch(checkpoint_id), "Invalid checkpoint ID")
         record = self._record(self.state / "checkpoints" / (checkpoint_id + ".json"))
@@ -441,7 +511,7 @@ class LibraryWorkflow:
         return digest(sorted(ids))
 
     def checkpoints(self, library_id, cell_id, limit=30):
-        self._scope(library_id, cell_id)
+        scope = self._scope(library_id, cell_id)
         require(type(limit) is int and 1 <= limit <= 100, "Checkpoint limit must be 1–100")
         records = []
         for path in sorted((self.state / "checkpoints").glob("*.json")):
@@ -451,7 +521,8 @@ class LibraryWorkflow:
             receipt = self.receipt(record["operation_id"])
             records.append({**record, "state": receipt["state"], "restore_versions": ["before", "after"] if record["before_sha256"] else ["after"]})
         records.sort(key=lambda row: row["created_at"], reverse=True)
-        return {"checkpoints": records[:limit], "has_more": len(records) > limit}
+        revision = self._revision(scope)
+        return {"checkpoints": records[:limit], "has_more": len(records) > limit, "revision": revision, "fingerprint": revision}
 
     def preview_restore(self, library_id, cell_id, path, base_sha256, checkpoint_id=None, commit=None, checkpoint_version="after"):
         require((checkpoint_id is None) != (commit is None), "Choose one checkpoint or historical commit")
@@ -611,6 +682,36 @@ class LibraryWorkflow:
         require(isinstance(key, str) and 8 <= len(key) <= 160 and not any(ord(c) < 32 for c in key), "A stable idempotency key is required")
         return hashlib.sha256(key.encode()).hexdigest()
 
+    def execute(self, operation, args, idempotency_key):
+        """Execute a caller-authorized finite operation, retaining the exact request on retries."""
+        require(isinstance(operation, str) and operation in self.EXECUTE_OPERATIONS and isinstance(args, dict), "Unsupported finite library execution")
+        try:
+            request_fingerprint = digest({"operation": operation, "args": args})
+            require(len(canonical(args).encode()) <= 4 * MAX_FILE, "Execution exceeds the durable request limit", "request_limit", 413)
+        except (TypeError, ValueError) as error:
+            if isinstance(error, WorkflowError):
+                raise
+            raise WorkflowError("invalid_request", "Execution arguments must be JSON values") from None
+        oid = self._operation_id(idempotency_key)
+        intent_path = self.state / "executions" / oid / "intent.json"
+        with self._locked():
+            if intent_path.exists():
+                intent = self._record(intent_path)
+                require(intent["request_fingerprint"] == request_fingerprint, "Idempotency key belongs to a different request", "conflict", 409)
+                review_id = intent["review_id"]
+            else:
+                require(not (self.state / "operations" / oid / "request.json").exists(), "Idempotency key already belongs to another operation", "conflict", 409)
+                method = self._preview_save_files if operation == "save_files" else getattr(self, "preview_" + operation)
+                try:
+                    review = method(**args)
+                except TypeError:
+                    raise WorkflowError("invalid_request", "Unexpected arguments for library execution") from None
+                review_id = review["review_id"]
+                self._append(intent_path, {"request_fingerprint": request_fingerprint, "review_id": review_id,
+                                           "operation": operation, "created_at": now()})
+        # confirm owns the repository lock; this is deliberately outside it.
+        return self.confirm(review_id, idempotency_key)
+
     def receipt(self, operation_id=None, idempotency_key=None, review_id=None):
         if review_id is not None:
             self.review(review_id)
@@ -627,6 +728,13 @@ class LibraryWorkflow:
         oid = self._operation_id(idempotency_key) if idempotency_key is not None else operation_id
         require(isinstance(oid, str) and HASH.fullmatch(oid), "Invalid operation identity")
         folder = self.state / "operations" / oid
+        if not (folder / "request.json").exists():
+            intent_path = self.state / "executions" / oid / "intent.json"
+            if intent_path.exists():
+                intent = self._record(intent_path)
+                return {"operation_id": oid, "review_id": intent["review_id"], "operation": intent["operation"],
+                        "state": "prepared", "dispatched": False, "automatic_retry": False}
+            return {"operation_id": oid, "state": "not_found", "dispatched": False, "automatic_retry": False}
         request = self._record(folder / "request.json")
         if (folder / "complete.json").exists():
             return self._record(folder / "complete.json")
@@ -634,7 +742,7 @@ class LibraryWorkflow:
         return {"operation_id": oid, "review_id": request["review_id"], "state": "unknown", "automatic_retry": False, "stages": stages}
 
     def confirm(self, review_id, idempotency_key):
-        """Invoke only after the host's exact, correlated local-human approval."""
+        """Apply the frozen request after caller authorization or legacy correlated review."""
         with self._locked():
             review = self.review(review_id)
             oid = self._operation_id(idempotency_key)
@@ -647,11 +755,12 @@ class LibraryWorkflow:
             require(scope["head"] == review["base_commit"] and scope["scope_hash"] == review["scope_hash"]
                     and self._branch() == review["branch"], "Repository, source base or library inventory changed; prepare again", "conflict", 409)
             payload, operation = review["payload"], review["operation"]
-            if operation in {"save", "restore", "ci"}:
-                before = self._file(payload["path"])
-                require((digest(before) if before is not None else None) == payload["base_sha256"], "Source changed after preview", "conflict", 409)
-                require(payload["checkpoint_base"] == self._checkpoint_base(scope, payload["path"]),
-                        "File save history changed after preview; prepare again", "conflict", 409)
+            if operation in {"save", "save_files", "restore", "ci"}:
+                for item in payload["changes"] if operation == "save_files" else [payload]:
+                    before = self._file(item["path"])
+                    require((digest(before) if before is not None else None) == item["base_sha256"], "Source changed after request preparation", "conflict", 409)
+                    require(item["checkpoint_base"] == self._checkpoint_base(scope, item["path"]),
+                            "File save history changed after request preparation; prepare again", "conflict", 409)
                 if operation == "ci":
                     require(payload["registry_hash"] == digest(self.ci_registry), "Testbench registry changed after preview", "conflict", 409)
             elif operation == "commit":
@@ -664,13 +773,16 @@ class LibraryWorkflow:
                 raise WorkflowError("invalid_review", "Unsupported frozen workflow operation")
             self._append(folder / "request.json", {"review_id": review_id, "operation": operation, "created_at": now()})
             try:
-                if operation in {"save", "restore", "ci"}:
+                if operation == "save_files":
+                    result = self._apply_save_files(review, oid)
+                elif operation in {"save", "restore", "ci"}:
                     result = self._apply_save(review, oid)
                 elif operation == "commit":
                     result = self._apply_commit(review, oid)
                 else:
                     result = self._apply_pr(review, oid)
-                result = {**result, "schema": SCHEMA, "operation_id": oid, "review_id": review_id, "state": "complete"}
+                result = {**result, "schema": SCHEMA, "operation_id": oid, "review_id": review_id,
+                          "state": result.get("state", "complete"), "automatic_retry": False}
                 self._append(folder / "complete.json", result)
                 return result
             except Exception as error:
@@ -689,19 +801,80 @@ class LibraryWorkflow:
                       "path": path, "created_at": now(), "summary": review["summary"], "base_commit": review["base_commit"],
                       "before_sha256": digest(before) if before is not None else None, "sha256": digest(raw)}
         self._append(self.state / "checkpoints" / (checkpoint_id + ".json"), checkpoint)
+        self._replace_source(path, raw, payload["base_sha256"])
+        return {**checkpoint, "automatic_push": False, "operation": review["operation"]}
+
+    def _replace_source(self, path, raw, expected_sha256):
+        """Replace one bounded source atomically, checking it immediately before rename."""
         target = self.root / path
+        self._file(path)  # Validate regular-file/symlink confinement before creating parents.
         target.parent.mkdir(parents=True, exist_ok=True)
         fd, temporary = tempfile.mkstemp(prefix=".circuitgit-save-", dir=target.parent)
         try:
             with os.fdopen(fd, "wb") as handle:
                 handle.write(raw); handle.flush(); os.fsync(handle.fileno())
             os.chmod(temporary, target.stat().st_mode & 0o777 if target.exists() else 0o644)
+            current = self._file(path)
+            require((digest(current) if current is not None else None) == expected_sha256, "Source changed during save", "conflict", 409)
             os.replace(temporary, target)
             self._fsync_dir(target.parent)
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
-        return {**checkpoint, "automatic_push": False, "operation": review["operation"]}
+
+    def _apply_save_files(self, review, oid):
+        changes, originals, checkpoints = review["payload"]["changes"], {}, []
+        for item in changes:
+            originals[item["path"]] = self._file(item["path"])
+            require((digest(originals[item["path"]]) if originals[item["path"]] is not None else None) == item["base_sha256"],
+                    "Grouped source changed before save", "conflict", 409)
+        try:
+            # Persist every before/after object and checkpoint before replacing the first source.
+            for item in changes:
+                raw, before = self._content(item["path"], item["content"]), originals[item["path"]]
+                for content in (before, raw):
+                    if content is not None:
+                        self._append(self.state / "objects" / digest(content), content)
+                checkpoint_id = digest([oid, item["path"], item["sha256"]])
+                checkpoint = {"checkpoint_id": checkpoint_id, "operation_id": oid, "group_id": oid,
+                              "library_id": review["library_id"], "cell_id": review["cell_id"], "path": item["path"],
+                              "created_at": now(), "summary": review["summary"], "base_commit": review["base_commit"],
+                              "before_sha256": item["base_sha256"], "sha256": item["sha256"]}
+                self._append(self.state / "checkpoints" / (checkpoint_id + ".json"), checkpoint)
+                checkpoints.append(checkpoint_id)
+            for item in changes:
+                self._replace_source(item["path"], item["content"].encode(), item["base_sha256"])
+        except Exception as error:
+            rollback_errors, states = [], []
+            # Examine all files: rename may succeed before a later fsync reports failure.
+            for item in reversed(changes):
+                path, before = item["path"], originals[item["path"]]
+                try:
+                    current = self._file(path)
+                    if current != before:
+                        require(current is not None and digest(current) == item["sha256"],
+                                "A concurrent external edit is preserved", "conflict", 409)
+                        if before is None:
+                            require(digest(self._file(path)) == item["sha256"], "Source changed during rollback", "conflict", 409)
+                            (self.root / path).unlink()
+                            self._fsync_dir((self.root / path).parent)
+                        else:
+                            self._replace_source(path, before, item["sha256"])
+                except Exception as rollback_error:
+                    rollback_errors.append({"path": path, "code": getattr(rollback_error, "code", "rollback_failed")})
+            for item in changes:
+                try:
+                    current = self._file(item["path"])
+                    states.append({"path": item["path"], "restored": current == originals[item["path"]],
+                                   "sha256": digest(current) if current is not None else None})
+                except Exception:
+                    states.append({"path": item["path"], "restored": False, "sha256": None, "unreadable": True})
+            return {"operation": "save_files", "group_id": oid, "checkpoint_ids": checkpoints,
+                    "state": "rolled_back" if all(row["restored"] for row in states) else "partial",
+                    "error": {"code": getattr(error, "code", "save_failed"), "message": "Grouped save failed; inspect the recorded file outcomes before a new edit."},
+                    "files": states, "rollback_errors": rollback_errors, "automatic_push": False}
+        return {"operation": "save_files", "group_id": oid, "checkpoint_ids": checkpoints,
+                "files": review["payload"]["files"], "automatic_push": False}
 
     def _apply_commit(self, review, oid):
         payload, base = review["payload"], review["base_commit"]
@@ -766,9 +939,9 @@ class LibraryWorkflow:
                 "base_branch": self.base_branch, "url": url, "merged": False, "force_pushed": False}
 
     def save(self, library_id, cell_id, path, content, base_sha256, idempotency_key):
-        """Internal trusted convenience; HTTP callers must use preview + local review."""
-        preview = self.preview_save(library_id, cell_id, path, base_sha256, content=content)
-        return self.confirm(preview["review_id"], idempotency_key)
+        """Convenience for an already-authorized agent invocation."""
+        return self.execute("save", {"library_id": library_id, "cell_id": cell_id, "path": path,
+                                     "content": content, "base_sha256": base_sha256}, idempotency_key)
 
     def dispatch(self, operation, payload):
         require(operation in self.READ_OPERATIONS | self.PREPARE_OPERATIONS and isinstance(payload, dict), "Unsupported finite library operation")

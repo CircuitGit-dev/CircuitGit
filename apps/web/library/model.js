@@ -10,6 +10,21 @@ export function repositoryPath(value){
   if(!/^(lib|projects)\//.test(value)||/[\\%?#:\x00-\x1f\x7f]/.test(value)||value.split('/').some(part=>!part||part==='.'||part==='..'))throw Error('不安全的库文件路径：'+value);
   return value;
 }
+export function viewAliases(view){
+  const aliases=view.aliases===undefined?{}:view.aliases;object(aliases,'源文件映射');
+  if(Object.keys(aliases).length>8192)throw Error('源文件映射过大。');
+  for(const [logical,canonical] of Object.entries(aliases)){
+    repositoryPath(logical);repositoryPath(canonical);
+    if(!view.files.includes(canonical)||view.files.includes(logical)&&logical!==canonical)throw Error('源文件映射必须指向清单中的权威文件，不能覆盖其它文件。');
+  }
+  return aliases;
+}
+function validateViewFiles(view){
+  repositoryPath(view.entry);
+  if(!Array.isArray(view.files)||!view.files.length||view.files.length>4096)throw Error('视图文件清单为空或过大。');view.files.forEach(repositoryPath);
+  if(new Set(view.files).size!==view.files.length||!view.files.includes(view.entry))throw Error('视图文件清单重复或缺少入口。');
+  return viewAliases(view);
+}
 export function validateCatalog(value){
   object(value,'库目录');if(value.schema!=='circuitgit.libraries.v1'||!Array.isArray(value.libraries))throw Error('库目录协议不匹配。');
   for(const item of value.libraries){object(item,'库');text(item.name,'库名称');repositoryPath(item.manifest);if(!/^lib\/[^/]+\/library\.json$/.test(item.manifest))throw Error('库清单路径无效。');}
@@ -25,8 +40,7 @@ export function validateLibrary(value,expectedId){
     for(const view of cell.views){
       if(!VIEW_IDS.has(view.id)||!VIEW_KINDS.has(view.kind))throw Error('视图类型不支持。');text(view.label,'视图名称');repositoryPath(view.entry);
       if(view.level!==undefined)text(view.level,'原生层级');
-      if(!Array.isArray(view.files)||!view.files.length||view.files.length>4096)throw Error('视图文件清单为空或过大。');view.files.forEach(repositoryPath);
-      if(new Set(view.files).size!==view.files.length||!view.files.includes(view.entry))throw Error('视图文件清单重复或缺少入口。');
+      validateViewFiles(view);
     }
   }
   return value;
@@ -59,8 +73,9 @@ export function createLibraryClient({baseURL=new URL('../library-files/',import.
     return {libraries:results.filter(x=>x.library).map(x=>x.library),errors:results.filter(x=>x.error).map(x=>x.error)};
   }
   async function loadView(view,{signal}={}){
-    const paths=view.kind==='rnl'?view.files:[view.entry],snapshot=Object.create(null);let bytes=0;
+    const aliases=validateViewFiles(view),paths=view.kind==='rnl'?view.files:[view.entry],snapshot=Object.create(null);let bytes=0;
     await pooled(paths,async path=>{const file=await read(path,{signal});bytes+=file.bytes;if(bytes>maxViewBytes)throw Error('视图文件集合超出读取大小限制。');snapshot['/'+path]=file.text;});
+    if(view.kind==='rnl')for(const [logical,canonical] of Object.entries(aliases))snapshot['/'+logical]=snapshot['/'+canonical];
     if(signal?.aborted)throw new DOMException('已取消','AbortError');
     const path='/'+view.entry,source={name:view.entry,path,readonly:true,snapshot,files:new Map(Object.entries(snapshot).map(([path,text])=>[path,()=>new Blob([text],{type:'text/plain'})])),
       open:async()=>({path,text:snapshot[path]}),read:async requested=>{if(!Object.hasOwn(snapshot,requested))throw Error('依赖不在已发布文件清单中：'+requested);return snapshot[requested];}};

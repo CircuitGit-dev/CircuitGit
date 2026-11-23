@@ -1,8 +1,11 @@
 import {createLayout} from '../studio/layout.js';
 import {mount as mountWaveforms} from '../studio/dockview/waveforms.js';
-import {openSource} from '../vendor/rnl-viewer/open.js';
+import {openSource,showBuilt,adoptSource,isLoading} from '../vendor/rnl-viewer/open.js';
 import {doc,current,selected} from '../vendor/rnl-viewer/state.js';
-import {dirtyPaths,unappliedPaths} from '../vendor/rnl-viewer/edits.js';
+import {dirtyPaths,unappliedPaths,resetBuffers} from '../vendor/rnl-viewer/edits.js';
+import {shell} from '../vendor/rnl-viewer/shell.js';
+import {sourceOpened} from '../vendor/rnl-viewer/pool.js';
+import {previewing} from '../vendor/rnl-viewer/solve.js';
 import {fit} from '../vendor/rnl-viewer/drawing.js';
 import {setSidebarWidth,setPane} from '../vendor/rnl-viewer/panels.js';
 import {registerStudioCommand} from '../vendor/rnl-viewer/commands.js';
@@ -52,6 +55,7 @@ export async function mountStudio() {
   const baseText=await fetch(new URL('./rc.scs',import.meta.url)).then(r=>{if(!r.ok)throw Error('RC example unavailable');return r.text();});
   let source=baseText,hash=await sha256(source),points=reference(),plotController=null,mode='none';
   let activeLibrary=null,versionSelection=null,libraryVersions=null,switching=false,waveformMount=null,referenceObserver=null;
+  let loadedWatch=null,hotTask=null,hotController=null,hotQueued=false,hotDeferred=false,hotNotice='';
   let parameters={resistance:1000,capacitance:1e-12,stop:12e-9};
   const listeners=new Set();
   let context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,
@@ -142,6 +146,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
   async function openLibrary(value){
     if(switching)return false;
     if(!await confirmLeave('打开公开库视图'))return false;
+    hotController?.abort();loadedWatch?.();loadedWatch=null;
     switching=true;activeLibrary=value;versionSelection=value;stopReference();libraryInformation(value);
     $('studio-project').replaceChildren(new Option(value.library.name,value.library.id));$('studio-entry').replaceChildren(new Option(value.cell.name+' / '+value.view.label,value.view.entry));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
     context={project:{id:(value.origin==='working'?'local-library:':'public-library:')+value.library.id+':'+value.cell.id,sourceCommit:value.origin==='working'?value.base_commit:null,libraryId:value.library.id,cellId:value.cell.id},run:null,selection:null,loading:true,loadState:'loading',file:{path:value.bundle.source.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};emit();
@@ -154,6 +159,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
       context={...context,loading:false,loadState:errors.length?'error':'ready',file:{...context.file,currentTextSha256:await sha256(value.bundle.text)}};emit();
       fit();ui.slots.schematic?.setVisible(true);$('studio-native-note').textContent=[value.library.name,value.cell.name,value.view.label].join(' / ')+(value.origin==='working'?' · 本机快照 · ':' · 公开文件 · ')+(errors.length?errors.length+' 项 RNL 诊断':'未关联仿真');
       if(errors.length)ui.notify('原理图已打开，存在 '+errors.length+' 项 RNL 诊断；请查看 Problems。',{kind:'warning'});
+      watchLoadedLibrary();
       return true;
     }catch(error){context={...context,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='库视图加载失败 · '+value.cell.name+' · 未关联仿真';throw error;}
     finally{switching=false;ui.setNativeState({loading:false,hidden:false});}
@@ -161,6 +167,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
   async function openReference(){
     if(switching)return false;
     if(!await confirmLeave('返回 RC 解析参考'))return false;
+    hotController?.abort();loadedWatch?.();loadedWatch=null;
     switching=true;stopReference();context={...context,run:null,selection:null,loading:true};emit();ui.setNativeState({loading:true,hidden:false});
     try{
       const opened=await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false,undefined,false,null,null,true);
@@ -184,20 +191,63 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     const library=catalog.libraries.find(item=>item.id==='basics'),cell=library?.cells.find(item=>item.id==='rc-smoke'),view=cell?.views.find(item=>item.id==='netlist');
     if(library&&cell&&view){versionSelection={library,cell,view};emit();}
   }
-  async function openWorkingLibrary(description){
-    const selected=versionSelection;if(!selected||description.library_id!==selected.library.id||description.cell_id!==selected.cell.id)throw Error('当前电路单元已变化，请重新读取本机版本。');
-    const view=selected.view.kind==='rnl'?selected.view:selected.cell.views.find(item=>item.kind==='rnl');if(!view)throw Error('此单元没有可打开的 RNL 原理图视图。');
-    const value={...selected,view};
+  async function loadWorkingBundle(value,{signal}={}){
     const prefix=new URL('../library-files/',import.meta.url),client=createLibraryClient({baseURL:prefix,fetcher:async url=>{
+      if(signal?.aborted)throw Error('源同步已取消。');
       const requested=new URL(url);if(requested.origin!==prefix.origin||!requested.pathname.startsWith(prefix.pathname))throw Error('本机文件请求越界。');
       const path=decodeURIComponent(requested.pathname.slice(prefix.pathname.length));if(!value.view.files.includes(path))throw Error('文件不在当前视图清单内。');
       const file=await host.libraryBridge.request('read_file',{library_id:value.library.id,cell_id:value.cell.id,path});
       if(file.path!==path||typeof(file.text??file.content)!=='string')throw Error('节点返回的原理图文件身份无效。');
       return new Response(file.text??file.content,{status:200,headers:{'Content-Type':'text/plain;charset=utf-8'}});
     }});
-    const bundle=await client.loadView(value.view);if(versionSelection!==selected)throw Error('读取期间电路单元已变化，未打开旧快照。');
+    return client.loadView(value.view,{signal});
+  }
+  async function openWorkingLibrary(description){
+    const selected=versionSelection;if(!selected||description.library_id!==selected.library.id||description.cell_id!==selected.cell.id)throw Error('当前电路单元已变化，请重新读取本机版本。');
+    const view=selected.view.kind==='rnl'?selected.view:selected.cell.views.find(item=>item.kind==='rnl');if(!view)throw Error('此单元没有可打开的 RNL 原理图视图。');
+    if(activeLibrary?.library.id===selected.library.id&&activeLibrary?.cell.id===selected.cell.id&&activeLibrary.view.entry===view.entry)return refreshLoadedLibrary();
+    const value={...selected,view},bundle=await loadWorkingBundle(value);if(versionSelection!==selected)throw Error('读取期间电路单元已变化，未打开旧快照。');
     await openLibrary({...value,bundle,origin:'working',base_commit:description.base_commit});
   }
+  function sourceSyncNote(text){$('studio-native-note').textContent=text;if(text!==hotNotice){hotNotice=text;ui.notify(text,{kind:'warning'});}}
+  function watchLoadedLibrary(){
+    loadedWatch?.();loadedWatch=null;if(!activeLibrary)return;
+    const value=activeLibrary;
+    loadedWatch=host.libraryBridge.watchCell({library_id:value.library.id,cell_id:value.cell.id},{isVisible:()=>!!activeLibrary&&activeLibrary.library.id===value.library.id&&activeLibrary.cell.id===value.cell.id&&(ui.slots.schematic?.isVisible?.()??true),
+      onCurrent(_state,{initial,changed}){if(initial||changed||hotDeferred)void refreshLoadedLibrary();},onError(error){sourceSyncNote('本机同步暂不可用：'+error.message+'；保留当前画布。');}});
+  }
+  async function refreshLoadedLibrary(){
+    if(hotTask){hotQueued=true;return hotTask;}
+    if(!activeLibrary||!host.libraryBridge.getState().connected)return false;if(switching||isLoading()){hotDeferred=true;return false;}
+    if(dirtyPaths().length||unappliedPaths().length||previewing()){hotDeferred=true;sourceSyncNote('画布有未保存修改或布局预览，自动同步已暂缓。');return false;}
+    const value=activeLibrary,revision=host.libraryBridge.getState().revision,controller=new AbortController();hotController=controller;hotQueued=false;hotDeferred=false;
+    const scope={library_id:value.library.id,cell_id:value.cell.id},stillCurrent=()=>!controller.signal.aborted&&activeLibrary===value&&!switching&&host.libraryBridge.getState().revision===revision&&host.libraryBridge.getState().connected;
+    hotTask=(async()=>{let candidate;
+      try{
+        const before=await host.libraryBridge.request('current',scope),bundle=await loadWorkingBundle(value,{signal:controller.signal}),after=await host.libraryBridge.request('current',scope);
+        if(!stillCurrent())return false;
+        if((before.fingerprint||before.revision)&&(before.fingerprint||before.revision)!==(after.fingerprint||after.revision)){hotQueued=true;return false;}
+        const prior=value.bundle.source.snapshot||{},next=bundle.source.snapshot||{};
+        if(bundle.paths.length===value.bundle.paths.length&&bundle.paths.every(path=>prior['/'+path]===next['/'+path]))return true;
+        context={...context,run:null,selection:null,geometry:{...context.geometry,sourceMatch:false,state:'stale'}};stopReference();emit();
+        const textHash=await sha256(bundle.text);candidate=await shell.build(bundle.source,undefined,undefined,undefined,controller.signal);
+        if(!stillCurrent())return false;
+        const errors=candidate?.diagnostics?.filter(item=>item.severity==='error')||[];
+        const expected=value.view.level==='@top'?0:candidate?.levels?.findIndex(level=>level.title===value.view.level);
+        if(!candidate||candidate.failed||errors.length||(value.view.level!==undefined&&expected<0))throw Error(errors[0]?.message||'新的原理图未通过解析。');
+        resetBuffers(candidate);showBuilt(candidate,true);adoptSource(bundle.source);
+        activeLibrary={...value,bundle,origin:'working',base_commit:after.base_commit};
+        if(versionSelection?.library.id===value.library.id&&versionSelection?.cell.id===value.cell.id&&versionSelection?.view.id===value.view.id)versionSelection=activeLibrary;
+        context={...context,project:{...context.project,id:'local-library:'+value.library.id+':'+value.cell.id,sourceCommit:after.base_commit},run:null,selection:null,loading:false,loadState:'ready',file:{...context.file,currentTextSha256:textHash,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:true,state:'snapshot'}};
+        libraryInformation(activeLibrary);emit();hotNotice='';$('studio-native-note').textContent=value.library.name+' / '+value.cell.name+' · 已同步本机原理图 · 未关联仿真';
+        await sourceOpened(bundle.source,candidate,false);return true;
+      }catch(error){if(!controller.signal.aborted){sourceSyncNote('源码已变化，画布保留最后可读版本：'+(error.message||String(error)));}return false;}
+      finally{if(candidate)shell.discardBuild?.(candidate);hotController=null;}
+    })();
+    try{return await hotTask;}finally{hotTask=null;if(hotQueued){hotQueued=false;setTimeout(()=>void refreshLoadedLibrary(),2500);}}
+  }
+  host.libraryBridge.subscribeMutation(event=>{if(activeLibrary?.library.id===event.args.library_id&&activeLibrary?.cell.id===event.args.cell_id)void refreshLoadedLibrary();});
+  host.libraryBridge.subscribe(state=>{if(!state.connected)hotController?.abort();});
   mountRemoteNode(host);
   libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});
   setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});

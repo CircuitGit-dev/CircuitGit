@@ -1,3 +1,0 @@
-// Explicit native hierarchy assembly; no automatic inclusion.
-simulator lang=spectre
-include "PIPE_OTA_Diff_Ideal.scs"

@@ -19,5 +19,30 @@
     ],
     "library_id": "basics",
     "cell_id": "rc-smoke"
+  },
+  {
+    "id": "pipetisar-real-TB_PIPE_RS9_N06",
+    "name": "PIPETISAR / TB_PIPE_RS9_N06",
+    "source_path": "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/TB_PIPE_RS9_N06.scs",
+    "library_id": "pipetisar-real",
+    "cell_id": "TB_PIPE_RS9_N06",
+    "configurations": [
+      {
+        "id": "PIPE_LOW",
+        "name": "PIPE_LOW",
+        "configuration_path": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/configuration.json",
+        "bundle_template": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/bundle.json",
+        "source_replacements": [],
+        "canonical_bindings_path": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/source-bindings.json"
+      },
+      {
+        "id": "PIPE_NYQUIST",
+        "name": "PIPE_NYQUIST",
+        "configuration_path": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/configuration.json",
+        "bundle_template": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/bundle.json",
+        "source_replacements": [],
+        "canonical_bindings_path": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/source-bindings.json"
+      }
+    ]
   }
 ]

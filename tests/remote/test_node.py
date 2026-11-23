@@ -111,4 +111,26 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.call('/connect?origin='+quote(ORIGIN,safe='')+'&state='+'a'*32,prefix='')[0],403)
         self.assertEqual(self.routes.calls,[])
 
+    def test_paired_simulation_keeps_caller_scope_server_owned_and_never_retries(self):
+        calls=[]
+        self.server.node=node.Node(self.routes,TOKEN,[ORIGIN],'local-test',self.base)
+        def simulate(operation, arguments, key, *, caller_id):
+            calls.append((operation,arguments,key,caller_id)); return {'state':'outcome_unknown','automatic_retry':False}
+        self.server.node.simulation=simulate
+        body={'operation':'submit','arguments':{'project_id':'fixture','configuration':'TRAN','source_commit':'a'*40},'idempotency_key':'original-key'}
+        self.assertEqual(self.call('/api/simulation/execute','POST',body,prefix='')[0],403)
+        rid,csrf=self.server.node.pairing.create(ORIGIN,'p'*32)
+        code=self.server.node.pairing.decide(rid,csrf,True)['accessCode']
+        headers={'Authorization':'Bearer '+code}
+        for extra in ({'caller_id':'native-agent'},{'approved':True},{'operation':'shell'}):
+            self.assertEqual(self.call('/api/simulation/execute','POST',{**body,**extra},prefix='',headers=headers)[0],400)
+        self.assertEqual(calls,[])
+        status,_,result=self.call('/api/simulation/execute','POST',body,prefix='',headers=headers)
+        self.assertEqual(status,200);self.assertEqual(result['data']['state'],'outcome_unknown')
+        self.assertEqual(calls,[('submit',body['arguments'],'original-key','paired-helper')])
+        self.assertEqual(self.call('/api/simulation/execute',prefix='',headers=headers)[0],400)
+        self.assertEqual(len(calls),1)
+        self.server.node.simulation=None
+        self.assertEqual(self.call('/api/simulation/execute','POST',body,prefix='',headers=headers)[0],403)
+
 if __name__ == '__main__':unittest.main()

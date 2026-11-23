@@ -18,7 +18,7 @@ def check(value, message):
         raise ValueError(message)
 
 
-def path_at(root, value):
+def library_path(value):
     check(isinstance(value, str) and 0 < len(value) <= 512, 'Library paths must be bounded strings')
     parts = PurePosixPath(value).parts
     check(not value.startswith('/') and not any(c in value for c in '\\:%?#')
@@ -29,11 +29,26 @@ def path_at(root, value):
           'Private/runtime path in library inventory: ' + value)
     check(not value.endswith('.local.json') and PurePosixPath(value).suffix.lower() in EXTENSIONS,
           'Unsupported library file: ' + value)
+    return value
+
+
+def path_at(root, value):
+    library_path(value)
     path = root / value
     check(all(not p.is_symlink() for p in [path, *path.parents] if p != root and root in p.parents),
           'Library symlinks are not publishable: ' + value)
     check(path.is_file() and path.resolve().is_relative_to(root.resolve()), 'Missing library file: ' + value)
     return path
+
+
+def view_aliases(view):
+    aliases = view.get('aliases', {})
+    check(isinstance(aliases, dict) and len(aliases) <= 8192, 'Invalid library source mapping')
+    names = set(view['files'])
+    for logical, canonical in aliases.items():
+        library_path(logical); library_path(canonical)
+        check(canonical in names and (logical not in names or logical == canonical), 'Alias must reference a declared canonical file without shadowing another file')
+    return aliases
 
 
 def collect(root):
@@ -106,8 +121,9 @@ def collect(root):
                 check(level is None or (isinstance(level, str) and 0 < len(level) <= 256
                                        and not any(ord(c) < 32 for c in level)), 'Invalid native view level')
                 names = view.get('files')
-                check(isinstance(names, list) and 0 < len(names) <= 2000 and all(isinstance(n, str) for n in names)
+                check(isinstance(names, list) and 0 < len(names) <= 4096 and all(isinstance(n, str) for n in names)
                       and len(names) == len(set(names)) and view.get('entry') in names, 'View requires an explicit file closure including its entry')
+                view_aliases(view)
                 for name in names:
                     take(name)
     if (root / 'lib/README.md').exists():

@@ -4,6 +4,7 @@ from pathlib import Path, PurePosixPath
 from runner import atomic,locked,filehash
 import ic_sim as core
 import configuration as configuration_schema
+import local_inputs
 
 class Conflict(ValueError):pass
 
@@ -128,6 +129,13 @@ class Workspace:
                 if p.returncode:raise ValueError('runtime clone failed: '+p.stderr.decode())
                 git(self.root,'remote','set-url','origin','https://github.com/'+self.repo+'.git');git(self.root,'checkout','-b',self.branch)
             if git(self.root,'remote','get-url','origin').stdout.decode().strip()!='https://github.com/'+self.repo+'.git':raise ValueError('runtime origin does not match pinned repository')
+        self.source_repository=None
+        if cfg.get('source_repository'):
+            source=Path(cfg['source_repository']).expanduser().resolve()
+            remote=version_git(source,'remote','get-url','origin').stdout.decode().strip()
+            if remote not in ('https://github.com/'+self.repo+'.git','https://github.com/'+self.repo,'git@github.com:'+self.repo+'.git'):
+                raise ValueError('compilation source repository does not match installed repository')
+            self.source_repository=source
         self.projects={p['id']:p for p in cfg['projects']};self.allowed=set()
         if len(self.projects)!=len(cfg['projects']):raise ValueError('duplicate project id')
         for p in self.projects.values():
@@ -137,6 +145,7 @@ class Workspace:
                 self.allowed.add(project_path(c['configuration_path']))
                 safe_relative(c['bundle_template'])
                 for replacement in c.get('source_replacements',[]):self.allowed.add(project_path(replacement['source']));core.relpath(replacement['destination'])
+                if c.get('canonical_bindings_path'):self.allowed.add(project_path(c['canonical_bindings_path']))
             for path in p.get('read_paths',[]):self.allowed.add(project_path(path))
     def head(self):return git(self.root,'rev-parse','HEAD').stdout.decode().strip()
     def clean(self):return not git(self.root,'status','--porcelain').stdout
@@ -517,21 +526,47 @@ class Workspace:
         mode=git(self.root,'ls-tree',commit,'--',path).stdout.decode()
         if not mode.startswith('100644 ') and not mode.startswith('100755 '):raise ValueError('source is absent or not a regular tracked file: '+path)
         return git(self.root,'show',commit+':'+path).stdout
+    def compiler_blob(self,commit,path,overrides=None):
+        """Read the exact registered source commit without changing either checkout."""
+        source=getattr(self,'source_repository',None)
+        if source is None:return self.blob(commit,path,overrides)
+        safe_relative(path)
+        if overrides and path in overrides:return overrides[path]
+        if not re.fullmatch('[a-f0-9]{40}',commit):raise ValueError('invalid source commit')
+        mode=version_git(source,'ls-tree',commit,'--',path).stdout.decode()
+        if not mode.startswith(('100644 ','100755 ')):raise ValueError('source is absent or not a regular tracked file: '+path)
+        return version_git(source,'show',commit+':'+path,limit=2*1024*1024).stdout
+    def require_compilation_base(self,commit):
+        source=getattr(self,'source_repository',None)
+        if source is None:
+            self.require_base(commit)
+            if not self.clean():raise Conflict('simulation inputs require a clean committed source')
+            return
+        if not isinstance(commit,str) or not re.fullmatch('[a-f0-9]{40}',commit):raise ValueError('invalid source commit')
+        current=version_git(source,'rev-parse','--verify','HEAD').stdout.decode().strip()
+        if current!=commit:raise Conflict('library source_commit changed; refresh the selected cell')
+        if version_git(source,'status','--porcelain','--untracked-files=all','--','lib','projects').stdout:
+            raise Conflict('save and commit circuit changes before simulation')
     def select(self,pid,configuration):
         if pid not in self.projects:raise FileNotFoundError('unknown project')
         p=self.projects[pid];c=next((x for x in p['configurations'] if x['id']==configuration),None)
         if not c:raise FileNotFoundError('unknown configuration')
         return p,c
     def compile_inputs(self,p,c,commit,overrides=None):
-        template_path=c['bundle_template'];template=self.blob(commit,template_path);b=json.loads(template);out={};sources={template_path:core.sha(template)}
+        template_path=c['bundle_template'];template=self.compiler_blob(commit,template_path);b=json.loads(template);out={};sources={template_path:core.sha(template)}
         root=PurePosixPath(template_path).parent/PurePosixPath(b['source_root'])
         import posixpath
         for f in b['files']:
-            src=posixpath.normpath(str(root/f['source']));raw=self.blob(commit,src);sources[src]=core.sha(raw);out[core.relpath(f['destination'])]=raw
+            src=posixpath.normpath(str(root/f['source']));raw=self.compiler_blob(commit,src);sources[src]=core.sha(raw);out[core.relpath(f['destination'])]=raw
         replacements=c.get('source_replacements',[{'source':p['source_path'],'destination':'netlist/project.scs'}])
         for r in replacements:
-            raw=self.blob(commit,r['source'],overrides);validate_text(r['source'],raw.decode());out[core.relpath(r['destination'])]=raw;sources[r['source']]=core.sha(raw)
-        raw=self.blob(commit,c['configuration_path'],overrides);conf=configuration_schema.load_configuration(raw);sources[c['configuration_path']]=core.sha(raw)
+            raw=self.compiler_blob(commit,r['source'],overrides);validate_text(r['source'],raw.decode());out[core.relpath(r['destination'])]=raw;sources[r['source']]=core.sha(raw)
+        canonical_report=None
+        if c.get('canonical_bindings_path'):
+            from library_sources import compile_sources
+            out,canonical_sources,canonical_report=compile_sources(c['canonical_bindings_path'],c['id'],commit,self.compiler_blob,out,overrides)
+            sources.update(canonical_sources)
+        raw=self.compiler_blob(commit,c['configuration_path'],overrides);conf=configuration_schema.load_configuration(raw);sources[c['configuration_path']]=core.sha(raw)
         entry=b['entrypoint'];text=out[entry].decode();text=assignments(text,conf.get('parameters',{}),'parameters');text=assignments(text,conf.get('analysis',{}),'analysis');out[entry]=text.encode()
         flat=re.sub(r'\\\n\s*',' ',text)
         parameters=next((line for line in flat.splitlines() if line.startswith('parameters ')),None)
@@ -543,32 +578,34 @@ class Workspace:
         out,save_info,_=configuration_schema.apply_save(out,entry,conf.get('save'))
         b['configuration']['effective']=configuration_schema.settings(out,entry,save_info,core.simulator_config(b),b['postprocess'])
         b['configuration']['effective_entrypoint_sha256']=core.sha(out[entry])
+        if canonical_report is not None:b['configuration']['canonical_sources']=canonical_report
         core.simulator_config(b);b['files']=[{'source':k,'destination':k,'sha256':core.sha(v)} for k,v in sorted(out.items())]
         for name,data in out.items():validate_text(name,data.decode())
         return b,out,sources
     def configuration_description(self,pid,configuration,commit):
         with locked(self.runtime/'workspace.lock'):
-            self.require_base(commit)
-            if not self.clean():raise Conflict('configuration description requires clean committed inputs')
+            self.require_compilation_base(commit)
             p,c=self.select(pid,configuration);bundle,files,sources=self.compile_inputs(p,c,commit)
-            return configuration_schema.descriptor(p,c,commit,self.blob(commit,c['configuration_path']),bundle,files,sources)
+            result=configuration_schema.descriptor(p,c,commit,self.compiler_blob(commit,c['configuration_path']),bundle,files,sources)
+            self.require_compilation_base(commit)
+            return result
     def validate_compiled(self,bundle,files):
-        import tempfile
-        with tempfile.TemporaryDirectory(dir=self.frozen) as tmp:
-            root=Path(tmp)
-            for name,data in files.items():f=root/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(data)
-            atomic(root/'bundle.json',bundle);_,_,proof=core.prepare(root/'bundle.json',self.site)
-            if not core.required_aliases(proof,self.site).issubset(core.external_pins(bundle)):raise ValueError('compiled bundle has unpinned external aliases')
-            for value in core.external_pins(bundle).values():
-                if not re.fullmatch('[a-f0-9]{64}',value):raise ValueError('invalid external pin')
+        return local_inputs.validate(bundle,files)
     def materialize(self,pid,configuration,commit):
         with locked(self.runtime/'workspace.lock'):
-            self.require_base(commit);p,c=self.select(pid,configuration);b,files,sources=self.compile_inputs(p,c,commit)
-            compiler_hash=core.sha(Path(__file__).read_bytes()+Path(configuration_schema.__file__).read_bytes());key=core.sha(json.dumps([commit,pid,configuration,sources,compiler_hash,project_metadata(p)],sort_keys=True).encode());dest=self.frozen/key
+            self.require_compilation_base(commit);p,c=self.select(pid,configuration);b,files,sources=self.compile_inputs(p,c,commit)
+            self.validate_compiled(b,files)
+            compiler_code=Path(__file__).read_bytes()+Path(configuration_schema.__file__).read_bytes()+Path(local_inputs.__file__).read_bytes()
+            if c.get('canonical_bindings_path'):
+                import library_sources
+                compiler_code+=Path(library_sources.__file__).read_bytes()
+            compiler_hash=core.sha(compiler_code);key=core.sha(json.dumps([commit,pid,configuration,sources,compiler_hash,project_metadata(p)],sort_keys=True).encode());dest=self.frozen/key
             if not dest.exists():
                 temp=self.frozen/(key+'.'+uuid.uuid4().hex);temp.mkdir()
                 for name,raw in files.items():f=temp/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(raw)
                 atomic(temp/'bundle.json',b);data={'source_commit':commit,'project_id':pid,**project_metadata(p),'configuration':configuration,'source_sha256':sources,'compiler_sha256':compiler_hash,'bundle_sha256':filehash(temp/'bundle.json')}
                 signature=hmac.new(self.key,json.dumps(data,sort_keys=True).encode(),hashlib.sha256).hexdigest();atomic(temp/'materialization.json',{'data':data,'signature':signature});temp.rename(dest)
-            # Validate closure and pins from actual new hashes; never modify archived templates.
-            core.prepare(dest/'bundle.json',self.site);return dest/'bundle.json'
+            # Remote alias resolution and model hashes are checked by preflight on
+            # the selected execution site. Materialization only reads local inputs.
+            self.require_compilation_base(commit)
+            return dest/'bundle.json'

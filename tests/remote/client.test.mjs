@@ -28,6 +28,12 @@ test('node rejection preserves structured protocol diagnostics',async()=>{
   const client=createNodeClient({url:'https://node.example',accessCode:code,fetchImpl:async()=>({ok:false,status:409,json:async()=>({ok:false,error:{code:'conflict',message:'changed'}})})});
   await assert.rejects(client.request('/ai/turn',{method:'POST',body:{}}),e=>e.status===409&&e.data.code==='conflict');
 });
+test('paired simulation uses only its explicit route and preserves unknown outcome',async()=>{
+  const calls=[];const client=createNodeClient({url:'http://127.0.0.1:8767',accessCode:code,fetchImpl:async(url,options)=>{calls.push({url,options});throw Error('connection dropped');}});
+  await assert.rejects(client.request('/simulation/execute',{method:'POST',body:{operation:'submit',arguments:{project_id:'fixture'},idempotency_key:'same-key'}}),e=>e.data.code==='transport_unknown');
+  assert.equal(calls.length,1);assert.equal(calls[0].url,'http://127.0.0.1:8767/api/simulation/execute');
+  await assert.rejects(client.request('/simulation/admin',{method:'POST',body:{}}),/运行节点/);assert.equal(calls.length,1);
+});
 test('revoked node authorization notifies the host once without replaying',async()=>{
   let calls=0,rejected=0;
   const client=createNodeClient({url:'https://node.example',accessCode:code,onUnauthorized:()=>{rejected++;client.close();},fetchImpl:async()=>{calls++;return {ok:false,status:403,json:async()=>({ok:false,error:{code:'forbidden',message:'revoked'}})};}});

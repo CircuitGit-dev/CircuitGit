@@ -6,6 +6,7 @@ import re
 import sys
 import threading
 import unittest
+from unittest.mock import patch
 import urllib.error
 import urllib.request
 
@@ -13,6 +14,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path[:0]=[str(ROOT/'tools/workbench'),str(ROOT/'apps/codex')]
 from remote_node import Node, Server, Handler
 from browser_library import LocalLibrary
+from browser_pairing import Pairing
 from library_workflow import WorkflowError
 
 
@@ -23,6 +25,59 @@ class Workflow:
     def preview_save(self, **args): return {'review_id':'a'*64,'operation':'save','diff':'<script>untrusted()</script>','payload':args}
     def confirm(self, review_id, key): self.calls.append((review_id,key));return self.result
     def receipt(self, **args): return self.result if self.calls else {'state':'prepared'}
+    def execute(self, operation, args, idempotency_key):
+        self.calls.append((operation,args,idempotency_key));return self.result
+
+
+class DirectAuthorizationTests(unittest.TestCase):
+    """Exercise authorization and activity without a listener or external service."""
+    def setUp(self):
+        self.origin='https://fixture.invalid'
+        self.pairing=Pairing();self.workflow=Workflow()
+        rid,csrf=self.pairing.create(self.origin,'s'*32)
+        self.token=self.pairing.decide(rid,csrf,True)['accessCode']
+        self.library=LocalLibrary(self.workflow,self.pairing,'http://127.0.0.1:1')
+
+    def test_existing_pairing_executes_without_preview_and_reports_running_activity(self):
+        args={'library_id':'demo','cell_id':'gain','path':'lib/demo/gain/gain.scs','content':'text','base_sha256':'0'*64}
+        def execute(operation,payload,key):
+            self.assertEqual(self.library.activity()['running_actions'],1)
+            receipt=self.library.read('receipt',{'idempotency_key':key},self.token,self.origin)
+            self.assertEqual(receipt['state'],'running')
+            self.assertFalse(receipt['automatic_retry'])
+            return {'state':'complete','operation':operation,'args':payload,'key':key}
+        with patch.object(self.workflow,'execute',side_effect=execute):
+            result=self.library.execute('save',args,'direct-paired-key',self.token,self.origin)
+        self.assertEqual(result['state'],'complete')
+        self.assertEqual(self.library.activity()['running_actions'],0)
+        self.assertEqual(self.library.tickets,{})
+        capability=self.library.read('capability',{},self.token,self.origin)
+        self.assertEqual(capability['human_review'],'not-required')
+        self.assertIn('save_files',capability['execute_operations'])
+        self.assertIn('catalog',capability['operations'])
+
+    def test_wrong_origin_owner_bearer_expired_and_revoked_grants_do_not_execute(self):
+        for token,origin in [('owner-master-token',self.origin),(self.token,'https://foreign.invalid')]:
+            with self.assertRaises(PermissionError):
+                self.library.execute('save',{},'direct-denied-key',token,origin)
+        self.pairing.grants[self.token]['expires']=0
+        with self.assertRaises(PermissionError):
+            self.library.execute('save',{},'direct-expired-key',self.token,self.origin)
+        rid,csrf=self.pairing.create(self.origin,'z'*32)
+        token=self.pairing.decide(rid,csrf,True)['accessCode'];self.pairing.revoke(token)
+        with self.assertRaises(PermissionError):
+            self.library.execute('save',{},'direct-revoked-key',token,self.origin)
+        self.assertEqual(self.workflow.calls,[])
+
+    def test_direct_errors_clear_activity_and_unrecognized_operations_never_dispatch(self):
+        for operation in ('shell','confirm','preview_save',None,{}):
+            with self.assertRaises(ValueError):
+                self.library.execute(operation,{},'bad-operation-key',self.token,self.origin)
+        with patch.object(self.workflow,'execute',side_effect=WorkflowError('outcome_unknown','Uncertain execution',409)):
+            with self.assertRaises(WorkflowError):
+                self.library.execute('save',{},'direct-error-key',self.token,self.origin)
+        self.assertEqual(self.library.activity()['running_actions'],0)
+        self.assertEqual(self.workflow.calls,[])
 
 
 class BoundaryTests(unittest.TestCase):
@@ -57,6 +112,19 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual(code,200);self.assertTrue(json.loads(raw)['data']['available'])
         self.assertEqual(self.request('/api/library/read',{'operation':'confirm','args':{}})[0],400)
         self.assertEqual(self.workflow.calls,[])
+
+    def test_direct_execute_requires_pairing_and_exact_finite_body(self):
+        body={'operation':'save','args':{'library_id':'lib','cell_id':'cell'},'idempotency_key':'direct-route-key'}
+        self.assertEqual(self.request('/api/library/execute',body,token=self.owner)[0],403)
+        self.assertEqual(self.request('/api/library/execute',body,origin='https://other.invalid')[0],403)
+        self.assertEqual(self.request('/api/library/execute',{**body,'approved':True})[0],400)
+        self.assertEqual(self.request('/api/library/execute',{**body,'operation':'shell'})[0],400)
+        self.assertEqual(self.workflow.calls,[])
+        code,_,raw=self.request('/api/library/execute',body)
+        self.assertEqual(code,200,raw)
+        self.assertEqual(json.loads(raw)['data']['state'],'complete')
+        self.assertEqual(len(self.workflow.calls),1)
+        self.assertEqual(self.node.library.tickets,{})
 
     def test_owner_bearer_and_wrong_origin_cannot_use_library(self):
         body={'operation':'capability','args':{}}
@@ -180,6 +248,24 @@ class RealWorkflowTests(unittest.TestCase):
         self.assertEqual(f.head(),committed['commit'])
         self.assertEqual(len(self.call('checkpoints',scope)['checkpoints']),2)
         self.assertTrue(self.call('current',scope)['changes'])
+
+    def test_direct_save_commit_restore_and_receipt_over_real_transport(self):
+        scope={'library_id':'demo','cell_id':'gain'};f=self.fixture
+        def execute(operation,key,**args):
+            code,_,raw=self.request('/api/library/execute',{'operation':operation,'args':{**scope,**args},'idempotency_key':key})
+            self.assertEqual(code,200,raw)
+            result=json.loads(raw)['data'];self.assertEqual(result['state'],'complete')
+            return result
+        saved=execute('save','transport-save-key',path=f.path,base_sha256=f.sha(f.before),content=f.after)
+        self.assertEqual(execute('save','transport-save-key',path=f.path,base_sha256=f.sha(f.before),content=f.after),saved)
+        self.assertEqual(self.call('receipt',{'idempotency_key':'transport-save-key'}),saved)
+        committed=execute('commit','transport-commit-key',base_commit=f.head(),title='Direct source change')
+        execute('restore','transport-restore-key',path=f.path,base_sha256=f.sha(f.after),
+                checkpoint_id=saved['checkpoint_id'],checkpoint_version='before')
+        self.assertEqual((f.root/f.path).read_text(),f.before)
+        self.assertEqual(f.head(),committed['commit'])
+        self.assertEqual(self.node.library.tickets,{})
+        self.assertEqual(self.call('receipt',{'idempotency_key':'never-submitted-key'})['state'],'not_found')
 
     def test_save_restore_save_same_text_is_a_new_explicit_checkpoint(self):
         scope={'library_id':'demo','cell_id':'gain'};f=self.fixture

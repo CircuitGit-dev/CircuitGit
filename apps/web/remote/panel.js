@@ -32,24 +32,42 @@ export function mountRemoteNode(host) {
   <div class="cg-node-connected" hidden>
     <div class="cg-node-identity"><strong></strong><button type="button" data-action="disconnect">断开</button></div>
     <div class="cg-node-account" hidden><span></span><button type="button" data-action="login" hidden>在官方页面登录 ChatGPT</button><button type="button" data-action="account-refresh">重新检查</button></div>
-    <div class="cg-node-project"><select aria-label="运行节点项目"><option value="">选择工程</option></select><button type="button" data-action="open-project">打开对话</button></div>
+    <div class="cg-node-project"><select aria-label="运行节点项目"><option value="">选择工程</option></select><button type="button" data-action="open-project">打开对话</button><button type="button" data-action="use-canvas">使用当前电路</button></div>
     <p class="cg-context-label">画布是公开电路预览，AI 使用此处选定的节点工程。</p>
   </div>
   <p class="cg-node-status" role="status" aria-live="polite"></p><div class="cg-node-chat"></div>`;
   parent.element.replaceChildren(root);
   const $=s=>root.querySelector(s),welcome=$('.cg-node-welcome'),form=$('form'),connected=$('.cg-node-connected'),status=$('.cg-node-status'),chat=$('.cg-node-chat'),projects=$('select');
-  const localButton=$('[data-action=local]'),openButton=$('[data-action=open-project]'),loginButton=$('[data-action=login]');
+  const localButton=$('[data-action=local]'),openButton=$('[data-action=open-project]'),canvasButton=$('[data-action=use-canvas]'),loginButton=$('[data-action=login]');
   const initialSettings=doc.createElement('div'),initialToggle=doc.createElement('button'),initialHint=doc.createElement('span'),settingsHome=doc.createElement('div'),connectionSettings=doc.createElement('details'),connectionSummary=doc.createElement('summary');
   initialSettings.className='cg-node-initial-settings';initialToggle.type='button';initialToggle.textContent='⚙';initialToggle.setAttribute('aria-label','AI连接设置');initialToggle.setAttribute('aria-expanded','false');initialHint.textContent='在设置中连接你的 Codex';initialSettings.append(initialToggle,initialHint);
   settingsHome.className='cg-node-settings-home';settingsHome.hidden=true;connectionSettings.className='cg-node-connection-settings';connectionSummary.textContent='连接与工程';connectionSettings.append(connectionSummary,welcome,connected,status);settingsHome.append(connectionSettings);root.insertBefore(initialSettings,chat);root.insertBefore(settingsHome,chat);
   function showConnectionSettings(){settingsHome.hidden=false;connectionSettings.open=true;initialToggle.setAttribute('aria-expanded','true');}
   initialToggle.onclick=()=>{settingsHome.hidden=!settingsHome.hidden;initialToggle.setAttribute('aria-expanded',String(!settingsHome.hidden));if(!settingsHome.hidden)connectionSettings.open=true;};
-  let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true,ownerWindow=null,ownerTimer=null,ownerResolve=null;
+  let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true,ownerWindow=null,ownerTimer=null,ownerResolve=null,inflightTurns=0;
   const listeners=new Set();
   const contextAdapter={getContext:()=>context&&structuredClone(context),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
     async readSelection(){throw Error('示例画布未绑定到本机工程，请让 AI 读取当前工程源码。');}};
   function message(text,error=false){status.textContent=text;status.dataset.error=String(error);}
-  function setBusy(value){busy=value;localButton.disabled=value;form.querySelector('button').disabled=value;openButton.disabled=value||!!context||!accountReady;}
+  function setBusy(value){busy=value;localButton.disabled=value;form.querySelector('button').disabled=value;openButton.disabled=value||!accountReady;canvasButton.disabled=value||!accountReady;projects.disabled=value;}
+  function checkedContext(value,id,path){
+    const reject=()=>{const error=Error('未返回有效的已保存电路身份；未发送 AI 请求，请刷新连接设置。');error.data={code:'invalid_input'};throw error;};
+    const file=value?.file,project=value?.project;
+    if(value?.version!==1||project?.id!==id||typeof file?.path!=='string'||!file.path||
+       !/^[a-f0-9]{40,64}$/.test(project?.sourceCommit||'')||!/^[a-f0-9]{64}$/.test(file.persistedSha256||'')||
+       file.currentTextSha256!==file.persistedSha256||file.dirty!==false||path&&file.path!==path)reject();
+    if(id.startsWith('library:')){
+      const parts=id.slice(8).split('/');
+      if(parts.length!==2||parts.some(part=>!part)||value.library?.library_id!==parts[0]||value.library?.cell_id!==parts[1]||
+         file.baseCommit!==project.sourceCommit)reject();
+    }else if(value.library)reject();
+    return value;
+  }
+  function canvasProject(){
+    const p=host.context?.getContext?.()?.project;
+    if(p?.libraryId&&p?.cellId)return 'library:'+p.libraryId+'/'+p.cellId;
+    return !p||p.id==='rc-demo'?'library:basics/rc-smoke':null;
+  }
   function drop(){++epoch;host.libraryBridge?.unbind();pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;client?.close();client=null;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
   function disconnect(){
     drop();setBusy(false);welcome.hidden=false;connected.hidden=true;$('.cg-node-account').hidden=true;$('.cg-node-project').hidden=false;
@@ -63,7 +81,7 @@ export function mountRemoteNode(host) {
   async function refreshAccount(generation=epoch) {
     const result=await client.request('/ai/auth/status');if(generation!==epoch||destroyed)return null;
     const account=result.account||{};const signedOut=account.login_status==='signed_out';
-    accountReady=!signedOut;openButton.disabled=busy||!!context||!accountReady;
+    accountReady=!signedOut;openButton.disabled=busy||!accountReady;canvasButton.disabled=busy||!accountReady;
     loginButton.hidden=!result.can_login;loginButton.disabled=result.login_state==='pending';
     const label=account.account_type==='chatgpt'||account.account_type==='chatgptAuthTokens'
       ? 'Codex 已登录 · '+(account.plan_type==='unknown'?'订阅类型未报告':account.plan_type)
@@ -85,7 +103,8 @@ export function mountRemoteNode(host) {
     if(!Array.isArray(catalog.projects)||!catalog.projects.length)throw Error('助手尚未配置可用工程。');
     const seen=new Set();projects.replaceChildren(new Option('选择工程',''));
     for(const p of catalog.projects){if(typeof p.id!=='string'||!p.id||seen.has(p.id))throw Error('返回的工程列表无效。');seen.add(p.id);projects.add(new Option(p.name||p.id,p.id));}
-    if(catalog.projects.length===1)projects.value=catalog.projects[0].id;
+    const preferred=canvasProject();
+    if(seen.has(preferred))projects.value=preferred;else if(catalog.projects.length===1)projects.value=catalog.projects[0].id;
     $('.cg-node-identity strong').textContent=local?'本机 Codex':info.name||'CircuitGit server';
     form.elements.accessCode.value='';welcome.hidden=true;connected.hidden=false;accountReady=true;
     if(local&&info.capabilities.local_login){
@@ -140,22 +159,44 @@ export function mountRemoteNode(host) {
   };
 
   openButton.onclick=async()=>{
-    if(!client||!projects.value||busy||context||!accountReady)return;
+    if(!client||!projects.value||busy||!accountReady)return;
     const generation=epoch,id=projects.value;setBusy(true);openButton.disabled=true;message('正在读取工程源码版本…');
     try{
+      if(inflightTurns||['starting','running'].includes(ai?.getState()?.phase))throw Error('当前回合仍在执行，请完成或停止后切换电路。');
+      if(context){const active=await client.request('/ai/sessions');if(generation!==epoch||destroyed)return;if(!Array.isArray(active?.sessions))throw Error('无法确认对话状态，请重新读取后切换电路。');if(active.sessions.some(row=>['running','starting'].includes(row.state)))throw Error('当前回合仍在执行，请完成或停止后切换电路。');}
       const next=await client.request('/ai/context?project_id='+encodeURIComponent(id));if(generation!==epoch||destroyed)return;
-      if(next?.version!==1||next.project?.id!==id||!next.file?.path||!next.project.sourceCommit||!/^[a-f0-9]{64}$/.test(next.file.persistedSha256||'')||next.file.currentTextSha256!==next.file.persistedSha256||next.file.dirty)throw Error('未返回有效的已保存工程身份。');
+      checkedContext(next,id);
       context={...next,revision:(context?.revision||0)+1,mode:'live'};
       for(const listener of listeners)listener(structuredClone(context));
       const slot={...parent,element:chat,setVisible:value=>parent.setVisible(value),isVisible:()=>parent.isVisible(),setBadge:value=>parent.setBadge(value),toggle:()=>parent.toggle()};
       const onSessionsChanged=({count,loading})=>{if(loading)return;initialSettings.hidden=count>0;if(!count){settingsHome.append(connectionSettings);initialHint.textContent='连接设置';settingsHome.hidden=true;initialToggle.setAttribute('aria-expanded','false');}else settingsHome.hidden=true;};
-      ai=mountAI({...host,context:contextAdapter,aiSettings:{element:connectionSettings,configureDevelopment,onSessionsChanged},slots:{...host.slots,ai:slot},gateway:{request:(path,options)=>client?client.request(path,options):Promise.reject(Error('连接已断开。'))}});
-      $('.cg-context-label').textContent=`AI 工程：${id} · ${next.project.sourceCommit.slice(0,8)}。画布是公开电路预览，与此节点工程独立。`;
-      projects.disabled=true;openButton.textContent='工程已绑定';projects.title='更换工程或刷新源码版本，请先断开再连接。';
-      $('.cg-node-project').hidden=true;settingsHome.hidden=true;connectionSettings.open=false;message('');
-    }catch(error){if(generation===epoch&&!destroyed){context=null;message(error.message,true);}}
-    finally{if(generation===epoch&&!destroyed){setBusy(false);openButton.disabled=!!context||!accountReady;}}
+      if(!ai)ai=mountAI({...host,context:contextAdapter,aiSettings:{element:connectionSettings,configureDevelopment,onSessionsChanged},slots:{...host.slots,ai:slot},gateway:{request:requestAI}});
+      $('.cg-context-label').textContent=`AI 电路：${id} · ${next.project.sourceCommit.slice(0,8)}`+(next.library?' · 编辑无需 PDK；写入权限由本机配置决定。':' · 使用已配置的节点工程。');
+      projects.disabled=false;openButton.textContent='切换 / 刷新电路';projects.title='新回合使用这里选定的电路';
+      $('.cg-node-project').hidden=false;settingsHome.hidden=true;connectionSettings.open=false;message('');
+    }catch(error){if(generation===epoch&&!destroyed){if(context)projects.value=context.project.id;message(error.message,true);}}
+    finally{if(generation===epoch&&!destroyed){setBusy(false);openButton.disabled=!accountReady;}}
   };
+  canvasButton.onclick=()=>{if(busy||destroyed||!client||!accountReady)return;const id=canvasProject();if(!id||![...projects.options].some(option=>option.value===id)){message('当前画布还未在连接的库中登记，请从列表选择电路。',true);return;}projects.value=id;void openButton.onclick();};
+  async function requestAI(path,options){
+    if(!client)throw Error('连接已断开。');
+    if(path!=='/ai/turn')return client.request(path,options);
+    ++inflightTurns;
+    try{
+      const generation=epoch,old=options?.body?.context,id=context?.project?.id;
+      checkedContext(old,id||'');
+      if(!id||busy||old.revision!==context.revision){const error=Error('电路正在切换，请确认当前电路后重新发送。');error.data={code:'invalid_input'};throw error;}
+      if(!id.startsWith('library:'))return await client.request(path,options);
+      const fresh=await client.request('/ai/context?project_id='+encodeURIComponent(id)+'&path='+encodeURIComponent(old.file.path));
+      if(generation!==epoch||destroyed||busy||context?.project.id!==id||context.revision!==old.revision){const error=Error('电路已切换，请在当前电路重新发送。');error.data={code:'invalid_input'};throw error;}
+      checkedContext(fresh,id,old.file.path);
+      // This refresh belongs to the turn whose panel already captured revision.
+      // Incrementing it here would invalidate that same new turn's approvals.
+      context={...fresh,revision:old.revision,mode:'live'};for(const listener of listeners)listener(structuredClone(context));
+      options={...options,body:{...options.body,context:structuredClone(context)}};
+      return await client.request(path,options);
+    }finally{--inflightTurns;}
+  }
   async function configureDevelopment(){
     if(!client||destroyed)throw Error('请先连接本机助手。');
     if(ownerWindow&&!ownerWindow.closed){ownerWindow.focus();return;}

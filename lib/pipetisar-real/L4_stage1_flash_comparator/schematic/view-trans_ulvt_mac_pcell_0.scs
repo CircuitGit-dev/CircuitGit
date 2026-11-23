@@ -1,3 +1,0 @@
-// Explicit native hierarchy assembly; no automatic inclusion.
-simulator lang=spectre
-include "trans_ulvt_mac.scs"

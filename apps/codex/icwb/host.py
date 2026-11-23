@@ -14,6 +14,7 @@ from .ai_prompt import geometry_summary
 from .connection_metadata import discover_runtime
 from .commit_summary import CommitSummaries
 from .development import development_info
+from .library import call as library_call, source_context as library_context
 
 WEB = Path(__file__).resolve().parents[1] / 'web'
 
@@ -73,8 +74,32 @@ class AiRoutes:
             service = self.service
         if path == '/api/ai/catalog':
             check(not query, 'Unexpected project catalog query')
-            return service.call('projects', {})
+            if not service.config.get('library_workspace'): return service.call('projects', {})
+            catalog = library_call(service, 'ic_library_read', {'operation': 'catalog', 'arguments': {}})
+            projects = [{'id': 'library:' + lib['id'] + '/' + cell['id'], 'name': lib.get('name', lib['id']) + ' / ' + cell.get('name', cell['id']),
+                         'kind': 'library', 'library_id': lib['id'], 'cell_id': cell['id'], 'can_edit': service.config.get('library_access', 'read_only') == 'direct',
+                         'runtime_project_id': cell.get('project_id'), 'runtime_available': False,
+                         'configurations': [], 'can_simulate': False, 'simulation_readiness': 'runtime_unavailable', 'pdk_required_for_edit': False}
+                        for lib in catalog['libraries'] for cell in lib['cells']]
+            try:
+                runtime = service.call('projects', {})
+                for item in projects:
+                    matched = next((p for p in runtime.get('projects', []) if item['runtime_project_id'] is not None
+                                    and p.get('id') == item['runtime_project_id']), None)
+                    if matched is None or any(matched.get(key) not in (None, item[key]) for key in ('library_id', 'cell_id')):
+                        continue
+                    item['runtime_available'] = True
+                    item['configurations'] = matched.get('configurations', [])
+                    item['can_simulate'] = bool(item['configurations']) and runtime.get('capabilities', {}).get('runner') is True and matched.get('can_simulate') is not False
+                    item['simulation_readiness'] = 'requires_preflight' if item['can_simulate'] else 'runner_unavailable'
+                return {**runtime, 'projects': [*runtime.get('projects', []), *projects]}
+            except Failure as error:
+                return {'projects': projects, 'runtime_catalog': 'unavailable', 'runtime_error_code': error.code}
         if path == '/api/ai/context':
+            project_id = query.get('project_id', [''])[0]
+            if project_id.startswith('library:'):
+                check(set(query) <= {'project_id', 'path'} and all(isinstance(v, list) and len(v) == 1 for v in query.values()), 'Exact library context identity required')
+                return library_context(service, project_id, query.get('path', [None])[0])
             r = service.call('read', {'project_id': query.get('project_id', [''])[0]})
             f = r['file']; p = r['project']
             return {'version': 1, 'revision': 1,

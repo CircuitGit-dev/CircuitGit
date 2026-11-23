@@ -26,6 +26,34 @@ from library_workflow import LibraryWorkflow
 PUBLIC_URL = 'https://joshuazeng713.github.io/CircuitGit/'
 
 
+def library_configuration(root, state):
+    """Bind browser and agent library operations to the same installed checkout."""
+    if not (root / '.git').exists(): return {}
+    result = subprocess.run(['git','-C',str(root),'remote','get-url','origin'], capture_output=True, text=True, timeout=10)
+    remote = result.stdout.strip() if result.returncode == 0 else ''
+    match = re.fullmatch(r'(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?', remote)
+    if not match: return {}
+    return {'library_workspace':str(root), 'library_repository':match.group(1), 'library_access':'direct',
+            'library_state_dir':str(state / 'library'), 'library_base_branch':'main',
+            'library_testbench_registry':str(root / 'config/library-testbenches.json')}
+
+
+def library_runtime_configuration(cfg, root, state):
+    """Read configured Git library snapshots; retain custom runtime settings."""
+    binding = library_configuration(root, state)
+    if not binding or cfg.get('github_repo') != binding['library_repository']:
+        return cfg
+    if Path(cfg.get('seed_repo', '')).expanduser().resolve() != root.resolve():
+        return cfg
+    value = dict(cfg)
+    value.setdefault('source_repository', str(root))
+    installed = json.loads((root / 'config/workbench.projects.json').read_text())
+    projects = list(cfg.get('projects', [])); seen = {p['id'] for p in projects}
+    projects.extend(p for p in installed if p['id'] not in seen)
+    value['projects'] = projects
+    return value
+
+
 def configuration(state):
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     config = state / 'workbench.local.json'
@@ -52,7 +80,8 @@ def configuration(state):
         shutil.copyfile(ROOT / 'config/site.example.json', site)
     value = json.loads((ROOT / 'config/workbench.example.json').read_text())
     value.update(seed_repo=str(seed), runtime_root=str(state / 'engineering'), runs_root=str(state / 'engineering/runs'),
-                 site_file=str(site), projects=json.loads((ROOT / 'config/workbench.projects.json').read_text()), gh_bin=shutil.which('gh') or 'gh')
+                 site_file=str(site), projects=[p for p in json.loads((ROOT / 'config/workbench.projects.json').read_text())
+                                               if (seed / p['source_path']).is_file()], gh_bin=shutil.which('gh') or 'gh')
     fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, 'w') as file:
         json.dump(value, file, indent=2)
@@ -74,16 +103,22 @@ def main():
         try:browser = Server(('127.0.0.1', 8767), Handler)
         except OSError:raise RuntimeError('本机连接端口已被占用。请检查已有连接助手，未停止任何现有程序。')
         gateway = routes = node = remote_lock = None
+        cfg = None
         try:
             gateway_url = args.gateway_url
             if not gateway_url:
-                cfg = configuration(state)
+                cfg = library_runtime_configuration(configuration(state), ROOT, state)
                 import server as engineering
                 app = engineering.Application(cfg, ROOT / 'apps/web')
                 gateway = engineering.Server(('127.0.0.1', 0), engineering.Handler);gateway.app = app
                 thread = threading.Thread(target=gateway.serve_forever, daemon=True);thread.start()
+                if getattr(app, 'simulation', None) is not None:
+                    app.simulation.resume()
                 gateway_url = 'http://127.0.0.1:' + str(gateway.server_port)
             config = node_config(gateway_url=gateway_url, state_dir=state / 'ai')
+            config.update(library_configuration(ROOT, state))
+            if cfg and cfg.get('simulation_direct'):
+                config['simulation_direct'] = dict(cfg['simulation_direct'])
             token, identity, _ = node_identity(Path(config['state_dir']))
             remote_lock = (Path(config['state_dir']) / 'remote-node.lock').open('a')
             try:fcntl.flock(remote_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -91,17 +126,15 @@ def main():
             routes = AiRoutes(Service(config))
             node = Node(routes, token, ['https://joshuazeng713.github.io', *args.allow_origin], identity, 'http://127.0.0.1:8767', '本机 Codex')
             node.login = LocalLogin(config)
+            if config.get('simulation_direct', {}).get('enabled') and callable(getattr(routes.service, 'execute_simulation', None)):
+                node.simulation = routes.service.execute_simulation
             node.development = LocalDevelopment(state / 'owner-settings', routes, node.pairing, node.url, workspace_hint=ROOT)
             # A Git checkout is required for branch/history operations. ZIP users
             # retain chat and the isolated RC runtime without a fabricated origin.
-            if (ROOT / '.git').exists():
+            if config.get('library_workspace'):
                 registry_path = ROOT / 'config/library-testbenches.json'
                 registry = json.loads(registry_path.read_text()) if registry_path.is_file() else {'testbenches': []}
-                origin_result = subprocess.run(['git','-C',str(ROOT),'remote','get-url','origin'], capture_output=True, text=True, timeout=10)
-                remote = origin_result.stdout.strip() if origin_result.returncode == 0 else ''
-                match = re.fullmatch(r'(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?', remote)
-                if match:
-                    node.library = LocalLibrary(LibraryWorkflow(ROOT, repository=match.group(1), state_dir=state / 'library', ci_registry=registry), node.pairing, node.url)
+                node.library = LocalLibrary(LibraryWorkflow(ROOT, repository=config['library_repository'], state_dir=state / 'library', ci_registry=registry), node.pairing, node.url)
             browser.node = node
             print('CircuitGit 连接助手已启动。请保持此窗口运行，在网页点击“连接本机 Codex”并确认授权。', flush=True)
             print('不会自动登录、发送模型消息或运行仿真。关闭此窗口可停止助手。', flush=True)
@@ -115,6 +148,8 @@ def main():
             if node and node.login:node.login.close()
             if routes:routes.close()
             if gateway:
+                if getattr(gateway.app, 'simulation', None) is not None:
+                    gateway.app.simulation.close()
                 gateway.shutdown();gateway.server_close();gateway.app.pool.shutdown(wait=False)
             if remote_lock:remote_lock.close()
 

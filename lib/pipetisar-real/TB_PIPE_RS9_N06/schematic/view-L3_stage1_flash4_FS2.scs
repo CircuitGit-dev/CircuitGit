@@ -1,9 +1,0 @@
-// Explicit native hierarchy assembly; no automatic inclusion.
-simulator lang=spectre
-include "trans_ulvt_mac.scs"
-include "L4_stage1_flash_comparator.scs"
-include "L4_stage1_flash_bootstrapper.scs"
-include "L4_stage1_flash_clkbooster.scs"
-include "L4_stage1_flash4_encoder.scs"
-include "L4_stage1_flash4_rdac_FS2.scs"
-include "L3_stage1_flash4_FS2.scs"

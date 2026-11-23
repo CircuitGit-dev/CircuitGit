@@ -13,6 +13,22 @@ import connect_browser
 
 
 class HelperTests(unittest.TestCase):
+    def test_git_library_configures_committed_sources_and_preserves_operator_projects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve()/'repository';root.mkdir()
+            (root/'.git').mkdir();(root/'config').mkdir()
+            (root/'config/workbench.projects.json').write_text(json.dumps([{'id':'rc','name':'installed'}, {'id':'adc','name':'ADC'}]))
+            cfg={'github_repo':'fixture/repo','seed_repo':str(root),'site_file':'owner-site','projects':[{'id':'rc','name':'custom'}]}
+            result=subprocess.CompletedProcess([],0,'https://github.com/fixture/repo.git\n','')
+            with patch.object(connect_browser.subprocess,'run',return_value=result):
+                value=connect_browser.library_runtime_configuration(cfg,root,root/'.local/helper')
+                self.assertEqual(value['source_repository'],str(root))
+                self.assertEqual(value['projects'],[{'id':'rc','name':'custom'},{'id':'adc','name':'ADC'}])
+                self.assertEqual(value['site_file'],'owner-site')
+                self.assertNotIn('source_repository',cfg)
+                self.assertEqual(connect_browser.library_runtime_configuration({**cfg,'github_repo':'other/repo'},root,root/'.local/helper')['projects'],cfg['projects'])
+                self.assertNotIn('source_repository',connect_browser.library_runtime_configuration({**cfg,'seed_repo':str(root/'other')},root,root/'.local/helper'))
+
     def test_downloaded_zip_initializes_private_example_without_modifying_the_app(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory).resolve()/'downloaded app';root.mkdir()

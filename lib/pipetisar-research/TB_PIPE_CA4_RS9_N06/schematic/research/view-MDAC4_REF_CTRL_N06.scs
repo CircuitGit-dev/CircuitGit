@@ -1,3 +1,0 @@
-// Explicit saved-library assembly.
-simulator lang=spectre
-include "MDAC4_REF_CTRL_N06.scs"

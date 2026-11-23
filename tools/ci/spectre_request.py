@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Installed operator adapter for protected manual CI; never auto-approves work."""
+"""Installed operator adapter for manual review or an explicitly granted direct lane."""
 import argparse
 import hashlib
 import json
@@ -10,6 +10,13 @@ import stat
 import sys
 
 
+def execution_mode(settings):
+    mode = settings.get('execution_mode', 'manual')
+    if mode not in ('manual', 'direct'):
+        raise ValueError('execution_mode must be manual or direct')
+    return mode
+
+
 def load_settings(path):
     path = Path(path)
     info = path.lstat()
@@ -17,22 +24,89 @@ def load_settings(path):
             or info.st_mode & 0o022 or info.st_size > 65536):
         raise ValueError('Runner settings must be a trusted non-writable regular file')
     value = json.loads(path.read_text())
-    if (value.get('schema') != 'circuitgit.spectre-ci.v1' or not isinstance(value.get('testbenches'), dict)
+    if (not isinstance(value, dict) or value.get('schema') != 'circuitgit.spectre-ci.v1' or not isinstance(value.get('testbenches'), dict)
             or not isinstance(value.get('client_config'), str) or not Path(value['client_config']).is_absolute()):
         raise ValueError('Configure the installed runner bindings and local workbench client')
+    execution_mode(value)
     return value
 
 
+def safe_id(value):
+    return value if isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9_.-]{1,180}', value) else None
+
+
+def direct_request(service, operation, identity, run_id, key, report):
+    """Service owns grants and the durable receipt; no approval or fallback is synthesized."""
+    report = {**report, 'idempotency_key': key, 'automatic_retry': False,
+              'simulation_status': 'not_evaluated', 'caller_id': 'native-agent'}
+    execute = getattr(service, 'execute_simulation', None)
+    if not callable(execute):
+        return {**report, 'state': 'unavailable', 'note': 'The installed Service does not support direct execution. No manual fallback or request was created.'}, 2
+    arguments = {**identity, **({'run_id': run_id} if operation == 'collect' else {})}
+    try:
+        receipt = execute(operation, arguments, key, caller_id='native-agent')
+    except Exception as error:
+        # An unexpected interruption may follow dispatch. Preserve the stable key
+        # and any original request ID, never retry here or switch execution lanes.
+        code = getattr(error, 'code', '')
+        details = getattr(error, 'details', {})
+        details = details if isinstance(details, dict) else {}
+        rejected = code in ('forbidden', 'invalid_input')
+        return {**report, 'state': 'rejected' if rejected else 'unknown',
+                'request_id': safe_id(details.get('request_id')), 'simulation_started': False if rejected else None,
+                'error_kind': type(error).__name__,
+                'note': 'Direct execution was blocked or its outcome is unknown. Inspect the original Service receipt using this key/request ID; no retry or manual fallback was attempted.'}, 2 if rejected else 10
+    if not isinstance(receipt, dict):
+        return {**report, 'state': 'unknown', 'simulation_started': None,
+                'note': 'The Service returned no recognizable receipt. Reconcile the original action key; do not resubmit.'}, 10
+    state = receipt.get('state', receipt.get('status'))
+    state = state if isinstance(state, str) and re.fullmatch(r'[A-Za-z0-9_.-]{1,80}', state) else 'unknown'
+    malformed_result = 'result' in receipt and not isinstance(receipt['result'], dict)
+    result = receipt.get('result') if isinstance(receipt.get('result'), dict) else {}
+    inner_state = result.get('state', result.get('status'))
+    inner_state = (inner_state if isinstance(inner_state, str) and re.fullmatch(r'[A-Za-z0-9_.-]{1,80}', inner_state)
+                   else 'unknown' if 'state' in result or 'status' in result else None)
+    blocked_states = {'unknown', 'uncertain', 'partial', 'failed', 'error', 'rejected', 'denied', 'blocked',
+                      'pending_approval', 'dispatching', 'authorized_dispatching', 'cancelled', 'canceled', 'timeout'}
+    secondary_state = result.get('status') if 'state' in result else None
+    inner_states = [value for value in (inner_state, secondary_state) if isinstance(value, str)]
+    malformed_state = any(key in result and (not isinstance(result[key], str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,80}', result[key]))
+                          for key in ('state', 'status'))
+    inner_blocked = malformed_state or any(value in blocked_states or any(word in value for word in ('unknown', 'uncertain', 'partial', 'reconcile', 'failed', 'failure'))
+                                           for value in inner_states)
+    mismatched = any(result.get(field) not in (None, value) for field, value in identity.items())
+    if result.get('configuration_id') not in (None, identity['configuration']): mismatched = True
+    observed_run = safe_id(result.get('run_id', receipt.get('run_id')))
+    if operation == 'collect' and observed_run not in (None, run_id): mismatched = True
+    accepted = (state in ('accepted', 'complete', 'succeeded') and receipt.get('status', state) in ('accepted', 'complete', 'succeeded')
+                and not inner_blocked and not mismatched and not malformed_result
+                and not receipt.get('error') and not result.get('error') and receipt.get('ok') is not False and result.get('ok') is not False)
+    # Do not upload raw receipt.result: the original remains in the installed
+    # Service ledger and may include private gateway or runtime details.
+    projection = {'request_id': safe_id(receipt.get('request_id')), 'state': state, 'result_state': inner_state}
+    if isinstance(receipt.get('fingerprint'), str) and re.fullmatch(r'[a-f0-9]{64}', receipt['fingerprint']):
+        projection['fingerprint'] = receipt['fingerprint']
+    if receipt.get('authorization_basis') == 'installed_connection_grant':
+        projection['authorization_basis'] = receipt['authorization_basis']
+    return {**report, **projection, 'run_id': observed_run or run_id or None, 'status': 'accepted' if accepted else 'blocked',
+            'simulation_started': None,
+            'note': ('The Service accepted the authorized request. Solver execution, collection completion and scientific acceptance are not inferred.' if accepted else
+                     'The original receipt is pending, incomplete, rejected or requires reconciliation. No retry, new key or manual fallback was attempted.')}, 0 if accepted else 10
+
+
 def perform(settings, testbench, commit, operation, run_id, invocation, service):
+    mode = execution_mode(settings)
+    if operation not in ('plan', 'preflight', 'submit', 'collect', 'results'): raise ValueError('Unsupported finite CI operation')
     if not re.fullmatch(r'[a-f0-9]{40}', commit): raise ValueError('An exact full source commit is required')
     row = settings['testbenches'].get(testbench)
     if not isinstance(row, dict) or not all(isinstance(row.get(k), str) and row[k] for k in ('project_id', 'configuration')):
         raise ValueError('Selected testbench has no operator-installed runnable binding')
     identity = {'project_id': row['project_id'], 'configuration': row['configuration'], 'source_commit': commit}
     report = {'schema': 'circuitgit.spectre-ci-request.v1', 'testbench_id': testbench, 'source_commit': commit,
-              'operation': operation, 'simulation_started': False, 'status': 'blocked', 'automatic_approval': False}
+              'operation': operation, 'execution_mode': mode, 'simulation_started': False, 'status': 'blocked', 'automatic_approval': False}
     if operation in ('collect', 'results'):
         if not re.fullmatch(r'[A-Za-z0-9_.-]{1,180}', run_id or ''): raise ValueError('Existing explicit run_id required')
+    if operation == 'results' or (operation == 'collect' and mode == 'manual'):
         # Verify requested historical run identity before any collection request.
         listing = service.call('sim_status', {})
         matches = [r for r in listing.get('jobs', []) if r.get('run_id', r.get('job_id')) == run_id]
@@ -53,7 +127,10 @@ def perform(settings, testbench, commit, operation, run_id, invocation, service)
         arguments = identity
     if operation in ('submit', 'collect'):
         if not re.fullmatch(r'[0-9]+', invocation or ''): raise ValueError('Stable GitHub run ID is required; retry with the same run ID')
-        arguments = {**arguments, 'idempotency_key': 'github-ci-' + hashlib.sha256(json.dumps([invocation, testbench, commit, operation, run_id]).encode()).hexdigest()}
+        key = 'github-ci-' + hashlib.sha256(json.dumps([invocation, testbench, commit, operation, run_id]).encode()).hexdigest()
+        if mode == 'direct':
+            return direct_request(service, operation, identity, run_id, key, report)
+        arguments = {**arguments, 'idempotency_key': key}
     result = service.call('sim_' + operation, arguments)
     state = result.get('state')
     if operation in ('submit', 'collect'):

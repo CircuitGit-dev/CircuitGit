@@ -1,3 +1,0 @@
-// Explicit native hierarchy assembly; no automatic inclusion.
-simulator lang=spectre
-include "RS9_L6_SR_latch_1.scs"

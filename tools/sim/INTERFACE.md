@@ -1,6 +1,6 @@
 # 仿真包接口 v1
 
-本文件与 `ic_sim.py` 是最终交付接口。集成人负责权威项目网表、OA 与 vendor 定义外部化；portable 不携带正式项目 bundle。现有文本网表可直接进入本接口，无需 OA/bridge。
+本文件定义 standalone Spectre 接口。唯一实现是 `../workbench/ic_sim.py`，本目录的 `ic_sim.py` 兼容旧 CLI 和 Python 导入；所有函数及 runner 来源 hash 使用该实现。现有 Git 文本网表可以直接进入 bundle，无需 OA、bridge 或 Virtuoso。调用方负责所选电路源闭包及站点外部模型绑定。
 
 ## Bundle：`ic.sim.bundle.v1`
 
@@ -28,7 +28,7 @@
 
 ## Site：`ic.sim.site.v1`
 
-本地 `site.local.json`，勿提交。模板 `site.local.example.json` 不含凭据，只有路径。
+本地 `site.local.json`，勿提交。仓库模板 `config/site.example.json` 不含凭据，只有示例路径。
 
 - `ssh_target`：本地 SSH Host alias，认证、JumpHost、密钥均由用户 `~/.ssh/config` / agent 管理。
 - `expected_host` / `expected_user`：preflight 必须匹配。
@@ -36,20 +36,20 @@
 - `cadence_cshrc`、`spectre_bin`、`ocean_bin`：服务器路径；许可证变量由服务器受控 setup 提供。CLI 不传输或保存许可证内容。
 - `external_files`：`ALIAS -> 服务器绝对路径`。preflight 读取存在性和 SHA256，不下载外部模型内容。只检查声明的入口文件；递归 PDK 模型闭包仍需站点版本/目录清单。
 
-模板中 `ULVT_ND2D0` 是有意未满足的路径。正式 alias 可由集成人选用任意大写字母/数字/下划线名称，与 `external_sha256` 对应即可。它需提供原始 ULVT 定义，不能替成 LVT。CLI 不自动复制或创建模型。集成人的标准单元外部化脚本负责精确内容与 pin；模型入口/setup/Spectre hash 会在 preflight 和远端作业启动时分别核对。
+模板不预设外部模型。正式 alias 使用大写字母/数字/下划线名称，并与 `external_sha256` 对应。站点必须提供所选电路要求的精确模型，不能以相近型号替代。CLI 不自动复制或创建模型；模型入口/setup/Spectre hash 会在 preflight 和远端作业启动时分别核对。
 
 `spectre-default` 默认只有 `-64`；`nov6-aps2` 默认 `-64 +aps +mt=2 +lqtimeout 900 -maxw 5 -maxn 5`。显式 `args` 覆盖profile默认值。CLI保留 `+log/-raw/-format/-ahdllibdir` 的隔离输出路径并拒绝 `-param`，其余argv直接传给Spectre。输出格式可选 `psfxl/psfascii/psfbin`；本CLI收集归档，不承担通用格式解析。
 
 ## CLI
 
-在目录中以 Python 3.9+ 运行（只需标准库）：
+从仓库根目录以 Python 3.9+ 运行（只需标准库）：
 
 ```bash
-python3 ic_sim.py --site site.local.example.json plan --bundle fixtures/bundle.json
-python3 ic_sim.py --site site.local.json preflight --bundle /path/to/BUNDLE.json
-python3 ic_sim.py --site site.local.json run --bundle /path/to/BUNDLE.json --execute --raw --results ./runs
-python3 ic_sim.py --site site.local.json status --receipt ./runs/RUN_ID/run.json
-python3 ic_sim.py --site site.local.json collect --receipt ./runs/RUN_ID/run.json --raw
+python3 tools/workbench/ic_sim.py --site config/site.example.json plan --bundle tools/sim/fixtures/bundle.json
+python3 tools/workbench/ic_sim.py --site /absolute/site.local.json preflight --bundle /path/to/BUNDLE.json
+python3 tools/workbench/ic_sim.py --site /absolute/site.local.json run --bundle /path/to/BUNDLE.json --execute --raw --results /absolute/runs
+python3 tools/workbench/ic_sim.py --site /absolute/site.local.json status --receipt /absolute/runs/RUN_ID/run.json
+python3 tools/workbench/ic_sim.py --site /absolute/site.local.json collect --receipt /absolute/runs/RUN_ID/run.json --raw
 ```
 
 `plan` 不联网、不创建仿真任务。`run` 未给 `--execute` 时也只做 plan。真正执行前检查 clean commit、文件跟踪、源 hash、身份、依赖 hash；冻结提交与配置 hash，使用唯一目录和永久 `launch_once`，不调用共享 CIW，不自动重试提交。默认等待 3600 秒后进入 reconcile；可用 `--wait-seconds` 控制本地等待，超时不杀服务器任务。服务器不需要 Python3。

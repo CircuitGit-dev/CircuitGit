@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 import sys
-from .service import Failure, SCHEMAS, Service, canonical, load_config, tools
+from .service import Failure, SCHEMAS, Service, canonical, load_config, tools, check
 
 
 def emit(data, as_json, operation):
@@ -19,12 +19,19 @@ def emit(data, as_json, operation):
 
 
 def main(argv=None):
+    from .library import call as library_call
+    from .library_contracts import tools as library_tools
     p = argparse.ArgumentParser(description='IC Workbench: controlled gateway CLI / MCP / local AI bridge')
     p.add_argument('--config', default=os.environ.get('IC_WORKBENCH_CONFIG'))
     p.add_argument('--json', action='store_true')
     sub = p.add_subparsers(dest='command', required=True)
     sub.add_parser('schema', help='Print supported tool schemas without connecting')
     sub.add_parser('mcp', help='Start MCP stdio server (stdout is protocol only)')
+    for command in ('library-read', 'library-execute'):
+        library = sub.add_parser(command, help='Finite library operation; no simulator or Virtuoso')
+        library.add_argument('--operation', required=True)
+        library.add_argument('--arguments', required=True, help='Path to an exact JSON object of operation arguments')
+        if command == 'library-execute': library.add_argument('--idempotency-key', required=True)
     sub.add_parser('doctor', help='Check gateway and normal Codex account status; no turn')
     serve = sub.add_parser('serve-ai', help='Start isolated loopback AI host; leaves existing gateway intact')
     serve.add_argument('--port', type=int, default=8767)
@@ -40,8 +47,16 @@ def main(argv=None):
     a = p.parse_args(argv)
     try:
         if a.command == 'schema':
-            emit({'tools': tools()}, a.json, 'schema'); return 0
+            config = load_config(a.config) if a.config else {}
+            emit({'tools': tools() + library_tools(config)}, a.json, 'schema'); return 0
         service = Service(load_config(a.config))
+        if a.command in ('library-read', 'library-execute'):
+            raw = Path(a.arguments).read_bytes()
+            check(len(raw) <= 2 * 1024 * 1024, 'Library arguments exceed 2 MiB')
+            payload = {'operation': a.operation, 'arguments': json.loads(raw)}
+            if a.command == 'library-execute': payload['idempotency_key'] = a.idempotency_key
+            result = library_call(service, 'ic_' + a.command.replace('-', '_'), payload)
+            emit(result, a.json, a.command); return 75 if result.get('state') in ('uncertain', 'unknown', 'running') else 0
         if a.command == 'mcp':
             from .mcp import run
             return run(service)

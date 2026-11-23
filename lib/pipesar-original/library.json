@@ -1,53 +1,107 @@
 {
-  "schema": "circuitgit.library.v1",
-  "id": "pipesar-original",
-  "name": "Original 9-bit SAR library",
-  "description": "Original SAR, bootstrap, comparator, CDAC and logic snapshot; separate from later adapted variants.",
   "cells": [
     {
-      "id": "L3_9bit_SAR_2",
-      "name": "L3_9bit_SAR_2",
       "description": "Preserved native schematic; external device models are not included.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L3_9bit_SAR_2",
-      "readme": "lib/pipesar-original/L3_9bit_SAR_2/README.md",
+      "id": "L3_9bit_SAR_2",
+      "kind": "circuit",
+      "name": "L3_9bit_SAR_2",
       "project_id": null,
+      "readme": "lib/pipesar-original/L3_9bit_SAR_2/README.md",
       "requires_external_models": true,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L5_9bit_Bootstrap.scs": "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/L5_9bit_Bootstrap.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L5_9bit_Comparator_LN.scs": "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/L5_9bit_Comparator_LN.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L5_9bit_RSW_CDAC.scs": "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/L5_9bit_RSW_CDAC.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L5_9bit_SAR_Logic_1.scs": "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L5_9bit_SAR_Logic_1.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L6_9bit_REF_Logic.scs": "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L6_9bit_RSW.scs": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/L6_9bit_RSW.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L6_SR_latch_1.scs": "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/L6_SR_latch_1.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L5_9bit_Bootstrap.scs": "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/view-L5_9bit_Bootstrap.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L5_9bit_Comparator_LN.scs": "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/view-L5_9bit_Comparator_LN.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L5_9bit_RSW_CDAC.scs": "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/view-L5_9bit_RSW_CDAC.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L5_9bit_SAR_Logic_1.scs": "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/view-L5_9bit_SAR_Logic_1.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L6_9bit_REF_Logic.scs": "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/view-L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L6_9bit_RSW.scs": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/view-L6_9bit_RSW.scs",
+            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L6_SR_latch_1.scs": "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/view-L6_SR_latch_1.scs",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/L6_9bit_RSW.scs": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/L6_9bit_RSW.scs",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L6_9bit_REF_Logic.scs": "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L6_SR_latch_1.scs": "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/L6_SR_latch_1.scs",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L3_9bit_SAR_2.scs",
-          "level": "L3_9bit_SAR_2",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L3_9bit_SAR_2.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L5_9bit_Bootstrap.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L5_9bit_Comparator_LN.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L5_9bit_RSW_CDAC.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L5_9bit_SAR_Logic_1.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L6_9bit_REF_Logic.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L6_9bit_RSW.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/L6_SR_latch_1.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L3_9bit_SAR_2.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L5_9bit_Bootstrap.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L5_9bit_Comparator_LN.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L5_9bit_RSW_CDAC.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L5_9bit_SAR_Logic_1.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L6_9bit_REF_Logic.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L6_9bit_RSW.scs",
-            "lib/pipesar-original/L3_9bit_SAR_2/schematic/original-sar/view-L6_SR_latch_1.scs"
-          ]
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/L5_9bit_Bootstrap.scs",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/view-L5_9bit_Bootstrap.scs",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/L5_9bit_Comparator_LN.scs",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/view-L5_9bit_Comparator_LN.scs",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/L5_9bit_RSW_CDAC.scs",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/view-L5_9bit_RSW_CDAC.scs",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L5_9bit_SAR_Logic_1.scs",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/view-L5_9bit_SAR_Logic_1.scs",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/view-L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/L6_9bit_RSW.scs",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/view-L6_9bit_RSW.scs",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/L6_SR_latch_1.scs",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/view-L6_SR_latch_1.scs"
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L3_9bit_SAR_2"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L3_9bit_SAR_2/README.md",
           "files": [
             "lib/pipesar-original/L3_9bit_SAR_2/README.md",
@@ -58,40 +112,49 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L5_9bit_Bootstrap",
-      "name": "L5_9bit_Bootstrap",
       "description": "Preserved native schematic; external device models are not included.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L5_9bit_Bootstrap",
-      "readme": "lib/pipesar-original/L5_9bit_Bootstrap/README.md",
+      "id": "L5_9bit_Bootstrap",
+      "kind": "circuit",
+      "name": "L5_9bit_Bootstrap",
       "project_id": null,
+      "readme": "lib/pipesar-original/L5_9bit_Bootstrap/README.md",
       "requires_external_models": true,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/view-L5_9bit_Bootstrap.scs",
-          "level": "L5_9bit_Bootstrap",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/L5_9bit_Bootstrap.scs",
-            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L5_9bit_Bootstrap/schematic/original-sar/view-L5_9bit_Bootstrap.scs"
-          ]
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L5_9bit_Bootstrap"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L5_9bit_Bootstrap/README.md",
           "files": [
             "lib/pipesar-original/L5_9bit_Bootstrap/README.md",
@@ -102,40 +165,49 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L5_9bit_Comparator_LN",
-      "name": "L5_9bit_Comparator_LN",
       "description": "Preserved native schematic; external device models are not included.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L5_9bit_Comparator_LN",
-      "readme": "lib/pipesar-original/L5_9bit_Comparator_LN/README.md",
+      "id": "L5_9bit_Comparator_LN",
+      "kind": "circuit",
+      "name": "L5_9bit_Comparator_LN",
       "project_id": null,
+      "readme": "lib/pipesar-original/L5_9bit_Comparator_LN/README.md",
       "requires_external_models": true,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/view-L5_9bit_Comparator_LN.scs",
-          "level": "L5_9bit_Comparator_LN",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/L5_9bit_Comparator_LN.scs",
-            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L5_9bit_Comparator_LN/schematic/original-sar/view-L5_9bit_Comparator_LN.scs"
-          ]
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L5_9bit_Comparator_LN"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L5_9bit_Comparator_LN/README.md",
           "files": [
             "lib/pipesar-original/L5_9bit_Comparator_LN/README.md",
@@ -146,42 +218,58 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L5_9bit_RSW_CDAC",
-      "name": "L5_9bit_RSW_CDAC",
       "description": "Preserved native schematic; external device models are not included.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L5_9bit_RSW_CDAC",
-      "readme": "lib/pipesar-original/L5_9bit_RSW_CDAC/README.md",
+      "id": "L5_9bit_RSW_CDAC",
+      "kind": "circuit",
+      "name": "L5_9bit_RSW_CDAC",
       "project_id": null,
+      "readme": "lib/pipesar-original/L5_9bit_RSW_CDAC/README.md",
       "requires_external_models": true,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/L6_9bit_RSW.scs": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/L6_9bit_RSW.scs",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/view-L6_9bit_RSW.scs": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/view-L6_9bit_RSW.scs",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/view-L5_9bit_RSW_CDAC.scs",
-          "level": "L5_9bit_RSW_CDAC",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/L5_9bit_RSW_CDAC.scs",
-            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/L6_9bit_RSW.scs",
-            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/view-L5_9bit_RSW_CDAC.scs",
-            "lib/pipesar-original/L5_9bit_RSW_CDAC/schematic/original-sar/view-L6_9bit_RSW.scs"
-          ]
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/L6_9bit_RSW.scs",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/view-L6_9bit_RSW.scs"
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L5_9bit_RSW_CDAC"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L5_9bit_RSW_CDAC/README.md",
           "files": [
             "lib/pipesar-original/L5_9bit_RSW_CDAC/README.md",
@@ -192,44 +280,67 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L5_9bit_SAR_Logic_1",
-      "name": "L5_9bit_SAR_Logic_1",
       "description": "Preserved native schematic; external device models are not included.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L5_9bit_SAR_Logic_1",
-      "readme": "lib/pipesar-original/L5_9bit_SAR_Logic_1/README.md",
+      "id": "L5_9bit_SAR_Logic_1",
+      "kind": "circuit",
+      "name": "L5_9bit_SAR_Logic_1",
       "project_id": null,
+      "readme": "lib/pipesar-original/L5_9bit_SAR_Logic_1/README.md",
       "requires_external_models": true,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L6_9bit_REF_Logic.scs": "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L6_SR_latch_1.scs": "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/L6_SR_latch_1.scs",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/view-L6_9bit_REF_Logic.scs": "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/view-L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/view-L6_SR_latch_1.scs": "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/view-L6_SR_latch_1.scs",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/view-L5_9bit_SAR_Logic_1.scs",
-          "level": "L5_9bit_SAR_Logic_1",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L5_9bit_SAR_Logic_1.scs",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L6_9bit_REF_Logic.scs",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/L6_SR_latch_1.scs",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/view-L5_9bit_SAR_Logic_1.scs",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/view-L6_9bit_REF_Logic.scs",
-            "lib/pipesar-original/L5_9bit_SAR_Logic_1/schematic/original-sar/view-L6_SR_latch_1.scs"
-          ]
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/view-L6_9bit_REF_Logic.scs",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/L6_SR_latch_1.scs",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/view-L6_SR_latch_1.scs"
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L5_9bit_SAR_Logic_1"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L5_9bit_SAR_Logic_1/README.md",
           "files": [
             "lib/pipesar-original/L5_9bit_SAR_Logic_1/README.md",
@@ -240,40 +351,49 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L6_9bit_REF_Logic",
-      "name": "L6_9bit_REF_Logic",
       "description": "Preserved native schematic; external device models are not included.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L6_9bit_REF_Logic",
-      "readme": "lib/pipesar-original/L6_9bit_REF_Logic/README.md",
+      "id": "L6_9bit_REF_Logic",
+      "kind": "circuit",
+      "name": "L6_9bit_REF_Logic",
       "project_id": null,
+      "readme": "lib/pipesar-original/L6_9bit_REF_Logic/README.md",
       "requires_external_models": true,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/view-L6_9bit_REF_Logic.scs",
-          "level": "L6_9bit_REF_Logic",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/L6_9bit_REF_Logic.scs",
-            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L6_9bit_REF_Logic/schematic/original-sar/view-L6_9bit_REF_Logic.scs"
-          ]
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L6_9bit_REF_Logic"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L6_9bit_REF_Logic/README.md",
           "files": [
             "lib/pipesar-original/L6_9bit_REF_Logic/README.md",
@@ -284,40 +404,49 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L6_9bit_RSW",
-      "name": "L6_9bit_RSW",
       "description": "Preserved native schematic; external device models are not included.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L6_9bit_RSW",
-      "readme": "lib/pipesar-original/L6_9bit_RSW/README.md",
+      "id": "L6_9bit_RSW",
+      "kind": "circuit",
+      "name": "L6_9bit_RSW",
       "project_id": null,
+      "readme": "lib/pipesar-original/L6_9bit_RSW/README.md",
       "requires_external_models": true,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/view-L6_9bit_RSW.scs",
-          "level": "L6_9bit_RSW",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/L6_9bit_RSW.scs",
-            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/view-L6_9bit_RSW.scs"
-          ]
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L6_9bit_RSW"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L6_9bit_RSW/README.md",
           "files": [
             "lib/pipesar-original/L6_9bit_RSW/README.md",
@@ -328,40 +457,49 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L6_SR_latch_1",
-      "name": "L6_SR_latch_1",
       "description": "Preserved native schematic; external device models are not included.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L6_SR_latch_1",
-      "readme": "lib/pipesar-original/L6_SR_latch_1/README.md",
+      "id": "L6_SR_latch_1",
+      "kind": "circuit",
+      "name": "L6_SR_latch_1",
       "project_id": null,
+      "readme": "lib/pipesar-original/L6_SR_latch_1/README.md",
       "requires_external_models": true,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/view-L6_SR_latch_1.scs",
-          "level": "L6_SR_latch_1",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/L6_SR_latch_1.scs",
-            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L6_SR_latch_1/schematic/original-sar/view-L6_SR_latch_1.scs"
-          ]
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L6_SR_latch_1"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L6_SR_latch_1/README.md",
           "files": [
             "lib/pipesar-original/L6_SR_latch_1/README.md",
@@ -372,42 +510,58 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L7_9bit_CDAC",
-      "name": "L7_9bit_CDAC",
       "description": "Preserved native schematic using simulator primitives; no replay configuration supplied.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L7_9bit_CDAC",
-      "readme": "lib/pipesar-original/L7_9bit_CDAC/README.md",
+      "id": "L7_9bit_CDAC",
+      "kind": "circuit",
+      "name": "L7_9bit_CDAC",
       "project_id": null,
+      "readme": "lib/pipesar-original/L7_9bit_CDAC/README.md",
       "requires_external_models": false,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/L8_9bit_CDAC_UNIT.scs": "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/L8_9bit_CDAC_UNIT.scs",
+            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/view-L8_9bit_CDAC_UNIT.scs": "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/view-L8_9bit_CDAC_UNIT.scs",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/view-L7_9bit_CDAC.scs",
-          "level": "L7_9bit_CDAC",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/L7_9bit_CDAC.scs",
-            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/L8_9bit_CDAC_UNIT.scs",
-            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/view-L7_9bit_CDAC.scs",
-            "lib/pipesar-original/L7_9bit_CDAC/schematic/original-sar/view-L8_9bit_CDAC_UNIT.scs"
-          ]
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/L8_9bit_CDAC_UNIT.scs",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/view-L8_9bit_CDAC_UNIT.scs"
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L7_9bit_CDAC"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L7_9bit_CDAC/README.md",
           "files": [
             "lib/pipesar-original/L7_9bit_CDAC/README.md",
@@ -418,40 +572,49 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     },
     {
-      "id": "L8_9bit_CDAC_UNIT",
-      "name": "L8_9bit_CDAC_UNIT",
       "description": "Preserved native schematic using simulator primitives; no replay configuration supplied.",
-      "kind": "circuit",
       "directory": "lib/pipesar-original/L8_9bit_CDAC_UNIT",
-      "readme": "lib/pipesar-original/L8_9bit_CDAC_UNIT/README.md",
+      "id": "L8_9bit_CDAC_UNIT",
+      "kind": "circuit",
+      "name": "L8_9bit_CDAC_UNIT",
       "project_id": null,
+      "readme": "lib/pipesar-original/L8_9bit_CDAC_UNIT/README.md",
       "requires_external_models": false,
       "views": [
         {
-          "id": "schematic",
-          "label": "Native schematic",
-          "kind": "rnl",
+          "aliases": {
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/eda-symbol.rnl": "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-basic.rnl": "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-semiconductors.rnl": "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-spectre.rnl": "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl"
+          },
           "entry": "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/view-L8_9bit_CDAC_UNIT.scs",
-          "level": "L8_9bit_CDAC_UNIT",
           "files": [
+            "lib/_shared/rnl/636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47/rnl-std-spectre.rnl",
+            "lib/_shared/rnl/99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a/rnl-std-basic.rnl",
+            "lib/_shared/rnl/a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64/eda-symbol.rnl",
+            "lib/_shared/rnl/e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93/rnl-std-semiconductors.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
             "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/L8_9bit_CDAC_UNIT.scs",
-            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/eda-style.rnl",
-            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/eda-symbol.rnl",
-            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-basic.rnl",
-            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-semiconductors.rnl",
-            "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/rnl-std-spectre.rnl",
             "lib/pipesar-original/L8_9bit_CDAC_UNIT/schematic/original-sar/view-L8_9bit_CDAC_UNIT.scs"
-          ]
+          ],
+          "id": "schematic",
+          "kind": "rnl",
+          "label": "Native schematic",
+          "level": "L8_9bit_CDAC_UNIT"
         },
         {
-          "id": "docs",
-          "label": "Evidence and dependencies",
-          "kind": "markdown",
           "entry": "lib/pipesar-original/L8_9bit_CDAC_UNIT/README.md",
           "files": [
             "lib/pipesar-original/L8_9bit_CDAC_UNIT/README.md",
@@ -462,9 +625,16 @@
             "lib/THIRD_PARTY_NOTICES.md",
             "lib/licenses/CC0-1.0.txt",
             "lib/validation/native-render.json"
-          ]
+          ],
+          "id": "docs",
+          "kind": "markdown",
+          "label": "Evidence and dependencies"
         }
       ]
     }
-  ]
+  ],
+  "description": "Original SAR, bootstrap, comparator, CDAC and logic snapshot; separate from later adapted variants.",
+  "id": "pipesar-original",
+  "name": "Original 9-bit SAR library",
+  "schema": "circuitgit.library.v1"
 }

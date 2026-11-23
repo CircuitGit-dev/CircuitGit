@@ -26,7 +26,8 @@ GET_ROUTES = {'catalog', 'context', 'history', 'events', 'models', 'sessions',
               'image', 'development', 'discovery', 'connection', 'auth/status'}
 POST_ROUTES = {'sessions', 'sessions/rename', 'sessions/delete', 'connect',
                'resume', 'turn', 'approval', 'interrupt', 'doctor', 'auth/login', 'development/settings-request'}
-LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/review-request'}
+LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/review-request', '/api/library/execute'}
+SIMULATION_ROUTE = '/api/simulation/execute'
 
 def node_config(config_path=None, gateway_url='http://127.0.0.1:8766', state_dir=None, codex_bin=None):
     config = load_config(config_path) if config_path else {'gateway_url': gateway_url}
@@ -95,6 +96,7 @@ class Node:
         self.login = None
         self.development = None
         self.library = None
+        self.simulation = None
 
     def info(self):
         return {'schema': 'circuitgit.remote-node.v1', 'node_id': self.node_id,
@@ -104,6 +106,7 @@ class Node:
                                  'developer': False, 'hosted_subscription_oauth': False,
                                  'local_developer_settings': self.development is not None,
                                  'library_workflow': self.library is not None,
+                                 'simulation_workflow': self.simulation is not None,
                                  'local_login': self.login is not None and self.public_origin.startswith('http://127.0.0.1:') and not self.prefix},
                 'automatic_model_start': False,
                 'library_activity': self.library.activity() if self.library else {'running_actions': 0}}
@@ -269,7 +272,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             self.guard(False)
             path, _ = self.route()
-            if path != '/node/info' and path not in LIBRARY_ROUTES and not (path.startswith('/api/ai/') and path[8:] in GET_ROUTES | POST_ROUTES):
+            if path != '/node/info' and path not in LIBRARY_ROUTES and path != SIMULATION_ROUTE and not (path.startswith('/api/ai/') and path[8:] in GET_ROUTES | POST_ROUTES):
                 raise ValueError('Unknown preflight route')
             if self.headers.get('Access-Control-Request-Method') not in ('GET', 'POST'):
                 raise PermissionError('Method is not allowed')
@@ -336,10 +339,28 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200, {'ok': True, 'data': data}); return
             self.guard()
             path, qs = self.route()
+            if path == SIMULATION_ROUTE:
+                token, browser_origin = self.browser_identity()
+                if not self.node.pairing.accepts(token, browser_origin):
+                    raise PermissionError('Simulation requires a confirmed local browser connection')
+                if self.node.simulation is None:
+                    raise PermissionError('Configure the local simulation scope before submitting')
+                body = self.body(65536)
+                if (qs or set(body) - {'operation', 'arguments', 'idempotency_key'}
+                        or body.get('operation') not in ('submit', 'status', 'collect', 'watch', 'unwatch', 'resources_scan', 'runtime')
+                        or not isinstance(body.get('arguments'), dict)
+                        or body.get('idempotency_key') is not None and not isinstance(body['idempotency_key'], str)):
+                    raise ValueError('Finite simulation operation, arguments and optional stable key required')
+                data = self.node.simulation(body['operation'], body['arguments'], body.get('idempotency_key'), caller_id='paired-helper')
+                self.send(200, {'ok': True, 'data': data}); return
             if path in LIBRARY_ROUTES:
                 if qs: raise ValueError('Library operations do not accept query fields')
                 workflow = self.library_guard();body = self.body(2*1024*1024)
-                if path.endswith('/review-request'):
+                if path.endswith('/execute'):
+                    if set(body) != {'operation','args','idempotency_key'} or not isinstance(body['operation'], str) or not isinstance(body['args'], dict) or not isinstance(body['idempotency_key'], str):
+                        raise ValueError('Finite operation, arguments and stable idempotency key required')
+                    data = workflow.execute(body['operation'], body['args'], body['idempotency_key'], *self.browser_identity())
+                elif path.endswith('/review-request'):
                     if set(body) != {'review_id'} or not isinstance(body['review_id'], str): raise ValueError('Exact review identity required')
                     data = workflow.request(body['review_id'], *self.browser_identity())
                 else:

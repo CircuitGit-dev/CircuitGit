@@ -11,6 +11,8 @@ from .elicitation import ReviewSession, TOOL_NAME, same_id, tools as review_tool
 from .service import Failure, canonical, tools as core_tools
 from .view_contracts import SCHEMAS as VIEW_SCHEMAS, tools as view_tools
 from .views import ViewService
+from .library import call as library_call
+from .library_contracts import SCHEMAS as LIBRARY_SCHEMAS, tools as library_tools
 
 PROTOCOLS = ('2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05')
 MAX_REQUEST = 2 * 1024 * 1024
@@ -136,14 +138,15 @@ def run(service, stdin=None, stdout=None, views=None, lifecycle=None, *, review_
                     'Use ic_request_review for host-human review of a frozen request. Only a matching host form '
                     'response may resolve it. Never supply approval flags or execute CLI approval commands as a model. '
                     'Cancelled, unsupported or timed-out review remains pending; do not automatically retry. '
-                    'UI-resource delivery does not prove visible native mounting.'}})
+                    'Configured ic_library_execute directly edits the owned Git library only when library_access=direct; '
+                    'it does not use simulation approvals or Virtuoso. UI-resource delivery does not prove visible native mounting.'}})
             elif method == 'ping':
                 send({'id': rid, 'result': {}})
             elif not ready:
                 send({'id': rid, 'error': {'code': -32002, 'message': 'Initialize and initialized required'}})
             elif method == 'tools/list':
                 with contextlib.redirect_stdout(sys.stderr):
-                    listed = core_tools() + view_tools() + review_tools() + (lifecycle.tools() if lifecycle is not None else [])
+                    listed = core_tools() + view_tools() + review_tools() + library_tools(getattr(service, 'config', {})) + (lifecycle.tools() if lifecycle is not None else [])
                 send({'id': rid, 'result': {'tools': listed}})
             elif method == 'resources/list':
                 with contextlib.redirect_stdout(sys.stderr):
@@ -165,7 +168,9 @@ def run(service, stdin=None, stdout=None, views=None, lifecycle=None, *, review_
                     if not isinstance(name, str) or not name.startswith('ic_'):
                         raise Failure('invalid_input', 'Unknown tool')
                     with contextlib.redirect_stdout(sys.stderr):
-                        if lifecycle is not None and name in lifecycle.tool_names:
+                        if name in LIBRARY_SCHEMAS:
+                            result = library_call(service, name, args)
+                        elif lifecycle is not None and name in lifecycle.tool_names:
                             result = lifecycle.call(name, args)
                         else:
                             if lifecycle is not None:
