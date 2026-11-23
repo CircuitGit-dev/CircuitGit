@@ -1,4 +1,5 @@
 // phase2-interface.md HTTP v1. Same-origin only; never place SSH/GitHub credentials here.
+import {isSimulationApiPath,readSimulationJson} from '../../modules/simulation/http.js';
 export class ApiError extends Error{constructor(message,status=0,data={}){super(message);this.status=status;this.data=data;}}
 export class Gateway{
   constructor(){this.base='/api';this.token=null;}
@@ -9,7 +10,8 @@ export class Gateway{
       if(body!==undefined)headers['Content-Type']='application/json';
       if(this.token&&method!=='GET')headers['X-Workbench-Token']=this.token;
       const response=await fetch(this.base+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),credentials:'same-origin',cache:'no-store',signal:controller.signal});
-      let result;try{result=await response.json();}catch{throw new ApiError('网关返回非 JSON 数据。',response.status);}
+      let result;try{result=isSimulationApiPath(this.base+path)?await readSimulationJson(response):await response.json();}
+      catch(error){if(error.code==='response_size_limit')throw new ApiError(error.message,response.status,error.data);throw new ApiError('网关返回非 JSON 数据。',response.status);}
       if(!response.ok||result.ok===false)throw new ApiError(result.error?.message||result.message||`HTTP ${response.status}`,response.status,result.error||result);
       if(result.ok!==true)throw new ApiError('网关响应未符合 HTTP v1 契约。',response.status,result);
       return result.data;

@@ -1,5 +1,6 @@
 // Runtime reads are cached evidence. Only the explicit scan action asks for SSH resource checks.
 import {simulationReportView,appendSimulationReport} from './report.js';
+import {SIMULATION_RESPONSE_LIMIT} from './http.js';
 const COMMIT=/^[a-f0-9]{40}$/, PLAN=/^[a-f0-9]{64}$/, ID=/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}$/;
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 // JSON Schema maxLength counts Unicode code points, not UTF-16 code units.
@@ -68,8 +69,9 @@ export function normalizeRuntimeSnapshot(value,projectId){
     for(const key of Object.keys(acceptanceStates))requireValid(run.acceptance[key]===run.diagnostics.scientific_acceptance[key]);
     runs.add(run.run_id);
   }
-  // Keep the existing bounded browser budget until the transport byte limit is agreed.
-  requireValid(JSON.stringify(value).length<=1024*1024);
+  // Secondary bound for already-decoded data (including synthetic/MCP hosts).
+  // The HTTP adapter separately counts the original envelope's response bytes.
+  requireValid(new TextEncoder().encode(JSON.stringify(value)).byteLength<=SIMULATION_RESPONSE_LIMIT);
   return freeze(structuredClone(value));
 }
 

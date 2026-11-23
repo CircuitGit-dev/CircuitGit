@@ -10,7 +10,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(process.env.PLAYWRIGHT_MODULE).href:'playwright');
 const output=process.env.EVIDENCE_DIR;let browser,helper,fixture,helperExit;
-const errors=[],responses=[],allowed=new Map([['/library/versions.js','apps/web/library/versions.js'],['/library/versions.css','apps/web/library/versions.css'],['/library/model.js','apps/web/library/model.js'],['/remote/library-bridge.js','apps/web/remote/library-bridge.js'],['/remote/client.js','apps/web/remote/client.js']]);
+const errors=[],responses=[],allowed=new Map([['/library/versions.js','apps/web/library/versions.js'],['/library/versions.css','apps/web/library/versions.css'],['/library/model.js','apps/web/library/model.js'],['/remote/library-bridge.js','apps/web/remote/library-bridge.js'],['/remote/client.js','apps/web/remote/client.js'],['/modules/simulation/http.js','modules/simulation/http.js']]);
 const server=createServer((req,res)=>{const path=new URL(req.url,'http://fixture').pathname;if(path==='/'){res.setHeader('Content-Type','text/html;charset=utf-8');return res.end('<!doctype html><meta charset="utf-8"><main style="width:500px;height:860px"></main>');}const file=allowed.get(path);if(!file){res.writeHead(404);return res.end('Not found');}res.setHeader('Content-Type',file.endsWith('.css')?'text/css':'text/javascript');res.end(readFileSync(resolve(root,file)));});
 await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const origin='http://127.0.0.1:'+server.address().port;
 const python=String.raw`
