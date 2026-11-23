@@ -187,13 +187,47 @@ test('malformed, duplicate, over-limit or mismatched-project evidence fails clos
     value => {value.project_id = 'q';}, value => {value.runs[0].project_id = 'q';},
     value => {value.runs.push(structuredClone(value.runs[0]));},
     value => {value.runs[0].execution.state = 'healthy';}, value => {value.source = 'live';},
-    value => {value.single_site = false;}, value => {value.scanned_records = 201;},
+    value => {value.single_site = 'false';}, value => {value.scanned_records = 201;},
     value => {value.runs[0].source_commit = 'HEAD';}, value => {value.runs[0].run_id = '../run';},
     value => {delete value.runs[0].observation.observed_at;},
     value => {value.runs[0].specification.metrics[0].value = NaN;},
     value => {value.runs[0].data.raw_retained = 'yes';},
   ];
   for (const mutate of mutations) {const value = snapshot(); mutate(value); assert.throws(() => normalizeSupervisionSnapshot(value, 'p'));}
+});
+
+test('stored resource-pool targets preserve multiple hosts and library identity without implying reservation', () => {
+  const first = record(), second = {...record(), run_id: 'run_2', waveform_run_id: 'run_2'};
+  first.library_id = '_Example.Library'; first.cell_id = '0Cell-A';
+  first.execution_target = {mode: 'resource_pool', host_id: 'node-a', plan_id: HASH,
+    resource_observed_at: OBSERVED, resource_reservation: false};
+  second.execution_target = {...first.execution_target, host_id: 'node-b', plan_id: '2'.repeat(64)};
+  const value = snapshot('p', [first, second]); value.single_site = false;
+  const result = normalizeSupervisionSnapshot(value, 'p');
+  assert.equal(result.single_site, false);
+  assert.deepEqual(result.runs.map(run => run.execution_target.host_id), ['node-a', 'node-b']);
+  assert.equal(result.runs[0].library_id, '_Example.Library');
+  assert.equal(result.runs[0].cell_id, '0Cell-A');
+  assert.equal(result.runs[0].execution_target.resource_reservation, false);
+  assert.equal(result.runs[0].execution_target.resource_observed_at, OBSERVED);
+  assert.equal(result.read_at, READ);
+});
+
+test('resource target metadata rejects unsupported modes paths token changes and reservation claims', () => {
+  const valid = {mode: 'resource_pool', host_id: 'node-a', plan_id: HASH,
+    resource_observed_at: OBSERVED, resource_reservation: false};
+  for (const mutation of [target => {target.mode = 'automatic';}, target => {target.host_id = '/private/node';},
+    target => {target.plan_id = 'HEAD';}, target => {target.resource_observed_at = 'yesterday';},
+    target => {target.resource_reservation = true;}, target => {target.site = '/private/site.json';},
+    target => {delete target.plan_id;}]) {
+    const value = snapshot(); value.runs[0].execution_target = structuredClone(valid);
+    mutation(value.runs[0].execution_target);
+    assert.throws(() => normalizeSupervisionSnapshot(value, 'p'));
+  }
+  const value = snapshot();
+  value.runs[0].execution_target = {mode: 'fixed_site', host_id: null, plan_id: null,
+    resource_observed_at: null, resource_reservation: false};
+  assert.equal(normalizeSupervisionSnapshot(value, 'p').runs[0].execution_target.mode, 'fixed_site');
 });
 
 test('malformed response is an error and never enables waveform viewing', async () => {

@@ -39,19 +39,134 @@ def postprocess_config(spec):
 def command(script):
     import base64
     return '/bin/sh -c '+core.q('eval "$(printf %s '+base64.b64encode(script.encode()).decode()+' | /usr/bin/base64 -d)"')
+
+class ExecutionBindingError(ValueError):
+    """A local execution identity check failed; it says nothing about the solver."""
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code.replace('_', ' '))
+
+def json_snapshot(value):
+    return json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
+
+def record_digest(value):
+    return core.sha(json.dumps(value, sort_keys=True, allow_nan=False).encode())
+
+def validated_site(value):
+    """Reuse the original site loader's rules without writing a temporary site."""
+    if not isinstance(value, dict):
+        raise ExecutionBindingError('execution_site_invalid')
+    class Document:
+        def read_text(self):
+            return json.dumps(value, sort_keys=True, allow_nan=False)
+    try:
+        return copy.deepcopy(core.site_load(Document()))
+    except (ValueError, TypeError, AttributeError, KeyError):
+        raise ExecutionBindingError('execution_site_invalid') from None
+
+def validated_execution_context(value):
+    if value is None:
+        return None
+    if (not isinstance(value, dict) or set(value) - {'schema', 'plan_id', 'site', 'resource_selection'}
+            or not {'schema', 'plan_id', 'site'}.issubset(value)
+            or value.get('schema') != 'ic.execution.context.v1'
+            or not isinstance(value.get('plan_id'), str)
+            or not re.fullmatch('[a-f0-9]{64}', value['plan_id'])):
+        raise ExecutionBindingError('execution_context_invalid')
+    try:
+        frozen = json_snapshot(value)
+    except (TypeError, ValueError):
+        raise ExecutionBindingError('execution_context_invalid') from None
+    frozen['site'] = validated_site(frozen['site'])
+    selection = frozen.get('resource_selection')
+    if selection is not None and (not isinstance(selection, dict)
+            or not isinstance(selection.get('host_id'), str) or not selection['host_id']):
+        raise ExecutionBindingError('resource_selection_invalid')
+    return frozen
+
+def materialization_metadata(proof):
+    data = proof.get('materialization')
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise ValueError('invalid verified materialization')
+    metadata = {}
+    for field in ('library_id', 'cell_id'):
+        if field not in data:
+            continue
+        value = data[field]
+        if not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}', value):
+            raise ValueError('invalid materialization ' + field)
+        metadata[field] = value
+    return metadata
+
 class Record(dict):
     """Tracks only locally changed fields so polling cannot erase other receipts."""
     def __init__(self,data):super().__init__(data);self.baseline=copy.deepcopy(data)
 class Runner:
-    def __init__(self,root,site,frozen_root=None,signing_key=None):
-        self.root=Path(root).resolve();self.root.mkdir(parents=True,exist_ok=True);self.site=site;self.frozen_root=Path(frozen_root).resolve() if frozen_root else None;self.signing_key=signing_key
-    def prepare(self,bundle):
-        b,payload,proof=core.prepare(Path(bundle),self.site);sidecar=Path(bundle).parent/'materialization.json'
+    def __init__(self,root,site,frozen_root=None,signing_key=None,resource_recheck=None):
+        self.root=Path(root).resolve();self.root.mkdir(parents=True,exist_ok=True);self.site=copy.deepcopy(site);self.frozen_root=Path(frozen_root).resolve() if frozen_root else None;self.signing_key=signing_key;self.resource_recheck=resource_recheck
+    def prepare(self,bundle,site=None):
+        site=validated_site(self.site if site is None else site)
+        b,payload,proof=core.prepare(Path(bundle),site);sidecar=Path(bundle).parent/'materialization.json'
         if self.frozen_root and Path(bundle).resolve().is_relative_to(self.frozen_root):
             signed=json.loads(sidecar.read_text());data=signed['data'];actual=hmac.new(self.signing_key,json.dumps(data,sort_keys=True).encode(),hashlib.sha256).hexdigest()
             if not hmac.compare_digest(actual,signed['signature']) or data['bundle_sha256']!=filehash(bundle):raise ValueError('invalid gateway materialization signature')
             proof.update(source_commit=data['source_commit'],source_clean=True,materialization=data)
+        materialization_metadata(proof)
         return b,payload,proof
+    def execution_site(self,r):
+        if 'execution_site' not in r:
+            if any(name in r for name in ('execution_site_sha256','execution_context','execution_context_sha256')):
+                raise ExecutionBindingError('execution_site_missing')
+            site=validated_site(self.site)
+            if 'ssh_target' in r and r['ssh_target']!=site['ssh_target']:
+                raise ExecutionBindingError('legacy_execution_site_mismatch')
+            return site
+        site=validated_site(r['execution_site'])
+        if r.get('execution_site_sha256')!=record_digest(site):
+            raise ExecutionBindingError('execution_site_digest_mismatch')
+        if r.get('ssh_target')!=site['ssh_target'] or r.get('remote_directory')!=site['remote_runs_root']+'/'+r['run_id']:
+            raise ExecutionBindingError('execution_site_binding_mismatch')
+        if not {'execution_context','execution_context_sha256'}.issubset(r):
+            raise ExecutionBindingError('execution_context_missing')
+        context=r.get('execution_context')
+        if context is not None:
+            frozen=validated_execution_context(context)
+            if frozen['site']!=site or r.get('execution_context_sha256')!=record_digest(frozen):
+                raise ExecutionBindingError('execution_context_digest_mismatch')
+        elif r.get('execution_context_sha256') is not None:
+            raise ExecutionBindingError('execution_context_missing')
+        return site
+    def recheck_resources(self,r):
+        selection=(r.get('execution_context') or {}).get('resource_selection')
+        if selection is None:return
+        host=selection['host_id']
+        if not callable(self.resource_recheck):
+            r['prelaunch_resources']={'eligible':False,'host_id':host,'checked_at':stamp(),'error_code':'resource_recheck_missing'}
+            self.save(r)
+            raise ExecutionBindingError('resource_recheck_missing')
+        try:
+            evidence=json_snapshot(self.resource_recheck(copy.deepcopy(selection)))
+        except Exception:
+            r['prelaunch_resources']={'eligible':False,'host_id':host,'checked_at':stamp(),'error_code':'resource_recheck_failed'}
+            self.save(r)
+            raise ExecutionBindingError('resource_recheck_failed') from None
+        valid=not (not isinstance(evidence,dict) or evidence.get('eligible') is not True
+                or evidence.get('host_id')!=host or not isinstance(evidence.get('checked_at'),str)
+                or not evidence['checked_at'] or not isinstance(evidence.get('selection'),dict)
+                or evidence['selection'].get('host_id')!=host)
+        if valid:
+            try:
+                valid=datetime.fromisoformat(evidence['checked_at'].replace('Z','+00:00')).utcoffset() is not None
+            except ValueError:valid=False
+        if not valid:
+            r['prelaunch_resources']={'eligible':False,'host_id':host,'checked_at':stamp(),
+                'error_code':'resource_recheck_rejected','response':evidence}
+            self.save(r)
+            raise ExecutionBindingError('resource_recheck_rejected')
+        r['prelaunch_resources']=evidence
+        self.save(r)
     def path(self,rid):
         if not re.fullmatch(r'[A-Za-z0-9_-]+',rid):raise ValueError('invalid run id')
         return self.root/rid
@@ -84,65 +199,83 @@ class Runner:
         if not isinstance(entry,dict) or not re.fullmatch('[A-Za-z0-9_-]{1,180}',str(entry.get('run_id',''))):
             raise ValueError('Invalid saved submission mapping')
         return entry['run_id']
-    def plan(self,bundle,expected_commit=None):
-        b,payload,proof=self.prepare(Path(bundle));sim=core.simulator_config(b)
+    def plan(self,bundle,expected_commit=None,site=None):
+        b,payload,proof=self.prepare(Path(bundle),site=site);sim=core.simulator_config(b)
         if expected_commit and proof['source_commit']!=expected_commit:raise ValueError('source_commit conflict')
         if Path(b['entrypoint']).parent!=Path('netlist'):raise ValueError('entrypoint must be within netlist/')
-        return {'schema':'ic.sim.plan.v2',**{k:b.get(k) for k in ['design_id','design_origin','library','top_cell','testbench','test','test_id','history','configuration','historical_reference']},'postprocess':postprocess_config(b.get('postprocess')),'entrypoint':b['entrypoint'],'simulator':sim,'provenance':proof,'external_sha256':core.external_pins(b),'reviewed_for_distribution':bool(b.get('reviewed_for_distribution')),'blockers':[s for c,s in [(not proof['source_clean'],'dirty_source'),(not proof['source_commit'],'uncommitted_source'),(not b.get('reviewed_for_distribution'),'review_required')] if c]}
-    def preflight(self,bundle,expected_commit=None):
-        plan=self.plan(bundle,expected_commit);b,_,proof=self.prepare(Path(bundle));p=core.doctor(self.site)
+        return {'schema':'ic.sim.plan.v2',**{k:b.get(k) for k in ['design_id','design_origin','library','top_cell','testbench','test','test_id','history','configuration','historical_reference']},**materialization_metadata(proof),'postprocess':postprocess_config(b.get('postprocess')),'entrypoint':b['entrypoint'],'simulator':sim,'provenance':proof,'external_sha256':core.external_pins(b),'reviewed_for_distribution':bool(b.get('reviewed_for_distribution')),'blockers':[s for c,s in [(not proof['source_clean'],'dirty_source'),(not proof['source_commit'],'uncommitted_source'),(not b.get('reviewed_for_distribution'),'review_required')] if c]}
+    def preflight(self,bundle,expected_commit=None,site=None):
+        site=validated_site(self.site if site is None else site)
+        plan=self.plan(bundle,expected_commit,site=site);b,_,proof=self.prepare(Path(bundle),site=site);p=core.doctor(site)
         if p['exit_code'] or not p['identity_ok'] or not p['all_references_readable'] or not p['all_tools_available']:raise ValueError('remote preflight failed: '+json.dumps(p))
-        pins=core.check_external(b,self.site,p)
-        if not core.required_aliases(proof,self.site).issubset(pins):raise ValueError('missing external hash pins')
+        pins=core.check_external(b,site,p)
+        if not core.required_aliases(proof,site).issubset(pins):raise ValueError('missing external hash pins')
         return {'plan':plan,'probe':p}
-    def reserve(self,bundle,key,expected_commit,project_id=None,configuration=None):
+    def reserve(self,bundle,key,expected_commit,project_id=None,configuration=None,execution_context=None):
         if not isinstance(key,str) or not 8<=len(key)<=160:raise ValueError('idempotency_key must contain 8..160 characters')
-        bundle=Path(bundle).resolve();fingerprint=core.sha(json.dumps([str(bundle),expected_commit,project_id,configuration],sort_keys=True).encode())
+        context=validated_execution_context(execution_context)
+        bundle=Path(bundle).resolve();identity=[str(bundle),expected_commit,project_id,configuration]
+        if context is not None:identity.append(context)
+        fingerprint=record_digest(identity)
         with locked(self.root/'keys.lock'):
             index_path=self.root/'keys.json';keys=json.loads(index_path.read_text()) if index_path.exists() else {}
             if key in keys:
                 old=keys[key]
                 if old['fingerprint']!=fingerprint:raise ValueError('idempotency_key already binds different input')
                 return self.read(old['run_id']),False
-            plan=self.plan(bundle,expected_commit)
+            site=validated_site(self.site if context is None else context['site'])
+            plan=self.plan(bundle,expected_commit,site=site)
             if plan['blockers']:raise ValueError('submission blocked: '+','.join(plan['blockers']))
-            b,_,proof=self.prepare(bundle);root=Path(proof['source_root'])
+            b,_,proof=self.prepare(bundle,site=site);root=Path(proof['source_root'])
+            if proof!=plan['provenance']:raise ValueError('sources changed during reservation')
+            if 'materialization' in proof:
+                data=proof['materialization']
+                for field,expected in (('source_commit',expected_commit),('project_id',project_id),('configuration',configuration)):
+                    if expected is not None and data.get(field)!=expected:raise ValueError('materialization identity conflict: '+field)
             if 'materialization' not in proof:
                 for p in [bundle]+[Path(f['source']) for f in proof['files']]:
                     if not p.is_relative_to(root) or core.git(root,'ls-files','--error-unmatch','--',str(p.relative_to(root))) is None:raise ValueError('bundle sources must be tracked')
             rid=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+expected_commit[:10]+'-'+uuid.uuid4().hex[:8]
-            r={'schema':'ic.sim.run.v2','run_id':rid,'job_id':rid,'state':'queued','created_at':stamp(),'source_commit':expected_commit,'project_id':project_id,'configuration_id':configuration,'bundle_path':str(bundle),'ssh_target':self.site['ssh_target'],'remote_directory':self.site['remote_runs_root']+'/'+rid,'plan':plan,'collection':None,'publication':None,'launch_attempts':0}
+            r={'schema':'ic.sim.run.v2','run_id':rid,'job_id':rid,'state':'queued','created_at':stamp(),'source_commit':expected_commit,'project_id':project_id,'configuration_id':configuration,'bundle_path':str(bundle),'ssh_target':site['ssh_target'],'remote_directory':site['remote_runs_root']+'/'+rid,'execution_site':copy.deepcopy(site),'execution_site_sha256':record_digest(site),'execution_context':copy.deepcopy(context),'execution_context_sha256':record_digest(context) if context is not None else None,**materialization_metadata(proof),'plan':plan,'collection':None,'publication':None,'launch_attempts':0}
             self.save(r);keys[key]={'run_id':rid,'fingerprint':fingerprint};atomic(index_path,keys);return r,True
     def dispatch(self,rid):
         with locked(self.path(rid)/'dispatch.lock'):
             r=self.read(rid)
             if r['state']!='queued':return r
             try:
+                site=self.execution_site(r)
+                self.recheck_resources(r)
+                site=self.execution_site(r)
                 r['state']='preflight';self.save(r)
-                check=self.preflight(r['bundle_path'],r['source_commit']);r['runtime_preflight']=check['probe'];self.save(r)
-                b,payload,proof=self.prepare(Path(r['bundle_path']))
+                check=self.preflight(r['bundle_path'],r['source_commit'],site=site);r['runtime_preflight']=check['probe'];self.save(r)
+                b,payload,proof=self.prepare(Path(r['bundle_path']),site=site)
                 if proof!=r['plan']['provenance']:raise ValueError('sources changed after reservation')
-                payload.update(core.scripts(self.site,b['entrypoint'],r['plan']['simulator']))
+                payload.update(core.scripts(site,b['entrypoint'],r['plan']['simulator']))
                 # Retain exact identity/config/model hashes on the server, no credentials.
                 payload['run.json']=json.dumps(r,indent=2).encode()
-                pins=[(h,self.site['external_files'][k]) for k,h in r['plan']['external_sha256'].items()]
-                pins += [(check['probe']['dependency_sha256'][k],self.site[name]) for k,name in [('cadence_setup','cadence_cshrc'),('spectre','spectre_bin')]]
+                pins=[(h,site['external_files'][k]) for k,h in r['plan']['external_sha256'].items()]
+                pins += [(check['probe']['dependency_sha256'][k],site[name]) for k,name in [('cadence_setup','cadence_cshrc'),('spectre','spectre_bin')]]
                 payload['external.sha256']=''.join(h+'  '+p+'\n' for h,p in pins).encode()
                 payload['payload.sha256']=''.join(core.sha(v)+'  '+k+'\n' for k,v in sorted(payload.items())).encode()
                 r['state']='staging_outcome_unknown';self.save(r)
-                p=core.ssh(self.site,core.stage_command(self.site,r['remote_directory']),timeout=60,data=core.archive(payload))
+                p=core.ssh(site,core.stage_command(site,r['remote_directory']),timeout=60,data=core.archive(payload))
                 if p.returncode:raise ValueError('stage exit '+str(p.returncode)+': '+p.stderr.decode(errors='replace'))
                 r['state']='launch_outcome_unknown';r['launch_attempts']=1;self.save(r)
-                p=core.ssh(self.site,core.launch_command(r['remote_directory']))
+                p=core.ssh(site,core.launch_command(r['remote_directory']))
                 if p.returncode:raise ValueError('launch exit '+str(p.returncode)+': '+p.stderr.decode(errors='replace'))
                 r['state']='submitted';r['submitted_at']=stamp();self.save(r)
             except Exception as e:
-                if r['state']=='preflight':r['state']='preflight_failed'
+                if r['state']=='preflight' or isinstance(e,ExecutionBindingError) and e.code.startswith('resource_recheck_'):
+                    r['state']='preflight_failed'
+                if isinstance(e,ExecutionBindingError):r['error_code']=e.code
                 r['error']=str(e);self.save(r)
             return r
     def status(self,rid):
         with locked(self.path(rid)/'state.lock'):
             r=self.read(rid)
+            try:site=self.execution_site(r)
+            except ExecutionBindingError as e:
+                r['status_error']=str(e);r['status_error_code']=e.code;self.save(r);return r
             if r['state'] in ['queued','preflight','preflight_failed']:return r
             remote=r['remote_directory']
             script=f'''cd {core.q(remote)} || exit 70
@@ -153,7 +286,7 @@ if test -f supervisor.pid; then p=$(cat supervisor.pid); kill -0 "$p" 2>/dev/nul
 test ! -f psf/spectre.out || tail -n 16 psf/spectre.out
 '''
             try:
-                p=core.ssh(self.site,script);txt=p.stdout.decode(errors='replace');s=re.search(r'^STATE (\S+)',txt,re.M);state=s[1] if s else 'unknown'
+                p=core.ssh(site,script);txt=p.stdout.decode(errors='replace');s=re.search(r'^STATE (\S+)',txt,re.M);state=s[1] if s else 'unknown'
                 r['observed_at']=stamp();r['remote_state']=state;r['remote_status_exit']=p.returncode
                 r['process_observed_alive']='ALIVE yes' in txt
                 e=re.search(r'^EXIT (\d+)',txt,re.M);r['simulator_exit_code']=int(e[1]) if e else None
@@ -164,12 +297,14 @@ test ! -f psf/spectre.out || tail -n 16 psf/spectre.out
     def collect(self,rid):
         with locked(self.path(rid)/'collect.lock'):
             existing=self.read(rid)
+            self.execution_site(existing)
             if existing.get('publication'):
                 c=existing.get('collection')
                 expected=(existing['publication'].get('full_archive_sha256') or (c or {}).get('sha256'))
                 if not c or not Path(c['archive']).exists() or filehash(c['archive'])!=expected:raise ValueError('published archive changed; explicit new version required')
                 return existing
             r=self.status(rid)
+            site=self.execution_site(r)
             if r.get('remote_state') not in TERMINAL:raise ValueError('collection requires observed terminal run; no partial success claim')
             root=self.path(rid);remote=r['remote_directory'];r['collection_phase']='preparing';self.save(r)
             # Full run result tree, including generated solver outputs outside psf.
@@ -185,10 +320,10 @@ fi
 sha256sum exports/full-results.tar.gz
 wc -c < exports/full-results.tar.gz
 '''
-            p=core.ssh(self.site,script,timeout=600)
+            p=core.ssh(site,script,timeout=600)
             if p.returncode:raise ValueError('remote archive generation failed: '+p.stderr.decode(errors='replace'))
             lines=p.stdout.decode().splitlines();expected=lines[-2].split()[0];size=int(lines[-1]);out=root/'full-results.tar.gz';part=out.with_suffix('.part')
-            argv=['ssh','-o','BatchMode=yes','-o','ConnectTimeout=10',self.site['ssh_target'],command('cat '+core.q(remote+'/exports/full-results.tar.gz'))]
+            argv=['ssh','-o','BatchMode=yes','-o','ConnectTimeout=10',site['ssh_target'],command('cat '+core.q(remote+'/exports/full-results.tar.gz'))]
             with part.open('wb') as f:p=subprocess.run(argv,stdout=f,stderr=subprocess.PIPE,timeout=1200)
             if p.returncode or part.stat().st_size!=size or filehash(part)!=expected:raise ValueError('archive transfer checksum/size mismatch')
             if out.exists() and filehash(out)!=expected:
@@ -210,7 +345,9 @@ wc -c < exports/full-results.tar.gz
     def postprocess(self,rid,wait_seconds=90):
         """Export a few actual signals through an independent owned OCEAN process."""
         with locked(self.path(rid)/'postprocess.lock'):
+            self.execution_site(self.read(rid))
             r=self.status(rid)
+            site=self.execution_site(r)
             if r.get('remote_state')!='simulator_complete_pending_measurements':raise ValueError('postprocess requires successful completed Spectre run')
             root=self.path(rid)
             if r.get('postprocess_phase')=='complete':return json.loads((root/'waveforms.json').read_text())
@@ -225,20 +362,20 @@ wc -c < exports/full-results.tar.gz
                 ocn='openResults('+quoted(r['remote_directory']+'/psf')+")\nselectResult('tran)\n"
                 ocn+='awvSaveToCSV(list('+ ' '.join('getData('+quoted(s)+" ?result 'tran)" for s in signals)+') '+quoted(remote+'/waveforms.csv')+f' ?from {spec["start_s"]:.12g} ?to {end:.12g} ?step {spec["step_s"]:.12g} ?precision 15 ?exprList list('+ ' '.join(quoted(s) for s in signals)+') ?mergeXAxis t)\n'
                 ocn+='let((f) f=outfile('+quoted(remote+'/done')+') fprintf(f "done\\n") close(f))\nexit()\n'
-                run='#!/bin/csh -f\nsource '+self.site['cadence_cshrc']+'\ncd '+remote+'\n/usr/bin/xvfb-run -a -s "-screen 0 1600x1000x24" '+self.site['ocean_bin']+' -nograph -nocdsinit -restore postprocess.ocn > ocean.log\n'
-                p=core.ssh(self.site,core.stage_command(self.site,remote),data=core.archive({'postprocess.ocn':ocn.encode(),'run.csh':run.encode()}))
+                run='#!/bin/csh -f\nsource '+site['cadence_cshrc']+'\ncd '+remote+'\n/usr/bin/xvfb-run -a -s "-screen 0 1600x1000x24" '+site['ocean_bin']+' -nograph -nocdsinit -restore postprocess.ocn > ocean.log\n'
+                p=core.ssh(site,core.stage_command(site,remote),data=core.archive({'postprocess.ocn':ocn.encode(),'run.csh':run.encode()}))
                 if p.returncode:r['postprocess_phase']='stage_failed';self.save(r);raise ValueError('postprocess stage failed')
                 r['postprocess_phase']='launch_outcome_unknown';self.save(r)
-                p=core.ssh(self.site,'cd '+core.q(remote)+' || exit 70\nnohup /bin/csh -f run.csh > launcher.log 2>&1 </dev/null &\necho $! > ocean.pid\n')
+                p=core.ssh(site,'cd '+core.q(remote)+' || exit 70\nnohup /bin/csh -f run.csh > launcher.log 2>&1 </dev/null &\necho $! > ocean.pid\n')
                 if p.returncode:raise ValueError('postprocess launch outcome unknown; do not relaunch')
             remote=r['postprocess_remote'];deadline=time.monotonic()+wait_seconds
             while time.monotonic()<deadline:
-                p=core.ssh(self.site,'test -f '+core.q(remote+'/done')+' && test -s '+core.q(remote+'/waveforms.csv'))
+                p=core.ssh(site,'test -f '+core.q(remote+'/done')+' && test -s '+core.q(remote+'/waveforms.csv'))
                 if p.returncode==0:break
                 time.sleep(2)
             else:
                 r['postprocess_phase']='reconcile_required';self.save(r);raise ValueError('OCEAN export incomplete; raw results remain available, retry only checks original export')
-            p=core.ssh(self.site,'cat '+core.q(remote+'/waveforms.csv'))
+            p=core.ssh(site,'cat '+core.q(remote+'/waveforms.csv'))
             if p.returncode:raise ValueError('CSV download failed')
             (root/'waveforms.csv').write_bytes(p.stdout);rows=list(csv.reader(io.StringIO(p.stdout.decode())));header=rows[0];data=[[float(x) for x in row] for row in rows[1:] if row]
             if not data or not all(math.isfinite(x) for row in data for x in row):raise ValueError('nonfinite/empty exported waveforms')
@@ -257,12 +394,12 @@ wc -c < exports/full-results.tar.gz
                 for ax,wave in zip(axes[:,0],waves):
                     ax.plot([x[0] for x in wave['points']],[x[1] for x in wave['points']],linewidth=.8);ax.set_ylabel(wave['name']+' ('+wave['unit']+')');ax.grid(alpha=.2)
                 axes[-1,0].set_xlabel('Time (s)');fig.suptitle(rid,fontsize=9);fig.tight_layout();fig.savefig(root/'waveforms.png',dpi=130)
-                sent=core.ssh(self.site,'cat > '+core.q(remote+'/waveforms.png'),data=(root/'waveforms.png').read_bytes())
+                sent=core.ssh(site,'cat > '+core.q(remote+'/waveforms.png'),data=(root/'waveforms.png').read_bytes())
                 if sent.returncode:raise ValueError('PNG upload failed')
                 r['plot_status']='complete'
             except Exception as e:r['plot_status']='failed';r['plot_error']=str(e)
             # Include derived display JSON in the next complete server archive too.
-            p=core.ssh(self.site,'cat > '+core.q(remote+'/waveforms.json'),data=(root/'waveforms.json').read_bytes())
+            p=core.ssh(site,'cat > '+core.q(remote+'/waveforms.json'),data=(root/'waveforms.json').read_bytes())
             if p.returncode:raise ValueError('derived JSON upload failed; collection not refreshed')
             r['postprocess_phase']='complete';r['postprocess_csv_sha256']=result['csv_sha256'];self.save(r);return result
 

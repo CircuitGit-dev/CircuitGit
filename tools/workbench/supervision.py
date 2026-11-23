@@ -2,6 +2,7 @@
 import json
 import math
 import re
+from datetime import datetime
 from pathlib import Path
 from runner import stamp
 from workspace import Conflict
@@ -19,6 +20,58 @@ def hash_value(value, size=64):
 def finite_number(value):
     try: return value if type(value) in (int, float) and math.isfinite(value) else None
     except (OverflowError, ValueError): return None
+
+def library_context(record):
+    """Use this run's saved evidence only, never today's project registry."""
+    plan = record.get('plan') or {}
+    materialization = (plan.get('provenance') or {}).get('materialization') or {}
+    if not isinstance(materialization, dict): raise ValueError('Invalid saved materialization')
+    if any(k in materialization for k in ('library_id', 'cell_id')):
+        if materialization.get('project_id') != record.get('project_id') or materialization.get('source_commit') != record.get('source_commit'):
+            raise ValueError('Stored library context has inconsistent run identity')
+    result = {}
+    for source in (materialization, record):
+        for key in ('library_id', 'cell_id'):
+            if key not in source: continue
+            value = source[key]
+            if value is not None and (not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}', value)):
+                raise ValueError('Invalid stored library/cell identity')
+            if result.get(key) is not None and value is not None and result[key] != value:
+                raise ValueError('Conflicting stored library/cell identity')
+            if key not in result or value is not None: result[key] = value
+    return result
+
+def execution_target(record):
+    """Bounded target metadata; private site configuration never leaves the runner."""
+    context = record.get('execution_context')
+    if context is None:
+        return ({'mode': 'fixed_site', 'host_id': None, 'plan_id': None,
+                 'resource_observed_at': None, 'resource_reservation': False}
+                if record.get('execution_site') is not None else None)
+    if not isinstance(context, dict) or context.get('schema') != 'ic.execution.context.v1':
+        raise ValueError('Invalid stored execution context')
+    selection = context.get('resource_selection')
+    if selection is None and 'resource_selection' in context:
+        return {'mode': 'fixed_site', 'host_id': None, 'plan_id': None,
+                'resource_observed_at': None, 'resource_reservation': False}
+    if not isinstance(selection, dict): raise ValueError('Invalid stored resource selection')
+    host_id, plan_id = selection.get('host_id'), context.get('plan_id')
+    if not isinstance(host_id, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,95}', host_id) or not isinstance(plan_id, str) or not re.fullmatch('[a-f0-9]{64}', plan_id):
+        raise ValueError('Invalid stored execution target')
+    members = (selection.get('recommendation') or {}).get('candidates') or []
+    observed = next((item.get('resource_observed_at') for item in members if isinstance(item, dict) and item.get('host_id') == host_id), None)
+    if observed is not None:
+        if not isinstance(observed, str) or len(observed) > 64 or not re.fullmatch(
+            r'[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T'
+            r'(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?'
+            r'(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])', observed):
+            raise ValueError('Invalid stored resource observation timestamp')
+        try:
+            if datetime.fromisoformat(observed).utcoffset() is None: raise ValueError()
+        except (ValueError, OverflowError):
+            raise ValueError('Invalid stored resource observation timestamp') from None
+    return {'mode': 'resource_pool', 'host_id': host_id, 'plan_id': plan_id,
+            'resource_observed_at': observed, 'resource_reservation': False}
 
 def read_json(path, limit=MAX_RECORD):
     if path.is_symlink() or path.parent.is_symlink(): raise ValueError('Stored record must be a regular local file')
@@ -103,7 +156,9 @@ class Supervision:
             if record.get(key): issues.append({'code': key, 'message': 'The saved run records an error; inspect its existing logs.'})
         if record.get('synthetic') is True or record.get('fixture') is True:
             issues.append({'code': 'synthetic_fixture', 'message': 'Synthetic fixture; not evidence of real simulation.'})
-        return {'run_id': run_id, 'project_id': project, 'original_project_id': text(record.get('project_id')),
+        target = execution_target(record)
+        return {**library_context(record), **({'execution_target': target} if target is not None else {}),
+            'run_id': run_id, 'project_id': project, 'original_project_id': text(record.get('project_id')),
             'association_basis': association, 'source_commit': source, 'configuration': text(record.get('configuration_id')),
             'compiled_inputs_sha256': compiled, 'state': state,
             'execution': {'state': execution, 'raw_state': raw_state, 'exit_code': exit_code, 'observed_at': observed},
@@ -130,7 +185,7 @@ class Supervision:
         return {'schema': 'ic.supervision.snapshot.v1', 'project_id': project_id, 'read_at': stamp(),
             'source': 'stored_observations', 'runs': runs, 'scanned_records': scanned,
             'unavailable_records': unavailable, 'truncated': len(records) > scanned or overflow,
-            'single_site': True}
+            'single_site': getattr(self.runner, 'resource_recheck', None) is None}
 
     def submission(self, key):
         run_id = self.runner.lookup_submission(key)

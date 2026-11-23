@@ -230,6 +230,20 @@ class Service:
             elif op == 'sim_submit':
                 body = {**self.identity(a), 'idempotency_key': key}
                 review = self.gateway.request('/api/plan', {k: body[k] for k in IDENTITY})
+                if review.get('resource_selection_required') is True:
+                    preflight = self.gateway.request('/api/preflight', {k: body[k] for k in IDENTITY})
+                    plan_id = preflight.get('execution_plan_id')
+                    check(isinstance(plan_id, str) and re.fullmatch('[a-f0-9]{64}', plan_id),
+                          'Resource preflight did not return a frozen execution plan', 'conflict', 3)
+                    target = preflight.get('execution_target')
+                    check(isinstance(target, dict) and target.get('mode') == 'resource_pool'
+                          and target.get('plan_id') == plan_id,
+                          'Resource preflight target does not match the frozen plan', 'conflict', 3)
+                    check((preflight.get('plan') or {}).get('provenance', {}).get('source_commit') == body['source_commit'],
+                          'Resource preflight source changed', 'conflict', 3)
+                    body['execution_plan_id'] = plan_id
+                    review = {**review, 'execution_preflight': preflight, 'execution_plan_id': plan_id,
+                              'execution_target': preflight.get('execution_target')}
                 route = '/api/jobs'
             else:
                 run_id = identifier(a['run_id'])

@@ -9,6 +9,14 @@ const nullableHash = (value, pattern) => value === null || typeof value === 'str
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const oneOf = (value, choices) => choices.includes(value);
 const nullableBoolean = value => value === null || typeof value === 'boolean';
+const resourceTimestamp = value => {
+  if (value === null) return true;
+  if (typeof value !== 'string' || value.length > 64 || !/^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$/.test(value)
+      || /[\r\n]/.test(value) || !Number.isFinite(Date.parse(value))) return false;
+  const year = Number(value.slice(0, 4)), month = Number(value.slice(5, 7)), day = Number(value.slice(8, 10));
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  return year > 0 && day <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+};
 const freeze = value => {
   if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); }
   return value;
@@ -26,7 +34,7 @@ const executionState = ({exit_code: code, raw_state: raw}) => {
 export function normalizeSupervisionSnapshot(value, projectId) {
   requireValid(isObject(value) && value.schema === 'ic.supervision.snapshot.v1'
     && text(value.project_id, 180) && value.project_id === projectId
-    && value.source === 'stored_observations' && value.single_site === true
+    && value.source === 'stored_observations' && typeof value.single_site === 'boolean'
     && text(value.read_at, 1024) && Array.isArray(value.runs) && value.runs.length <= 25
     && integer(value.scanned_records) && value.scanned_records <= 200
     && integer(value.unavailable_records) && typeof value.truncated === 'boolean');
@@ -40,6 +48,20 @@ export function normalizeSupervisionSnapshot(value, projectId) {
       && nullableText(run.state) && nullableText(run.latest_observed_at)
       && nullableText(run.record_updated_at) && nullableText(run.waveform_run_id));
     ids.add(run.run_id);
+    for (const key of ['library_id','cell_id']) if (key in run) {
+      requireValid(run[key] === null || typeof run[key] === 'string'
+        && /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}$/.test(run[key]) && !/[^A-Za-z0-9_.-]/.test(run[key]));
+    }
+    if ('execution_target' in run) {
+      const target=run.execution_target;
+      requireValid(isObject(target) && Object.keys(target).sort().join(',') === 'host_id,mode,plan_id,resource_observed_at,resource_reservation'
+        && target.resource_reservation === false && resourceTimestamp(target.resource_observed_at));
+      requireValid(target.mode === 'fixed_site'
+        ? target.host_id === null && target.plan_id === null && target.resource_observed_at === null
+        : target.mode === 'resource_pool' && typeof target.host_id === 'string'
+          && /^[A-Za-z0-9][A-Za-z0-9_-]{0,95}$/.test(target.host_id) && !/[^A-Za-z0-9_-]/.test(target.host_id)
+          && typeof target.plan_id === 'string' && target.plan_id.length === 64 && HASH.test(target.plan_id));
+    }
     const {execution, observation, data, specification} = run;
     requireValid(isObject(execution) && oneOf(execution.state, ['queued', 'running', 'succeeded', 'failed', 'unknown'])
       && nullableText(execution.raw_state) && (execution.exit_code === null || Number.isSafeInteger(execution.exit_code))

@@ -10,7 +10,7 @@ from workspace import Workspace,Conflict,VersionControlError
 from publisher import Publisher
 from waveforms import WaveformService, WaveformError, dispatch as waveform_dispatch
 from geometry import Geometry,InvalidGeometry
-from supervision import Supervision
+from supervision import Supervision, execution_target
 
 class Application:
     def __init__(self,cfg,web_root):
@@ -18,6 +18,11 @@ class Application:
         keyfile=runtime/'signing.key'
         if not keyfile.exists():keyfile.write_bytes(secrets.token_bytes(32));os.chmod(keyfile,0o600)
         self.site=core.site_load(Path(cfg['site_file']));self.workspace=Workspace(cfg,self.site,keyfile.read_bytes());self.runner=Runner(cfg.get('runs_root',runtime/'runs'),self.site,self.workspace.frozen,keyfile.read_bytes());self.publisher=Publisher(cfg,self.workspace,self.runner)
+        self.resource_pool=None
+        if cfg.get('spiceowl_pool_file'):
+            from spiceowl_pool import ResourcePool
+            self.resource_pool=ResourcePool(cfg['spiceowl_pool_file'],runtime,keyfile.read_bytes())
+            self.runner.resource_recheck=self.resource_pool.recheck
         self.geometry=Geometry(self.workspace)
         self.supervision=Supervision(self.runner,self.workspace.projects)
         self.waveforms=WaveformService(self.runner,cfg.get('waveform_bindings',{}),cfg.get('waveform_derivatives',{}),source_reader=self.geometry.blob)
@@ -38,7 +43,8 @@ class Application:
         elif r.get('operation') in ['collecting','archiving']:state=r['operation']
         elif r.get('collection_phase')=='complete':state='collected'
         associated=r['plan'].get('design_id');associated=associated if associated in self.workspace.projects else None
-        return {k:r.get(k) for k in ['job_id','run_id','source_commit','project_id','created_at','updated_at','submitted_at','remote_state','simulator_exit_code','error','status_error','operation_error']}|{'associated_project_id':associated,'association_basis':'recorded plan.design_id; original project_id preserved','state':state,'configuration':r.get('configuration_id'),'receipt':r['run_id']+'/run.json','collection':self.results(r)['collection'],'publication':self.publication_view(r)}
+        target=execution_target(r)
+        return {k:r.get(k) for k in ['job_id','run_id','source_commit','project_id','created_at','updated_at','submitted_at','remote_state','simulator_exit_code','error','status_error','operation_error']}|{k:r[k] for k in ('library_id','cell_id') if k in r}|({'execution_target':target} if target is not None else {})|{'associated_project_id':associated,'association_basis':'recorded plan.design_id; original project_id preserved','state':state,'configuration':r.get('configuration_id'),'receipt':r['run_id']+'/run.json','collection':self.results(r)['collection'],'publication':self.publication_view(r)}
     def results(self,r):
         c=r.get('collection');rid=r['run_id'];artifacts=[]
         for name in ['full-results.tar.gz','result-summary.json','archive-files.json','latest-status.log','waveforms.csv','waveforms.json','waveforms.png']:
@@ -216,9 +222,16 @@ class Handler(BaseHTTPRequestHandler):
             if path in ['/api/plan','/api/preflight','/api/jobs']:
                 bundle=self.app.identity(b)
                 if path=='/api/plan':
-                    plan=self.app.runner.plan(bundle,b['source_commit']);return self.response({**plan,'project_id':b['project_id'],'configuration':b['configuration'],'source_commit':b['source_commit'],'state':'planned','inputs':plan['provenance']['files'],'settings':plan.get('configuration',{})})
-                if path=='/api/preflight':return self.response(self.app.runner.preflight(bundle,b['source_commit']))
-                r,new=self.app.runner.reserve(bundle,b['idempotency_key'],b['source_commit'],b['project_id'],b['configuration'])
+                    plan=self.app.runner.plan(bundle,b['source_commit']);return self.response({**plan,'project_id':b['project_id'],'configuration':b['configuration'],'source_commit':b['source_commit'],'state':'planned','inputs':plan['provenance']['files'],'settings':plan.get('configuration',{}),'execution_mode':'resource_pool' if self.app.resource_pool else 'fixed_site','resource_selection_required':self.app.resource_pool is not None})
+                identity={k:b[k] for k in ('project_id','configuration','source_commit')}
+                if path=='/api/preflight':
+                    return self.response(self.app.resource_pool.prepare(self.app.runner,bundle,identity) if self.app.resource_pool else self.app.runner.preflight(bundle,b['source_commit']))
+                execution=None
+                if self.app.resource_pool:
+                    if 'execution_plan_id' not in b:raise ValueError('Resource-pool submission requires the reviewed preflight execution_plan_id')
+                    execution=self.app.resource_pool.resolve(b['execution_plan_id'],bundle,identity)
+                elif 'execution_plan_id' in b:raise ValueError('Resource-pool submission is not configured')
+                r,new=self.app.runner.reserve(bundle,b['idempotency_key'],b['source_commit'],b['project_id'],b['configuration'],execution_context=execution)
                 if new:self.app.operations[r['run_id']]=self.app.pool.submit(self.app.runner.dispatch,r['run_id'])
                 return self.response(self.app.public_job(r),202)
             m=re.fullmatch(r'/api/jobs/([A-Za-z0-9_-]+)/(collect|publish)',path)
