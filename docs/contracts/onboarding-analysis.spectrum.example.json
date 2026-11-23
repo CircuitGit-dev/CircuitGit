@@ -120,6 +120,12 @@
       "algorithm_version": "1.0.0",
       "backend": "spiceowl",
       "backend_version": "1.0.0",
+      "numerical_environment": {
+        "python": "3.12.14",
+        "numpy": "2.5.5",
+        "scipy": "1.18.1",
+        "adctoolbox": "0.9.3"
+      },
       "parameters": {
         "sample_count": 256,
         "sample_rate_hz": 16384.0,
@@ -920,12 +926,12 @@
     "network_operations": 0,
     "solver_invocations": 0,
     "changes_original_job_verdict": false,
-    "analysis_id": "c015383c3203dce672762e1b688f459de9a193f9fce4b204927db8c9ae36c106",
+    "analysis_id": "d99f0a87712ca3e14fa1b44ea1e15d1f71a84f87b26bb5ba0cc64b97aec3e3cd",
     "artifact": {
-      "id": "c015383c3203dce672762e1b688f459de9a193f9fce4b204927db8c9ae36c106",
-      "sha256": "559d32ee5a3105718b345cb4d7a7b8da995070d88c9612d55db81fc6b1db4069",
+      "id": "d99f0a87712ca3e14fa1b44ea1e15d1f71a84f87b26bb5ba0cc64b97aec3e3cd",
+      "sha256": "967088d3e90ecee77c5419c2dd0a3e6a72103348ee6211bf0f5075ecc1ecbc45",
       "format": "application/json",
-      "bytes": 22958,
+      "bytes": 23100,
       "full_result": true
     }
   }
