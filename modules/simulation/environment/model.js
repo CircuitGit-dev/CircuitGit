@@ -18,6 +18,9 @@ export const intentFields=[...ports,...numerics];
 const emptyIntent=()=>Object.fromEntries(intentFields.map(key=>[key,'']));
 const endpoint=value=>text(value,240)&&value.length>0&&value.trim()===value&&!/[\s\0]/.test(value)&&!value.startsWith('-');
 const rejectionTagged=value=>value?.dispatch_outcome==='pre_dispatch_rejected'||object(value)&&Object.hasOwn(value,'rejection');
+// Backend public_discovery merges up to 8 selected probes. SpiceOwl permits
+// 256 candidates per discovery; the transport's separate 2 MiB cap still applies.
+const maxDiscoveryCandidates=8*256;
 
 export function onboardingWaveformsAvailable({intake,job:receipt}={}){
   const value=receipt?.waveforms;
@@ -55,7 +58,7 @@ function probes(value,targets){
 }
 function discovery(value){
   const result=value.discovery;
-  if(!object(result)||!id(result.discovery_id)||!Array.isArray(result.candidates)||result.candidates.length>128||Object.hasOwn(value,'discovery_id')||Object.hasOwn(value,'candidates'))throw Error('PDK 响应缺少唯一的嵌套 discovery 身份。');
+  if(!object(result)||!id(result.discovery_id)||!Array.isArray(result.candidates)||result.candidates.length>maxDiscoveryCandidates||Object.hasOwn(value,'discovery_id')||Object.hasOwn(value,'candidates'))throw Error('PDK 响应缺少唯一的嵌套 discovery 身份。');
   const ids=new Set(),probeIds=new Set(value.probes?.map(probe=>probe.probe_id)||[]);
   for(const item of result.candidates){
     if(!id(item?.candidate_id)||ids.has(item.candidate_id)||!probeIds.has(item.probe_id)||!text(item.label)||!Array.isArray(item.available_sections)||item.available_sections.some(section=>section!==null&&!id(section))||!Array.isArray(item.model_contracts)||!Array.isArray(item.tmi_candidates))throw Error('PDK 候选与当前探测身份不一致。');
