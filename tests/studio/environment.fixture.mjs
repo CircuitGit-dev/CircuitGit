@@ -6,7 +6,7 @@ export const intent={supply_v:'0.8',frequency_hz:'100000000',temperature_c:'27',
 export function preDispatchSubmission(intake,plan=intake.prepared){
   return {intake_id:intake.intake_id,plan_id:plan.plan_id,found:false,run_id:null,submission_key:plan.submission_key,dispatch_outcome:'pre_dispatch_rejected',replay_permitted:false,job:null,rejection:{schema:'ic.experiment.pre-dispatch-rejection.v1',plan_id:plan.plan_id,project_id:plan.project_id,source_commit:plan.source_commit,submission_key:plan.submission_key,phase:'before_runner_reserve',code:'resource_or_dependency_preflight_rejected',launch_attempted:false,recorded_at:'2026-11-23T00:00:00Z'}};
 }
-export function environmentFixture(){
+export function environmentFixture({withRecommendation=false}={}){
   const calls=[],records=[],listeners=new Set();let connection={connected:true,connecting:false,connectionId:'synthetic-connection',mode:'same-origin',capabilities:{override_fields:['spectre_executable']}};
   let saved=null;
   const initial=()=>({schema:'ic.onboarding.session.v1',connection_id:'synthetic-store',intake_id:'synthetic-intake',revision:1,source_sha256:'a'.repeat(64),source_commit:null,state:'source_inspected',source:{file_name:source.file_name,source_sha256:'a'.repeat(64),source_commit:null,requirements:{instances:[],interfaces:[{name:'synthetic',ports:['IN','OUT','VDD','VSS']}],required_masters:['synthetic_n','synthetic_p'],issues:[],confirmation_required:[]}}});
@@ -26,5 +26,13 @@ export function environmentFixture(){
     readSubmission:record('readSubmission',()=>({found:true,run_id:'synthetic-run',submission_key:plan().submission_key,dispatch_outcome:'sent',replay_permitted:false,job:job()})),
     inspectExperiment:record('inspectExperiment',()=>({...clone(saved),job:{...job(),inspection_state:'pending'}}))};
   const reject=record('runPrepared',args=>advance(args,{state:'pre_dispatch_rejected',job:null,submission:preDispatchSubmission(saved)}));
+  if(withRecommendation){
+    const discover=adapter.discoverPdk,prepare=adapter.prepareExperiment;
+    adapter.discoverPdk=async args=>{const value=await discover(args),candidate=value.discovery.candidates[0],numericIntent=Object.fromEntries(Object.entries(intent).map(([key,value])=>[key,key.endsWith('_port')?value:Number(value)]));
+      const recommendation={schema:'ic.onboarding.recommended-selection.v1',recommendation_id:'9'.repeat(64),recommendation_revision:value.revision,source_sha256:value.source_sha256,discovery_id:value.discovery.discovery_id,candidate_id:candidate.candidate_id,sections:['synthetic-section'],tmi_candidate_id:null,model_contracts:{synthetic_n:{polarity:'n',terminals:['d','g','s','b']},synthetic_p:{polarity:'p',terminals:['d','g','s','b']}},intent:numericIntent,ready_for_prepare:true,missing:[],provenance:{preset:'synthetic-test',fields:Object.fromEntries(Object.entries(numericIntent).map(([key,value])=>[key,{value,basis:['synthetic fixture'],confidence:'inferred',requires_acceptance:true,missing:[]}]))},requires_acceptance:true,fresh_dependency_audit_required:true,ready_to_run:false};
+      value.recommended_selection=clone(recommendation);value.discovery.recommended_selection=clone(recommendation);value.suggested_intent=clone(numericIntent);saved=clone(value);return value;
+    };
+    adapter.prepareExperiment=async args=>{if(args.accept_recommendation!==true)return prepare(args);calls.push({method:'prepareExperiment',args:clone(args)});const r=saved.recommended_selection;if(args.recommendation_id!==r.recommendation_id||args.recommendation_revision!==r.recommendation_revision)throw Error('Synthetic stale recommendation');const selection=Object.fromEntries(['discovery_id','candidate_id','sections','tmi_candidate_id','model_contracts','intent'].map(key=>[key,clone(r[key])]));return advance(args,{state:'prepared',job:null,submission:null,source_commit:'b'.repeat(40),prepared:plan(),selection,execution_scope:{selected_ssh_targets:saved.probes.map(probe=>probe.ssh_target),candidate_host_ids:['synthetic-host-id'],selection_mode:'automatic_within_selected_hosts',resource_check_at_run:true}});};
+  }
   return {adapter,pendingStore,calls,records,job,plan,reject,get saved(){return saved;},set saved(value){saved=clone(value);},setConnection(value){connection={...connection,...value};listeners.forEach(listener=>listener());},get listenerCount(){return listeners.size;}};
 }

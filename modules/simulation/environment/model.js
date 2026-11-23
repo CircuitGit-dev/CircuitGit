@@ -21,6 +21,19 @@ const rejectionTagged=value=>value?.dispatch_outcome==='pre_dispatch_rejected'||
 // Backend public_discovery merges up to 8 selected probes. SpiceOwl permits
 // 256 candidates per discovery; the transport's separate 2 MiB cap still applies.
 const maxDiscoveryCandidates=8*256;
+const selectionFields=['discovery_id','candidate_id','sections','tmi_candidate_id','model_contracts','intent'];
+const canonical=value=>JSON.stringify(value,(_key,item)=>object(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
+const sameSelection=(value,expected)=>object(value)&&selectionFields.every(key=>canonical(value[key])===canonical(expected[key]));
+function recommended(value){
+  const result=value.recommended_selection,nested=value.discovery?.recommended_selection;
+  if(result==null&&nested==null)return null;
+  if(!object(result)||result.schema!=='ic.onboarding.recommended-selection.v1'||!sha(result.recommendation_id)||!Number.isSafeInteger(result.recommendation_revision)||result.recommendation_revision<0||result.recommendation_revision>value.revision||result.source_sha256!==value.source_sha256||result.discovery_id!==value.discovery?.discovery_id||canonical(result)!==canonical(nested)||typeof result.ready_for_prepare!=='boolean'||!Array.isArray(result.missing)||result.requires_acceptance!==true||result.fresh_dependency_audit_required!==true||result.ready_to_run!==false||!object(result.provenance))throw Error('推荐缺少当前网表、发现记录或版本依据。');
+  if(result.ready_for_prepare){
+    const choice=value.discovery?.candidates?.find(item=>item.candidate_id===result.candidate_id);
+    if(result.missing.length||!choice||!Array.isArray(result.sections)||result.sections.some(section=>!choice.available_sections.includes(section))||result.tmi_candidate_id!==null&&!choice.tmi_candidates.some(item=>(item.tmi_candidate_id||item.candidate_id)===result.tmi_candidate_id)||!object(result.model_contracts)||value.source.requirements.required_masters.some(master=>{const c=result.model_contracts[master];return !['n','p'].includes(c?.polarity)||!Array.isArray(c.terminals)||c.terminals.length!==4||new Set(c.terminals).size!==4||c.terminals.some(role=>!['d','g','s','b'].includes(role));})||!object(result.intent)||ports.some(key=>!id(result.intent[key]))||numerics.some(key=>typeof result.intent[key]!=='number'||!Number.isFinite(result.intent[key])))throw Error('可准备的推荐缺少完整选择或实验条件。');
+  }
+  return result;
+}
 
 export function onboardingWaveformsAvailable({intake,job:receipt}={}){
   const value=receipt?.waveforms;
@@ -46,7 +59,7 @@ function session(value,previous=null,{initial=false,mutating=false}={}){
   if(previous&&(value.connection_id!==previous.connection_id||value.intake_id!==previous.intake_id||value.source_sha256!==previous.source_sha256||value.revision<previous.revision||(mutating&&value.revision<=previous.revision)))throw Error('环境响应过期或属于另一份网表。');
   const requirements=value.source?.requirements;
   if(!object(requirements)||!Array.isArray(requirements.instances)||!Array.isArray(requirements.interfaces)||!Array.isArray(requirements.required_masters)||requirements.required_masters.some(name=>!id(name))||!Array.isArray(requirements.issues))throw Error('网表响应缺少字面器件、端口和模型需求。');
-  return clone(value);
+  recommended(value);return clone(value);
 }
 function aliases(value){
   if(!object(value)||!Array.isArray(value.hosts)||value.hosts.length>256||value.network_operations!==0||value.hosts.some(host=>!endpoint(host?.alias)||!Number.isSafeInteger(host.source_count)))throw Error('本机 SSH 别名响应格式不符。');
@@ -104,7 +117,7 @@ function pendingRecord(value,connectionId){
 
 export function createEnvironmentController({adapter=null,pendingStore=null,changed=()=>{},onRun=()=>{}}={}){
   let disposed=false,epoch=0,source=null,unsubscribe=null,restoring=null;
-  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,preparation:step(),run:step(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
+  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),refresh:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,recommendationMode:true,preparation:step(),run:step(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
   const emit=()=>{if(!disposed)changed();};
   const has=name=>typeof adapter?.[name]==='function';
   const connected=()=>state.connection.connected&&id(state.connection.connectionId);
@@ -119,6 +132,8 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   const clearCandidate=()=>{state.candidateId='';state.sections=[];state.tmiCandidateId=null;state.modelContracts={};clearPrepared();};
   const clearDiscovery=()=>{state.discovery=step();state.searchDirectoryIds=[];state.searchScopeDirty=false;clearCandidate();};
   const candidate=()=>state.discovery.result?.discovery.candidates.find(item=>item.candidate_id===state.candidateId)||null;
+  const recommendation=()=>state.session&&state.discovery.result?.discovery&&!state.setupDirty&&!state.searchScopeDirty&&state.discovery.result.discovery.discovery_id===state.session.discovery?.discovery_id?recommended(state.session):null;
+  const formSnapshot=()=>canonical([state.targets,state.setupSourceIds,state.hints,state.searchDirectoryIds,state.candidateId,state.sections,state.tmiCandidateId,state.modelContracts,state.intent,state.intentConfirmed,state.recommendationMode]);
   const identity=()=>{if(!state.session)throw Error('请先核对独立网表。');return {intake_id:state.session.intake_id,revision:state.session.revision};};
   const acceptSession=(value,options={})=>{const next=session(value,state.session,options);state.session=next;state.intake={status:'complete',result:next,error:null};return next;};
   function hydrate(current){
@@ -131,6 +146,15 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     state.tmiCandidateId=selection.tmi_candidate_id??null;state.modelContracts={...verifiedContracts(choice,current.discovery,state.sections),...clone(selection.model_contracts||{})};
     state.intent=emptyIntent();for(const key of intentFields)if(['string','number'].includes(typeof selection.intent?.[key]))state.intent[key]=String(selection.intent[key]);
     state.intentConfirmed=false;
+  }
+  function adoptSaved(current){
+    if(current.prepared)prepared(current);if(current.job)job(current.job,current.prepared,null,current.execution_scope);
+    let rejection=null;if(current.state==='pre_dispatch_rejected'||rejectionTagged(current.submission)){
+      if(current.state!=='pre_dispatch_rejected'||current.job!==null)throw Error('保存的提交前拒绝状态不完整。');
+      rejection=validatePreDispatchRejection(current.submission,{intake:current,plan:current.prepared});
+    }
+    state.session=current;state.boundConnectionId=state.connection.connectionId;hydrate(current);state.recommendationMode=!(current.prepared&&current.selection);
+    state.intake={status:'complete',result:current,error:null};state.preparation=current.prepared?{status:'complete',result:current,error:null}:step();state.run=rejection?{status:'rejected',result:null,error:null,rejection}:current.job?{status:'complete',result:clone(current.job),error:null}:step();if(rejection)rememberRejection(rejection);
   }
   const intentValue=()=>{
     const result={};for(const key of ports){if(!state.intent[key].trim())return null;result[key]=state.intent[key].trim();}
@@ -207,17 +231,19 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     },{uncertain:true});
   }
   const api={
-    get state(){return clone(state);},has,get candidate(){return clone(candidate());},get intentReady(){return !!intentValue()&&!!contractsReady();},get locked(){return locked();},
+    get state(){return clone(state);},has,get candidate(){return clone(candidate());},get recommendation(){return clone(recommendation());},get intentReady(){return !!intentValue()&&!!contractsReady();},get locked(){return locked();},
+    get currentBinding(){return state.session?{connectionId:state.connection.connectionId,intakeId:state.session.intake_id,sourceSha256:state.session.source_sha256,revision:state.session.revision}:null;},
     get connected(){return !!sameConnection();},get ready(){return restoring?.promise||Promise.resolve();},
     connect(options){if(!has('connect'))throw Error('本机连接入口尚未接入。');return adapter.connect(options);},
     disconnect(){if(state.busy)throw Error('请等待当前步骤完成。');return adapter?.disconnect?.();},
     setAdapter(value){editable();if(state.session)throw Error('已有 intake，不能替换其连接适配器。');connectAdapter(value);emit();},
-    async importSource(value){editable();const inventory=inspectLiteralNetlist(value);epoch++;source={name:inventory.name,text:value.text};state.source=inventory;state.session=null;state.boundConnectionId=null;state.intake=step();state.targets=[];state.setupSourceIds={};state.setupDirty=false;state.probe=step();state.hints={search_paths:'',cds_lib_hint:''};state.intent=emptyIntent();clearDiscovery();emit();if(sameConnection()&&has('inspectNetlist'))await inspectSource();return inventory;},
+    async importSource(value){editable();const inventory=inspectLiteralNetlist(value);epoch++;source={name:inventory.name,text:value.text};state.source=inventory;state.session=null;state.boundConnectionId=null;state.intake=step();state.refresh=step();state.recommendationMode=true;state.targets=[];state.setupSourceIds={};state.setupDirty=false;state.probe=step();state.hints={search_paths:'',cds_lib_hint:''};state.intent=emptyIntent();clearDiscovery();emit();if(sameConnection()&&has('inspectNetlist'))await inspectSource();return inventory;},
     inspectSource,
     loadAliases(){requireAdapter('listSshAliases');return action('aliases',state.aliases,async()=>aliases(await guarded(()=>adapter.listSshAliases())));},
     setTargets(values){editable();if(!Array.isArray(values)||values.length>8||values.some(value=>!endpoint(value)))throw Error('请填写至多 8 个 SSH alias 或 user@host。');state.targets=[...new Set(values)];state.setupSourceIds={};state.setupDirty=false;state.probe=step();clearDiscovery();emit();},
     selectSetupSource(target,value){editable();const probe=state.probe.result?.probes.find(item=>item.ssh_target===target);if(!probe||value!==null&&!probe.environment.setup_candidates?.some(item=>item.source_id===value&&item.activation_supported===true))throw Error('只能选择本次该主机返回且支持激活的环境候选。');if(value===null)delete state.setupSourceIds[target];else state.setupSourceIds[target]=value;state.setupDirty=true;clearDiscovery();emit();},
     probeHost(){editable();requireAdapter('probeHost');if(!state.targets.length)throw Error('请明确选择允许探测与运行的主机范围。');const args={...identity(),ssh_targets:clone(state.targets)};if(Object.keys(state.setupSourceIds).length)args.overrides={setup_source_ids:clone(state.setupSourceIds)};clearDiscovery();return action('probe',state.probe,async()=>{const result=probes(session(await guarded(()=>adapter.probeHost(args)),state.session,{mutating:true}),args.ssh_targets);state.setupDirty=false;return acceptSession(result);});},
+    async probeAndMatch(){await api.probeHost();return api.matchPdk();},
     setHint(key,value){editable();if(!Object.hasOwn(state.hints,key)||!text(value,4000))throw Error('搜索提示格式不符。');state.hints[key]=value;clearDiscovery();emit();},
     selectSearchDirectories(values){editable();const directories=state.discovery.result?.discovery.search_directories||[],probeIds=state.probe.result?.probes.map(probe=>probe.probe_id)||[];if(!Array.isArray(values)||values.length>8||new Set(values).size!==values.length||values.some(value=>!directories.some(directory=>directory.directory_id===value&&probeIds.includes(directory.probe_id))))throw Error('只能选择至多 8 个当前 discovery 中属于所选主机的观察目录。');state.searchDirectoryIds=clone(values);state.searchScopeDirty=true;clearCandidate();emit();},
     matchPdk(){
@@ -227,19 +253,23 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       if(selected.length){const directories=state.discovery.result?.discovery.search_directories||[],rows=selected.map(value=>directories.find(directory=>directory.directory_id===value));if(rows.some(row=>!row||!args.probe_ids.includes(row.probe_id))||args.probe_ids.some(probeId=>!rows.some(row=>row.probe_id===probeId)))throw Error('请为每个选中主机选择本次观察到的目录。');args.search_directory_ids=selected;}
       else{const paths=state.hints.search_paths.split('\n').map(path=>path.trim()).filter(Boolean);if(paths.length)args.search_paths=paths;}
       if(state.hints.cds_lib_hint.trim())args.cds_lib_hint=state.hints.cds_lib_hint.trim();clearDiscovery();
-      return action('pdk',state.discovery,async()=>{const value=acceptSession(discovery(session(await guarded(()=>adapter.discoverPdk(args)),state.session,{mutating:true})));state.searchDirectoryIds=selected.filter(directoryId=>value.discovery.search_directories?.some(directory=>directory.directory_id===directoryId&&args.probe_ids.includes(directory.probe_id)));return value;});
+      return action('pdk',state.discovery,async()=>{const value=acceptSession(discovery(session(await guarded(()=>adapter.discoverPdk(args)),state.session,{mutating:true})));state.recommendationMode=true;state.searchDirectoryIds=selected.filter(directoryId=>value.discovery.search_directories?.some(directory=>directory.directory_id===directoryId&&args.probe_ids.includes(directory.probe_id)));return value;});
     },
-    selectCandidate(value){editable();if(state.searchScopeDirty)throw Error('搜索范围已改变，请先重新匹配 PDK。');const choice=state.discovery.result?.discovery.candidates.find(item=>item.candidate_id===value);if(!choice)throw Error('请选择当前返回的 PDK 候选。');state.candidateId=value;state.sections=[];state.tmiCandidateId=null;state.modelContracts={};clearPrepared();emit();},
-    selectSections(values){editable();if(!Array.isArray(values)||!candidate()||values.some(value=>!candidate().available_sections.includes(value)))throw Error('请选择当前 PDK 的 section。');state.sections=[...new Set(values)];state.modelContracts=verifiedContracts(candidate(),state.discovery.result.discovery,state.sections);clearPrepared();emit();},
-    selectTmi(value){editable();if(value!==null&&!candidate()?.tmi_candidates.some(item=>item.tmi_candidate_id===value||item.candidate_id===value))throw Error('请选择返回的 TMI 候选。');state.tmiCandidateId=value;clearPrepared();emit();},
-    setModelContract(master,value){editable();if(!state.session?.source.requirements.required_masters.includes(master)||!object(value))throw Error('模型必须来自本次独立网表。');state.modelContracts[master]=clone(value);clearPrepared();emit();},
-    setIntent(key,value){editable();if(!intentFields.includes(key)||!text(value,240))throw Error('实验条件格式不符。');state.intent[key]=value;clearPrepared();emit();},
+    selectCandidate(value){editable();if(state.searchScopeDirty)throw Error('搜索范围已改变，请先重新匹配 PDK。');const choice=state.discovery.result?.discovery.candidates.find(item=>item.candidate_id===value);if(!choice)throw Error('请选择当前返回的 PDK 候选。');state.recommendationMode=false;state.candidateId=value;state.sections=[];state.tmiCandidateId=null;state.modelContracts={};clearPrepared();emit();},
+    selectSections(values){editable();if(!Array.isArray(values)||!candidate()||values.some(value=>!candidate().available_sections.includes(value)))throw Error('请选择当前 PDK 的 section。');state.recommendationMode=false;state.sections=[...new Set(values)];state.modelContracts=verifiedContracts(candidate(),state.discovery.result.discovery,state.sections);clearPrepared();emit();},
+    selectTmi(value){editable();if(value!==null&&!candidate()?.tmi_candidates.some(item=>item.tmi_candidate_id===value||item.candidate_id===value))throw Error('请选择返回的 TMI 候选。');state.recommendationMode=false;state.tmiCandidateId=value;clearPrepared();emit();},
+    setModelContract(master,value){editable();if(!state.session?.source.requirements.required_masters.includes(master)||!object(value))throw Error('模型必须来自本次独立网表。');state.recommendationMode=false;state.modelContracts[master]=clone(value);clearPrepared();emit();},
+    setIntent(key,value){editable();if(!intentFields.includes(key)||!text(value,240))throw Error('实验条件格式不符。');state.recommendationMode=false;state.intent[key]=value;clearPrepared();emit();},
     confirmIntent(value){editable();if(value&&!api.intentReady)throw Error('请完整填写实验条件和模型端口契约。');state.intentConfirmed=value===true;emit();},
-    async prepare(){
-      editable();requireAdapter('prepareExperiment');if(!candidate()||!state.intentConfirmed||!api.intentReady||(candidate().available_sections.length&&!state.sections.length))throw Error('请明确选择 PDK、section 并确认完整实验条件。');
-      const args={...identity(),discovery_id:state.discovery.result.discovery.discovery_id,candidate_id:state.candidateId,sections:clone(state.sections),tmi_candidate_id:state.tmiCandidateId,model_contracts:clone(state.modelContracts),intent:intentValue()};
-      return action('prepare',state.preparation,async()=>{const record=await persist('prepare');const result=prepared(session(await guarded(()=>adapter.prepareExperiment(args)),state.session,{mutating:true}),state.targets);acceptSession(result);await resolved(record);state.run=step();return result;},{uncertain:()=>state.pending.some(record=>record.phase==='prepare')});
+    useRecommendation(){editable();if(!recommendation())throw Error('当前没有可用推荐。');state.recommendationMode=true;clearPrepared();emit();},
+    editRecommendation(){editable();const value=recommendation();if(!value?.ready_for_prepare)throw Error('推荐尚不完整，请在高级设置中补充。');state.candidateId=value.candidate_id;state.sections=clone(value.sections);state.tmiCandidateId=value.tmi_candidate_id;state.modelContracts=clone(value.model_contracts);state.intent=Object.fromEntries(intentFields.map(key=>[key,String(value.intent[key])]));state.recommendationMode=false;clearPrepared();emit();},
+    async prepare({acceptRecommendation=false}={}){
+      editable();requireAdapter('prepareExperiment');let args,expected;
+      if(acceptRecommendation){const value=recommendation();if(!value?.ready_for_prepare)throw Error('推荐尚不完整，请核对缺失项。');expected=Object.fromEntries(selectionFields.map(key=>[key,clone(value[key])]));args={...identity(),accept_recommendation:true,recommendation_id:value.recommendation_id,recommendation_revision:value.recommendation_revision};}
+      else{if(!candidate()||!state.intentConfirmed||!api.intentReady||(candidate().available_sections.length&&!state.sections.length))throw Error('请明确选择 PDK、section 并确认完整实验条件。');expected={discovery_id:state.discovery.result.discovery.discovery_id,candidate_id:state.candidateId,sections:clone(state.sections),tmi_candidate_id:state.tmiCandidateId,model_contracts:clone(state.modelContracts),intent:intentValue()};args={...identity(),accept_recommendation:false,...expected};}
+      return action('prepare',state.preparation,async()=>{const record=await persist('prepare');const result=prepared(session(await guarded(()=>adapter.prepareExperiment(args)),state.session,{mutating:true}),state.targets);if(result.prepared.state==='prepared'&&!sameSelection(result.selection,expected))throw Error('准备结果改变了已确认的选择；保留原请求，不提交仿真。');acceptSession(result);await resolved(record);hydrate(result);state.intentConfirmed=result.prepared.state==='prepared';state.run=step();return result;},{uncertain:()=>state.pending.some(record=>record.phase==='prepare')});
     },
+    async confirmAndRun(){if(!state.recommendationMode)api.confirmIntent(true);const result=await api.prepare({acceptRecommendation:state.recommendationMode});if(result.prepared.state!=='prepared')return result;return api.runPrepared();},
     async runPrepared(){
       editable();requireAdapter('runPrepared');const plan=state.preparation.result?.prepared;if(state.run.status!=='idle'||state.preparation.status!=='complete'||plan?.state!=='prepared'||!state.intentConfirmed||state.rejectedSubmissionKeys.includes(plan.submission_key))throw Error('请先准备实验；已有请求或已拒绝计划不会重复提交。');
       const args={...identity(),plan_id:plan.plan_id},cachedIntake=clone(state.session);return action('run',state.run,async()=>{
@@ -259,15 +289,30 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       if(!id(selected)||state.session&&state.session.intake_id!==selected)throw Error('没有当前连接选中的 intake 可恢复。');
       return action('restore',state.intake,async()=>{
         const current=session(await guarded(()=>adapter.getSession({intake_id:selected})),state.session);if(current.intake_id!==selected)throw Error('返回的会话不是当前连接选中的 intake。');
-        if(current.prepared)prepared(current);if(current.job)job(current.job,current.prepared,null,current.execution_scope);
-        let rejection=null;if(current.state==='pre_dispatch_rejected'||rejectionTagged(current.submission)){
-          if(current.state!=='pre_dispatch_rejected'||current.job!==null)throw Error('保存的提交前拒绝状态不完整。');
-          rejection=validatePreDispatchRejection(current.submission,{intake:current,plan:current.prepared});
-        }
-        state.session=current;state.boundConnectionId=state.connection.connectionId;hydrate(current);
-        state.preparation=current.prepared?{status:'complete',result:current,error:null}:step();state.run=rejection?{status:'rejected',result:null,error:null,rejection}:current.job?{status:'complete',result:clone(current.job),error:null}:step();if(rejection)rememberRejection(rejection);
-        return current;
+        adoptSaved(current);return current;
       });
+    },
+    async refreshCurrent(binding){
+      const current=state.session,ticket=epoch;
+      const matches=()=>{
+        const selected=adapter?.getState?.().selectedIntakeId,sameIntake=state.session?.intake_id===binding?.intakeId;
+        return !disposed&&ticket===epoch&&sameConnection()&&binding?.connectionId===state.connection.connectionId&&id(binding?.intakeId)&&sha(binding?.sourceSha256)&&(!selected||selected===binding.intakeId)&&(sameIntake?binding.sourceSha256===state.session.source_sha256:selected===binding.intakeId);
+      };
+      const replacing=current?.intake_id!==binding?.intakeId;
+      if(!matches()||!Number.isSafeInteger(binding.revision)||binding.revision<0||!replacing&&binding.revision<current.revision)return {status:'ignored',reason:'binding_or_revision_changed'};
+      if(locked()||state.refresh.status==='loading')return {status:'deferred',reason:'request_pending'};
+      requireAdapter('getSession');const inputs=formSnapshot();state.refresh={status:'loading',result:null,error:null};emit();
+      try{
+        const raw=await adapter.getSession({intake_id:binding.intakeId});
+        if(!matches()||formSnapshot()!==inputs)return {status:'ignored',reason:'source_or_draft_changed'};
+        if(locked())return {status:'deferred',reason:'request_pending'};
+        if(current&&raw?.connection_id!==current.connection_id||raw?.intake_id!==binding.intakeId||raw?.source_sha256!==binding.sourceSha256||raw?.revision<Math.max(binding.revision,replacing?0:state.session.revision))return {status:'ignored',reason:'response_binding_changed'};
+        const next=session(raw,replacing?null:state.session);
+        if(!replacing&&next.revision===state.session.revision)return {status:'unchanged',session:clone(state.session)};
+        if(replacing){source=null;state.source=null;state.setupSourceIds={};state.hints={search_paths:'',cds_lib_hint:''};state.recommendationMode=true;}
+        adoptSaved(next);state.refresh={status:'complete',result:{revision:next.revision},error:null};return {status:'updated',session:clone(next)};
+      }catch(error){if(matches())state.refresh={status:'error',result:null,error:message(error)};throw error;}
+      finally{if(!disposed&&ticket===epoch){if(state.refresh.status==='loading')state.refresh=step();emit();}}
     },
     inspect(){requireAdapter('inspectExperiment');if(!state.run.result?.job_id||state.pending.length)throw Error('请先核对原提交回执。');const previous=state.run.result;return action('inspect',state.run,async()=>{const response=session(await guarded(()=>adapter.inspectExperiment({intake_id:state.session.intake_id,job_id:previous.job_id})),state.session),receipt=job(response.job,state.preparation.result?.prepared,previous,state.preparation.result?.execution_scope);acceptSession(response);await notifyRun(receipt);return receipt;});},
     destroy(){if(disposed)return;disposed=true;epoch++;unsubscribe?.();}
