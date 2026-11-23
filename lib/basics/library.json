@@ -82,8 +82,14 @@
           "kind": "spectre",
           "entry": "lib/basics/cmos-inverter/schematic/cmos-inverter.scs",
           "files": [
-            "lib/basics/cmos-inverter/schematic/cmos-inverter.scs"
-          ]
+            "lib/basics/cmos-inverter/schematic/cmos-inverter.scs",
+            "lib/_shared/rnl/382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a/eda-symbol.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl"
+          ],
+          "aliases": {
+            "lib/basics/cmos-inverter/schematic/eda-symbol.rnl": "lib/_shared/rnl/382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a/eda-symbol.rnl",
+            "lib/basics/cmos-inverter/schematic/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl"
+          }
         },
         {
           "id": "docs",

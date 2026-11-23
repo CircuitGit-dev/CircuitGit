@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import runpy
 import shutil
 import sys
 import tempfile
@@ -75,6 +76,16 @@ class InverterExampleTests(unittest.TestCase):
         self.assertNotIn('simulation',views)
         projects=json.loads((ROOT/'config/workbench.projects.json').read_text())
         self.assertFalse(any(p.get('cell_id')=='cmos-inverter' for p in projects))
+
+    def test_each_source_view_resolves_its_declared_drawing_packages(self):
+        closure=runpy.run_path(str(ROOT/'tools/ci/check.py'))['closure']
+        for view in self.cell['views']:
+            if view['kind'] not in ('rnl','spectre'):
+                continue
+            with self.subTest(view=view['id']):
+                self.assertEqual(closure(ROOT,view['files'],view.get('aliases'),view['entry']),[])
+                with self.assertRaisesRegex(ValueError,'Missing include/package'):
+                    closure(ROOT,[view['entry']],{},view['entry'])
 
     def test_rc_refresh_preserves_independent_example_and_library_metadata(self):
         with tempfile.TemporaryDirectory(prefix='inverter-import-') as tmp:
