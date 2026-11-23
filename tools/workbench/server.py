@@ -18,7 +18,12 @@ class Application:
         self.cfg=cfg;self.web=Path(web_root).resolve();runtime=Path(cfg['runtime_root']).resolve();runtime.mkdir(parents=True,exist_ok=True)
         keyfile=runtime/'signing.key'
         if not keyfile.exists():keyfile.write_bytes(secrets.token_bytes(32));os.chmod(keyfile,0o600)
-        self.site=core.site_load(Path(cfg['site_file']));self.workspace=Workspace(cfg,self.site,keyfile.read_bytes());self.runner=Runner(cfg.get('runs_root',runtime/'runs'),self.site,self.workspace.frozen,keyfile.read_bytes());self.publisher=Publisher(cfg,self.workspace,self.runner)
+        if cfg.get('onboarding_only'):
+            from onboarding_runtime import EmptyWorkspace,unconfigured_site
+            self.site=unconfigured_site();self.workspace=EmptyWorkspace(cfg,keyfile.read_bytes())
+        else:
+            self.site=core.site_load(Path(cfg['site_file']));self.workspace=Workspace(cfg,self.site,keyfile.read_bytes())
+        self.runner=Runner(cfg.get('runs_root',runtime/'runs'),self.site,self.workspace.frozen,keyfile.read_bytes());self.publisher=Publisher(cfg,self.workspace,self.runner)
         self.resource_pool=None
         if cfg.get('spiceowl_pool_file'):
             from spiceowl_pool import ResourcePool
@@ -36,6 +41,8 @@ class Application:
             self.ai=AiRoutes(Service(load_config(cfg['ai_client_config'])))
         self.token=secrets.token_urlsafe(32);self.pool=concurrent.futures.ThreadPoolExecutor(max_workers=2);self.operations={};self.mutex=threading.Lock()
         self.simulation=SimulationRuntime(self)
+        from onboarding_runtime import OnboardingRuntime
+        self.onboarding=OnboardingRuntime(self)
     def publication_view(self,r):
         p=r.get('publication')
         return {**p,'status':'published','verification_status':'complete'} if p and p.get('status')=='complete' else p
@@ -136,8 +143,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self.app.ai.stream(self,after,qs.get('session_id',['default'])[0])
                 return self.response(self.app.ai.get(path,qs))
             if path=='/api/health':return self.response({'api_version':'1','mode':'live','mutation_token':self.app.token,
+                'connection_id':self.app.onboarding.connection_id,
                 'ai_activity':{'running_summaries':self.app.ai.commit_summary_activity()['running_count'] if self.app.ai else 0},
-                'capabilities':{'git':True,'runner':True,'publish':True,'supervision':True,'submission_lookup':True,'viewer':(self.app.web/'viewer-adapter/index.js').exists()}})
+                'capabilities':{'git':not self.app.cfg.get('onboarding_only',False),'runner':True,'publish':not self.app.cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'simulation_onboarding':self.app.onboarding.enabled,'simulation_onboarding_api_version':'1' if self.app.onboarding.enabled else None,'viewer':(self.app.web/'viewer-adapter/index.js').exists()}})
+            if path.startswith('/api/simulation/onboarding/'):
+                if any(len(v)!=1 for v in qs.values()):raise ValueError('Onboarding query fields must be unique')
+                return self.response(self.app.onboarding.read(path[len('/api/simulation/onboarding/'):],{k:v[0] for k,v in qs.items()}))
             if path=='/api/project':
                 data=self.app.workspace.describe();data['capabilities']['viewer']=(self.app.web/'viewer-adapter/index.js').exists();return self.response(data)
             if path=='/api/simulation/runtime':
@@ -234,6 +245,8 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/simulation/resources/scan':
                 if set(b)!={'project_id'}:raise ValueError('Only project_id is accepted')
                 return self.response(self.app.simulation.scan(b['project_id'],self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
+            if path.startswith('/api/simulation/onboarding/'):
+                return self.response(self.app.onboarding.write(path[len('/api/simulation/onboarding/'):],b))
             if path=='/api/simulation/control':
                 if set(b)-{'operation','arguments','idempotency_key'} or not {'operation','arguments'}.issubset(b):raise ValueError('Invalid finite simulation command')
                 return self.response(self.app.simulation.control(b['operation'],b['arguments'],b.get('idempotency_key'),self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
