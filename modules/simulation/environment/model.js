@@ -24,6 +24,7 @@ const maxDiscoveryCandidates=8*256;
 const selectionFields=['discovery_id','candidate_id','sections','tmi_candidate_id','model_contracts','intent'];
 const canonical=value=>JSON.stringify(value,(_key,item)=>object(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
 const sameSelection=(value,expected)=>object(value)&&selectionFields.every(key=>canonical(value[key])===canonical(expected[key]));
+const configurationSnapshot=value=>canonical(Object.fromEntries(Object.entries(value).filter(([key])=>!['job','state','updated_at','plans','submission','next_actions'].includes(key))));
 function recommended(value){
   const result=value.recommended_selection,nested=value.discovery?.recommended_selection;
   if(result==null&&nested==null)return null;
@@ -147,14 +148,16 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     state.intent=emptyIntent();for(const key of intentFields)if(['string','number'].includes(typeof selection.intent?.[key]))state.intent[key]=String(selection.intent[key]);
     state.intentConfirmed=false;
   }
-  function adoptSaved(current){
+  function adoptSaved(current,{preserveDraft=false}={}){
     if(current.prepared)prepared(current);if(current.job)job(current.job,current.prepared,null,current.execution_scope);
     let rejection=null;if(current.state==='pre_dispatch_rejected'||rejectionTagged(current.submission)){
       if(current.state!=='pre_dispatch_rejected'||current.job!==null)throw Error('保存的提交前拒绝状态不完整。');
       rejection=validatePreDispatchRejection(current.submission,{intake:current,plan:current.prepared});
     }
-    state.session=current;state.boundConnectionId=state.connection.connectionId;hydrate(current);state.recommendationMode=!(current.prepared&&current.selection);
-    state.intake={status:'complete',result:current,error:null};state.preparation=current.prepared?{status:'complete',result:current,error:null}:step();state.run=rejection?{status:'rejected',result:null,error:null,rejection}:current.job?{status:'complete',result:clone(current.job),error:null}:step();if(rejection)rememberRejection(rejection);
+    state.session=current;state.boundConnectionId=state.connection.connectionId;
+    if(!preserveDraft){hydrate(current);state.recommendationMode=!(current.prepared&&current.selection);state.preparation=current.prepared?{status:'complete',result:current,error:null}:step();}
+    else if(state.preparation.status==='complete')state.preparation.result=current;
+    state.intake={status:'complete',result:current,error:null};state.run=rejection?{status:'rejected',result:null,error:null,rejection}:current.job?{status:'complete',result:clone(current.job),error:null}:step();if(rejection)rememberRejection(rejection);
   }
   const intentValue=()=>{
     const result={};for(const key of ports){if(!state.intent[key].trim())return null;result[key]=state.intent[key].trim();}
@@ -308,13 +311,17 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
         if(locked())return {status:'deferred',reason:'request_pending'};
         if(current&&raw?.connection_id!==current.connection_id||raw?.intake_id!==binding.intakeId||raw?.source_sha256!==binding.sourceSha256||raw?.revision<Math.max(binding.revision,replacing?0:state.session.revision))return {status:'ignored',reason:'response_binding_changed'};
         const next=session(raw,replacing?null:state.session);
-        if(!replacing&&next.revision===state.session.revision)return {status:'unchanged',session:clone(state.session)};
+        if(!replacing&&canonical(next)===canonical(state.session))return {status:'unchanged',session:clone(state.session)};
+        // Passive inspect may update job/report/waveforms and derived actions at
+        // the same revision. Preserve local inputs while adopting that evidence.
+        const preserveDraft=!replacing&&next.revision===state.session.revision&&configurationSnapshot(next)===configurationSnapshot(state.session);
+        if(preserveDraft&&next.job&&state.session.job)job(next.job,next.prepared,state.session.job,next.execution_scope);
         if(replacing){source=null;state.source=null;state.setupSourceIds={};state.hints={search_paths:'',cds_lib_hint:''};state.recommendationMode=true;}
-        adoptSaved(next);state.refresh={status:'complete',result:{revision:next.revision},error:null};return {status:'updated',session:clone(next)};
+        adoptSaved(next,{preserveDraft});state.refresh={status:'complete',result:{revision:next.revision},error:null};return {status:'updated',session:clone(next)};
       }catch(error){if(matches())state.refresh={status:'error',result:null,error:message(error)};throw error;}
       finally{if(!disposed&&ticket===epoch){if(state.refresh.status==='loading')state.refresh=step();emit();}}
     },
-    inspect(){requireAdapter('inspectExperiment');if(!state.run.result?.job_id||state.pending.length)throw Error('请先核对原提交回执。');const previous=state.run.result;return action('inspect',state.run,async()=>{const response=session(await guarded(()=>adapter.inspectExperiment({intake_id:state.session.intake_id,job_id:previous.job_id})),state.session),receipt=job(response.job,state.preparation.result?.prepared,previous,state.preparation.result?.execution_scope);acceptSession(response);await notifyRun(receipt);return receipt;});},
+    inspect(){requireAdapter('inspectExperiment');if(!state.run.result?.job_id||state.pending.length)throw Error('请先核对原提交回执。');const previous=state.run.result,plan=state.preparation.result?.prepared||state.session?.prepared,scope=state.preparation.result?.execution_scope||state.session?.execution_scope;return action('inspect',state.run,async()=>{const response=session(await guarded(()=>adapter.inspectExperiment({intake_id:state.session.intake_id,job_id:previous.job_id})),state.session),receipt=job(response.job,plan,previous,scope);acceptSession(response);await notifyRun(receipt);return receipt;});},
     destroy(){if(disposed)return;disposed=true;epoch++;unsubscribe?.();}
   };
   connectAdapter(adapter);return api;
