@@ -21,8 +21,8 @@
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
-      "bytes": 1113,
-      "sha256": "e60602c7c5528984ff32349715ad2fb26dc61aa84185f45357fbdc45ab2177fe"
+      "bytes": 1422,
+      "sha256": "c2e1451f16fe7cbccb70352cec4c8bcf862ef8ecc3c11e1494b29df32d9cbdd0"
     },
     {
       "path": "about.json",
@@ -552,8 +552,8 @@
     },
     {
       "path": "selection.js",
-      "bytes": 2715,
-      "sha256": "039880a083d6d74f8e0aae07a08c6ea0091cbbc686c5bd14201c226a22ef28ae"
+      "bytes": 2909,
+      "sha256": "67242f51a4c601be5abaaf20aafb7dca28cc26002bfa4a12c3f25e91342f2bcd"
     },
     {
       "path": "shell.js",
@@ -707,7 +707,8 @@
     "subcircuits: studio direct-root uses existing verified closure, occurrence resets naturally"
   ],
   "local_patch_notes": [
-    "2026-11-10: Add IC Workbench guide to existing Help menu; upstream commit remains pinned."
+    "2026-11-10: Add IC Workbench guide to existing Help menu; upstream commit remains pinned.",
+    "2026-11-23: Add read-only selected-instance model and dimensions through the reproducible selected-instance-properties-v1 patch."
   ],
   "circuitgit_adaptations": [
     {
@@ -721,6 +722,22 @@
       "previous_packaged_sha256": "b64643e9c5deb76e7a2a91b7dde4fb4e016f329f99042c92fec7d8f105db4bd9",
       "sha256": "03de8a8d7901d35dd809cbf69375fd33632b0ef433920a1db51cebf70fcaf6a7",
       "reason": "Document the CircuitGit demo entry adaptation."
+    },
+    {
+      "path": "selection.js",
+      "previous_packaged_sha256": "039880a083d6d74f8e0aae07a08c6ea0091cbbc686c5bd14201c226a22ef28ae",
+      "sha256": "67242f51a4c601be5abaaf20aafb7dca28cc26002bfa4a12c3f25e91342f2bcd",
+      "reason": "Display literal selected-instance model and dimensions using the exact Document source span.",
+      "patch_id": "selected-instance-properties-v1",
+      "patch": "tools/viewer/patches/selected-instance-properties.mjs"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "previous_packaged_sha256": "e60602c7c5528984ff32349715ad2fb26dc61aa84185f45357fbdc45ab2177fe",
+      "sha256": "c2e1451f16fe7cbccb70352cec4c8bcf862ef8ecc3c11e1494b29df32d9cbdd0",
+      "reason": "Document the selected-instance source inspection adaptation.",
+      "patch_id": "selected-instance-properties-v1",
+      "patch": "tools/viewer/patches/selected-instance-properties.mjs"
     }
   ]
 }
