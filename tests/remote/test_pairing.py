@@ -2,6 +2,7 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import types
 import unittest
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ sys.path.insert(0,str(ROOT/'apps/codex'))
 from browser_pairing import Pairing, confirmation_html
 from browser_login import LocalLogin
 from icwb.service import Failure
+from remote_node import Handler, Node
 
 
 class PairTests(unittest.TestCase):
@@ -31,6 +33,44 @@ class PairTests(unittest.TestCase):
         self.assertNotIn('accessCode',p.decide(rid,csrf,False));self.assertEqual(p.grants,{})
         markup=confirmation_html('https://example.github.io','a'*32,'request','csrf','http://127.0.0.1:8767','nonce')
         self.assertIn('允许并连接',markup);self.assertNotIn('browser-access.key',markup)
+
+    def test_simulation_mode_describes_only_available_workflow_and_keeps_confirmation_protocol(self):
+        args=('https://example.github.io','a'*32,'request','csrf','http://127.0.0.1:8767','nonce')
+        normal=confirmation_html(*args)
+        simulation=confirmation_html(*args,mode='simulation-only')
+        self.assertIn('连接本机仿真环境',simulation)
+        self.assertIn('你提供的独立网表',simulation)
+        self.assertIn('你选中的仿真主机及授权范围',simulation)
+        self.assertIn('准备、运行仿真并查看结果',simulation)
+        for unavailable in ('Codex','登录','订阅','PR','提交 Git','恢复版本'):
+            self.assertNotIn(unavailable,simulation)
+        self.assertIn('连接本机 Codex',normal)
+        self.assertIn('Codex 登录状态',normal)
+        self.assertIn('创建或更新 PR',normal)
+        self.assertEqual(normal.split('<script nonce=',1)[1],simulation.split('<script nonce=',1)[1])
+        with self.assertRaises(ValueError):confirmation_html(*args,mode='unsupported')
+
+    def test_connect_page_selects_simulation_copy_for_nodes_without_chat_routes(self):
+        for routes,heading in ((None,'连接本机仿真环境'),(object(),'连接本机 Codex')):
+            node=Node(routes,'synthetic-token',['https://example.github.io'],'fixture-node','http://127.0.0.1:8767')
+            pages=[];guards=[]
+            handler=types.SimpleNamespace(node=node,local_guard=lambda:guards.append(True),
+                route=lambda:('/connect',{'origin':['https://example.github.io'],'state':['s'*32]}),
+                send_page=lambda page,nonce:pages.append((page,nonce)))
+            Handler.connect_page(handler)
+            self.assertEqual(guards,[True])
+            self.assertIn('<h1>'+heading+'</h1>',pages[0][0])
+            self.assertEqual(len(node.pairing.requests),1)
+            self.assertEqual(node.pairing.grants,{})
+            request=next(iter(node.pairing.requests.values()))
+            self.assertEqual(request['origin'],'https://example.github.io')
+            self.assertEqual(request['state'],'s'*32)
+
+    def test_simulation_copy_retains_origin_escaping(self):
+        page=confirmation_html('https://example.invalid/<img src=x>','a'*32,'request','csrf',
+            'http://127.0.0.1:8767','nonce',mode='simulation-only')
+        self.assertNotIn('<img src=x>',page)
+        self.assertIn('&lt;img src=x&gt;',page)
 
 
 class FakeRpc:

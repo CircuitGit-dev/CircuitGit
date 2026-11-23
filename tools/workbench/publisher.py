@@ -6,8 +6,9 @@ from runner import atomic,filehash,locked,stamp
 from workspace import git,Conflict
 
 class Publisher:
-    def __init__(self,cfg,workspace,runner):self.cfg=cfg;self.ws=workspace;self.runner=runner;self.gh=cfg.get('gh_bin','gh');self.repo=cfg['github_repo']
+    def __init__(self,cfg,workspace,runner):self.cfg=cfg;self.ws=workspace;self.runner=runner;self.gh=cfg.get('gh_bin','gh');self.repo=cfg.get('github_repo')
     def api(self,endpoint,method='GET',data=None,upload=None):
+        if self.cfg.get('local_only') or not self.repo:raise PermissionError('Local intake has no publication destination')
         argv=[self.gh,'api',endpoint,'--method',method,'-H','Accept: application/vnd.github+json','-H','X-GitHub-Api-Version: 2022-11-28']
         raw=None
         if upload:argv+=['-H','Content-Type: application/octet-stream','--input',str(upload)]
@@ -39,6 +40,7 @@ class Publisher:
                     if any(re.search(p,data) for p in patterns):raise ValueError('credential scan blocked publication: '+m.name)
                     previous=data[-256:]
     def prepare(self,rid):
+        if self.cfg.get('local_only') or not self.repo:raise PermissionError('Local intake has no publication destination')
         r=self.runner.read(rid);c=r.get('collection')
         if not c or not c.get('contains_full_raw'):raise ValueError('full raw collection required before publication')
         archive=Path(c['archive'])
