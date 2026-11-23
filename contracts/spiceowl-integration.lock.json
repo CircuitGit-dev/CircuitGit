@@ -2,7 +2,7 @@
   "schema": "circuitgit.spiceowl-integration.v1",
   "spiceowl": {
     "repository": "https://github.com/joshuazeng713/spiceowl.git",
-    "commit": "07180f77dd615a98dc81a8b538e8e20156f5aa79",
+    "commit": "4bef6878d5ec5a8a397f2049df2623644ec693e2",
     "contract_path": "docs/contracts/ic-workbench-supervision.v1.json",
     "contract_sha256": "e204fd437ab74f0406753189be7438bd9201c0ad7156e1cee1687d2dc3e3e864"
   },
