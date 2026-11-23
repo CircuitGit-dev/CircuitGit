@@ -1,0 +1,124 @@
+{
+  "schema": "circuitgit.research-inputs.v1",
+  "source": "outputs/adc/mdac_array_20261106/results/TB_MDAC_CA4_N06/Interactive.2/MDAC_CODES/input.scs",
+  "source_sha256": "f58557e559be51614573e9b34ea94cbd357da28926a32e0d0ba966838b8cc09f",
+  "design_source": "outputs/adc/mdac_array_20261106/results/TB_MDAC_CA4_N06/Interactive.2/MDAC_CODES/design_netlist.scs",
+  "design_sha256": "ba1f933c85e0565d98fbb206017551bd3162be8c8a2a1be085a3e40eae309b54",
+  "history": "Interactive.2",
+  "test": "MDAC_CODES",
+  "audit_path": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/audit.json",
+  "audit_sha256": "5453571e5bb0893fc8b60bdc92c82f8d0ebd025a0da56f34a6bf5acb50e7274d",
+  "configuration_sha256": "32bfab5007a329e67b162d89a8ef470fdffb81b7d50354075c8d4fd2a2c73f42",
+  "runtime_configuration_sha256": "c1d0deeb2dce4d3266d063d6965ba9b536b9b4a0366e623f769841de73ddf2b2",
+  "published_bytes_are_original": false,
+  "external_definitions_removed": [
+    {
+      "subcircuit": "ND2D4BWP12T30P140ULVT",
+      "alias": "RESEARCH_ULVT_ND2D4",
+      "body_sha256": "771565bcf6ed2152670995cfe7e6317bb9b3d7f3d70bb9a64a0cd0330c8fd844",
+      "bytes": 2068
+    }
+  ],
+  "inherited_external_pin_source": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/bundle.json",
+  "inherited_external_pins": {
+    "PDK_MAIN": "0861d3d08ec8a7884bc1f7c45f72bc9ab3df7c860ff8098f76abf1185fd97b96",
+    "STDCELL_SVT_LVT": "1f45bf5a3b017e74aac8b9d332282ecf1f1aa36bedc0fa6e1a4f84497da7b5a7"
+  },
+  "model_snapshot_manifest": "outputs/adc/real_sar_20261106/model_snapshot.json",
+  "model_snapshot_manifest_sha256": "f16a60a7d710c816f4032ec80fcd3d9bef749f7f5a5c74ed0454d8252be2fe78",
+  "veriloga": [
+    {
+      "module": "PIPE_RailClamp",
+      "source": "outputs/adc/real_sar_20261106/model_snapshot/PIPE_RailClamp.va",
+      "sha256": "1abaf750089bbfcc11669cb2c086e3c2e7548cf2c839f0e966df9b87f2237d78",
+      "snapshot_time": 1793932803.43539,
+      "historical_run_revision_verified": false
+    },
+    {
+      "module": "PIPE_Clock250_250_500",
+      "source": "outputs/adc/real_sar_20261106/model_snapshot/PIPE_Clock250_250_500.va",
+      "sha256": "5bc5a1ded6cd039a717eca1dcfb573efc884732ab80da06f286e166a329c71c5",
+      "snapshot_time": 1793932803.7708,
+      "historical_run_revision_verified": false
+    }
+  ],
+  "local_dependencies": [
+    {
+      "source": "outputs/adc/mdac_array_20261106/TB_MDAC_CA4_N06_save.scs",
+      "sha256": "395df11b08ebe2fc649029b6bba940b6e4f211a940b9fee6d922851a83d9fe80",
+      "revision_basis": "selected-local-snapshot",
+      "historical_run_revision_verified": false
+    },
+    {
+      "source": "outputs/adc/mdac_array_20261106/numerical_options.scs",
+      "sha256": "ac810208045ddaab03c537de0e9ce1322140f3734fb00cb102949b3de3c34912",
+      "revision_basis": "selected-local-snapshot",
+      "historical_run_revision_verified": false
+    }
+  ],
+  "redacted_references": [
+    {
+      "directive": "include",
+      "original_reference_sha256": "903808cf51fac3919145e90b319c50efb64f6d79ba5db03a24b3db21857da42f"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "9aa82f372508fe322e34c7d293089fa26b279c49e9d3205551936570339ccfbe"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "d5efe07f617ab02a06af07770947176f9b9a19b19af7a58db10da4207edfc3d6"
+    },
+    {
+      "directive": "ahdl_include",
+      "original_reference_sha256": "eff10d6711b021f50e56aaee36380b3563e61008c84e7f527af19d2a0a3893de"
+    },
+    {
+      "directive": "ahdl_include",
+      "original_reference_sha256": "21fe82e124f01d55cc8e2c4a170f38f56d7b99ec59137a3b563123b40798a0e6"
+    }
+  ],
+  "canonical_sources": {
+    "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/MDAC4_ARRAY_G8_N06.scs": "e388e968f69cfeb1228c4a2ee39822c99041dc9f2a87057d06ecec3af0bcddef",
+    "lib/pipetisar-research/MDAC4_MOM_BIT_N06/schematic/research/MDAC4_MOM_BIT_N06.scs": "fc30502bf014ea7c841a3a07f85c4e2f84e0d76131adc10be0e6f06954c372b4",
+    "lib/pipetisar-research/MDAC4_REF_CTRL_N06/schematic/research/MDAC4_REF_CTRL_N06.scs": "869526c2c81a2fcd9fa7fd483a29daaa516b556db5cdeb8e8e07d87d8dc554db",
+    "lib/pipetisar-research/PIPE_OTA_Diff_Ideal/schematic/research/PIPE_OTA_Diff_Ideal.scs": "3638533cbe7c7ba5bb8bc3ca74300fa8c8d18ea7f282e3622948eefe0f4fb237",
+    "lib/pipetisar-research/Switch/schematic/research/Switch.scs": "079af4020024caca33a18b0058e1153b3adc4e8e618216fb5591e07b4f633d99"
+  },
+  "limitations": [
+    "Project VA uses the explicitly pinned archived snapshot; matching the historical simulator binary revision is not established.",
+    "Saved-signal and numerical-options includes are selected, hash-pinned local versions; original input/design hashes do not verify their historical run revisions.",
+    "Only explicitly bound canonical child subcircuits are recompiled; electrical edits to the guarded displayed testbench entry require an explicit TB binding/input template update and otherwise fail compilation.",
+    "The two global PDK pins are inherited from the existing declared operator model revision, not newly measured from this history.",
+    "Licensed PDK/standard-cell bodies, site configuration and credentials are excluded. No simulation was run."
+  ],
+  "simulation_executed": false
+}

@@ -1,0 +1,226 @@
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: Switch
+// View name: schematic
+subckt Switch A B ctrl
+parameters Rseries=50
+    R0 (B net12) resistor r=Rseries
+    W0 (net12 A ctrl 0) relay vt1=499.5m vt2=500.5m ropen=1T \
+        rclosed=100.0m
+ends Switch
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_MOM_BIT_N06
+// View name: schematic
+subckt MDAC4_MOM_BIT_N06 BN BP H HB L LB TRACK VDD VINN VINP VREFN VREFP \
+        VSS XN XP
+    CN (BN XP) cfmom_2t nr=60 lr=3.2u w=50n s=50n stm=2 spm=7 multi=1
+    CP (BP XN) cfmom_2t nr=60 lr=3.2u w=50n s=50n stm=2 spm=7 multi=1
+    SN (VINN BN TRACK) Switch Rseries=0.1
+    SP (VINP BP TRACK) Switch Rseries=0.1
+    MPH (BP HB VREFP VDD) pch_hvt_mac l=60n w=500n multi=4 nf=1 sd=100n \
+        ad=3.75e-14 as=3.75e-14 pd=1.15u ps=1.15u nrd=0.383209 \
+        nrs=0.383209 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=120.93n spba=121.82n \
+        spba1=124.403n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    MNH (BN LB VREFP VDD) pch_hvt_mac l=60n w=500n multi=4 nf=1 sd=100n \
+        ad=3.75e-14 as=3.75e-14 pd=1.15u ps=1.15u nrd=0.383209 \
+        nrs=0.383209 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=120.93n spba=121.82n \
+        spba1=124.403n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    MPL (BP L VREFN VSS) nch_hvt_mac l=60n w=500n multi=4 nf=1 sd=100n \
+        ad=3.75e-14 as=3.75e-14 pd=1.15u ps=1.15u nrd=0.662935 \
+        nrs=0.662935 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=120.93n spba=121.82n \
+        spba1=124.403n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    MNL (BN H VREFN VSS) nch_hvt_mac l=60n w=500n multi=4 nf=1 sd=100n \
+        ad=3.75e-14 as=3.75e-14 pd=1.15u ps=1.15u nrd=0.662935 \
+        nrs=0.662935 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=120.93n spba=121.82n \
+        spba1=124.403n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+ends MDAC4_MOM_BIT_N06
+// End of subcircuit definition.
+
+// Library name: tcbn28hpcplusbwp12t30p140ulvt
+// Cell name: ND2D4BWP12T30P140ULVT
+// View name: schematic
+include "@EXTERNAL_RESEARCH_ULVT_ND2D4@"
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_REF_CTRL_N06
+// View name: schematic
+subckt MDAC4_REF_CTRL_N06 AMP H\<3\> H\<2\> H\<1\> H\<0\> HB\<3\> HB\<2\> \
+        HB\<1\> HB\<0\> K\<3\> K\<2\> K\<1\> K\<0\> L\<3\> L\<2\> L\<1\> \
+        L\<0\> LB\<3\> LB\<2\> LB\<1\> LB\<0\> VDD VSS
+    XNOTK\<3\> (K\<3\> K\<3\> VDD VSS KB\<3\>) ND2D4BWP12T30P140ULVT
+    XNOTK\<2\> (K\<2\> K\<2\> VDD VSS KB\<2\>) ND2D4BWP12T30P140ULVT
+    XNOTK\<1\> (K\<1\> K\<1\> VDD VSS KB\<1\>) ND2D4BWP12T30P140ULVT
+    XNOTK\<0\> (K\<0\> K\<0\> VDD VSS KB\<0\>) ND2D4BWP12T30P140ULVT
+    XPHB\<3\> (K\<3\> AMP VDD VSS HB\<3\>) ND2D4BWP12T30P140ULVT
+    XPHB\<2\> (K\<2\> AMP VDD VSS HB\<2\>) ND2D4BWP12T30P140ULVT
+    XPHB\<1\> (K\<1\> AMP VDD VSS HB\<1\>) ND2D4BWP12T30P140ULVT
+    XPHB\<0\> (K\<0\> AMP VDD VSS HB\<0\>) ND2D4BWP12T30P140ULVT
+    XPH\<3\> (HB\<3\> HB\<3\> VDD VSS H\<3\>) ND2D4BWP12T30P140ULVT
+    XPH\<2\> (HB\<2\> HB\<2\> VDD VSS H\<2\>) ND2D4BWP12T30P140ULVT
+    XPH\<1\> (HB\<1\> HB\<1\> VDD VSS H\<1\>) ND2D4BWP12T30P140ULVT
+    XPH\<0\> (HB\<0\> HB\<0\> VDD VSS H\<0\>) ND2D4BWP12T30P140ULVT
+    XNLB\<3\> (KB\<3\> AMP VDD VSS LB\<3\>) ND2D4BWP12T30P140ULVT
+    XNLB\<2\> (KB\<2\> AMP VDD VSS LB\<2\>) ND2D4BWP12T30P140ULVT
+    XNLB\<1\> (KB\<1\> AMP VDD VSS LB\<1\>) ND2D4BWP12T30P140ULVT
+    XNLB\<0\> (KB\<0\> AMP VDD VSS LB\<0\>) ND2D4BWP12T30P140ULVT
+    XNL\<3\> (LB\<3\> LB\<3\> VDD VSS L\<3\>) ND2D4BWP12T30P140ULVT
+    XNL\<2\> (LB\<2\> LB\<2\> VDD VSS L\<2\>) ND2D4BWP12T30P140ULVT
+    XNL\<1\> (LB\<1\> LB\<1\> VDD VSS L\<1\>) ND2D4BWP12T30P140ULVT
+    XNL\<0\> (LB\<0\> LB\<0\> VDD VSS L\<0\>) ND2D4BWP12T30P140ULVT
+ends MDAC4_REF_CTRL_N06
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_OTA_Diff_Ideal
+// View name: schematic
+subckt PIPE_OTA_Diff_Ideal Vcmo Vdd Vin Vinb Vout Voutb
+parameters gm=1 gm_id=20 Gain=1e8
+    I0 (Vdd 0) isource dc=gm/gm_id type=dc
+    E4 (Vinb net023 0 0) vcvs gain=0
+    R0 (Voutb Vcmo_int) resistor r=Gain/gm isnoisy=no
+    R4 (Vcmo_int Vout) resistor r=Gain/gm isnoisy=no
+    G0 (Voutb Vout Vin net023) vccs gm=gm/2
+    G1 (Voutb 0 Vcmo_int Vcmo) vccs gm=20*gm
+    G3 (Vout 0 Vcmo_int Vcmo) vccs gm=20*gm
+ends PIPE_OTA_Diff_Ideal
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_ARRAY_G8_N06
+// View name: schematic
+subckt MDAC4_ARRAY_G8_N06 AMP K\<3\> K\<2\> K\<1\> K\<0\> RESET RON ROP \
+        TRACK VCM VDD VINN VINP VREFN VREFP VSS
+    XBIT0 (BN\<0\> BP\<0\> H\<0\> HB\<0\> L\<0\> LB\<0\> TRACK VDD VINN \
+        VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT1\<1\> (BN\<1\> BP\<1\> H\<1\> HB\<1\> L\<1\> LB\<1\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT1\<0\> (BN\<1\> BP\<1\> H\<1\> HB\<1\> L\<1\> LB\<1\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT2\<3\> (BN\<2\> BP\<2\> H\<2\> HB\<2\> L\<2\> LB\<2\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT2\<2\> (BN\<2\> BP\<2\> H\<2\> HB\<2\> L\<2\> LB\<2\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT2\<1\> (BN\<2\> BP\<2\> H\<2\> HB\<2\> L\<2\> LB\<2\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT2\<0\> (BN\<2\> BP\<2\> H\<2\> HB\<2\> L\<2\> LB\<2\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT3\<7\> (BN\<3\> BP\<3\> H\<3\> HB\<3\> L\<3\> LB\<3\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT3\<6\> (BN\<3\> BP\<3\> H\<3\> HB\<3\> L\<3\> LB\<3\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT3\<5\> (BN\<3\> BP\<3\> H\<3\> HB\<3\> L\<3\> LB\<3\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT3\<4\> (BN\<3\> BP\<3\> H\<3\> HB\<3\> L\<3\> LB\<3\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT3\<3\> (BN\<3\> BP\<3\> H\<3\> HB\<3\> L\<3\> LB\<3\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT3\<2\> (BN\<3\> BP\<3\> H\<3\> HB\<3\> L\<3\> LB\<3\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT3\<1\> (BN\<3\> BP\<3\> H\<3\> HB\<3\> L\<3\> LB\<3\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XBIT3\<0\> (BN\<3\> BP\<3\> H\<3\> HB\<3\> L\<3\> LB\<3\> TRACK VDD \
+        VINN VINP VREFN VREFP VSS XN XP) MDAC4_MOM_BIT_N06
+    XCTRL (AMP H\<3\> H\<2\> H\<1\> H\<0\> HB\<3\> HB\<2\> HB\<1\> HB\<0\> \
+        K\<3\> K\<2\> K\<1\> K\<0\> L\<3\> L\<2\> L\<1\> L\<0\> LB\<3\> \
+        LB\<2\> LB\<1\> LB\<0\> VDD VSS) MDAC4_REF_CTRL_N06
+    XOTA (VCM VDD XP XN ROP RON) PIPE_OTA_Diff_Ideal gm=GmIdeal gm_id=20 \
+        Gain=AolIdeal
+    XLIMIT (ROP RON VDD VSS) PIPE_RailClamp gclamp=100 margin=20m knee=1m \
+        enable=LimitEnable
+    CDN (BDN XP) cfmom_2t nr=60 lr=3.2u w=50n s=50n stm=2 spm=7 multi=1
+    CFN\<1\> (XP RON) cfmom_2t nr=60 lr=3.2u w=50n s=50n stm=2 spm=7 \
+        multi=1
+    CFN\<0\> (XP RON) cfmom_2t nr=60 lr=3.2u w=50n s=50n stm=2 spm=7 \
+        multi=1
+    CDP (BDP XN) cfmom_2t nr=60 lr=3.2u w=50n s=50n stm=2 spm=7 multi=1
+    CFP\<1\> (XN ROP) cfmom_2t nr=60 lr=3.2u w=50n s=50n stm=2 spm=7 \
+        multi=1
+    CFP\<0\> (XN ROP) cfmom_2t nr=60 lr=3.2u w=50n s=50n stm=2 spm=7 \
+        multi=1
+    SDCN (VCM BDN AMP) Switch Rseries=5
+    SDIN (VINN BDN TRACK) Switch Rseries=0.1
+    SRN (XP RON RESET) Switch Rseries=0.1
+    SDCP (VCM BDP AMP) Switch Rseries=5
+    SDIP (VINP BDP TRACK) Switch Rseries=0.1
+    SRP (XN ROP RESET) Switch Rseries=0.1
+ends MDAC4_ARRAY_G8_N06
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: TB_MDAC_CA4_N06
+// View name: schematic
+XDUT (AMP K\<3\> K\<2\> K\<1\> K\<0\> RESET RON ROP TRACK VCM VDD VINN \
+        VINP VREFN VREFP 0) MDAC4_ARRAY_G8_N06
+XCLK (TRACK AMP RESET TA TB PHI1EN PHI1N PHI2P PHI2N VDD 0) \
+        PIPE_Clock250_250_500 tper=1n ttrack=250p tamp=500p guard=10p \
+        tr=1p
+VVREFN (VREFN 0) vsource dc=0 type=dc
+VVREFP (VREFP 0) vsource dc=1 type=dc
+VVCM (VCM 0) vsource dc=0.5 type=dc
+VVDD (VDD 0) vsource dc=1 type=dc
+VK3 (K\<3\> 0) vsource type=pwl wave=[ 0 0 1n 0 (1n+20p) 0 2n 0 (2n+20p) 0 \
+        3n 0 (3n+20p) 0 4n 0 (4n+20p) 0 5n 0 (5n+20p) 0 6n 0 (6n+20p) 0 7n \
+        0 (7n+20p) 0 8n 0 (8n+20p) 0 9n 0 (9n+20p) 0 10n 0 (10n+20p) 1 11n \
+        1 (11n+20p) 1 12n 1 (12n+20p) 1 13n 1 (13n+20p) 1 14n 1 (14n+20p) \
+        1 15n 1 (15n+20p) 1 16n 1 (16n+20p) 1 17n 1 (17n+20p) 1 18n 1 \
+        (18n+20p) 0 19n 0 (19n+20p) 0 20n 0 ]
+VK2 (K\<2\> 0) vsource type=pwl wave=[ 0 1 1n 1 (1n+20p) 1 2n 1 (2n+20p) 0 \
+        3n 0 (3n+20p) 0 4n 0 (4n+20p) 0 5n 0 (5n+20p) 0 6n 0 (6n+20p) 1 7n \
+        1 (7n+20p) 1 8n 1 (8n+20p) 1 9n 1 (9n+20p) 1 10n 1 (10n+20p) 0 11n \
+        0 (11n+20p) 0 12n 0 (12n+20p) 0 13n 0 (13n+20p) 0 14n 0 (14n+20p) \
+        1 15n 1 (15n+20p) 1 16n 1 (16n+20p) 1 17n 1 (17n+20p) 1 18n 1 \
+        (18n+20p) 1 19n 1 (19n+20p) 1 20n 1 ]
+VK1 (K\<1\> 0) vsource type=pwl wave=[ 0 1 1n 1 (1n+20p) 1 2n 1 (2n+20p) 0 \
+        3n 0 (3n+20p) 0 4n 0 (4n+20p) 1 5n 1 (5n+20p) 1 6n 1 (6n+20p) 0 7n \
+        0 (7n+20p) 0 8n 0 (8n+20p) 1 9n 1 (9n+20p) 1 10n 1 (10n+20p) 0 11n \
+        0 (11n+20p) 0 12n 0 (12n+20p) 1 13n 1 (13n+20p) 1 14n 1 (14n+20p) \
+        0 15n 0 (15n+20p) 0 16n 0 (16n+20p) 1 17n 1 (17n+20p) 1 18n 1 \
+        (18n+20p) 1 19n 1 (19n+20p) 1 20n 1 ]
+VK0 (K\<0\> 0) vsource type=pwl wave=[ 0 1 1n 1 (1n+20p) 1 2n 1 (2n+20p) 0 \
+        3n 0 (3n+20p) 1 4n 1 (4n+20p) 0 5n 0 (5n+20p) 1 6n 1 (6n+20p) 0 7n \
+        0 (7n+20p) 1 8n 1 (8n+20p) 0 9n 0 (9n+20p) 1 10n 1 (10n+20p) 0 11n \
+        0 (11n+20p) 1 12n 1 (12n+20p) 0 13n 0 (13n+20p) 1 14n 1 (14n+20p) \
+        0 15n 0 (15n+20p) 1 16n 1 (16n+20p) 0 17n 0 (17n+20p) 1 18n 1 \
+        (18n+20p) 1 19n 1 (19n+20p) 1 20n 1 ]
+VVINN (VINN 0) vsource type=pwl wave=[ 0 0.51125 1n 0.51125 (1n+20p) \
+        0.55125 2n 0.55125 (2n+20p) 0.94875 3n 0.94875 (3n+20p) 0.92625 4n \
+        0.92625 (4n+20p) 0.82375 5n 0.82375 (5n+20p) 0.80125 6n 0.80125 \
+        (6n+20p) 0.69875 7n 0.69875 (7n+20p) 0.67625 8n 0.67625 (8n+20p) \
+        0.57375 9n 0.57375 (9n+20p) 0.55125 10n 0.55125 (10n+20p) 0.44875 \
+        11n 0.44875 (11n+20p) 0.42625 12n 0.42625 (12n+20p) 0.32375 13n \
+        0.32375 (13n+20p) 0.30125 14n 0.30125 (14n+20p) \
+        0.19874999999999998 15n 0.19874999999999998 (15n+20p) \
+        0.17625000000000002 16n 0.17625000000000002 (16n+20p) \
+        0.07374999999999998 17n 0.07374999999999998 (17n+20p) \
+        0.05125000000000002 18n 0.05125000000000002 (18n+20p) 0.51125 19n \
+        0.51125 (19n+20p) 0.55125 20n 0.55125 ]
+VVINP (VINP 0) vsource type=pwl wave=[ 0 0.48875 1n 0.48875 (1n+20p) \
+        0.44875 2n 0.44875 (2n+20p) 0.05125000000000002 3n \
+        0.05125000000000002 (3n+20p) 0.07374999999999998 4n \
+        0.07374999999999998 (4n+20p) 0.17625000000000002 5n \
+        0.17625000000000002 (5n+20p) 0.19874999999999998 6n \
+        0.19874999999999998 (6n+20p) 0.30125 7n 0.30125 (7n+20p) 0.32375 \
+        8n 0.32375 (8n+20p) 0.42625 9n 0.42625 (9n+20p) 0.44875 10n \
+        0.44875 (10n+20p) 0.55125 11n 0.55125 (11n+20p) 0.57375 12n \
+        0.57375 (12n+20p) 0.67625 13n 0.67625 (13n+20p) 0.69875 14n \
+        0.69875 (14n+20p) 0.80125 15n 0.80125 (15n+20p) 0.82375 16n \
+        0.82375 (16n+20p) 0.92625 17n 0.92625 (17n+20p) 0.94875 18n \
+        0.94875 (18n+20p) 0.48875 19n 0.48875 (19n+20p) 0.44875 20n \
+        0.44875 ]
+CLRON (RON VCM) capacitor c=500f
+CLROP (ROP VCM) capacitor c=500f

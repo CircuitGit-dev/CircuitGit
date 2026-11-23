@@ -1,0 +1,811 @@
+{
+  "schema": "circuitgit.library-sources.v1",
+  "library_id": "pipetisar-research",
+  "cell_id": "TB_MDAC_CA4_N06",
+  "targets": {
+    "MDAC_CODES": {
+      "template_source": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/netlist/project.scs",
+      "template_sha256": "1bf6448f86ac028223f4af7f6594adf54177f91f2d926f4d94124850f5f66020",
+      "destination": "netlist/project.scs"
+    }
+  },
+  "subcircuits": [
+    {
+      "target_subcircuit": "Switch",
+      "source": "lib/pipetisar-research/Switch/schematic/research/Switch.scs",
+      "source_subcircuit": "Switch",
+      "source_ports": [
+        "A",
+        "B",
+        "ctrl"
+      ],
+      "target_ports": [
+        "A",
+        "B",
+        "ctrl"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 3,
+        "instances": {
+          "R0": {
+            "master": "resistor",
+            "terminals": 2
+          },
+          "W0": {
+            "master": "relay",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "079af4020024caca33a18b0058e1153b3adc4e8e618216fb5591e07b4f633d99",
+        "electrical_sha256": "fb5622cf2f40a79b7c5a16bbaf8020ef32f2b52b85fc7160917227d24df4177f",
+        "template_electrical_sha256": "fb5622cf2f40a79b7c5a16bbaf8020ef32f2b52b85fc7160917227d24df4177f",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "MDAC4_MOM_BIT_N06",
+      "source": "lib/pipetisar-research/MDAC4_MOM_BIT_N06/schematic/research/MDAC4_MOM_BIT_N06.scs",
+      "source_subcircuit": "MDAC4_MOM_BIT_N06",
+      "source_ports": [
+        "BN",
+        "BP",
+        "H",
+        "HB",
+        "L",
+        "LB",
+        "TRACK",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VREFN",
+        "VREFP",
+        "VSS",
+        "XN",
+        "XP"
+      ],
+      "target_ports": [
+        "BN",
+        "BP",
+        "H",
+        "HB",
+        "L",
+        "LB",
+        "TRACK",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VREFN",
+        "VREFP",
+        "VSS",
+        "XN",
+        "XP"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 8,
+        "instances": {
+          "CN": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "CP": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "SN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "SP": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "MNH": {
+            "master": "pch_hvt_mac",
+            "terminals": 4
+          },
+          "MPH": {
+            "master": "pch_hvt_mac",
+            "terminals": 4
+          },
+          "MNL": {
+            "master": "nch_hvt_mac",
+            "terminals": 4
+          },
+          "MPL": {
+            "master": "nch_hvt_mac",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "fc30502bf014ea7c841a3a07f85c4e2f84e0d76131adc10be0e6f06954c372b4",
+        "electrical_sha256": "dd473a9d22d2b951c890b162251192aafe2549685eb13543b50e6e6c18197a30",
+        "template_electrical_sha256": "afab43fe47e5d428e692131e24cef01d01c5800fee7827983a67d788cc89ae8f",
+        "equivalence": "statements"
+      }
+    },
+    {
+      "target_subcircuit": "MDAC4_REF_CTRL_N06",
+      "source": "lib/pipetisar-research/MDAC4_REF_CTRL_N06/schematic/research/MDAC4_REF_CTRL_N06.scs",
+      "source_subcircuit": "MDAC4_REF_CTRL_N06",
+      "source_ports": [
+        "AMP",
+        "H_3",
+        "H_2",
+        "H_1",
+        "H_0",
+        "HB_3",
+        "HB_2",
+        "HB_1",
+        "HB_0",
+        "K_3",
+        "K_2",
+        "K_1",
+        "K_0",
+        "L_3",
+        "L_2",
+        "L_1",
+        "L_0",
+        "LB_3",
+        "LB_2",
+        "LB_1",
+        "LB_0",
+        "VDD",
+        "VSS"
+      ],
+      "target_ports": [
+        "AMP",
+        "H\\<3\\>",
+        "H\\<2\\>",
+        "H\\<1\\>",
+        "H\\<0\\>",
+        "HB\\<3\\>",
+        "HB\\<2\\>",
+        "HB\\<1\\>",
+        "HB\\<0\\>",
+        "K\\<3\\>",
+        "K\\<2\\>",
+        "K\\<1\\>",
+        "K\\<0\\>",
+        "L\\<3\\>",
+        "L\\<2\\>",
+        "L\\<1\\>",
+        "L\\<0\\>",
+        "LB\\<3\\>",
+        "LB\\<2\\>",
+        "LB\\<1\\>",
+        "LB\\<0\\>",
+        "VDD",
+        "VSS"
+      ],
+      "identifiers": {
+        "HB_0": "HB\\<0\\>",
+        "HB_1": "HB\\<1\\>",
+        "HB_2": "HB\\<2\\>",
+        "HB_3": "HB\\<3\\>",
+        "H_0": "H\\<0\\>",
+        "H_1": "H\\<1\\>",
+        "H_2": "H\\<2\\>",
+        "H_3": "H\\<3\\>",
+        "KB_0": "KB\\<0\\>",
+        "KB_1": "KB\\<1\\>",
+        "KB_2": "KB\\<2\\>",
+        "KB_3": "KB\\<3\\>",
+        "K_0": "K\\<0\\>",
+        "K_1": "K\\<1\\>",
+        "K_2": "K\\<2\\>",
+        "K_3": "K\\<3\\>",
+        "LB_0": "LB\\<0\\>",
+        "LB_1": "LB\\<1\\>",
+        "LB_2": "LB\\<2\\>",
+        "LB_3": "LB\\<3\\>",
+        "L_0": "L\\<0\\>",
+        "L_1": "L\\<1\\>",
+        "L_2": "L\\<2\\>",
+        "L_3": "L\\<3\\>",
+        "XNLB_0": "XNLB\\<0\\>",
+        "XNLB_1": "XNLB\\<1\\>",
+        "XNLB_2": "XNLB\\<2\\>",
+        "XNLB_3": "XNLB\\<3\\>",
+        "XNL_0": "XNL\\<0\\>",
+        "XNL_1": "XNL\\<1\\>",
+        "XNL_2": "XNL\\<2\\>",
+        "XNL_3": "XNL\\<3\\>",
+        "XNOTK_0": "XNOTK\\<0\\>",
+        "XNOTK_1": "XNOTK\\<1\\>",
+        "XNOTK_2": "XNOTK\\<2\\>",
+        "XNOTK_3": "XNOTK\\<3\\>",
+        "XPHB_0": "XPHB\\<0\\>",
+        "XPHB_1": "XPHB\\<1\\>",
+        "XPHB_2": "XPHB\\<2\\>",
+        "XPHB_3": "XPHB\\<3\\>",
+        "XPH_0": "XPH\\<0\\>",
+        "XPH_1": "XPH\\<1\\>",
+        "XPH_2": "XPH\\<2\\>",
+        "XPH_3": "XPH\\<3\\>"
+      },
+      "contract": {
+        "body_statements": 20,
+        "instances": {
+          "XNL_3": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNL_2": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNL_1": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNL_0": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNLB_3": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNLB_2": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNLB_1": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNLB_0": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XPH_3": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XPH_2": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XPH_1": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XPH_0": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XPHB_3": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XPHB_2": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XPHB_1": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XPHB_0": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNOTK_3": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNOTK_2": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNOTK_1": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          },
+          "XNOTK_0": {
+            "master": "ND2D4BWP12T30P140ULVT",
+            "terminals": 5
+          }
+        },
+        "alias_count": 44,
+        "identifier_counts": {
+          "HB_0": 4,
+          "HB_1": 4,
+          "HB_2": 4,
+          "HB_3": 4,
+          "H_0": 2,
+          "H_1": 2,
+          "H_2": 2,
+          "H_3": 2,
+          "KB_0": 2,
+          "KB_1": 2,
+          "KB_2": 2,
+          "KB_3": 2,
+          "K_0": 4,
+          "K_1": 4,
+          "K_2": 4,
+          "K_3": 4,
+          "LB_0": 4,
+          "LB_1": 4,
+          "LB_2": 4,
+          "LB_3": 4,
+          "L_0": 2,
+          "L_1": 2,
+          "L_2": 2,
+          "L_3": 2,
+          "XNLB_0": 1,
+          "XNLB_1": 1,
+          "XNLB_2": 1,
+          "XNLB_3": 1,
+          "XNL_0": 1,
+          "XNL_1": 1,
+          "XNL_2": 1,
+          "XNL_3": 1,
+          "XNOTK_0": 1,
+          "XNOTK_1": 1,
+          "XNOTK_2": 1,
+          "XNOTK_3": 1,
+          "XPHB_0": 1,
+          "XPHB_1": 1,
+          "XPHB_2": 1,
+          "XPHB_3": 1,
+          "XPH_0": 1,
+          "XPH_1": 1,
+          "XPH_2": 1,
+          "XPH_3": 1
+        },
+        "indexed_identifiers": [
+          "HB_0",
+          "HB_1",
+          "HB_2",
+          "HB_3",
+          "H_0",
+          "H_1",
+          "H_2",
+          "H_3",
+          "KB_0",
+          "KB_1",
+          "KB_2",
+          "KB_3",
+          "K_0",
+          "K_1",
+          "K_2",
+          "K_3",
+          "LB_0",
+          "LB_1",
+          "LB_2",
+          "LB_3",
+          "L_0",
+          "L_1",
+          "L_2",
+          "L_3",
+          "XNLB_0",
+          "XNLB_1",
+          "XNLB_2",
+          "XNLB_3",
+          "XNL_0",
+          "XNL_1",
+          "XNL_2",
+          "XNL_3",
+          "XNOTK_0",
+          "XNOTK_1",
+          "XNOTK_2",
+          "XNOTK_3",
+          "XPHB_0",
+          "XPHB_1",
+          "XPHB_2",
+          "XPHB_3",
+          "XPH_0",
+          "XPH_1",
+          "XPH_2",
+          "XPH_3"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "869526c2c81a2fcd9fa7fd483a29daaa516b556db5cdeb8e8e07d87d8dc554db",
+        "electrical_sha256": "3d28e3d4768d4bd2ddea45dfdb2611c8ea46ec5fe8456e2338146faa752c658e",
+        "template_electrical_sha256": "2e8a42d5dcc9c7036c32396f82f54d73100f958f0d4064b08b8d3302eb2bcdce",
+        "equivalence": "statements"
+      }
+    },
+    {
+      "target_subcircuit": "PIPE_OTA_Diff_Ideal",
+      "source": "lib/pipetisar-research/PIPE_OTA_Diff_Ideal/schematic/research/PIPE_OTA_Diff_Ideal.scs",
+      "source_subcircuit": "PIPE_OTA_Diff_Ideal",
+      "source_ports": [
+        "Vcmo",
+        "Vdd",
+        "Vin",
+        "Vinb",
+        "Vout",
+        "Voutb"
+      ],
+      "target_ports": [
+        "Vcmo",
+        "Vdd",
+        "Vin",
+        "Vinb",
+        "Vout",
+        "Voutb"
+      ],
+      "identifiers": {},
+      "contract": {
+        "body_statements": 8,
+        "instances": {
+          "I0": {
+            "master": "isource",
+            "terminals": 2
+          },
+          "E4": {
+            "master": "vcvs",
+            "terminals": 4
+          },
+          "R0": {
+            "master": "resistor",
+            "terminals": 2
+          },
+          "R4": {
+            "master": "resistor",
+            "terminals": 2
+          },
+          "G0": {
+            "master": "vccs",
+            "terminals": 4
+          },
+          "G1": {
+            "master": "vccs",
+            "terminals": 4
+          },
+          "G3": {
+            "master": "vccs",
+            "terminals": 4
+          }
+        },
+        "alias_count": 0,
+        "identifier_counts": {},
+        "indexed_identifiers": []
+      },
+      "baseline": {
+        "source_sha256": "3638533cbe7c7ba5bb8bc3ca74300fa8c8d18ea7f282e3622948eefe0f4fb237",
+        "electrical_sha256": "f2c45d8b5d4b9d766d72b7700bb7a2759ef7fa476a3b8cfa34f5567639c417d8",
+        "template_electrical_sha256": "f2c45d8b5d4b9d766d72b7700bb7a2759ef7fa476a3b8cfa34f5567639c417d8",
+        "equivalence": "tokens"
+      }
+    },
+    {
+      "target_subcircuit": "MDAC4_ARRAY_G8_N06",
+      "source": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/MDAC4_ARRAY_G8_N06.scs",
+      "source_subcircuit": "MDAC4_ARRAY_G8_N06",
+      "source_ports": [
+        "AMP",
+        "K_3",
+        "K_2",
+        "K_1",
+        "K_0",
+        "RESET",
+        "RON",
+        "ROP",
+        "TRACK",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "target_ports": [
+        "AMP",
+        "K\\<3\\>",
+        "K\\<2\\>",
+        "K\\<1\\>",
+        "K\\<0\\>",
+        "RESET",
+        "RON",
+        "ROP",
+        "TRACK",
+        "VCM",
+        "VDD",
+        "VINN",
+        "VINP",
+        "VREFN",
+        "VREFP",
+        "VSS"
+      ],
+      "identifiers": {
+        "BN_0": "BN\\<0\\>",
+        "BN_1": "BN\\<1\\>",
+        "BN_2": "BN\\<2\\>",
+        "BN_3": "BN\\<3\\>",
+        "BP_0": "BP\\<0\\>",
+        "BP_1": "BP\\<1\\>",
+        "BP_2": "BP\\<2\\>",
+        "BP_3": "BP\\<3\\>",
+        "CFN_0": "CFN\\<0\\>",
+        "CFN_1": "CFN\\<1\\>",
+        "CFP_0": "CFP\\<0\\>",
+        "CFP_1": "CFP\\<1\\>",
+        "HB_0": "HB\\<0\\>",
+        "HB_1": "HB\\<1\\>",
+        "HB_2": "HB\\<2\\>",
+        "HB_3": "HB\\<3\\>",
+        "H_0": "H\\<0\\>",
+        "H_1": "H\\<1\\>",
+        "H_2": "H\\<2\\>",
+        "H_3": "H\\<3\\>",
+        "K_0": "K\\<0\\>",
+        "K_1": "K\\<1\\>",
+        "K_2": "K\\<2\\>",
+        "K_3": "K\\<3\\>",
+        "LB_0": "LB\\<0\\>",
+        "LB_1": "LB\\<1\\>",
+        "LB_2": "LB\\<2\\>",
+        "LB_3": "LB\\<3\\>",
+        "L_0": "L\\<0\\>",
+        "L_1": "L\\<1\\>",
+        "L_2": "L\\<2\\>",
+        "L_3": "L\\<3\\>",
+        "XBIT1_0": "XBIT1\\<0\\>",
+        "XBIT1_1": "XBIT1\\<1\\>",
+        "XBIT2_0": "XBIT2\\<0\\>",
+        "XBIT2_1": "XBIT2\\<1\\>",
+        "XBIT2_2": "XBIT2\\<2\\>",
+        "XBIT2_3": "XBIT2\\<3\\>",
+        "XBIT3_0": "XBIT3\\<0\\>",
+        "XBIT3_1": "XBIT3\\<1\\>",
+        "XBIT3_2": "XBIT3\\<2\\>",
+        "XBIT3_3": "XBIT3\\<3\\>",
+        "XBIT3_4": "XBIT3\\<4\\>",
+        "XBIT3_5": "XBIT3\\<5\\>",
+        "XBIT3_6": "XBIT3\\<6\\>",
+        "XBIT3_7": "XBIT3\\<7\\>"
+      },
+      "contract": {
+        "body_statements": 30,
+        "instances": {
+          "XBIT0": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT1_1": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT1_0": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT2_3": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT2_2": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT2_1": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT2_0": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT3_7": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT3_6": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT3_5": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT3_4": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT3_3": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT3_2": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT3_1": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XBIT3_0": {
+            "master": "MDAC4_MOM_BIT_N06",
+            "terminals": 15
+          },
+          "XCTRL": {
+            "master": "MDAC4_REF_CTRL_N06",
+            "terminals": 23
+          },
+          "XOTA": {
+            "master": "PIPE_OTA_Diff_Ideal",
+            "terminals": 6
+          },
+          "XLIMIT": {
+            "master": "PIPE_RailClamp",
+            "terminals": 4
+          },
+          "CDN": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "CFN_1": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "CFN_0": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "CDP": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "CFP_1": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "CFP_0": {
+            "master": "cfmom_2t",
+            "terminals": 2
+          },
+          "SDCN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "SDIN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "SRN": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "SDCP": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "SDIP": {
+            "master": "Switch",
+            "terminals": 3
+          },
+          "SRP": {
+            "master": "Switch",
+            "terminals": 3
+          }
+        },
+        "alias_count": 46,
+        "identifier_counts": {
+          "BN_0": 1,
+          "BN_1": 2,
+          "BN_2": 4,
+          "BN_3": 8,
+          "BP_0": 1,
+          "BP_1": 2,
+          "BP_2": 4,
+          "BP_3": 8,
+          "CFN_0": 1,
+          "CFN_1": 1,
+          "CFP_0": 1,
+          "CFP_1": 1,
+          "HB_0": 2,
+          "HB_1": 3,
+          "HB_2": 5,
+          "HB_3": 9,
+          "H_0": 2,
+          "H_1": 3,
+          "H_2": 5,
+          "H_3": 9,
+          "K_0": 2,
+          "K_1": 2,
+          "K_2": 2,
+          "K_3": 2,
+          "LB_0": 2,
+          "LB_1": 3,
+          "LB_2": 5,
+          "LB_3": 9,
+          "L_0": 2,
+          "L_1": 3,
+          "L_2": 5,
+          "L_3": 9,
+          "XBIT1_0": 1,
+          "XBIT1_1": 1,
+          "XBIT2_0": 1,
+          "XBIT2_1": 1,
+          "XBIT2_2": 1,
+          "XBIT2_3": 1,
+          "XBIT3_0": 1,
+          "XBIT3_1": 1,
+          "XBIT3_2": 1,
+          "XBIT3_3": 1,
+          "XBIT3_4": 1,
+          "XBIT3_5": 1,
+          "XBIT3_6": 1,
+          "XBIT3_7": 1
+        },
+        "indexed_identifiers": [
+          "BN_0",
+          "BN_1",
+          "BN_2",
+          "BN_3",
+          "BP_0",
+          "BP_1",
+          "BP_2",
+          "BP_3",
+          "CFN_0",
+          "CFN_1",
+          "CFP_0",
+          "CFP_1",
+          "HB_0",
+          "HB_1",
+          "HB_2",
+          "HB_3",
+          "H_0",
+          "H_1",
+          "H_2",
+          "H_3",
+          "K_0",
+          "K_1",
+          "K_2",
+          "K_3",
+          "LB_0",
+          "LB_1",
+          "LB_2",
+          "LB_3",
+          "L_0",
+          "L_1",
+          "L_2",
+          "L_3",
+          "XBIT1_0",
+          "XBIT1_1",
+          "XBIT2_0",
+          "XBIT2_1",
+          "XBIT2_2",
+          "XBIT2_3",
+          "XBIT3_0",
+          "XBIT3_1",
+          "XBIT3_2",
+          "XBIT3_3",
+          "XBIT3_4",
+          "XBIT3_5",
+          "XBIT3_6",
+          "XBIT3_7"
+        ]
+      },
+      "baseline": {
+        "source_sha256": "e388e968f69cfeb1228c4a2ee39822c99041dc9f2a87057d06ecec3af0bcddef",
+        "electrical_sha256": "31bd0b7f0ded03522011ede57c1c9fb57160c7d7151d620f48fc4d00d45d31ae",
+        "template_electrical_sha256": "1249aa56b0df9d2b46341cc19628811faef502179b1b1620e12f9dbf80cdff3e",
+        "equivalence": "tokens"
+      }
+    }
+  ],
+  "electrical_guards": [
+    {
+      "source": "lib/pipetisar-research/TB_MDAC_CA4_N06/schematic/research/TB_MDAC_CA4_N06.scs",
+      "source_sha256": "c5895b7b028fad7fb82859ab2de93d2d792a084bfa33d4f0d1f76083e44ef92f",
+      "electrical_sha256": "463b5c7d34b6f5307879ac9be30acdedb42a7de29a2857d5ca119ba35911d700"
+    }
+  ]
+}

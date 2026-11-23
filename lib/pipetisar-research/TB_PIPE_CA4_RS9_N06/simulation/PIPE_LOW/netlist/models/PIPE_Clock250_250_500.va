@@ -1,0 +1,47 @@
+`include "constants.vams"
+`include "disciplines.vams"
+module PIPE_Clock250_250_500(TRACK,AMP,RESET,TA,TB,PHI1EN,PHI1N,PHI2P,PHI2N,VDD,VSS);
+ output TRACK,AMP,RESET,TA,TB,PHI1EN,PHI1N,PHI2P,PHI2N; input VDD,VSS; electrical TRACK,AMP,RESET,TA,TB,PHI1EN,PHI1N,PHI2P,PHI2N,VDD,VSS;
+ parameter real tper=1n, ttrack=250p, tamp=500p, guard=10p, tr=1p;
+ integer s_TRACK,s_AMP,s_RESET,s_TA,s_TB,s_PHI1EN,s_PHI1N,s_PHI2P,s_PHI2N;
+ analog begin
+ @(initial_step) begin
+ s_TRACK=1;
+ s_AMP=0;
+ s_RESET=1;
+ s_TA=0;
+ s_TB=0;
+ s_PHI1EN=0;
+ s_PHI1N=0;
+ s_PHI2P=0;
+ s_PHI2N=1;
+ end
+ @(timer(ttrack-tr/2,tper)) s_TRACK=0;
+ @(timer(tper-tr/2,tper)) s_TRACK=1;
+ V(TRACK,VSS)<+V(VDD,VSS)*transition(s_TRACK,0,tr,tr);
+ @(timer(tamp-tr/2,tper)) s_AMP=1;
+ @(timer(tper-tr/2,tper)) s_AMP=0;
+ V(AMP,VSS)<+V(VDD,VSS)*transition(s_AMP,0,tr,tr);
+ @(timer(tamp-2p-tr/2,tper)) s_RESET=0;
+ @(timer(tper-2p-tr/2,tper)) s_RESET=1;
+ V(RESET,VSS)<+V(VDD,VSS)*transition(s_RESET,0,tr,tr);
+ @(timer(tamp-tr/2,2*tper)) s_TA=1;
+ @(timer(tper-guard-tr/2,2*tper)) s_TA=0;
+ V(TA,VSS)<+V(VDD,VSS)*transition(s_TA,0,tr,tr);
+ @(timer(tper+tamp-tr/2,2*tper)) s_TB=1;
+ @(timer(2*tper-guard-tr/2,2*tper)) s_TB=0;
+ V(TB,VSS)<+V(VDD,VSS)*transition(s_TB,0,tr,tr);
+ @(timer(ttrack-tr/2,tper)) s_PHI1EN=1;
+ @(timer(tper-tr/2,tper)) s_PHI1EN=0;
+ V(PHI1EN,VSS)<+V(VDD,VSS)*transition(s_PHI1EN,0,tr,tr);
+ @(timer(ttrack+20p-tr/2,tper)) s_PHI1N=1;
+ @(timer(tper-tr/2,tper)) s_PHI1N=0;
+ V(PHI1N,VSS)<+V(VDD,VSS)*transition(s_PHI1N,0,tr,tr);
+ @(timer(tamp-tr/2,tper)) s_PHI2P=1;
+ @(timer(tper-15p-tr/2,tper)) s_PHI2P=0;
+ V(PHI2P,VSS)<+V(VDD,VSS)*transition(s_PHI2P,0,tr,tr);
+ @(timer(tamp-tr/2,tper)) s_PHI2N=0;
+ @(timer(tper-15p-tr/2,tper)) s_PHI2N=1;
+ V(PHI2N,VSS)<+V(VDD,VSS)*transition(s_PHI2N,0,tr,tr);
+ end
+endmodule

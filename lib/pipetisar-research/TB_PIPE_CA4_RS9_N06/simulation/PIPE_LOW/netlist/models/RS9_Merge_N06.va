@@ -1,0 +1,59 @@
+// Digital readout only:100ohm/10fF drivers; actual SAR clocks and transistor circuit unchanged.
+`include "constants.vams"
+`include "disciplines.vams"
+// Pipeline code: CODE12 = 256*K4 + Q9 - 128 (G=8, one-bit interstage overlap).
+module RS9_Merge_N06(QA,QB,KA,KB,DA,DB,OFA,OFB,CODE,VALID,CHANNEL,OVF,RECON,VDD,VSS);
+ input [8:0] QA,QB; input [3:0] KA,KB; input DA,DB,OFA,OFB,VDD,VSS;
+ output [11:0] CODE; output VALID,CHANNEL,OVF,RECON;
+ electrical [8:0] QA,QB; electrical [3:0] KA,KB; electrical [11:0] CODE;
+ electrical DA,DB,OFA,OFB,VDD,VSS,VALID,CHANNEL,OVF,RECON;
+ parameter real vfs=0.9, tr=1p, tpulse=80p;
+ integer qa,qb,ka,kb,code,valid,ch,overflow,rawcode;
+ real clear_time;
+ analog begin
+  @(initial_step) begin code=2048; valid=0; ch=0; overflow=0; clear_time=1; end
+ @(cross(V(DA,VSS)-V(VDD,VSS)/2,1,100f,1m)) begin
+ rawcode=256*(1*((V(KA[0],VSS)>V(VDD,VSS)/2)?1:0)+2*((V(KA[1],VSS)>V(VDD,VSS)/2)?1:0)+4*((V(KA[2],VSS)>V(VDD,VSS)/2)?1:0)+8*((V(KA[3],VSS)>V(VDD,VSS)/2)?1:0))+(1*((V(QA[0],VSS)>V(VDD,VSS)/2)?1:0)+2*((V(QA[1],VSS)>V(VDD,VSS)/2)?1:0)+4*((V(QA[2],VSS)>V(VDD,VSS)/2)?1:0)+8*((V(QA[3],VSS)>V(VDD,VSS)/2)?1:0)+16*((V(QA[4],VSS)>V(VDD,VSS)/2)?1:0)+32*((V(QA[5],VSS)>V(VDD,VSS)/2)?1:0)+64*((V(QA[6],VSS)>V(VDD,VSS)/2)?1:0)+128*((V(QA[7],VSS)>V(VDD,VSS)/2)?1:0)+256*((V(QA[8],VSS)>V(VDD,VSS)/2)?1:0))-128;
+ overflow=(rawcode<0 || rawcode>4095 || V(OFA,VSS)>V(VDD,VSS)/2);
+ code=(rawcode<0)?0:((rawcode>4095)?4095:rawcode); ch=0; valid=1; clear_time=$abstime+tpulse;
+ end
+ @(cross(V(DB,VSS)-V(VDD,VSS)/2,1,100f,1m)) begin
+ rawcode=256*(1*((V(KB[0],VSS)>V(VDD,VSS)/2)?1:0)+2*((V(KB[1],VSS)>V(VDD,VSS)/2)?1:0)+4*((V(KB[2],VSS)>V(VDD,VSS)/2)?1:0)+8*((V(KB[3],VSS)>V(VDD,VSS)/2)?1:0))+(1*((V(QB[0],VSS)>V(VDD,VSS)/2)?1:0)+2*((V(QB[1],VSS)>V(VDD,VSS)/2)?1:0)+4*((V(QB[2],VSS)>V(VDD,VSS)/2)?1:0)+8*((V(QB[3],VSS)>V(VDD,VSS)/2)?1:0)+16*((V(QB[4],VSS)>V(VDD,VSS)/2)?1:0)+32*((V(QB[5],VSS)>V(VDD,VSS)/2)?1:0)+64*((V(QB[6],VSS)>V(VDD,VSS)/2)?1:0)+128*((V(QB[7],VSS)>V(VDD,VSS)/2)?1:0)+256*((V(QB[8],VSS)>V(VDD,VSS)/2)?1:0))-128;
+ overflow=(rawcode<0 || rawcode>4095 || V(OFB,VSS)>V(VDD,VSS)/2);
+ code=(rawcode<0)?0:((rawcode>4095)?4095:rawcode); ch=1; valid=1; clear_time=$abstime+tpulse;
+ end
+ @(timer(clear_time,0,1f)) begin valid=0; clear_time=1; end
+ I(CODE[0],VSS)<+(V(CODE[0],VSS)-(V(VDD,VSS)*transition((code>>0)&1,0,tr,tr)))/100;
+ I(CODE[0],VSS)<+10f*ddt(V(CODE[0],VSS));
+ I(CODE[1],VSS)<+(V(CODE[1],VSS)-(V(VDD,VSS)*transition((code>>1)&1,0,tr,tr)))/100;
+ I(CODE[1],VSS)<+10f*ddt(V(CODE[1],VSS));
+ I(CODE[2],VSS)<+(V(CODE[2],VSS)-(V(VDD,VSS)*transition((code>>2)&1,0,tr,tr)))/100;
+ I(CODE[2],VSS)<+10f*ddt(V(CODE[2],VSS));
+ I(CODE[3],VSS)<+(V(CODE[3],VSS)-(V(VDD,VSS)*transition((code>>3)&1,0,tr,tr)))/100;
+ I(CODE[3],VSS)<+10f*ddt(V(CODE[3],VSS));
+ I(CODE[4],VSS)<+(V(CODE[4],VSS)-(V(VDD,VSS)*transition((code>>4)&1,0,tr,tr)))/100;
+ I(CODE[4],VSS)<+10f*ddt(V(CODE[4],VSS));
+ I(CODE[5],VSS)<+(V(CODE[5],VSS)-(V(VDD,VSS)*transition((code>>5)&1,0,tr,tr)))/100;
+ I(CODE[5],VSS)<+10f*ddt(V(CODE[5],VSS));
+ I(CODE[6],VSS)<+(V(CODE[6],VSS)-(V(VDD,VSS)*transition((code>>6)&1,0,tr,tr)))/100;
+ I(CODE[6],VSS)<+10f*ddt(V(CODE[6],VSS));
+ I(CODE[7],VSS)<+(V(CODE[7],VSS)-(V(VDD,VSS)*transition((code>>7)&1,0,tr,tr)))/100;
+ I(CODE[7],VSS)<+10f*ddt(V(CODE[7],VSS));
+ I(CODE[8],VSS)<+(V(CODE[8],VSS)-(V(VDD,VSS)*transition((code>>8)&1,0,tr,tr)))/100;
+ I(CODE[8],VSS)<+10f*ddt(V(CODE[8],VSS));
+ I(CODE[9],VSS)<+(V(CODE[9],VSS)-(V(VDD,VSS)*transition((code>>9)&1,0,tr,tr)))/100;
+ I(CODE[9],VSS)<+10f*ddt(V(CODE[9],VSS));
+ I(CODE[10],VSS)<+(V(CODE[10],VSS)-(V(VDD,VSS)*transition((code>>10)&1,0,tr,tr)))/100;
+ I(CODE[10],VSS)<+10f*ddt(V(CODE[10],VSS));
+ I(CODE[11],VSS)<+(V(CODE[11],VSS)-(V(VDD,VSS)*transition((code>>11)&1,0,tr,tr)))/100;
+ I(CODE[11],VSS)<+10f*ddt(V(CODE[11],VSS));
+ I(VALID,VSS)<+(V(VALID,VSS)-(V(VDD,VSS)*transition(valid,5p,tr,tr)))/100;
+ I(VALID,VSS)<+10f*ddt(V(VALID,VSS));
+ I(CHANNEL,VSS)<+(V(CHANNEL,VSS)-(V(VDD,VSS)*transition(ch,0,tr,tr)))/100;
+ I(CHANNEL,VSS)<+10f*ddt(V(CHANNEL,VSS));
+ I(OVF,VSS)<+(V(OVF,VSS)-(V(VDD,VSS)*transition(overflow,0,tr,tr)))/100;
+ I(OVF,VSS)<+10f*ddt(V(OVF,VSS));
+ I(RECON,VSS)<+(V(RECON,VSS)-(vfs*transition((code+0.5)/4096.0-0.5,0,tr,tr)))/100;
+ I(RECON,VSS)<+10f*ddt(V(RECON,VSS));
+ end
+endmodule

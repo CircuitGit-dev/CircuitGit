@@ -1,0 +1,158 @@
+{
+  "schema": "ic.sim.bundle.v1",
+  "design_id": "pipetisar-research-TB_PIPE_CA4_RS9_N06",
+  "library": "2026_PIPETISAR_RESEARCH",
+  "top_cell": "PIPE_TOP_CA4_RS9_N06",
+  "testbench": "TB_PIPE_CA4_RS9_N06",
+  "test": "PIPE_NYQUIST",
+  "test_id": "pipetisar-research-TB_PIPE_CA4_RS9_N06-PIPE_NYQUIST",
+  "source_root": ".",
+  "entrypoint": "netlist/input.scs",
+  "design_origin": "audited-research-export-with-pinned-va-snapshot",
+  "reviewed_for_distribution": false,
+  "external_dependencies": [
+    {
+      "alias": "PDK_MAIN",
+      "sha256": "0861d3d08ec8a7884bc1f7c45f72bc9ab3df7c860ff8098f76abf1185fd97b96"
+    },
+    {
+      "alias": "PDK_TRANS_ULVT_PCELL",
+      "sha256": "e8d98b0603b4989ca6f8550737993b26f7abe83030bd3c957f1d522bf682922c"
+    },
+    {
+      "alias": "RESEARCH_ULVT_ND2D0",
+      "sha256": "31383ef35bfa2d20832b06241921dc59ac802b9698c2e4929e6aae6338cc93f4"
+    },
+    {
+      "alias": "RESEARCH_ULVT_ND2D4",
+      "sha256": "771565bcf6ed2152670995cfe7e6317bb9b3d7f3d70bb9a64a0cd0330c8fd844"
+    },
+    {
+      "alias": "STDCELL_SVT_LVT",
+      "sha256": "1f45bf5a3b017e74aac8b9d332282ecf1f1aa36bedc0fa6e1a4f84497da7b5a7"
+    }
+  ],
+  "configuration": {
+    "parameters_observed": {
+      "Tfft": "4n",
+      "Nfft": "16",
+      "N": "16",
+      "cycle": "7",
+      "CuNominal": "99.8585f",
+      "LimitEnable": "1",
+      "Fs": "1G",
+      "Fin": "437500000.0",
+      "Ain": "0.9",
+      "GmIdeal": "1",
+      "AolIdeal": "1e8",
+      "Cflash": "5f",
+      "Cs2": "0.5p",
+      "Cs1": "1.5p",
+      "Tbit": "100p",
+      "TrModel": "1p",
+      "Tguard": "10p",
+      "Tamp": "500p",
+      "Ttrack": "250p",
+      "Tper": "1n",
+      "Iref": "100u",
+      "Vref": "2",
+      "Vcm": "0.5",
+      "Vdd": "1"
+    },
+    "analysis_observed": "tran tran stop=Tfft+(N+4)*Tper errpreset=conservative maxstep=2p  write=\"spectre.ic\" writefinal=\"spectre.fc\" savetime=[600]  savefile=\"spectre.tran.save\" method=gear2only annotate=status  flushtime=30 maxiters=20 ",
+    "model_sections": [
+      "pre_simu",
+      "noise_worst",
+      "ttmacro_mos_moscap",
+      "tt_res_bip_dio_disres",
+      "tt_mom",
+      "tt_ind_jvar",
+      "tt_r_metal"
+    ]
+  },
+  "simulator": {
+    "profile": "spectre-default",
+    "args": [
+      "-64",
+      "+aps",
+      "+mt=2",
+      "+lqtimeout",
+      "900",
+      "-maxw",
+      "5",
+      "-maxn",
+      "5"
+    ],
+    "output_format": "psfxl"
+  },
+  "postprocess": {
+    "signals": [
+      {
+        "name": "VINP",
+        "unit": "V"
+      },
+      {
+        "name": "VINN",
+        "unit": "V"
+      },
+      {
+        "name": "ROP",
+        "unit": "V"
+      },
+      {
+        "name": "RON",
+        "unit": "V"
+      },
+      {
+        "name": "VALID",
+        "unit": "V"
+      }
+    ],
+    "start_s": 0,
+    "end_s": 2.4e-08,
+    "step_s": 5e-12,
+    "max_display_points": 1600
+  },
+  "files": [
+    {
+      "source": "netlist/TB_PIPE_CA4_RS9_N06_save.scs",
+      "destination": "netlist/TB_PIPE_CA4_RS9_N06_save.scs",
+      "sha256": "d59800e8a3f754cf59a653c1143b88a1dd27e1a6c17cbde4105fd83347609167"
+    },
+    {
+      "source": "netlist/input.scs",
+      "destination": "netlist/input.scs",
+      "sha256": "4d649d0d3aa19043b7408bb6a886df23ec0f2086a529fd21ea5bc55e15792676"
+    },
+    {
+      "source": "netlist/models/PIPE_Clock250_250_500.va",
+      "destination": "netlist/models/PIPE_Clock250_250_500.va",
+      "sha256": "5bc5a1ded6cd039a717eca1dcfb573efc884732ab80da06f286e166a329c71c5"
+    },
+    {
+      "source": "netlist/models/PIPE_RailClamp.va",
+      "destination": "netlist/models/PIPE_RailClamp.va",
+      "sha256": "1abaf750089bbfcc11669cb2c086e3c2e7548cf2c839f0e966df9b87f2237d78"
+    },
+    {
+      "source": "netlist/models/RS9_IO_N06.va",
+      "destination": "netlist/models/RS9_IO_N06.va",
+      "sha256": "530f6b301f6ee8bb4e63cd3ba77784b32b2f8dc25fe352b292bb10a572959e93"
+    },
+    {
+      "source": "netlist/models/RS9_Merge_N06.va",
+      "destination": "netlist/models/RS9_Merge_N06.va",
+      "sha256": "c6f6e78e8116c3d4acfbfe8caf1baff30a2db741317bf10690aa161569b2f768"
+    },
+    {
+      "source": "netlist/numerical_options.scs",
+      "destination": "netlist/numerical_options.scs",
+      "sha256": "ac810208045ddaab03c537de0e9ce1322140f3734fb00cb102949b3de3c34912"
+    },
+    {
+      "source": "netlist/project.scs",
+      "destination": "netlist/project.scs",
+      "sha256": "9493d79f134fe8dcb613b79b5c7e53804c4c1746264f823cdcbfffef1847dae9"
+    }
+  ]
+}

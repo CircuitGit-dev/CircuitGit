@@ -1,9 +1,11 @@
-# Historical simulation input candidates — inactive
+# Canonical research simulation inputs
 
-These files describe historical inputs; this public cell remains `project_id: null`. No simulation was executed during migration. Original input hashes identify historical evidence; redacted templates have different bytes and have not been replayed. They are not automatically bound to the native viewer snapshot.
+Registered project: `pipetisar-research-TB_MDAC_CA4_N06`. Configurations: `MDAC_CODES`.
 
-Only configuration and input audit records are supplied. The unsanitized electrical deck is excluded because vendor implementations and/or the complete matching Verilog-A revision remain unresolved. A configuration file by itself is not an executable bundle.
+Each configuration has a complete local input bundle and `run-configuration.json`. Compilation replaces the template subcircuits from the unique research-library `.scs` sources listed in `source-bindings.json`; it never falls back to same-named real-library sources. Value edits to a bound child change the compiled input hash. Port, indexed-bus or instance-structure changes require an explicit binding update. The displayed TB RNL entry is not itself dynamically compiled: the top-level stimulus and exterior design come from the audited exported template. A comment-insensitive electrical guard rejects changed TB electrical statements during compilation/materialization until the TB binding and input template are explicitly updated. Geometry-only RNL comment edits are allowed, with their exact source hash recorded; the child propagation claim applies only to bound canonical children.
 
-- `MDAC_CODES`: `MDAC_CODES/configuration.json` and `MDAC_CODES/audit.json`.
+The original `configuration.json` and `audit.json` files remain unchanged historical evidence. The runtime configuration differs only in its description. The new `provenance.json` records the exact original input/design hashes, transformations, canonical source hashes and the selected Verilog-A snapshot. Project VA is complete and pinned locally; its equivalence to the historical simulator binary revision is not established. The saved-signal and numerical-options includes are selected, hash-pinned local versions. Their historical run revisions are not verified by the input/design hashes. Two global model pins come from the existing declared operator revision and are not new measurements of this history.
 
-Use the original history and source hashes in each audit when preparing a future complete replay; preserve external model licenses and site settings outside this public library. No old performance result is newly verified here.
+Licensed PDK and standard-cell implementations are excluded. They are replaced with external aliases and expected hashes in each bundle. `RESEARCH_ULVT_ND2D4` is required; the PIPE pair also requires `RESEARCH_ULVT_ND2D0` and `PDK_TRANS_ULVT_PCELL`, in addition to `PDK_MAIN` and `STDCELL_SVT_LVT`. No site settings, credentials or runtime grants are changed by this registration. Compilation is offline; simulation and numerical/ADC performance remain unverified.
+
+Reproduce the derived files with `python3 -B tools/library/prepare_research_simulation.py --seed-root /path/to/original-export-checkout`; use `--check` to verify them. Details and tests: `docs/research-simulation-inputs.md`.

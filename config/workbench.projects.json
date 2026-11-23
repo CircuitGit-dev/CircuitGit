@@ -44,5 +44,47 @@
         "canonical_bindings_path": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/source-bindings.json"
       }
     ]
+  },
+  {
+    "id": "pipetisar-research-TB_MDAC_CA4_N06",
+    "name": "Research / TB_MDAC_CA4_N06",
+    "source_path": "lib/pipetisar-research/TB_MDAC_CA4_N06/schematic/research/TB_MDAC_CA4_N06.scs",
+    "library_id": "pipetisar-research",
+    "cell_id": "TB_MDAC_CA4_N06",
+    "configurations": [
+      {
+        "id": "MDAC_CODES",
+        "name": "MDAC_CODES",
+        "configuration_path": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/run-configuration.json",
+        "bundle_template": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/bundle.json",
+        "source_replacements": [],
+        "canonical_bindings_path": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/source-bindings.json"
+      }
+    ]
+  },
+  {
+    "id": "pipetisar-research-TB_PIPE_CA4_RS9_N06",
+    "name": "Research / TB_PIPE_CA4_RS9_N06",
+    "source_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/schematic/research/TB_PIPE_CA4_RS9_N06.scs",
+    "library_id": "pipetisar-research",
+    "cell_id": "TB_PIPE_CA4_RS9_N06",
+    "configurations": [
+      {
+        "id": "PIPE_LOW",
+        "name": "PIPE_LOW",
+        "configuration_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/run-configuration.json",
+        "bundle_template": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/bundle.json",
+        "source_replacements": [],
+        "canonical_bindings_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/source-bindings.json"
+      },
+      {
+        "id": "PIPE_NYQUIST",
+        "name": "PIPE_NYQUIST",
+        "configuration_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/run-configuration.json",
+        "bundle_template": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/bundle.json",
+        "source_replacements": [],
+        "canonical_bindings_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/source-bindings.json"
+      }
+    ]
   }
 ]

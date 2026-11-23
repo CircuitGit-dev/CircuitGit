@@ -1,0 +1,2 @@
+simulator lang=spectre
+mdacArrayOptions options discontinuity=robust

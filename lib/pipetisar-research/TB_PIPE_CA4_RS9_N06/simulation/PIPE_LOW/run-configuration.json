@@ -1,0 +1,48 @@
+{
+  "description": "PIPE_LOW: canonical research inputs; pinned project VA snapshot; external licensed models required",
+  "parameters": {},
+  "analysis": {},
+  "simulator": {
+    "profile": "spectre-default",
+    "args": [
+      "-64",
+      "+aps",
+      "+mt=2",
+      "+lqtimeout",
+      "900",
+      "-maxw",
+      "5",
+      "-maxn",
+      "5"
+    ],
+    "output_format": "psfxl"
+  },
+  "postprocess": {
+    "signals": [
+      {
+        "name": "VINP",
+        "unit": "V"
+      },
+      {
+        "name": "VINN",
+        "unit": "V"
+      },
+      {
+        "name": "ROP",
+        "unit": "V"
+      },
+      {
+        "name": "RON",
+        "unit": "V"
+      },
+      {
+        "name": "VALID",
+        "unit": "V"
+      }
+    ],
+    "start_s": 0,
+    "end_s": 2.4e-08,
+    "step_s": 5e-12,
+    "max_display_points": 1600
+  }
+}

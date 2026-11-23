@@ -2,7 +2,7 @@
 
 Preserved native schematic; external device models are not included.
 
-This is a **viewer-only** library snapshot. `project_id` is unset. There is no bundled runnable simulation configuration or ADC performance claim.
+This cell has an explicitly registered, offline-compilable simulation input project: `pipetisar-research-TB_PIPE_CA4_RS9_N06`. Runtime submission still requires the operator’s licensed models and site setup. No new ADC performance claim is made.
 
 - Role: testbench; source library `2026_PIPETISAR_RESEARCH`, cell `TB_PIPE_CA4_RS9_N06`, saved view `schematic`.
 - Native view entry: `schematic/research/TB_PIPE_CA4_RS9_N06.scs`; display level `@top`. A cell assembly can have an empty file root; select the named level rather than auto-layout.
@@ -16,4 +16,4 @@ This is a **viewer-only** library snapshot. `project_id` is unset. There is no b
 The Spectre text within the RNL view preserves user-authored connectivity. External master names are references, not included third-party implementations. Missing simulation models do not authorize replacing this geometry with automatic wiring. Native symbol-only entries describe the saved icon, not executable behavior.
 
 See `docs/provenance.json` for repository-relative source identifiers and before/after hashes. Every copied view member is byte-identical to the pinned source. Drawing support package attribution is in `lib/THIRD_PARTY_NOTICES.md`.
-Historical simulation input candidates and their missing-dependency audit are available in `simulation/README.md`. They do not make this snapshot a runnable project or prove a source/run binding.
+Current canonical compilation inputs and the preserved historical audits are documented in `simulation/README.md`. Only explicitly bound canonical child edits propagate into the compiled template; electrical edits to this displayed TB entry are rejected during compilation until its binding/template are explicitly updated, while geometry-only comment edits remain allowed. The selected VA, saved-signal and numerical-options snapshots and new compiled inputs are not claimed to reproduce historical dependency revisions, a binary or a result.

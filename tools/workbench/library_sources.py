@@ -150,6 +150,17 @@ def block_hash(block):
     return digest(json.dumps(block_tokens(block), ensure_ascii=False, separators=(',', ':')).encode())
 
 
+def electrical_hash(raw):
+    """Hash ordered source statements, ignoring drawing comments and whitespace.
+
+    Includes and top-level statements remain significant. This does not resolve
+    includes or assert equivalence to an exported simulation template.
+    """
+    statements = [TOKENS.findall(statement) for _, _, statement in _statements(_text(raw, 'guarded source'))]
+    _require(statements, 'guarded electrical source is empty')
+    return digest(json.dumps(statements, ensure_ascii=False, separators=(',', ':')).encode())
+
+
 def _identifiers(block):
     return Counter(match[0] for statement in block.statements for match in IDENTIFIER.finditer(statement)
                    if not match[0].startswith('"'))
@@ -201,10 +212,24 @@ def _equivalent(left, right, mode):
 
 def load_bindings(raw):
     value = _json(_text(raw, 'bindings').encode('utf-8'))
-    _keys(value, ['schema', 'library_id', 'cell_id', 'targets', 'subcircuits'], 'bindings')
+    _keys(value, ['schema', 'library_id', 'cell_id', 'targets', 'subcircuits']
+          + (['electrical_guards'] if isinstance(value, dict) and 'electrical_guards' in value else []), 'bindings')
     _require(value['schema'] == SCHEMA, 'unknown bindings schema')
     _require(all(isinstance(value[key], str) and re.fullmatch(r'[A-Za-z0-9_-]+', value[key])
                  for key in ('library_id', 'cell_id')), 'invalid library/cell identity')
+    if 'electrical_guards' in value:
+        guards = value['electrical_guards']
+        _require(isinstance(guards, list) and 1 <= len(guards) <= 32, 'invalid electrical guards')
+        guarded = set()
+        for guard in guards:
+            _keys(guard, ['source', 'source_sha256', 'electrical_sha256'], 'electrical guard')
+            path = _path(guard['source'])
+            _require(path.startswith('lib/' + value['library_id'] + '/' + value['cell_id'] + '/')
+                     and '/simulation/' not in path and path.endswith('.scs'), 'guard must belong to this native testbench')
+            _require(path not in guarded, 'duplicate electrical guard source')
+            guarded.add(path)
+            _require(all(isinstance(guard[key], str) and SHA.fullmatch(guard[key])
+                         for key in ('source_sha256', 'electrical_sha256')), 'invalid electrical guard hash')
     _require(isinstance(value['targets'], dict) and 1 <= len(value['targets']) <= 32, 'invalid targets')
     for name, target in value['targets'].items():
         _require(isinstance(name, str) and NAME.fullmatch(name), 'invalid configuration identity')
@@ -267,6 +292,8 @@ def compile_sources(bindings_path, configuration, commit, read_blob, out, overri
     counts are explicit contracts; edits to them fail until bindings are updated.
     Baseline electrical equality is verified whenever original source bytes are
     compiled. Changed sources are never silently replaced by historical content.
+    Optional testbench guards reject electrical edits to an uncompiled top level;
+    drawing/comment edits remain allowed and their source hashes are recorded.
     """
     _path(bindings_path)
     _require(isinstance(commit, str) and re.fullmatch(r'[a-f0-9]{40}', commit), 'source commit must be pinned')
@@ -283,7 +310,18 @@ def compile_sources(bindings_path, configuration, commit, read_blob, out, overri
     original = electrical_blocks(template)
     _require(set(original) == {row['target_subcircuit'] for row in bindings['subcircuits']}, 'template/binding subcircuit coverage differs')
     sources = {bindings_path: digest(raw_bindings), target['template_source']: digest(template)}
-    inputs, replacements, reports = {}, [], []
+    inputs, replacements, reports, guard_reports = {}, [], [], []
+    for guard in bindings.get('electrical_guards', []):
+        path = guard['source']
+        inputs[path] = read_blob(commit, path, overrides)
+        sources[path] = digest(inputs[path])
+        observed = electrical_hash(inputs[path])
+        _require(observed == guard['electrical_sha256'],
+                 'testbench electrical source changed: ' + path
+                 + '; update explicit TB binding and input template before materializing')
+        guard_reports.append({'source': path, 'source_sha256': sources[path],
+                              'electrical_sha256': observed, 'electrical_unchanged': True,
+                              'non_electrical_modified': sources[path] != guard['source_sha256']})
     bound_ports = {row['source_subcircuit']: len(row['source_ports']) for row in bindings['subcircuits']}
     for row in bindings['subcircuits']:
         path = row['source']
@@ -320,7 +358,10 @@ def compile_sources(bindings_path, configuration, commit, read_blob, out, overri
     _require(set(compiled_blocks) == set(original), 'compiled block coverage differs')
     new_out = dict(out)
     new_out[destination] = compiled_bytes
-    return new_out, sources, {'schema': 'circuitgit.library-source-compilation.v1', 'configuration': configuration,
-                              'bindings_path': bindings_path, 'bindings_sha256': digest(raw_bindings),
-                              'destination': destination, 'compiled_sha256': digest(compiled_bytes),
-                              'source_commit': commit, 'subcircuits': reports, 'simulation_started': False}
+    report = {'schema': 'circuitgit.library-source-compilation.v1', 'configuration': configuration,
+              'bindings_path': bindings_path, 'bindings_sha256': digest(raw_bindings),
+              'destination': destination, 'compiled_sha256': digest(compiled_bytes),
+              'source_commit': commit, 'subcircuits': reports, 'simulation_started': False}
+    if 'electrical_guards' in bindings:
+        report['electrical_guards'] = guard_reports
+    return new_out, sources, report

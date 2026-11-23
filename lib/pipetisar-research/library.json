@@ -3808,7 +3808,7 @@
       "id": "TB_MDAC_CA4_N06",
       "kind": "testbench",
       "name": "TB_MDAC_CA4_N06",
-      "project_id": null,
+      "project_id": "pipetisar-research-TB_MDAC_CA4_N06",
       "readme": "lib/pipetisar-research/TB_MDAC_CA4_N06/README.md",
       "requires_external_models": true,
       "views": [
@@ -3905,13 +3905,23 @@
         {
           "entry": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/README.md",
           "files": [
-            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/README.md",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/audit.json",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/bundle.json",
             "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/configuration.json",
-            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/audit.json"
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/netlist/TB_MDAC_CA4_N06_save.scs",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/netlist/input.scs",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/netlist/models/PIPE_Clock250_250_500.va",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/netlist/models/PIPE_RailClamp.va",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/netlist/numerical_options.scs",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/netlist/project.scs",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/provenance.json",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/run-configuration.json",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/README.md",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/source-bindings.json"
           ],
           "id": "simulation",
           "kind": "markdown",
-          "label": "Historical inputs — models incomplete"
+          "label": "Canonical simulation inputs · external models required"
         }
       ]
     },
@@ -3921,7 +3931,7 @@
       "id": "TB_PIPE_CA4_RS9_N06",
       "kind": "testbench",
       "name": "TB_PIPE_CA4_RS9_N06",
-      "project_id": null,
+      "project_id": "pipetisar-research-TB_PIPE_CA4_RS9_N06",
       "readme": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/README.md",
       "requires_external_models": true,
       "views": [
@@ -4232,15 +4242,38 @@
         {
           "entry": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/README.md",
           "files": [
-            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/README.md",
-            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/configuration.json",
             "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/audit.json",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/bundle.json",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/configuration.json",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/netlist/TB_PIPE_CA4_RS9_N06_save.scs",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/netlist/input.scs",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/netlist/models/PIPE_Clock250_250_500.va",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/netlist/models/PIPE_RailClamp.va",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/netlist/models/RS9_IO_N06.va",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/netlist/models/RS9_Merge_N06.va",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/netlist/numerical_options.scs",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/netlist/project.scs",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/provenance.json",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/run-configuration.json",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/audit.json",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/bundle.json",
             "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/configuration.json",
-            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/audit.json"
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/netlist/TB_PIPE_CA4_RS9_N06_save.scs",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/netlist/input.scs",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/PIPE_Clock250_250_500.va",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/PIPE_RailClamp.va",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/RS9_IO_N06.va",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/RS9_Merge_N06.va",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/netlist/numerical_options.scs",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/netlist/project.scs",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/provenance.json",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/run-configuration.json",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/README.md",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/source-bindings.json"
           ],
           "id": "simulation",
           "kind": "markdown",
-          "label": "Historical inputs — models incomplete"
+          "label": "Canonical simulation inputs · external models required"
         }
       ]
     },

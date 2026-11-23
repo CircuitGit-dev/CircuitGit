@@ -181,6 +181,22 @@ class LibrarySourcesTests(unittest.TestCase):
             with self.subTest(raw=raw), self.assertRaises(ValueError):
                 ls.electrical_blocks(raw)
 
+    def test_optional_electrical_guard_schema_and_hash_reject_invalid_sources(self):
+        valid={'source':'lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/native/TB_PIPE_RS9_N06.scs',
+               'source_sha256':'a'*64,'electrical_sha256':'b'*64}
+        bad_guards=[[],[valid,valid],{**valid},[{**valid,'electrical_sha256':'not-a-hash'}],
+                    [{**valid,'source':'lib/pipetisar-research/TB_PIPE_RS9_N06/a.scs'}],
+                    [{**valid,'source':'lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/a.scs'}],
+                    [{**valid,'extra':True}]]
+        for guards in bad_guards:
+            bad=deepcopy(self.bindings);bad['electrical_guards']=guards
+            with self.subTest(guards=guards),self.assertRaises(ValueError):ls.load_bindings(encoded(bad))
+        baseline=b'include "child.scs"\nV0 (vdd 0) vsource dc=1\n'
+        geometry=b'// @RNL { @PLACE(1, 2); }\ninclude "child.scs"\nV0  (vdd 0) vsource dc=1 // unchanged\n'
+        self.assertEqual(ls.electrical_hash(baseline),ls.electrical_hash(geometry))
+        self.assertNotEqual(ls.electrical_hash(baseline),ls.electrical_hash(baseline.replace(b'dc=1',b'dc=2')))
+        self.assertNotEqual(ls.electrical_hash(baseline),ls.electrical_hash(baseline.replace(b'child.scs',b'other.scs')))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,176 @@
+{
+  "schema": "circuitgit.research-inputs.v1",
+  "source": "outputs/adc/mdac_array_20261106/results/TB_PIPE_CA4_RS9_N06/Interactive.1/PIPE_NYQUIST/input.scs",
+  "source_sha256": "8aa1465167b6d528c771d80d746852de7bb9753731799d84f15ee61b9d77f120",
+  "design_source": "outputs/adc/mdac_array_20261106/results/TB_PIPE_CA4_RS9_N06/Interactive.1/PIPE_NYQUIST/design_netlist.scs",
+  "design_sha256": "5cc3b9e0ed571e5013b178e6073ad79c54a6f81ff77dcea4a66b22c2cb079cd3",
+  "history": "Interactive.1",
+  "test": "PIPE_NYQUIST",
+  "audit_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/audit.json",
+  "audit_sha256": "e230de26b68f93d57f98c1549da0f961d8015a489cef1c81477ae11aa44ed2ad",
+  "configuration_sha256": "9494c02928790c9e0eb8d35d0a4e86ffa19576f1dd7692d3a1293da592e1fa56",
+  "runtime_configuration_sha256": "bb183436d260db1f4d4e98bd10529dfc092393ea71d84ad42cdf83f866b5671d",
+  "published_bytes_are_original": false,
+  "external_definitions_removed": [
+    {
+      "subcircuit": "ND2D4BWP12T30P140ULVT",
+      "alias": "RESEARCH_ULVT_ND2D4",
+      "body_sha256": "771565bcf6ed2152670995cfe7e6317bb9b3d7f3d70bb9a64a0cd0330c8fd844",
+      "bytes": 2068
+    },
+    {
+      "subcircuit": "ND2D0BWP12T30P140ULVT",
+      "alias": "RESEARCH_ULVT_ND2D0",
+      "body_sha256": "31383ef35bfa2d20832b06241921dc59ac802b9698c2e4929e6aae6338cc93f4",
+      "bytes": 2004
+    },
+    {
+      "subcircuit": "trans_ulvt_mac_pcell_0",
+      "alias": "PDK_TRANS_ULVT_PCELL",
+      "body_sha256": "e8d98b0603b4989ca6f8550737993b26f7abe83030bd3c957f1d522bf682922c",
+      "bytes": 2811
+    }
+  ],
+  "inherited_external_pin_source": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/bundle.json",
+  "inherited_external_pins": {
+    "PDK_MAIN": "0861d3d08ec8a7884bc1f7c45f72bc9ab3df7c860ff8098f76abf1185fd97b96",
+    "STDCELL_SVT_LVT": "1f45bf5a3b017e74aac8b9d332282ecf1f1aa36bedc0fa6e1a4f84497da7b5a7"
+  },
+  "model_snapshot_manifest": "outputs/adc/real_sar_20261106/model_snapshot.json",
+  "model_snapshot_manifest_sha256": "f16a60a7d710c816f4032ec80fcd3d9bef749f7f5a5c74ed0454d8252be2fe78",
+  "veriloga": [
+    {
+      "module": "PIPE_RailClamp",
+      "source": "outputs/adc/real_sar_20261106/model_snapshot/PIPE_RailClamp.va",
+      "sha256": "1abaf750089bbfcc11669cb2c086e3c2e7548cf2c839f0e966df9b87f2237d78",
+      "snapshot_time": 1793932803.43539,
+      "historical_run_revision_verified": false
+    },
+    {
+      "module": "PIPE_Clock250_250_500",
+      "source": "outputs/adc/real_sar_20261106/model_snapshot/PIPE_Clock250_250_500.va",
+      "sha256": "5bc5a1ded6cd039a717eca1dcfb573efc884732ab80da06f286e166a329c71c5",
+      "snapshot_time": 1793932803.7708,
+      "historical_run_revision_verified": false
+    },
+    {
+      "module": "RS9_IO_N06",
+      "source": "outputs/adc/real_sar_20261106/model_snapshot/RS9_IO_N06.va",
+      "sha256": "530f6b301f6ee8bb4e63cd3ba77784b32b2f8dc25fe352b292bb10a572959e93",
+      "snapshot_time": 1793932804.104949,
+      "historical_run_revision_verified": false
+    },
+    {
+      "module": "RS9_Merge_N06",
+      "source": "outputs/adc/real_sar_20261106/model_snapshot/RS9_Merge_N06.va",
+      "sha256": "c6f6e78e8116c3d4acfbfe8caf1baff30a2db741317bf10690aa161569b2f768",
+      "snapshot_time": 1793932804.3850071,
+      "historical_run_revision_verified": false
+    }
+  ],
+  "local_dependencies": [
+    {
+      "source": "outputs/adc/mdac_array_20261106/TB_PIPE_CA4_RS9_N06_save.scs",
+      "sha256": "d59800e8a3f754cf59a653c1143b88a1dd27e1a6c17cbde4105fd83347609167",
+      "revision_basis": "selected-local-snapshot",
+      "historical_run_revision_verified": false
+    },
+    {
+      "source": "outputs/adc/mdac_array_20261106/numerical_options.scs",
+      "sha256": "ac810208045ddaab03c537de0e9ce1322140f3734fb00cb102949b3de3c34912",
+      "revision_basis": "selected-local-snapshot",
+      "historical_run_revision_verified": false
+    }
+  ],
+  "redacted_references": [
+    {
+      "directive": "include",
+      "original_reference_sha256": "17942800c53bc5becbccbf13c82d0a4438d011e7774e1a270f4b577266d1fdcc"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "9aa82f372508fe322e34c7d293089fa26b279c49e9d3205551936570339ccfbe"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "aa386bb59629df51379b8c8edbef318066e6737a618f03f9d3f2dcda08441a64"
+    },
+    {
+      "directive": "include",
+      "original_reference_sha256": "d5efe07f617ab02a06af07770947176f9b9a19b19af7a58db10da4207edfc3d6"
+    },
+    {
+      "directive": "ahdl_include",
+      "original_reference_sha256": "eff10d6711b021f50e56aaee36380b3563e61008c84e7f527af19d2a0a3893de"
+    },
+    {
+      "directive": "ahdl_include",
+      "original_reference_sha256": "21fe82e124f01d55cc8e2c4a170f38f56d7b99ec59137a3b563123b40798a0e6"
+    },
+    {
+      "directive": "ahdl_include",
+      "original_reference_sha256": "4e3b31f46933bef59adf65d6eef9a7e685459e7b284e7908b54bb7dc7b969f02"
+    },
+    {
+      "directive": "ahdl_include",
+      "original_reference_sha256": "ec8eb18eb260728528c8582d1efed21f4ccf5049a3763f424bfffd2e8ce1202c"
+    }
+  ],
+  "canonical_sources": {
+    "lib/pipetisar-research/L3_stage1_flash4_FS2/schematic/research/L3_stage1_flash4_FS2.scs": "78def12b9abe4d4dc5af757bbe0a672789fe313d2d4797ff77aac93ed35efd9b",
+    "lib/pipetisar-research/L4_stage1_flash4_encoder/schematic/research/L4_stage1_flash4_encoder.scs": "e646f20c28152ac2c3527fa0b1c77a446dd6c8f7739a9abe2867059b39f06b63",
+    "lib/pipetisar-research/L4_stage1_flash4_rdac_FS2/schematic/research/L4_stage1_flash4_rdac_FS2.scs": "9d453eb69c29f787d323c4f9f2ae6e0c0de40ff68f1f64e25cc4ee36bb545def",
+    "lib/pipetisar-research/L4_stage1_flash_bootstrapper/schematic/research/L4_stage1_flash_bootstrapper.scs": "ee8105ae0e09754859624e561369294e17d4fddedadb46683acda38cdb11fd51",
+    "lib/pipetisar-research/L4_stage1_flash_clkbooster/schematic/research/L4_stage1_flash_clkbooster.scs": "714bd40057a97c5997ac51adbabc3682ce43d627a5364732969e7e7a0f4caf2f",
+    "lib/pipetisar-research/L4_stage1_flash_comparator/schematic/research/L4_stage1_flash_comparator.scs": "28a8b10627ce005171061b2c35faa93301e6a3e22a8ab2b5a301b1d7282bd941",
+    "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/MDAC4_ARRAY_G8_N06.scs": "e388e968f69cfeb1228c4a2ee39822c99041dc9f2a87057d06ecec3af0bcddef",
+    "lib/pipetisar-research/MDAC4_MOM_BIT_N06/schematic/research/MDAC4_MOM_BIT_N06.scs": "fc30502bf014ea7c841a3a07f85c4e2f84e0d76131adc10be0e6f06954c372b4",
+    "lib/pipetisar-research/MDAC4_REF_CTRL_N06/schematic/research/MDAC4_REF_CTRL_N06.scs": "869526c2c81a2fcd9fa7fd483a29daaa516b556db5cdeb8e8e07d87d8dc554db",
+    "lib/pipetisar-research/PIPE_OTA_Diff_Ideal/schematic/research/PIPE_OTA_Diff_Ideal.scs": "3638533cbe7c7ba5bb8bc3ca74300fa8c8d18ea7f282e3622948eefe0f4fb237",
+    "lib/pipetisar-research/PIPE_SAR9_Real_N06/schematic/research/PIPE_SAR9_Real_N06.scs": "2a13a1a56c4a9f19f03fe1194cad79a874791df881cdfda9ec6bccb98e41afe3",
+    "lib/pipetisar-research/PIPE_TOP_CA4_RS9_N06/schematic/research/PIPE_TOP_CA4_RS9_N06.scs": "10847685beb3a3081980f8e9f9f385b84e8c7197fa3aa557e2f4f3f2c98ebe92",
+    "lib/pipetisar-research/RS9_L3_9bit_SAR_2/schematic/research/RS9_L3_9bit_SAR_2.scs": "f3cc831c970f7cfcff811963e656332257e86c1b02cd153df1c5b7844ade2a62",
+    "lib/pipetisar-research/RS9_L5_9bit_Bootstrap/schematic/research/RS9_L5_9bit_Bootstrap.scs": "edb3580409003a55f5c04a31d4ecca40ac44a4c74a8a06ca1395c889b41369c6",
+    "lib/pipetisar-research/RS9_L5_9bit_Comparator_LN/schematic/research/RS9_L5_9bit_Comparator_LN.scs": "44220706c664976a8d554b62b306f201b72b533d80dae4a158655e2cbdb52256",
+    "lib/pipetisar-research/RS9_L5_9bit_RSW_CDAC/schematic/research/RS9_L5_9bit_RSW_CDAC.scs": "4a818a1cbf5707b88f845fff0dee23b86e61a475e276e9d85c25ad30b475b540",
+    "lib/pipetisar-research/RS9_L5_9bit_SAR_Logic_1/schematic/research/RS9_L5_9bit_SAR_Logic_1.scs": "9f74632c98061382102d449b7c5c30a281952616a5ff0306ca1b2b17f691f6cd",
+    "lib/pipetisar-research/RS9_L6_9bit_REF_Logic/schematic/research/RS9_L6_9bit_REF_Logic.scs": "4784276aa6a6cfa42bb2dbd1d3ec8c8b46066486c3dcc451db56967709dcef46",
+    "lib/pipetisar-research/RS9_L6_9bit_RSW/schematic/research/RS9_L6_9bit_RSW.scs": "d004e4fd60e17a7bfe806ba7a2ea229411e0f9556f518a90bcdf106575b9240e",
+    "lib/pipetisar-research/RS9_L6_SR_latch_1/schematic/research/RS9_L6_SR_latch_1.scs": "b4990cb9a3dfdd3e7055dd28a44cae0977296b311f3acc5b9ea356aceb246323",
+    "lib/pipetisar-research/RS9_L7_9bit_CDAC/schematic/research/RS9_L7_9bit_CDAC.scs": "c4f4a21ef8ad124bc6fea2fd3f3f422162dc8a6a1de68b808d122c1659a108d1",
+    "lib/pipetisar-research/RS9_L8_9bit_CDAC_UNIT/schematic/research/RS9_L8_9bit_CDAC_UNIT.scs": "9dcef40c26032340ae2f036daad01de15e641776c27e906119d2a0968c429a4d",
+    "lib/pipetisar-research/Switch/schematic/research/Switch.scs": "079af4020024caca33a18b0058e1153b3adc4e8e618216fb5591e07b4f633d99"
+  },
+  "limitations": [
+    "Project VA uses the explicitly pinned archived snapshot; matching the historical simulator binary revision is not established.",
+    "Saved-signal and numerical-options includes are selected, hash-pinned local versions; original input/design hashes do not verify their historical run revisions.",
+    "Only explicitly bound canonical child subcircuits are recompiled; electrical edits to the guarded displayed testbench entry require an explicit TB binding/input template update and otherwise fail compilation.",
+    "The two global PDK pins are inherited from the existing declared operator model revision, not newly measured from this history.",
+    "Licensed PDK/standard-cell bodies, site configuration and credentials are excluded. No simulation was run."
+  ],
+  "simulation_executed": false
+}

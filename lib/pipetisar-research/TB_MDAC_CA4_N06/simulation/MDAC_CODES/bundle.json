@@ -1,0 +1,144 @@
+{
+  "schema": "ic.sim.bundle.v1",
+  "design_id": "pipetisar-research-TB_MDAC_CA4_N06",
+  "library": "2026_PIPETISAR_RESEARCH",
+  "top_cell": "MDAC4_ARRAY_G8_N06",
+  "testbench": "TB_MDAC_CA4_N06",
+  "test": "MDAC_CODES",
+  "test_id": "pipetisar-research-TB_MDAC_CA4_N06-MDAC_CODES",
+  "source_root": ".",
+  "entrypoint": "netlist/input.scs",
+  "design_origin": "audited-research-export-with-pinned-va-snapshot",
+  "reviewed_for_distribution": false,
+  "external_dependencies": [
+    {
+      "alias": "PDK_MAIN",
+      "sha256": "0861d3d08ec8a7884bc1f7c45f72bc9ab3df7c860ff8098f76abf1185fd97b96"
+    },
+    {
+      "alias": "RESEARCH_ULVT_ND2D4",
+      "sha256": "771565bcf6ed2152670995cfe7e6317bb9b3d7f3d70bb9a64a0cd0330c8fd844"
+    },
+    {
+      "alias": "STDCELL_SVT_LVT",
+      "sha256": "1f45bf5a3b017e74aac8b9d332282ecf1f1aa36bedc0fa6e1a4f84497da7b5a7"
+    }
+  ],
+  "configuration": {
+    "parameters_observed": {
+      "CuNominal": "99.8585f",
+      "LimitEnable": "1",
+      "Fs": "1G",
+      "Fin": "62500000",
+      "Ain": "0.9",
+      "GmIdeal": "1",
+      "AolIdeal": "1e8",
+      "Cflash": "5f",
+      "Cs2": "0.5p",
+      "Cs1": "1.5p",
+      "Tbit": "100p",
+      "TrModel": "1p",
+      "Tguard": "10p",
+      "Tamp": "500p",
+      "Ttrack": "250p",
+      "Tper": "1n",
+      "Iref": "100u",
+      "Vref": "2",
+      "Vcm": "0.5",
+      "Vdd": "1"
+    },
+    "analysis_observed": "tran tran stop=20n errpreset=conservative maxstep=2p write=\"spectre.ic\"  writefinal=\"spectre.fc\" savetime=[600] savefile=\"spectre.tran.save\"  method=gear2only annotate=status flushtime=30 maxiters=20 ",
+    "model_sections": [
+      "pre_simu",
+      "noise_worst",
+      "ttmacro_mos_moscap",
+      "tt_res_bip_dio_disres",
+      "tt_mom",
+      "tt_ind_jvar",
+      "tt_r_metal"
+    ]
+  },
+  "simulator": {
+    "profile": "spectre-default",
+    "args": [
+      "-64",
+      "+aps",
+      "+mt=2",
+      "+lqtimeout",
+      "900",
+      "-maxw",
+      "5",
+      "-maxn",
+      "5"
+    ],
+    "output_format": "psfxl"
+  },
+  "postprocess": {
+    "signals": [
+      {
+        "name": "VINP",
+        "unit": "V"
+      },
+      {
+        "name": "VINN",
+        "unit": "V"
+      },
+      {
+        "name": "ROP",
+        "unit": "V"
+      },
+      {
+        "name": "RON",
+        "unit": "V"
+      },
+      {
+        "name": "TRACK",
+        "unit": "V"
+      },
+      {
+        "name": "AMP",
+        "unit": "V"
+      },
+      {
+        "name": "RESET",
+        "unit": "V"
+      }
+    ],
+    "start_s": 0,
+    "end_s": 2e-08,
+    "step_s": 5e-12,
+    "max_display_points": 1600
+  },
+  "files": [
+    {
+      "source": "netlist/TB_MDAC_CA4_N06_save.scs",
+      "destination": "netlist/TB_MDAC_CA4_N06_save.scs",
+      "sha256": "395df11b08ebe2fc649029b6bba940b6e4f211a940b9fee6d922851a83d9fe80"
+    },
+    {
+      "source": "netlist/input.scs",
+      "destination": "netlist/input.scs",
+      "sha256": "2466b8757019fcf7819dd2d063fb4a423a7128cecc0e86e85585c4b2d0d8b14d"
+    },
+    {
+      "source": "netlist/models/PIPE_Clock250_250_500.va",
+      "destination": "netlist/models/PIPE_Clock250_250_500.va",
+      "sha256": "5bc5a1ded6cd039a717eca1dcfb573efc884732ab80da06f286e166a329c71c5"
+    },
+    {
+      "source": "netlist/models/PIPE_RailClamp.va",
+      "destination": "netlist/models/PIPE_RailClamp.va",
+      "sha256": "1abaf750089bbfcc11669cb2c086e3c2e7548cf2c839f0e966df9b87f2237d78"
+    },
+    {
+      "source": "netlist/numerical_options.scs",
+      "destination": "netlist/numerical_options.scs",
+      "sha256": "ac810208045ddaab03c537de0e9ce1322140f3734fb00cb102949b3de3c34912"
+    },
+    {
+      "source": "netlist/project.scs",
+      "destination": "netlist/project.scs",
+      "sha256": "1bf6448f86ac028223f4af7f6594adf54177f91f2d926f4d94124850f5f66020"
+    }
+  ]
+}

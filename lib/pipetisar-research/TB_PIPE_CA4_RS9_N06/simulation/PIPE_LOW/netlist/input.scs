@@ -1,0 +1,51 @@
+// Point Netlist Generated on: Nov  6 18:38:59 2026
+// Generated for: spectre
+// Design Netlist Generated on: Nov  6 18:38:50 2026
+// Design library name: 2026_PIPETISAR_RESEARCH
+// Design cell name: TB_PIPE_CA4_RS9_N06
+// Design view name: schematic
+simulator lang=spectre
+global 0
+include "TB_PIPE_CA4_RS9_N06_save.scs"
+include "numerical_options.scs"
+parameters Tfft=4n Nfft=16 N=16 cycle=1 CuNominal=99.8585f LimitEnable=1 \
+    Fs=1G Fin=62500000.0 Ain=0.9 GmIdeal=1 AolIdeal=1e8 Cflash=5f Cs2=0.5p \
+    Cs1=1.5p Tbit=100p TrModel=1p Tguard=10p Tamp=500p Ttrack=250p Tper=1n \
+    Iref=100u Vref=2 Vcm=0.5 Vdd=1
+include "@EXTERNAL_PDK_MAIN@" section=pre_simu
+include "@EXTERNAL_PDK_MAIN@" section=noise_worst
+include "@EXTERNAL_PDK_MAIN@" section=ttmacro_mos_moscap
+include "@EXTERNAL_PDK_MAIN@" section=tt_res_bip_dio_disres
+include "@EXTERNAL_PDK_MAIN@" section=tt_mom
+include "@EXTERNAL_PDK_MAIN@" section=tt_ind_jvar
+include "@EXTERNAL_PDK_MAIN@" section=tt_r_metal
+include "@EXTERNAL_STDCELL_SVT_LVT@"
+include "project.scs"
+simulatorOptions options psfversion="1.4.0" reltol=1e-4 vabstol=1e-7 \
+    iabstol=1e-13 temp=27 tnom=27 scalem=1.0 scale=1.0 gmin=1e-12 rforce=1 \
+    maxnotes=5 maxwarns=5 digits=5 cols=80 pivrel=1e-3 \
+    sensfile="../psf/sens.output" checklimitdest=psf 
+tran tran stop=Tfft+(N+4)*Tper errpreset=conservative maxstep=2p \
+    write="spectre.ic" writefinal="spectre.fc" savetime=[600] \
+    savefile="spectre.tran.save" method=gear2only annotate=status \
+    flushtime=30 maxiters=20 
+finalTimeOP info what=oppoint where=rawfile
+modelParameter info what=models where=rawfile
+element info what=inst where=rawfile
+outputParameter info what=output where=rawfile
+designParamVals info what=parameters where=rawfile
+primitives info what=primitives where=rawfile
+subckts info what=subckts where=rawfile
+save XDUT.XSARB.CLKC XDUT.XSARB.TOPNB XDUT.XSARB.TOPPB XDUT.XSARA.CLKC \
+    XDUT.XSARA.TOPNB XDUT.XSARA.TOPPB OVERFLOW VALID XDUT.XSARB.EOC \
+    XDUT.XSARA.EOC TB TA AMP XDUT.PHI1EN TRACK XDUT.XRA.BDN XDUT.XRA.BDP \
+    XDUT.XRA.BN\<3\> XDUT.XRA.BP\<3\> XDUT.XRA.BN\<2\> XDUT.XRA.BP\<2\> \
+    XDUT.XRA.BN\<1\> XDUT.XRA.BP\<1\> XDUT.XRA.BN\<0\> XDUT.XRA.BP\<0\> \
+    CODE\<11\> CODE\<10\> CODE\<9\> CODE\<8\> CODE\<7\> CODE\<6\> \
+    CODE\<5\> CODE\<4\> CODE\<3\> CODE\<2\> CODE\<1\> CODE\<0\> RON ROP \
+    BIN\<3\> BIN\<2\> BIN\<1\> BIN\<0\> VINN VINP 
+saveOptions options save=selected
+ahdl_include "models/PIPE_RailClamp.va"
+ahdl_include "models/PIPE_Clock250_250_500.va"
+ahdl_include "models/RS9_IO_N06.va"
+ahdl_include "models/RS9_Merge_N06.va"

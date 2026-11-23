@@ -37,10 +37,10 @@
       "id": "pipetisar-research-TB_PIPE_CA4_RS9_N06-PIPE_LOW",
       "library_id": "pipetisar-research",
       "cell_id": "TB_PIPE_CA4_RS9_N06",
-      "configuration_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/configuration.json",
+      "configuration_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/run-configuration.json",
       "engine": "spectre",
       "workflow_path": ".github/workflows/circuit-spectre.yml",
-      "label": "TB_PIPE_CA4_RS9_N06 / PIPE_LOW \u00b7 Spectre (requires local setup)",
+      "label": "TB_PIPE_CA4_RS9_N06 / PIPE_LOW \u00b7 canonical inputs (external models required)",
       "requires_external_models": true,
       "available": true
     },
@@ -48,10 +48,10 @@
       "id": "pipetisar-research-TB_PIPE_CA4_RS9_N06-PIPE_NYQUIST",
       "library_id": "pipetisar-research",
       "cell_id": "TB_PIPE_CA4_RS9_N06",
-      "configuration_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/configuration.json",
+      "configuration_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/run-configuration.json",
       "engine": "spectre",
       "workflow_path": ".github/workflows/circuit-spectre.yml",
-      "label": "TB_PIPE_CA4_RS9_N06 / PIPE_NYQUIST \u00b7 Spectre (requires local setup)",
+      "label": "TB_PIPE_CA4_RS9_N06 / PIPE_NYQUIST \u00b7 canonical inputs (external models required)",
       "requires_external_models": true,
       "available": true
     },
@@ -59,10 +59,10 @@
       "id": "pipetisar-research-TB_MDAC_CA4_N06-MDAC_CODES",
       "library_id": "pipetisar-research",
       "cell_id": "TB_MDAC_CA4_N06",
-      "configuration_path": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/configuration.json",
+      "configuration_path": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/run-configuration.json",
       "engine": "spectre",
       "workflow_path": ".github/workflows/circuit-spectre.yml",
-      "label": "TB_MDAC_CA4_N06 / MDAC_CODES \u00b7 Spectre (requires local setup)",
+      "label": "TB_MDAC_CA4_N06 / MDAC_CODES \u00b7 canonical inputs (external models required)",
       "requires_external_models": true,
       "available": true
     }
