@@ -1,0 +1,3 @@
+// Explicit saved-library assembly.
+simulator lang=spectre
+include "L5_stage1_flash_cal_mux.scs"

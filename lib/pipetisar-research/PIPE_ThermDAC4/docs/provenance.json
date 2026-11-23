@@ -1,0 +1,63 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "PIPE_ThermDAC4",
+    "view": "symbol"
+  },
+  "native_level": "@top",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [],
+  "external_interface_stub": false,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/research/PIPE_ThermDAC4.rnl",
+      "source_sha256": "b43bd613e58701be558785c68ed6d249466e3144bcdff13a9d3b303360e25535",
+      "path": "lib/pipetisar-research/PIPE_ThermDAC4/symbol/research/PIPE_ThermDAC4.rnl",
+      "sha256": "b43bd613e58701be558785c68ed6d249466e3144bcdff13a9d3b303360e25535",
+      "bytes": 1513,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-research/PIPE_ThermDAC4/symbol/research/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/symbol-PIPE_ThermDAC4.scs",
+      "source_sha256": "5e7a0465b149131e86cc73c77015ff52fc8985a4ab2bb3af3c4f19269e8902ee",
+      "path": "lib/pipetisar-research/PIPE_ThermDAC4/symbol/research/symbol-PIPE_ThermDAC4.scs",
+      "sha256": "5e7a0465b149131e86cc73c77015ff52fc8985a4ab2bb3af3c4f19269e8902ee",
+      "bytes": 458,
+      "transformation": "none"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+simulator lang=spectre
+// Existing real SAR needs discontinuity handling; no device changes.
+rs9N06Options options discontinuity=robust

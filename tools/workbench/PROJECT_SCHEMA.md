@@ -52,3 +52,35 @@ For RC use in/out and end_s=1.2e-8. All times are numeric SI seconds, not string
 The backend reads committed template files with `git show`, substitutes the one canonical circuit, applies scientific configuration, recomputes every derived bundle file hash, and signs a materialization manifest containing the actual source commit and source SHA256 values. It does not modify archived bundles or their history hashes. The runner accepts only locally signed materializations from its configured private runtime directory. `source_commit` always refers to the user's real versioned source, not an invented commit for generated files.
 
 HTTP uses exactly phase2-interface.md. Preview returns unified diff and validation; commit receives the same changes/base_commit/message/push. Plan/preflight/jobs accept stable string project_id/configuration and source_commit. Health returns X-Workbench-Token bootstrap; it is an ephemeral local CSRF token, never a GitHub/SSH credential.
+
+
+## Library project registration
+
+`library_id` and `cell_id` are optional strings on a configured project record. They identify a public catalog cell without replacing the stable project ID, exact source/configuration paths, source commit or hashes. For the built-in RC project they are `basics` / `rc-smoke`; its canonical `projects/rc-smoke/` files remain in place. Runtime run/supervision projections are unchanged.
+
+Explicit editable sources, configuration files, source replacements and read-only files may use either `projects/<project>/...` or `lib/<library>/<cell>/<view>/...`. Library metadata, when present on a `lib/` source, must match its path. Paths are not normalized: absolute paths, dot/empty segments, backslashes, controls and URL/drive prefixes are rejected; existing per-file allowlists, symlink checks, clean/base-commit checks and mandatory MCP review hashes still apply. There is no directory grant, catalog auto-discovery, path derivation from IDs or fallback between projects and libraries. Every replacement source is returned in its project's file tree; registered read-only status prevails if a file is shared.
+
+A library record can therefore look like this (illustrative only):
+
+```json
+{
+  "id": "explicit-filter-project",
+  "library_id": "examples",
+  "cell_id": "filter",
+  "source_path": "lib/examples/filter/netlist/circuit.scs",
+  "read_paths": ["lib/examples/filter/README.md"],
+  "configurations": [{
+    "id": "TRAN",
+    "configuration_path": "lib/examples/filter/simulation/TRAN.json",
+    "bundle_template": "lib/examples/filter/simulation/template/bundle.json",
+    "source_replacements": [{
+      "source": "lib/examples/filter/netlist/circuit.scs",
+      "destination": "netlist/project.scs"
+    }]
+  }]
+}
+```
+
+The bundle template retains the existing explicit file closure and external-alias hash pins. Missing files/models block replay; project metadata never supplies or authorizes external models. Geometry, if separately registered, must retain the existing `ic.native-geometry.v1` manifest/source/hash contract. A library source may use a manifest under the same cell's `schematic/`, `native/` or `geometry/` directory. A public `library.json` or native drawing alone is not a simulator project or a substitute geometry proof.
+
+Only electrically complete, explicitly reviewed replay projects belong in the installed runtime registry. Cells that have only a drawing, incomplete model closure, or unverified historical input association keep `project_id: null` in the public catalog. Preview/apply/submit use the original review ledger and human approval; adding library support does not approve, dispatch, recollect or republish anything.

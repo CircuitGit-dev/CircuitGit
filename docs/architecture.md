@@ -21,6 +21,7 @@ tools/
   ai/                        compatibility entrypoints only
   sim/, native_geometry/, …  existing reproducible EDA/export tooling
 projects/, design/, sim/    authoritative sources and historical design/input snapshots
+lib/                       reviewed public libraries, cell views and provenance
 results/, validation/       historical results, provenance and acceptance evidence
 config/                    versioned examples; private *.local.json stays ignored
 web/, dist/                generated packages, excluded from Git
@@ -74,6 +75,8 @@ The optional browser `developer` permission mode creates a native Codex developm
 Application code, editable design data, historical snapshots, and runtime state have different lifecycles. This migration moves application code only. Existing `projects`, `design`, `sim`, `results`, `validation` paths and bytes remain unchanged; archived hashes and fixed runtime commits are not recalculated to disguise differences.
 
 Do not move PDK dependencies into shared modules. Production site credentials and remote directory identities remain in private configuration. AI turn history is runtime state and must not be added to Git to preserve a UI layout.
+
+The public library extension uses `lib/catalog.json` and per-library manifests. The Pages publisher copies only the explicitly reviewed view inventories into `library-files/`; application/plugin builds still exclude engineering snapshots. Library browsing uses the existing RNL source/geometry loader and is independent of AI node project selection. Opening a library schematic clears the RC analytical data, and cells without a registered runtime project cannot submit a simulation. See [circuit libraries](circuit-libraries.md).
 
 ## Codex window lifecycle
 

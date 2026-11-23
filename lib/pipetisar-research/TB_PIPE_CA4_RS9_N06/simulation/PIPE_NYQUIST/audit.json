@@ -1,0 +1,58 @@
+{
+  "source": "outputs/adc/mdac_array_20261106/results/TB_PIPE_CA4_RS9_N06/Interactive.1/PIPE_NYQUIST/input.scs",
+  "source_sha256": "8aa1465167b6d528c771d80d746852de7bb9753731799d84f15ee61b9d77f120",
+  "design_sha256": "5cc3b9e0ed571e5013b178e6073ad79c54a6f81ff77dcea4a66b22c2cb079cd3",
+  "history": "Interactive.1",
+  "test": "PIPE_NYQUIST",
+  "parameters_observed": {
+    "Tfft": "4n",
+    "Nfft": "16",
+    "N": "16",
+    "cycle": "7",
+    "CuNominal": "99.8585f",
+    "LimitEnable": "1",
+    "Fs": "1G",
+    "Fin": "437500000.0",
+    "Ain": "0.9",
+    "GmIdeal": "1",
+    "AolIdeal": "1e8",
+    "Cflash": "5f",
+    "Cs2": "0.5p",
+    "Cs1": "1.5p",
+    "Tbit": "100p",
+    "TrModel": "1p",
+    "Tguard": "10p",
+    "Tamp": "500p",
+    "Ttrack": "250p",
+    "Tper": "1n",
+    "Iref": "100u",
+    "Vref": "2",
+    "Vcm": "0.5",
+    "Vdd": "1"
+  },
+  "analysis_observed": "tran tran stop=Tfft+(N+4)*Tper errpreset=conservative maxstep=2p  write=\"spectre.ic\" writefinal=\"spectre.fc\" savetime=[600]  savefile=\"spectre.tran.save\" method=gear2only annotate=status  flushtime=30 maxiters=20 ",
+  "external_model_sections": [
+    "pre_simu",
+    "noise_worst",
+    "ttmacro_mos_moscap",
+    "tt_res_bip_dio_disres",
+    "tt_mom",
+    "tt_ind_jvar",
+    "tt_r_metal"
+  ],
+  "external_implementation_definitions_to_remove": [
+    "ND2D4BWP12T30P140ULVT",
+    "ND2D0BWP12T30P140ULVT",
+    "trans_ulvt_mac_pcell_0"
+  ],
+  "project_veriloga_dependencies": [
+    "PIPE_RailClamp",
+    "PIPE_Clock250_250_500",
+    "RS9_IO_N06",
+    "RS9_Merge_N06"
+  ],
+  "registration": "not active; unsanitized input/design not copied; complete model/VA revision closure not established",
+  "configuration_use": "Keep parameters empty when entry has inline subckt parameter blocks; first form a reviewed split entry/project closure before parameter overrides.",
+  "suggested_cell": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06",
+  "simulation_executed": false
+}

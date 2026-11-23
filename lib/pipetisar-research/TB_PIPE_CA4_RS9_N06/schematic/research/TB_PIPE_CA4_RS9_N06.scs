@@ -1,0 +1,456 @@
+// Generated for: spectre
+include "L3_stage1_flash4_FS2.scs"
+include "L4_stage1_flash4_encoder.scs"
+include "L4_stage1_flash4_rdac_FS2.scs"
+include "L4_stage1_flash_bootstrapper.scs"
+include "L4_stage1_flash_clkbooster.scs"
+include "L4_stage1_flash_comparator.scs"
+include "MDAC4_ARRAY_G8_N06.scs"
+include "MDAC4_MOM_BIT_N06.scs"
+include "MDAC4_REF_CTRL_N06.scs"
+include "PIPE_OTA_Diff_Ideal.scs"
+include "PIPE_SAR9_Real_N06.scs"
+include "PIPE_TOP_CA4_RS9_N06.scs"
+include "RS9_L3_9bit_SAR_2.scs"
+include "RS9_L5_9bit_Bootstrap.scs"
+include "RS9_L5_9bit_Comparator_LN.scs"
+include "RS9_L5_9bit_RSW_CDAC.scs"
+include "RS9_L5_9bit_SAR_Logic_1.scs"
+include "RS9_L6_9bit_REF_Logic.scs"
+include "RS9_L6_9bit_RSW.scs"
+include "RS9_L6_SR_latch_1.scs"
+include "RS9_L7_9bit_CDAC.scs"
+include "RS9_L8_9bit_CDAC_UNIT.scs"
+include "Switch.scs"
+// @RNL(type="header") {
+//   @VERSION("0.3");
+//   @USE-PACKAGE(name="rnl-std-spectre", version="0.3", path="rnl-std-spectre.rnl");
+//   @USE-PACKAGE(name="eda-symbol", version="0.1", path="eda-symbol.rnl");
+//   @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl")
+// }
+// Generated on: Nov  9 19:44:55 2026
+// Design library name: 2026_PIPETISAR_RESEARCH
+// Design cell name: TB_PIPE_CA4_RS9_N06
+// Design view name: schematic
+simulator lang=spectre
+global 0
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: Switch
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_MOM_BIT_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: tcbn28hpcplusbwp12t30p140ulvt
+// Cell name: ND2D4BWP12T30P140ULVT
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_REF_CTRL_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_OTA_Diff_Ideal
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_ARRAY_G8_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_Bootstrap
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_Comparator_LN
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_SR_latch_1
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_9bit_REF_Logic
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_SAR_Logic_1
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L8_9bit_CDAC_UNIT
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L7_9bit_CDAC
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_9bit_RSW
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_RSW_CDAC
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L3_9bit_SAR_2
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_SAR9_Real_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: tcbn28hpcplusbwp12t30p140ulvt
+// Cell name: ND2D0BWP12T30P140ULVT
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: tsmcN28
+// Cell name: trans_ulvt_mac
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash_comparator
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash_bootstrapper
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash_clkbooster
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash4_encoder
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash4_rdac_FS2
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L3_stage1_flash4_FS2
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_TOP_CA4_RS9_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: TB_PIPE_CA4_RS9_N06
+// View name: schematic
+VREFN0 (VREFN 0) vsource dc=Vcm-Vref/4 type=dc
+VREFP0 (VREFP 0) vsource dc=Vcm+Vref/4 type=dc
+VCM0 (VCM 0) vsource dc=Vcm type=dc
+VDD0 (VDD 0) vsource dc=Vdd type=dc
+VINN0 (VINN 0) vsource type=sine sinedc=Vcm ampl=-Ain/2 freq=Fin
+VINP0 (VINP 0) vsource type=sine sinedc=Vcm ampl=Ain/2 freq=Fin
+IBIAS_B (VDD IB_B) isource dc=Iref type=dc
+IBIAS_A (VDD IB_A) isource dc=Iref type=dc
+CPROBE14 (DB 0) capacitor c=1a
+CPROBE13 (DA 0) capacitor c=1a
+CPROBE12 (TB 0) capacitor c=1a
+CPROBE11 (TA 0) capacitor c=1a
+CPROBE10 (AMP 0) capacitor c=1a
+CPROBE9 (TRACK 0) capacitor c=1a
+CPROBE8_3 (BIN_3 0) capacitor c=1a
+CPROBE8_2 (BIN_2 0) capacitor c=1a
+CPROBE8_1 (BIN_1 0) capacitor c=1a
+CPROBE8_0 (BIN_0 0) capacitor c=1a
+CPROBE7_14 (D_14 0) capacitor c=1a
+CPROBE7_13 (D_13 0) capacitor c=1a
+CPROBE7_12 (D_12 0) capacitor c=1a
+CPROBE7_11 (D_11 0) capacitor c=1a
+CPROBE7_10 (D_10 0) capacitor c=1a
+CPROBE7_9 (D_9 0) capacitor c=1a
+CPROBE7_8 (D_8 0) capacitor c=1a
+CPROBE7_7 (D_7 0) capacitor c=1a
+CPROBE7_6 (D_6 0) capacitor c=1a
+CPROBE7_5 (D_5 0) capacitor c=1a
+CPROBE7_4 (D_4 0) capacitor c=1a
+CPROBE7_3 (D_3 0) capacitor c=1a
+CPROBE7_2 (D_2 0) capacitor c=1a
+CPROBE7_1 (D_1 0) capacitor c=1a
+CPROBE7_0 (D_0 0) capacitor c=1a
+CPROBE6 (RON 0) capacitor c=1a
+CPROBE5 (ROP 0) capacitor c=1a
+CPROBE4 (OVERFLOW 0) capacitor c=1a
+CPROBE3 (CHANNEL 0) capacitor c=1a
+CPROBE2 (RECON 0) capacitor c=1a
+CPROBE1 (VALID 0) capacitor c=1a
+CPROBE0_11 (CODE_11 0) capacitor c=1a
+CPROBE0_10 (CODE_10 0) capacitor c=1a
+CPROBE0_9 (CODE_9 0) capacitor c=1a
+CPROBE0_8 (CODE_8 0) capacitor c=1a
+CPROBE0_7 (CODE_7 0) capacitor c=1a
+CPROBE0_6 (CODE_6 0) capacitor c=1a
+CPROBE0_5 (CODE_5 0) capacitor c=1a
+CPROBE0_4 (CODE_4 0) capacitor c=1a
+CPROBE0_3 (CODE_3 0) capacitor c=1a
+CPROBE0_2 (CODE_2 0) capacitor c=1a
+CPROBE0_1 (CODE_1 0) capacitor c=1a
+CPROBE0_0 (CODE_0 0) capacitor c=1a
+XDUT (AMP BIN_3 BIN_2 BIN_1 BIN_0 CHANNEL CODE_11 CODE_10 CODE_9 CODE_8 \
+        CODE_7 CODE_6 CODE_5 CODE_4 CODE_3 CODE_2 CODE_1 CODE_0 D_14 D_13 \
+        D_12 D_11 D_10 D_9 D_8 D_7 D_6 D_5 D_4 D_3 D_2 D_1 D_0 DA DB IB_A \
+        IB_B OVERFLOW RECON RON ROP TA TB TRACK VALID VCM VDD VINN VINP \
+        VREFN VREFP 0) PIPE_TOP_CA4_RS9_N06
+// @RNL(author="rnl-virtuoso") {
+//   #"CPROBE6" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE6" @PLACE(275, -56) => @ORIENT("R90");
+//   %bundle_0 = {#"CPROBE0_11" #"CPROBE0_10" #"CPROBE0_9" #"CPROBE0_8" #"CPROBE0_7" #"CPROBE0_6" #"CPROBE0_5" #"CPROBE0_4" #"CPROBE0_3" #"CPROBE0_2" #"CPROBE0_1" #"CPROBE0_0"} @BUNDLE;
+//   %bundle_0 @SET-SYMBOL $CAPACITOR;
+//   %bundle_0 @PLACE(275, 0) => @ORIENT("R90");
+//   %bundle_0 @TEXT("CPROBE0<11:0>", key="name");
+//   #"XDUT" @PLACE(144, 0) => @ORIENT("R0");
+//   #"VDD0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VDD0" @PLACE(16, 61) => @ORIENT("R0");
+//   %bundle_1 = {#"CPROBE7_14" #"CPROBE7_13" #"CPROBE7_12" #"CPROBE7_11" #"CPROBE7_10" #"CPROBE7_9" #"CPROBE7_8" #"CPROBE7_7" #"CPROBE7_6" #"CPROBE7_5" #"CPROBE7_4" #"CPROBE7_3" #"CPROBE7_2" #"CPROBE7_1" #"CPROBE7_0"} @BUNDLE;
+//   %bundle_1 @SET-SYMBOL $CAPACITOR;
+//   %bundle_1 @PLACE(275, -72) => @ORIENT("R90");
+//   %bundle_1 @TEXT("CPROBE7<14:0>", key="name");
+//   #"CPROBE13" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE13" @PLACE(275, -128) => @ORIENT("R90");
+//   #"VCM0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VCM0" @PLACE(64, 61) => @ORIENT("R0");
+//   #"CPROBE2" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE2" @PLACE(275, -8) => @ORIENT("R90");
+//   #"CPROBE11" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE11" @PLACE(275, -112) => @ORIENT("R90");
+//   #"VINP0" @SET-SYMBOL $VSIN;
+//   #"VINP0" @PLACE(32, -3) => @ORIENT("R0");
+//   #"CPROBE1" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE1" @PLACE(275, -16) => @ORIENT("R90");
+//   #"IBIAS_B" @SET-SYMBOL $CURRENT_SOURCE;
+//   #"IBIAS_B" @PLACE(256, 61) => @ORIENT("R0");
+//   #"CPROBE5" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE5" @PLACE(275, -48) => @ORIENT("R90");
+//   %bundle_2 = {#"CPROBE8_3" #"CPROBE8_2" #"CPROBE8_1" #"CPROBE8_0"} @BUNDLE;
+//   %bundle_2 @SET-SYMBOL $CAPACITOR;
+//   %bundle_2 @PLACE(275, -80) => @ORIENT("R90");
+//   %bundle_2 @TEXT("CPROBE8<3:0>", key="name");
+//   #"CPROBE12" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE12" @PLACE(275, -120) => @ORIENT("R90");
+//   #"CPROBE14" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE14" @PLACE(275, -136) => @ORIENT("R90");
+//   #"IBIAS_A" @SET-SYMBOL $CURRENT_SOURCE;
+//   #"IBIAS_A" @PLACE(208, 61) => @ORIENT("R0");
+//   #"CPROBE3" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE3" @PLACE(275, -32) => @ORIENT("R90");
+//   #"CPROBE4" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE4" @PLACE(275, -24) => @ORIENT("R90");
+//   #"VINN0" @SET-SYMBOL $VSIN;
+//   #"VINN0" @PLACE(64, -19) => @ORIENT("R0");
+//   #"CPROBE10" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE10" @PLACE(275, -104) => @ORIENT("R90");
+//   #"VREFN0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VREFN0" @PLACE(160, 61) => @ORIENT("R0");
+//   #"VREFP0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VREFP0" @PLACE(112, 61) => @ORIENT("R0");
+//   #"CPROBE9" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE9" @PLACE(275, -96) => @ORIENT("R90");
+//   %marker_52 = $GROUND @ATTACH &"0" => @PLACE(32, -35.2) => @ORIENT("R0");
+//   %p0 = (284.4, -80);
+//   %wire_0 = &"0" @WIRE(mode="straight") {%bundle_2:2 %p0};
+//   %wire_0 @TEXT("<*4>gnd!", size=3.2, halign="start", valign="middle") => @PLACE(286, -80);
+//   %p1 = (284.4, 0);
+//   %wire_1 = &"0" @WIRE(mode="straight") {%bundle_0:2 %p1};
+//   %wire_1 @TEXT("<*12>gnd!", size=3.2, halign="start", valign="middle") => @PLACE(286, 0);
+//   %p2 = (160, 51.6);
+//   %wire_2 = &"0" @WIRE(mode="straight") {%p2 #"VREFN0":2};
+//   %p3 = (112, 51.6);
+//   %wire_3 = &"0" @WIRE(mode="straight") {%p3 #"VREFP0":2};
+//   %p4 = (64, 51.6);
+//   %wire_4 = &"0" @WIRE(mode="straight") {%p4 #"VCM0":2};
+//   %p5 = (16, 51.6);
+//   %wire_5 = &"0" @WIRE(mode="straight") {%p5 #"VDD0":2};
+//   %p6 = (64, -28.4);
+//   %wire_6 = &"0" @WIRE(mode="straight") {%p6 #"VINN0":2};
+//   %p7 = (32, -12.4);
+//   %wire_7 = &"0" @WIRE(mode="straight") {%p7 #"VINP0":2};
+//   %p8 = (32, -28.8);
+//   %wire_8 = &"0" @WIRE(mode="straight") {%marker_52:p %p8};
+//   %p9 = (284.4, -136);
+//   %wire_9 = &"0" @WIRE(mode="straight") {#"CPROBE14":2 %p9};
+//   %p10 = (284.4, -128);
+//   %wire_10 = &"0" @WIRE(mode="straight") {#"CPROBE13":2 %p10};
+//   %p11 = (284.4, -120);
+//   %wire_11 = &"0" @WIRE(mode="straight") {#"CPROBE12":2 %p11};
+//   %p12 = (284.4, -112);
+//   %wire_12 = &"0" @WIRE(mode="straight") {#"CPROBE11":2 %p12};
+//   %p13 = (284.4, -104);
+//   %wire_13 = &"0" @WIRE(mode="straight") {#"CPROBE10":2 %p13};
+//   %p14 = (284.4, -96);
+//   %wire_14 = &"0" @WIRE(mode="straight") {#"CPROBE9":2 %p14};
+//   %p15 = (284.4, -56);
+//   %wire_15 = &"0" @WIRE(mode="straight") {#"CPROBE6":2 %p15};
+//   %p16 = (284.4, -48);
+//   %wire_16 = &"0" @WIRE(mode="straight") {#"CPROBE5":2 %p16};
+//   %p17 = (284.4, -24);
+//   %wire_17 = &"0" @WIRE(mode="straight") {#"CPROBE4":2 %p17};
+//   %p18 = (284.4, -32);
+//   %wire_18 = &"0" @WIRE(mode="straight") {#"CPROBE3":2 %p18};
+//   %p19 = (284.4, -8);
+//   %wire_19 = &"0" @WIRE(mode="straight") {#"CPROBE2":2 %p19};
+//   %p20 = (284.4, -16);
+//   %wire_20 = &"0" @WIRE(mode="straight") {#"CPROBE1":2 %p20};
+//   %p21 = (133.6, -48);
+//   %wire_21 = &"0" @WIRE(mode="straight") {%p21 #"XDUT":52};
+//   %wire_21 @TEXT("0", size=3.2, halign="end", valign="middle") => @PLACE(132, -48);
+//   %wire_20 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -16);
+//   %wire_19 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -8);
+//   %wire_18 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -32);
+//   %wire_17 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -24);
+//   %wire_16 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -48);
+//   %wire_15 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -56);
+//   %wire_14 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -96);
+//   %wire_13 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -104);
+//   %wire_12 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -112);
+//   %wire_11 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -120);
+//   %wire_10 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -128);
+//   %wire_9 @TEXT("0", size=3.2, halign="start", valign="middle") => @PLACE(286, -136);
+//   %wire_8 @TEXT("0", size=3.2, halign="middle", valign="baseline") => @PLACE(32, -27.5);
+//   %wire_7 @TEXT("0", size=3.2, halign="middle", valign="top") => @PLACE(32, -13.7);
+//   %wire_6 @TEXT("0", size=3.2, halign="middle", valign="top") => @PLACE(64, -29.7);
+//   %wire_5 @TEXT("0", size=3.2, halign="middle", valign="top") => @PLACE(16, 50.3);
+//   %wire_4 @TEXT("0", size=3.2, halign="middle", valign="top") => @PLACE(64, 50.3);
+//   %wire_3 @TEXT("0", size=3.2, halign="middle", valign="top") => @PLACE(112, 50.3);
+//   %wire_2 @TEXT("0", size=3.2, halign="middle", valign="top") => @PLACE(160, 50.3);
+//   %p22 = (284.4, -72);
+//   %wire_22 = &"0" @WIRE(mode="straight") {%bundle_1:2 %p22};
+//   %wire_22 @TEXT("<*15>gnd!", size=3.2, halign="start", valign="middle") => @PLACE(286, -72);
+//   %p23 = (112, 70.4);
+//   %wire_23 = &"VREFP" @WIRE(mode="straight") {#"VREFP0":1 %p23};
+//   %p24 = (133.6, -64);
+//   %wire_24 = &"VREFP" @WIRE(mode="straight") {%p24 #"XDUT":51};
+//   %wire_24 @TEXT("VREFP", size=3.2, halign="end", valign="middle") => @PLACE(132, -64);
+//   %wire_23 @TEXT("VREFP", size=3.2, halign="middle", valign="baseline") => @PLACE(112, 71.7);
+//   %p25 = (160, 70.4);
+//   %wire_25 = &"VREFN" @WIRE(mode="straight") {#"VREFN0":1 %p25};
+//   %p26 = (133.6, -72);
+//   %wire_26 = &"VREFN" @WIRE(mode="straight") {%p26 #"XDUT":50};
+//   %wire_26 @TEXT("VREFN", size=3.2, halign="end", valign="middle") => @PLACE(132, -72);
+//   %wire_25 @TEXT("VREFN", size=3.2, halign="middle", valign="baseline") => @PLACE(160, 71.7);
+//   %wire_27 = &"VINP" @WIRE(mode="straight") {#"VINP0":1 #"XDUT":49};
+//   %wire_27 @TEXT("VINP", size=3.5, halign="middle", valign="baseline") => @PLACE(88, 0.9);
+//   %wire_28 = &"VINN" @WIRE(mode="straight") {#"VINN0":1 #"XDUT":48};
+//   %wire_28 @TEXT("VINN", size=3.5, halign="middle", valign="baseline") => @PLACE(104, -15.1);
+//   %p27 = (16, 70.4);
+//   %wire_29 = &"VDD" @WIRE(mode="straight") {#"VDD0":1 %p27};
+//   %p28 = (256, 70.4);
+//   %wire_30 = &"VDD" @WIRE(mode="straight") {#"IBIAS_B":1 %p28};
+//   %p29 = (208, 70.4);
+//   %wire_31 = &"VDD" @WIRE(mode="straight") {#"IBIAS_A":1 %p29};
+//   %p30 = (133.6, -40);
+//   %wire_32 = &"VDD" @WIRE(mode="straight") {%p30 #"XDUT":47};
+//   %wire_32 @TEXT("VDD", size=3.2, halign="end", valign="middle") => @PLACE(132, -40);
+//   %wire_31 @TEXT("VDD", size=3.2, halign="middle", valign="baseline") => @PLACE(208, 71.7);
+//   %wire_30 @TEXT("VDD", size=3.2, halign="middle", valign="baseline") => @PLACE(256, 71.7);
+//   %wire_29 @TEXT("VDD", size=3.2, halign="middle", valign="baseline") => @PLACE(16, 71.7);
+//   %p31 = (64, 70.4);
+//   %wire_33 = &"VCM" @WIRE(mode="straight") {#"VCM0":1 %p31};
+//   %p32 = (133.6, -56);
+//   %wire_34 = &"VCM" @WIRE(mode="straight") {%p32 #"XDUT":46};
+//   %wire_34 @TEXT("VCM", size=3.2, halign="end", valign="middle") => @PLACE(132, -56);
+//   %wire_33 @TEXT("VCM", size=3.2, halign="middle", valign="baseline") => @PLACE(64, 71.7);
+//   %wire_35 = &"VALID" @WIRE(mode="straight") {#"XDUT":45 #"CPROBE1":1};
+//   %wire_35 @TEXT("VALID", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -15.1);
+//   %wire_36 = &"TRACK" @WIRE(mode="straight") {#"XDUT":44 #"CPROBE9":1};
+//   %wire_36 @TEXT("TRACK", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -95.1);
+//   %wire_37 = &"TB" @WIRE(mode="straight") {#"XDUT":43 #"CPROBE12":1};
+//   %wire_37 @TEXT("TB", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -119.1);
+//   %wire_38 = &"TA" @WIRE(mode="straight") {#"XDUT":42 #"CPROBE11":1};
+//   %wire_38 @TEXT("TA", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -111.1);
+//   %wire_39 = &"ROP" @WIRE(mode="straight") {#"XDUT":41 #"CPROBE5":1};
+//   %wire_39 @TEXT("ROP", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -47.1);
+//   %wire_40 = &"RON" @WIRE(mode="straight") {#"XDUT":40 #"CPROBE6":1};
+//   %wire_40 @TEXT("RON", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -55.1);
+//   %wire_41 = &"RECON" @WIRE(mode="straight") {#"XDUT":39 #"CPROBE2":1};
+//   %wire_41 @TEXT("RECON", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -7.1);
+//   %wire_42 = &"OVERFLOW" @WIRE(mode="straight") {#"XDUT":38 #"CPROBE4":1};
+//   %wire_42 @TEXT("OVERFLOW", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -23.1);
+//   %p33 = (256, 51.6);
+//   %wire_43 = &"IB_B" @WIRE(mode="straight") {%p33 #"IBIAS_B":2};
+//   %p34 = (133.6, -96);
+//   %wire_44 = &"IB_B" @WIRE(mode="straight") {%p34 #"XDUT":37};
+//   %wire_44 @TEXT("IB\_B", size=3.2, halign="end", valign="middle") => @PLACE(132, -96);
+//   %wire_43 @TEXT("IB\_B", size=3.2, halign="middle", valign="top") => @PLACE(256, 50.3);
+//   %p35 = (208, 51.6);
+//   %wire_45 = &"IB_A" @WIRE(mode="straight") {%p35 #"IBIAS_A":2};
+//   %p36 = (133.6, -88);
+//   %wire_46 = &"IB_A" @WIRE(mode="straight") {%p36 #"XDUT":36};
+//   %wire_46 @TEXT("IB\_A", size=3.2, halign="end", valign="middle") => @PLACE(132, -88);
+//   %wire_45 @TEXT("IB\_A", size=3.2, halign="middle", valign="top") => @PLACE(208, 50.3);
+//   %wire_47 = &"DB" @WIRE(mode="straight") {#"XDUT":35 #"CPROBE14":1};
+//   %wire_47 @TEXT("DB", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -135.1);
+//   %wire_48 = &"DA" @WIRE(mode="straight") {#"XDUT":34 #"CPROBE13":1};
+//   %wire_48 @TEXT("DA", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -127.1);
+//   %wire_49 = &"CHANNEL" @WIRE(mode="straight") {#"XDUT":6 #"CPROBE3":1};
+//   %wire_49 @TEXT("CHANNEL", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -31.1);
+//   %wire_50 = &"AMP" @WIRE(mode="straight") {#"XDUT":1 #"CPROBE10":1};
+//   %wire_50 @TEXT("AMP", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -103.1);
+//   %wire_51 = {&"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0"} @WIRE(mode="straight") {#"XDUT":2 %bundle_2:1};
+//   %wire_51 @TEXT("BIN<3:0>", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -79.1);
+//   %wire_52 = {&"CODE_11" &"CODE_10" &"CODE_9" &"CODE_8" &"CODE_7" &"CODE_6" &"CODE_5" &"CODE_4" &"CODE_3" &"CODE_2" &"CODE_1" &"CODE_0"} @WIRE(mode="straight") {#"XDUT":7 %bundle_0:1};
+//   %wire_52 @TEXT("CODE<11:0>", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, 0.9);
+//   %wire_53 = {&"D_14" &"D_13" &"D_12" &"D_11" &"D_10" &"D_9" &"D_8" &"D_7" &"D_6" &"D_5" &"D_4" &"D_3" &"D_2" &"D_1" &"D_0"} @WIRE(mode="straight") {#"XDUT":19 %bundle_1:1};
+//   %wire_53 @TEXT("D<14:0>", size=3.5, halign="middle", valign="baseline") => @PLACE(251.2, -71.1);
+//   (16, -161.6) @TEXT("Read order: input -> Flash -> residue -> lane A/B -> merged code.", size=4.5, halign="start", valign="baseline");
+//   (16, -172.8) @TEXT("Use named Maestro outputs for reconstruction, CDAC top plates and coherent FFT.", size=4.2, halign="start", valign="baseline");
+//   (331.2, -132.8) @TEXT("SAR A / B completion", size=3.8, halign="start", valign="baseline");
+//   (331.2, -107.2) @TEXT("Front-end / SAR clocks", size=3.8, halign="start", valign="baseline");
+//   (331.2, -75.2) @TEXT("Flash thermometer / binary", size=3.8, halign="start", valign="baseline");
+//   (331.2, -51.2) @TEXT("Residue P / N", size=3.8, halign="start", valign="baseline");
+//   (331.2, -24) @TEXT("Valid, overflow, lane ID", size=3.8, halign="start", valign="baseline");
+//   (331.2, 0) @TEXT("Final code / reconstruction", size=3.8, halign="start", valign="baseline");
+//   (241.6, 19.2) @TEXT("Named outputs  /  1aF probe loads", size=4.5, halign="start", valign="baseline");
+//   (16, -112) @TEXT("Ain does not change quantizer FS.", size=3.7, halign="start", valign="baseline");
+//   (16, -94.4) @TEXT("FS=2Vpp; Ain=0.9Vpk (1.8Vpp input)", size=3.8, halign="start", valign="baseline");
+//   (16, -84.8) @TEXT("Vdd = 1 V; Vcm = 0.5 V", size=3.8, halign="start", valign="baseline");
+//   (16, -70.4) @TEXT("v(t) = Ain/2 sin(2 pi Fin t)", size=3.7, halign="start", valign="baseline");
+//   (16, -60.8) @TEXT("VINN = Vcm - v(t)", size=3.8, halign="start", valign="baseline");
+//   (16, -51.2) @TEXT("VINP = Vcm + v(t)", size=3.8, halign="start", valign="baseline");
+//   (16, 19.2) @TEXT("Differential sine input", size=4.8, halign="start", valign="baseline");
+//   (249.6, 76.8) @TEXT("Iref B", size=3.8, halign="start", valign="baseline");
+//   (201.6, 76.8) @TEXT("Iref A", size=3.8, halign="start", valign="baseline");
+//   (153.6, 76.8) @TEXT("Vcm-Vref/4", size=3.8, halign="start", valign="baseline");
+//   (105.6, 76.8) @TEXT("Vcm+Vref/4", size=3.8, halign="start", valign="baseline");
+//   (57.6, 76.8) @TEXT("Vcm", size=3.8, halign="start", valign="baseline");
+//   (9.6, 76.8) @TEXT("Vdd", size=3.8, halign="start", valign="baseline");
+//   (16, 86.4) @TEXT("Supplies / references / Flash bias", size=4.6, halign="start", valign="baseline");
+//   (16, 99.2) @TEXT("Maestro: TB\_PIPE\_CA4\_RS9\_N06 / capacitor-array MDAC", size=4.3, halign="start", valign="baseline");
+//   (16, 112) @TEXT("PIPE ADC TESTBENCH  |  real SAR backend", size=6.7, halign="start", valign="baseline")
+// }
+// External behavioral implementation omitted from read-only viewer.
+// External behavioral implementation omitted from read-only viewer.
+// External behavioral implementation omitted from read-only viewer.
+// External behavioral implementation omitted from read-only viewer.

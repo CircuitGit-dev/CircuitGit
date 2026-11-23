@@ -1,0 +1,465 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "PIPE_TOP_F4_RS9_N06",
+    "view": "schematic"
+  },
+  "native_level": "PIPE_TOP_F4_RS9_N06",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [
+    "AN2D0BWP12T30P140LVT",
+    "AN2D1BWP12T30P140LVT",
+    "AN2D2BWP12T30P140LVT",
+    "AN2D4BWP12T30P140LVT",
+    "BUFFD2BWP12T30P140LVT",
+    "DFCND1BWP12T30P140LVT",
+    "DFQD1BWP12T30P140LVT",
+    "INVD0BWP12T30P140LVT",
+    "INVD2BWP12T30P140LVT",
+    "INVD4BWP12T30P140LVT",
+    "INVD8BWP12T30P140LVT",
+    "ND2D0BWP12T30P140LVT",
+    "ND2D0BWP12T30P140ULVT",
+    "ND2D2BWP12T30P140LVT",
+    "ND2D4BWP12T30P140LVT",
+    "NR2D0BWP12T30P140LVT",
+    "NR2D1BWP12T30P140LVT",
+    "NR2D4BWP12T30P140LVT",
+    "OR2D0BWP12T30P140LVT",
+    "OR2D1BWP12T30P140LVT",
+    "OR2D2BWP12T30P140LVT",
+    "PIPE_Clock250_250_500",
+    "PIPE_RailClamp",
+    "PIPE_ThermDAC4_FS2",
+    "RS9_IO_N06",
+    "RS9_Merge_N06",
+    "cfmom_2t",
+    "nch_lvt_mac",
+    "nch_mac",
+    "nch_ulvt_mac",
+    "pch_lvt_mac",
+    "pch_ulvt_mac",
+    "rnods"
+  ],
+  "external_interface_stub": true,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/L3_stage1_flash4_FS2.scs",
+      "source_sha256": "273f5e85e1f5682765bb8ff18ef1cff7cef3bfeb145c82355375639e6b17fc5e",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L3_stage1_flash4_FS2.scs",
+      "sha256": "273f5e85e1f5682765bb8ff18ef1cff7cef3bfeb145c82355375639e6b17fc5e",
+      "bytes": 46311,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/L4_stage1_flash4_encoder.scs",
+      "source_sha256": "e3c9e3fa8726344033208e0da2d2ace76542b69084b26b375d9aba4fd26e48fe",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash4_encoder.scs",
+      "sha256": "e3c9e3fa8726344033208e0da2d2ace76542b69084b26b375d9aba4fd26e48fe",
+      "bytes": 49829,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/L4_stage1_flash4_rdac_FS2.scs",
+      "source_sha256": "20ffd496197096244a519330bed05b62f73185bcafa9a0b23b69da431ec0cf88",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash4_rdac_FS2.scs",
+      "sha256": "20ffd496197096244a519330bed05b62f73185bcafa9a0b23b69da431ec0cf88",
+      "bytes": 12180,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/L4_stage1_flash_bootstrapper.scs",
+      "source_sha256": "bb19b34492248147477aac885a8f542e1cdbd4b466cc777383ac5359d4f4b648",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash_bootstrapper.scs",
+      "sha256": "bb19b34492248147477aac885a8f542e1cdbd4b466cc777383ac5359d4f4b648",
+      "bytes": 29177,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/L4_stage1_flash_clkbooster.scs",
+      "source_sha256": "0dcfd168211b2d00940d856cf5dc459af67dc90b04e0023adade37aeac1d49d8",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash_clkbooster.scs",
+      "sha256": "0dcfd168211b2d00940d856cf5dc459af67dc90b04e0023adade37aeac1d49d8",
+      "bytes": 20260,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/L4_stage1_flash_comparator.scs",
+      "source_sha256": "4a8a8443e67064b6ab2ab15052a81f9fb0fad377608298d31014387af6019838",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash_comparator.scs",
+      "sha256": "4a8a8443e67064b6ab2ab15052a81f9fb0fad377608298d31014387af6019838",
+      "bytes": 63103,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/PIPE_MDAC4_G8_SC.scs",
+      "source_sha256": "dc7ba378f12ea121e951c039d4b9f9adf9853f860fc510c5140a276fa52b9529",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_MDAC4_G8_SC.scs",
+      "sha256": "dc7ba378f12ea121e951c039d4b9f9adf9853f860fc510c5140a276fa52b9529",
+      "bytes": 17284,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/PIPE_OTA_Diff_Ideal.scs",
+      "source_sha256": "df37cb211fc2ad01a914a64c3e3cc608a865afb9f3dd2e5e3622cc572d9cb8f3",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_OTA_Diff_Ideal.scs",
+      "sha256": "df37cb211fc2ad01a914a64c3e3cc608a865afb9f3dd2e5e3622cc572d9cb8f3",
+      "bytes": 10569,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/PIPE_SAR9_Real_N06.scs",
+      "source_sha256": "8deaeaaca2f3c497226c6214fb9857f4bfc72f084d03055c310d01f4f63909ff",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_SAR9_Real_N06.scs",
+      "sha256": "8deaeaaca2f3c497226c6214fb9857f4bfc72f084d03055c310d01f4f63909ff",
+      "bytes": 18703,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/PIPE_TOP_F4_RS9_N06.scs",
+      "source_sha256": "6d6fb46895e0877d003c6d08a954dd592e864382321cf5c9998100880b86e0b5",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_TOP_F4_RS9_N06.scs",
+      "sha256": "6d6fb46895e0877d003c6d08a954dd592e864382321cf5c9998100880b86e0b5",
+      "bytes": 48499,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L3_9bit_SAR_2.scs",
+      "source_sha256": "749874408ad6245a7a7799eb502da128c5df666689106952f07f0093aac5e458",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L3_9bit_SAR_2.scs",
+      "sha256": "749874408ad6245a7a7799eb502da128c5df666689106952f07f0093aac5e458",
+      "bytes": 24440,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L5_9bit_Bootstrap.scs",
+      "source_sha256": "9b879b2fb1c6918606317875f3bfc1370f2c6380b34c747c013a3cc9ff5f78b6",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L5_9bit_Bootstrap.scs",
+      "sha256": "9b879b2fb1c6918606317875f3bfc1370f2c6380b34c747c013a3cc9ff5f78b6",
+      "bytes": 18860,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L5_9bit_Comparator_LN.scs",
+      "source_sha256": "0a140be5bbab33219cac46318b553c18e0f1369130f8953c1a96e5d24ea3f46e",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L5_9bit_Comparator_LN.scs",
+      "sha256": "0a140be5bbab33219cac46318b553c18e0f1369130f8953c1a96e5d24ea3f46e",
+      "bytes": 33262,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L5_9bit_RSW_CDAC.scs",
+      "source_sha256": "6b61f44dd8acd80d6797777862b4d6019bdc64aa9e5f9d92a8ff0576b10595e0",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L5_9bit_RSW_CDAC.scs",
+      "sha256": "6b61f44dd8acd80d6797777862b4d6019bdc64aa9e5f9d92a8ff0576b10595e0",
+      "bytes": 9372,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L5_9bit_SAR_Logic_1.scs",
+      "source_sha256": "448efb1d50068e832fbf6e967857c15fd4195af35da747be7b055de60d17032f",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L5_9bit_SAR_Logic_1.scs",
+      "sha256": "448efb1d50068e832fbf6e967857c15fd4195af35da747be7b055de60d17032f",
+      "bytes": 40906,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L6_9bit_REF_Logic.scs",
+      "source_sha256": "41e1c718ee33fe912350faf0b1fcc275389bca4f4be8b536f16aefc49fbff569",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L6_9bit_REF_Logic.scs",
+      "sha256": "41e1c718ee33fe912350faf0b1fcc275389bca4f4be8b536f16aefc49fbff569",
+      "bytes": 43271,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L6_9bit_RSW.scs",
+      "source_sha256": "8cd9a527cfea02f1bb84ad6ffb78d5672551cec007009a10b2821875f3fce362",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L6_9bit_RSW.scs",
+      "sha256": "8cd9a527cfea02f1bb84ad6ffb78d5672551cec007009a10b2821875f3fce362",
+      "bytes": 45417,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L6_SR_latch_1.scs",
+      "source_sha256": "ce0a6d9829738e79bc917c8d8d0053c359a5e459e6203ce70f7595e777ff9182",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L6_SR_latch_1.scs",
+      "sha256": "ce0a6d9829738e79bc917c8d8d0053c359a5e459e6203ce70f7595e777ff9182",
+      "bytes": 24345,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L7_9bit_CDAC.scs",
+      "source_sha256": "4336854bd974ecba3a9b90ce58de8427e66960787a8e3921c7014419dbc6d2e1",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L7_9bit_CDAC.scs",
+      "sha256": "4336854bd974ecba3a9b90ce58de8427e66960787a8e3921c7014419dbc6d2e1",
+      "bytes": 22074,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L8_9bit_CDAC_UNIT.scs",
+      "source_sha256": "7eccc7793e8e250824819510c6dd16aa6199dc40f0fc0d9556e7a30cceda8295",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+      "sha256": "7eccc7793e8e250824819510c6dd16aa6199dc40f0fc0d9556e7a30cceda8295",
+      "bytes": 1763,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/Switch.scs",
+      "source_sha256": "fa4d3ead3fc45a5a890a9013d872511955053037e117613bca3596f4aecaab9f",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/Switch.scs",
+      "sha256": "fa4d3ead3fc45a5a890a9013d872511955053037e117613bca3596f4aecaab9f",
+      "bytes": 2655,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/eda-symbol.rnl",
+      "source_sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/eda-symbol.rnl",
+      "sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "bytes": 94890,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-basic.rnl",
+      "source_sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-semiconductors.rnl",
+      "source_sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-spectre.rnl",
+      "source_sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/rnl-std-spectre.rnl",
+      "sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "bytes": 3128,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/trans_ulvt_mac.scs",
+      "source_sha256": "9d9c6feb277b327b2af723b5591b8b28ee6a4d4045bc236125d21ddc0cd13bda",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/trans_ulvt_mac.scs",
+      "sha256": "b113fa38e104b3fce4694138a15734eec3de404c144fda09e7a0c7d66cf395c8",
+      "bytes": 252,
+      "transformation": "external-interface-only; implementation omitted"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-L3_stage1_flash4_FS2.scs",
+      "source_sha256": "715ee1200067639d67ff5c12891766818312f00f6f7b251265d644e483f5440c",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L3_stage1_flash4_FS2.scs",
+      "sha256": "715ee1200067639d67ff5c12891766818312f00f6f7b251265d644e483f5440c",
+      "bytes": 354,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-L4_stage1_flash4_encoder.scs",
+      "source_sha256": "5f38edce51e34e4a0eaad1bf3c641c953a6affe1d3a9382fbce19ed22f49b85e",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash4_encoder.scs",
+      "sha256": "5f38edce51e34e4a0eaad1bf3c641c953a6affe1d3a9382fbce19ed22f49b85e",
+      "bytes": 125,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-L4_stage1_flash4_rdac_FS2.scs",
+      "source_sha256": "c02f1b253f4d0042b942f87ddf7cb6e343ca9b95f851f3d6841b882dc1ab876e",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash4_rdac_FS2.scs",
+      "sha256": "c02f1b253f4d0042b942f87ddf7cb6e343ca9b95f851f3d6841b882dc1ab876e",
+      "bytes": 126,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-L4_stage1_flash_bootstrapper.scs",
+      "source_sha256": "c7e2dd698d98a009fe2f0ce937b852a1aed3edd11d6ce224de2c794d32478b2a",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash_bootstrapper.scs",
+      "sha256": "c7e2dd698d98a009fe2f0ce937b852a1aed3edd11d6ce224de2c794d32478b2a",
+      "bytes": 129,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-L4_stage1_flash_clkbooster.scs",
+      "source_sha256": "edd2a9b0113c9e96d66d42e9e173b2d7edb757dd7a5809533c63be96d31320a4",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash_clkbooster.scs",
+      "sha256": "edd2a9b0113c9e96d66d42e9e173b2d7edb757dd7a5809533c63be96d31320a4",
+      "bytes": 127,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-L4_stage1_flash_comparator.scs",
+      "source_sha256": "14421369a38d44b2b654f11b0f4f225c5b7c40506a845ce58e099f431ab8a706",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash_comparator.scs",
+      "sha256": "14421369a38d44b2b654f11b0f4f225c5b7c40506a845ce58e099f431ab8a706",
+      "bytes": 156,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-PIPE_MDAC4_G8_SC.scs",
+      "source_sha256": "d0632ae2b246251920ea1567896af1cfe216d8224d016f558d157190791fc8ef",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_MDAC4_G8_SC.scs",
+      "sha256": "d0632ae2b246251920ea1567896af1cfe216d8224d016f558d157190791fc8ef",
+      "bytes": 172,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-PIPE_OTA_Diff_Ideal.scs",
+      "source_sha256": "bb46367e106f14b7fae1ae8de9c423441ceeef7f0010ac0f739c954d17f50e6d",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_OTA_Diff_Ideal.scs",
+      "sha256": "bb46367e106f14b7fae1ae8de9c423441ceeef7f0010ac0f739c954d17f50e6d",
+      "bytes": 120,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-PIPE_SAR9_Real_N06.scs",
+      "source_sha256": "984771031dad13bd1e1c108b57e6c1732ce5ce3b7daf117e69b34bbcec7861a8",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_SAR9_Real_N06.scs",
+      "sha256": "984771031dad13bd1e1c108b57e6c1732ce5ce3b7daf117e69b34bbcec7861a8",
+      "bytes": 465,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-PIPE_TOP_F4_RS9_N06.scs",
+      "source_sha256": "d8a2a37fd52c25a7d717df4263cbcb735ac82edb0cf2367db13299a3758c074f",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_TOP_F4_RS9_N06.scs",
+      "sha256": "d8a2a37fd52c25a7d717df4263cbcb735ac82edb0cf2367db13299a3758c074f",
+      "bytes": 853,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L3_9bit_SAR_2.scs",
+      "source_sha256": "3fe0f31412622f2c6fa9c27770db599686dd75ff7d80eced292b1ca59722a3aa",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L3_9bit_SAR_2.scs",
+      "sha256": "3fe0f31412622f2c6fa9c27770db599686dd75ff7d80eced292b1ca59722a3aa",
+      "bytes": 432,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L5_9bit_Bootstrap.scs",
+      "source_sha256": "be8878aa88d8b6f27b2099bd2cfb41bd2e40bc8cff4a7d30890bd1046465bacc",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L5_9bit_Bootstrap.scs",
+      "sha256": "be8878aa88d8b6f27b2099bd2cfb41bd2e40bc8cff4a7d30890bd1046465bacc",
+      "bytes": 122,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L5_9bit_Comparator_LN.scs",
+      "source_sha256": "1eae6a7c5e91ac6da8672baf2287559252a0a7f92cc803434a271870f6e53977",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L5_9bit_Comparator_LN.scs",
+      "sha256": "1eae6a7c5e91ac6da8672baf2287559252a0a7f92cc803434a271870f6e53977",
+      "bytes": 126,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L5_9bit_RSW_CDAC.scs",
+      "source_sha256": "86fa8a43fa3f961a5aac04e6ec6e823b73ebec701259f8d8b06821ef01bbee1d",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L5_9bit_RSW_CDAC.scs",
+      "sha256": "86fa8a43fa3f961a5aac04e6ec6e823b73ebec701259f8d8b06821ef01bbee1d",
+      "bytes": 218,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L5_9bit_SAR_Logic_1.scs",
+      "source_sha256": "d038f62a5b3fdddec80e9a8d6de35207ecf616d6b7e4860b911ee341bcbab82c",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L5_9bit_SAR_Logic_1.scs",
+      "sha256": "d038f62a5b3fdddec80e9a8d6de35207ecf616d6b7e4860b911ee341bcbab82c",
+      "bytes": 192,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L6_9bit_REF_Logic.scs",
+      "source_sha256": "acb1325826bbbbc3bb3115ac2fe4f2d4fa429a6f05774964f39291ec6bf445f9",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L6_9bit_REF_Logic.scs",
+      "sha256": "acb1325826bbbbc3bb3115ac2fe4f2d4fa429a6f05774964f39291ec6bf445f9",
+      "bytes": 122,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L6_9bit_RSW.scs",
+      "source_sha256": "b6896d89eb468e9f5af5b9f01d0636260e3fca70c435ad0c57b911a393791c25",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L6_9bit_RSW.scs",
+      "sha256": "b6896d89eb468e9f5af5b9f01d0636260e3fca70c435ad0c57b911a393791c25",
+      "bytes": 116,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L6_SR_latch_1.scs",
+      "source_sha256": "f05c463a9b5d243e7f58da663193e96741479c4819dc39f5ae1095d891bd9d99",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L6_SR_latch_1.scs",
+      "sha256": "f05c463a9b5d243e7f58da663193e96741479c4819dc39f5ae1095d891bd9d99",
+      "bytes": 118,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L7_9bit_CDAC.scs",
+      "source_sha256": "8c6fb06abe5b03014ce2eaadae1757f81dac5031eed48cc7ea6aeceb3e9c498f",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L7_9bit_CDAC.scs",
+      "sha256": "8c6fb06abe5b03014ce2eaadae1757f81dac5031eed48cc7ea6aeceb3e9c498f",
+      "bytes": 153,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L8_9bit_CDAC_UNIT.scs",
+      "source_sha256": "57f926407cf9ec0682be4b361defaad28882f28f34f6e173483f293c0d60d131",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs",
+      "sha256": "57f926407cf9ec0682be4b361defaad28882f28f34f6e173483f293c0d60d131",
+      "bytes": 122,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-Switch.scs",
+      "source_sha256": "7613b1674a2ed2b3467670c5e8c4d1eb4f55651d761b432b25763186afa3ae67",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-Switch.scs",
+      "sha256": "7613b1674a2ed2b3467670c5e8c4d1eb4f55651d761b432b25763186afa3ae67",
+      "bytes": 107,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-trans_ulvt_mac_pcell_0.scs",
+      "source_sha256": "a1960746746fbc4570b44b8aeb16d4ae8838c4da6d6a6614cb6aac8718884aed",
+      "path": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-trans_ulvt_mac_pcell_0.scs",
+      "sha256": "a1960746746fbc4570b44b8aeb16d4ae8838c4da6d6a6614cb6aac8718884aed",
+      "bytes": 115,
+      "transformation": "none"
+    }
+  ]
+}

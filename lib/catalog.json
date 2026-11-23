@@ -1,0 +1,29 @@
+{
+  "schema": "circuitgit.libraries.v1",
+  "libraries": [
+    {
+      "id": "pipetisar-real",
+      "name": "PIPE–TI–SAR real SAR snapshot",
+      "description": "Native read-only snapshot of the 1 GS/s pipeline plus time-interleaved SAR project.",
+      "manifest": "lib/pipetisar-real/library.json"
+    },
+    {
+      "id": "pipetisar-research",
+      "name": "PIPE–TI–SAR research library",
+      "description": "Saved flash, MDAC, ideal and actual-SAR research cells and symbol-only models.",
+      "manifest": "lib/pipetisar-research/library.json"
+    },
+    {
+      "id": "pipesar-original",
+      "name": "Original 9-bit SAR library",
+      "description": "Original SAR, bootstrap, comparator, CDAC and logic snapshot; separate from later adapted variants.",
+      "manifest": "lib/pipesar-original/library.json"
+    },
+    {
+      "id": "basics",
+      "name": "基础电路",
+      "description": "Existing primitive-only RC smoke project; no ADC performance claim.",
+      "manifest": "lib/basics/library.json"
+    }
+  ]
+}

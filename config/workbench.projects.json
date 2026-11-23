@@ -16,6 +16,8 @@
           }
         ]
       }
-    ]
+    ],
+    "library_id": "basics",
+    "cell_id": "rc-smoke"
   }
 ]

@@ -1,0 +1,58 @@
+{
+  "schema": "circuitgit.library.v1",
+  "id": "basics",
+  "name": "基础电路",
+  "description": "Existing primitive-only RC smoke project; no ADC performance claim.",
+  "cells": [
+    {
+      "id": "rc-smoke",
+      "name": "RC smoke",
+      "description": "Primitive RC transient example; existing source and TRAN configuration.",
+      "kind": "testbench",
+      "directory": "lib/basics/rc-smoke",
+      "readme": "lib/basics/rc-smoke/README.md",
+      "project_id": "rc-smoke",
+      "requires_external_models": false,
+      "views": [
+        {
+          "id": "netlist",
+          "label": "Spectre source",
+          "kind": "spectre",
+          "entry": "projects/rc-smoke/circuit.scs",
+          "files": [
+            "projects/rc-smoke/circuit.scs"
+          ]
+        },
+        {
+          "id": "simulation",
+          "label": "TRAN configuration",
+          "kind": "json",
+          "entry": "projects/rc-smoke/configurations/TRAN.json",
+          "files": [
+            "projects/rc-smoke/circuit.scs",
+            "projects/rc-smoke/configurations/TRAN.json",
+            "projects/rc-smoke/template/bundle.json",
+            "projects/rc-smoke/project.json",
+            "projects/rc-smoke/template/netlist/input.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/basics/rc-smoke/README.md",
+          "files": [
+            "lib/basics/rc-smoke/README.md",
+            "lib/basics/rc-smoke/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -52,7 +52,7 @@ function renderAnswer(target, text) {
 }
 
 /** Independent mount. contextAdapter is the ONE explicit adapter shared with the waveform panel. */
-export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/api/health', onStateChange=()=>{}, postRequest=null, getRequest=null, presentation='diagnostic', sessionId='default'}) {
+export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/api/health', onStateChange=()=>{}, postRequest=null, getRequest=null, presentation='diagnostic', sessionId='default', settingsContent=null, onNewSession=null, onConfigureDevelopment=null}) {
   if (!contextAdapter?.getContext || !contextAdapter?.subscribe) throw Error('Explicit context adapter required');
   const clean = presentation === 'clean', doc = root.ownerDocument;
   root.classList.add('ic-ai'); root.dataset.presentation = presentation;
@@ -124,7 +124,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
   const appendImages=createImageHistory({document:doc,sessionId,read,alive:()=>!destroyed});
   let currentRun=null, modelSelect=null, nextModel='', modelChoices=new Map(), catalogReady=false, catalogGeneration=0, catalogAttempted=false, historyReady=!clean, panelVisible=false;
   let defaultModel='',nextEffort='',nextPermission='manual',permissionExplicit=false,effortSelect=null,permissionSelect=null,settingsButton=null,settingsBox=null,settingsNote=null;
-  let development={available:false,workspace:null,reason:null,access:'manual'},developmentState='unread',developmentLoading=null,developerOption=null,developmentInfo=null,developmentNote=null,developmentDetails=null,developmentPath=null;
+  let development={available:false,workspace:null,reason:null,access:'manual',can_configure:false},developmentState='unread',developmentLoading=null,developerOption=null,developmentInfo=null,developmentNote=null,developmentDetails=null,developmentPath=null,configureDevelopment=null,configuringDevelopment=false,settingsStateNote=null,newSessionButton=null;
   const developmentAccessLabel=access=>access==='full'?'完全访问':'人工批准';
   const nativeApprovalMethods=new Set(['item/commandExecution/requestApproval','item/fileChange/requestApproval']);
   const effortLabels={none:'关闭',minimal:'极低',low:'低',medium:'中',high:'高',xhigh:'很高',max:'最高',ultra:'极高'};
@@ -138,7 +138,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     const supported=supportedEfforts(model),value=nextEffort==='model_default'?model?.defaultReasoningEffort:nextEffort;
     return typeof value==='string'&&supported.has(value)?'':'所选模型不支持当前思考强度；原选择已保留，请重新选择。';
   }
-  function settingsLocked(){const state=getState();return !historyReady||posting||Boolean(uncertain)||reconciling||resuming||['starting','running','suspended'].includes(phase)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0;}
+  function settingsLocked(){const state=getState();return !historyReady||posting||Boolean(uncertain)||reconciling||resuming||configuringDevelopment||['starting','running','suspended'].includes(phase)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0;}
   function refreshEfforts(){
     if(!effortSelect)return;
     const model=selectedModel(),supported=supportedEfforts(model),options=[new Option('沿用会话','')];options[0].title='保留本会话的思考设置';
@@ -157,18 +157,22 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     settingsButton.title='AI设置：'+(selectedModel()?.displayName||nextModel||defaultModel||'跟随默认')+' · '+effortLabel(nextEffort)+' · '+permissionLabel+'；'+(issue||permissionNote);
     settingsButton.classList.toggle('error',Boolean(issue));
     settingsNote.textContent=issue||permissionNote;settingsNote.classList.toggle('error',Boolean(issue));
+    const state=getState();settingsStateNote.hidden=!locked;
+    settingsStateNote.textContent=phase==='suspended'?(recovery.can_resume?'此回合已暂停；先恢复输入，再调整下一条消息的设置。':'此对话已暂停，原请求和历史保留。新建独立对话后可选择模型和权限。'):state.pendingApprovalCount||state.suspendedApprovalCount?'请先处理当前审批。':'当前回合正在处理，结束后可调整下一条消息的设置。';
+    newSessionButton.hidden=typeof onNewSession!=='function'||phase!=='suspended'||recovery.can_resume||Boolean(uncertain)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0;
     developerOption.disabled=!development.available||developmentState!=='ready';developerOption.textContent='开发者模式'+(development.available?(development.access==='full'?' · 完全访问':''):' · 暂不可用');
     developmentInfo.hidden=nextPermission!=='developer'&&development.available;
     developmentNote.textContent=developmentState==='unread'?'展开设置后读取开发环境。':developmentState==='loading'?'正在读取开发环境…':developmentState==='error'?'暂时无法读取开发环境；其他模式仍可使用。':development.available?'工作目录由本机配置固定。':'开发者模式尚未配置或当前目录不可用。';
     developmentDetails.hidden=!development.workspace&&!development.reason;developmentPath.textContent=development.workspace||development.reason||'';
+    configureDevelopment.hidden=typeof onConfigureDevelopment!=='function'||!development.can_configure;configureDevelopment.disabled=settingsLocked()||configuringDevelopment;
   }
   async function loadDevelopment(){
     if(!clean)return development;if(developmentLoading)return developmentLoading;
     developmentState='loading';changed();
     developmentLoading=(async()=>{try{const d=await read('/development');if(destroyed)return development;
       const workspace=typeof d?.workspace==='string'&&d.workspace.trim()?d.workspace:null;
-      development={available:d?.available===true&&Boolean(workspace),workspace,reason:typeof d?.reason==='string'?d.reason:null,access:d?.access==='full'?'full':'manual'};developmentState='ready';
-    }catch{if(!destroyed){development={available:false,workspace:null,reason:null,access:'manual'};developmentState='error';}}
+      development={available:d?.available===true&&Boolean(workspace),workspace,reason:typeof d?.reason==='string'?d.reason:null,access:d?.access==='full'?'full':'manual',can_configure:d?.can_configure===true};developmentState='ready';
+    }catch{if(!destroyed){development={available:false,workspace:null,reason:null,access:'manual',can_configure:false};developmentState='error';}}
     finally{developmentLoading=null;if(!destroyed)changed();}return development;})();return developmentLoading;
   }
   function restoreSettings(turn){if(!turn)return;nextEffort=typeof turn.reasoning_effort==='string'?turn.reasoning_effort:'';nextPermission=['read_only','developer'].includes(turn.permission_mode)?turn.permission_mode:'manual';permissionExplicit=Object.hasOwn(turn,'permission_mode');refreshEfforts();if(nextPermission==='developer')loadDevelopment();}
@@ -183,8 +187,10 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     effortSelect=make('select','ic-ai-effort');effortSelect.setAttribute('aria-label','思考强度');permissionSelect=make('select','ic-ai-permission');permissionSelect.setAttribute('aria-label','操作权限');
     developerOption=new Option('开发者模式 · 暂不可用','developer');developerOption.disabled=true;permissionSelect.append(new Option('人工批准','manual'),new Option('只读','read_only'),developerOption);settingsNote=make('p','ic-ai-settings-note');settingsNote.setAttribute('aria-live','polite');
     developmentInfo=make('div','ic-ai-development');developmentNote=make('p','ic-ai-development-note');developmentDetails=make('details','ic-ai-development-details');developmentPath=make('pre');developmentDetails.append(make('summary','','开发工作目录 / 详情'),developmentPath);developmentInfo.append(developmentNote,developmentDetails);
-    modelField.append(make('span','','模型'),modelSelect);effortField.append(make('span','','思考强度'),effortSelect);permissionField.append(make('span','','操作权限'),permissionSelect);settingsBox.append(modelField,effortField,permissionField,settingsNote,developmentInfo);form.append(settingsBox);
-    settingsButton.onclick=()=>{settingsBox.hidden=!settingsBox.hidden;settingsButton.setAttribute('aria-expanded',String(!settingsBox.hidden));if(!settingsBox.hidden)loadDevelopment();};
+    configureDevelopment=make('button','ic-ai-configure-development','配置本机开发权限…');configureDevelopment.type='button';configureDevelopment.hidden=true;configureDevelopment.onclick=async()=>{if(configureDevelopment.disabled)return;configuringDevelopment=true;changed();try{await onConfigureDevelopment?.();if(!destroyed)await loadDevelopment();}catch(error){if(!destroyed)imageComposer?.message(error.message,true);}finally{configuringDevelopment=false;if(!destroyed)changed();}};developmentInfo.append(configureDevelopment);
+    settingsStateNote=make('p','ic-ai-settings-state-note');settingsStateNote.setAttribute('role','status');newSessionButton=make('button','ic-ai-settings-new-session','新建对话并配置');newSessionButton.type='button';newSessionButton.hidden=true;newSessionButton.onclick=()=>onNewSession?.();
+    modelField.append(make('span','','模型'),modelSelect);effortField.append(make('span','','思考强度'),effortSelect);permissionField.append(make('span','','操作权限'),permissionSelect);settingsBox.append(settingsStateNote,newSessionButton,modelField,effortField,permissionField,settingsNote,developmentInfo);form.append(settingsBox);
+    settingsButton.onclick=()=>{settingsBox.hidden=!settingsBox.hidden;settingsButton.setAttribute('aria-expanded',String(!settingsBox.hidden));if(!settingsBox.hidden){loadDevelopment();if(!catalogReady)loadModels({preserveSelection:true});}};
     form.addEventListener('keydown',event=>{if(event.key==='Escape'&&!settingsBox.hidden){event.preventDefault();event.stopPropagation();settingsBox.hidden=true;settingsButton.setAttribute('aria-expanded','false');settingsButton.focus();}});
     effortSelect.onchange=()=>{if(settingsLocked()){effortSelect.value=nextEffort;return;}nextEffort=effortSelect.value;changed();};
     permissionSelect.onchange=()=>{if(settingsLocked()||permissionSelect.value==='developer'&&(!development.available||developmentState!=='ready')){permissionSelect.value=nextPermission;return;}nextPermission=permissionSelect.value;permissionExplicit=true;changed();};refreshEfforts();
@@ -293,7 +299,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     resumeButton.disabled=!recovery.can_resume||phase!=='suspended'||composeLocked||!historyReady||state.pendingApprovalCount>0||state.suspendedApprovalCount>0;
     resumeButton.textContent=resuming?'正在恢复输入…':'恢复输入 / 更换模型';
     syncSettings();
-    send.disabled=!historyReady||composeLocked||Boolean(imageComposer?.getState().busy)||['starting','running','suspended'].includes(phase)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0||Boolean(settingsIssue());
+    send.disabled=!historyReady||composeLocked||configuringDevelopment||Boolean(imageComposer?.getState().busy)||['starting','running','suspended'].includes(phase)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0||Boolean(settingsIssue());
     try{onStateChange(getState());}catch(e){console.error('AI dock state consumer failed',e);}
   }
   function suspendPending(){for(const [id,s] of approvalStates)if(s==='pending')approvalStates.set(id,'suspended');}
@@ -546,6 +552,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
   function setVisible(visible){
     if(destroyed)return;
     panelVisible=visible;
+    if(visible&&clean&&settingsContent&&settingsContent.parentElement!==settingsBox)settingsBox.append(settingsContent);
     if(visible)resizeInput();
     if(!visible){for(const element of dialogs)if(element.open)element.close();}
     else if(clean&&!catalogAttempted)loadModels();

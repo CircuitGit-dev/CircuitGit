@@ -1,0 +1,129 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "PIPE_MDAC4_G8_SC",
+    "view": "schematic"
+  },
+  "native_level": "PIPE_MDAC4_G8_SC",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [
+    "PIPE_RailClamp"
+  ],
+  "external_interface_stub": false,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/research/PIPE_MDAC4_G8_SC.scs",
+      "source_sha256": "94295a7d35f9d0925d528d3f9637bb4400d9d513add3e6b669d8c11faa065d21",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/PIPE_MDAC4_G8_SC.scs",
+      "sha256": "94295a7d35f9d0925d528d3f9637bb4400d9d513add3e6b669d8c11faa065d21",
+      "bytes": 17794,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/PIPE_OTA_Diff_Ideal.scs",
+      "source_sha256": "3638533cbe7c7ba5bb8bc3ca74300fa8c8d18ea7f282e3622948eefe0f4fb237",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/PIPE_OTA_Diff_Ideal.scs",
+      "sha256": "3638533cbe7c7ba5bb8bc3ca74300fa8c8d18ea7f282e3622948eefe0f4fb237",
+      "bytes": 8983,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/Switch.scs",
+      "source_sha256": "079af4020024caca33a18b0058e1153b3adc4e8e618216fb5591e07b4f633d99",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/Switch.scs",
+      "sha256": "079af4020024caca33a18b0058e1153b3adc4e8e618216fb5591e07b4f633d99",
+      "bytes": 2902,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/eda-symbol.rnl",
+      "source_sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/eda-symbol.rnl",
+      "sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "bytes": 94890,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-basic.rnl",
+      "source_sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-semiconductors.rnl",
+      "source_sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-spectre.rnl",
+      "source_sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/rnl-std-spectre.rnl",
+      "sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "bytes": 3128,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-PIPE_MDAC4_G8_SC.scs",
+      "source_sha256": "7d1c37a2fb4d3472c606d7b38352f6652221d1e0df58f5e7969eb9873bce0b5c",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/view-PIPE_MDAC4_G8_SC.scs",
+      "sha256": "7d1c37a2fb4d3472c606d7b38352f6652221d1e0df58f5e7969eb9873bce0b5c",
+      "bytes": 145,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-PIPE_OTA_Diff_Ideal.scs",
+      "source_sha256": "9b0e5fa339887c2fc7fa392531cc4525b4f046381082ea0ae1dced90648ea4f3",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/view-PIPE_OTA_Diff_Ideal.scs",
+      "sha256": "9b0e5fa339887c2fc7fa392531cc4525b4f046381082ea0ae1dced90648ea4f3",
+      "bytes": 93,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-Switch.scs",
+      "source_sha256": "4e372250f8ead5c058e85ac9ed0f7c064264be198814bd0f171c4f1b56eb1347",
+      "path": "lib/pipetisar-research/PIPE_MDAC4_G8_SC/schematic/research/view-Switch.scs",
+      "sha256": "4e372250f8ead5c058e85ac9ed0f7c064264be198814bd0f171c4f1b56eb1347",
+      "bytes": 80,
+      "transformation": "none"
+    }
+  ]
+}

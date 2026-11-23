@@ -1,0 +1,56 @@
+{
+  "description": "MDAC_CODES: historical settings only; external licensed models required; no replay or precision/PVT/noise signoff in this release",
+  "parameters": {},
+  "analysis": {},
+  "simulator": {
+    "profile": "spectre-default",
+    "args": [
+      "-64",
+      "+aps",
+      "+mt=2",
+      "+lqtimeout",
+      "900",
+      "-maxw",
+      "5",
+      "-maxn",
+      "5"
+    ],
+    "output_format": "psfxl"
+  },
+  "postprocess": {
+    "signals": [
+      {
+        "name": "VINP",
+        "unit": "V"
+      },
+      {
+        "name": "VINN",
+        "unit": "V"
+      },
+      {
+        "name": "ROP",
+        "unit": "V"
+      },
+      {
+        "name": "RON",
+        "unit": "V"
+      },
+      {
+        "name": "TRACK",
+        "unit": "V"
+      },
+      {
+        "name": "AMP",
+        "unit": "V"
+      },
+      {
+        "name": "RESET",
+        "unit": "V"
+      }
+    ],
+    "start_s": 0,
+    "end_s": 2e-08,
+    "step_s": 5e-12,
+    "max_display_points": 1600
+  }
+}

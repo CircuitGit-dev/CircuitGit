@@ -1,0 +1,97 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "L4_stage1_flash4_encoder",
+    "view": "schematic"
+  },
+  "native_level": "L4_stage1_flash4_encoder",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [
+    "ND2D0BWP12T30P140ULVT"
+  ],
+  "external_interface_stub": false,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/L4_stage1_flash4_encoder.scs",
+      "source_sha256": "e3c9e3fa8726344033208e0da2d2ace76542b69084b26b375d9aba4fd26e48fe",
+      "path": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/L4_stage1_flash4_encoder.scs",
+      "sha256": "e3c9e3fa8726344033208e0da2d2ace76542b69084b26b375d9aba4fd26e48fe",
+      "bytes": 49829,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/eda-symbol.rnl",
+      "source_sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "path": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/eda-symbol.rnl",
+      "sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "bytes": 94890,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-basic.rnl",
+      "source_sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "path": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-semiconductors.rnl",
+      "source_sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "path": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-spectre.rnl",
+      "source_sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "path": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/rnl-std-spectre.rnl",
+      "sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "bytes": 3128,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-L4_stage1_flash4_encoder.scs",
+      "source_sha256": "5f38edce51e34e4a0eaad1bf3c641c953a6affe1d3a9382fbce19ed22f49b85e",
+      "path": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/view-L4_stage1_flash4_encoder.scs",
+      "sha256": "5f38edce51e34e4a0eaad1bf3c641c953a6affe1d3a9382fbce19ed22f49b85e",
+      "bytes": 125,
+      "transformation": "none"
+    }
+  ]
+}

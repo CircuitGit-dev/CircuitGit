@@ -1,0 +1,159 @@
+{
+  "schema": "ic.sim.bundle.v1",
+  "design_id": "real-sar-20261106",
+  "library": "2026_PIPETISAR_RESEARCH",
+  "top_cell": "PIPE_TOP_F4_RS9_N06",
+  "testbench": "TB_PIPE_RS9_N06",
+  "test": "PIPE_NYQUIST",
+  "test_id": "real-sar-20261106-PIPE_NYQUIST",
+  "source_root": ".",
+  "entrypoint": "netlist/input.scs",
+  "external_dependencies": [
+    {
+      "alias": "PDK_MAIN",
+      "sha256": "0861d3d08ec8a7884bc1f7c45f72bc9ab3df7c860ff8098f76abf1185fd97b96"
+    },
+    {
+      "alias": "STDCELL_SVT_LVT",
+      "sha256": "1f45bf5a3b017e74aac8b9d332282ecf1f1aa36bedc0fa6e1a4f84497da7b5a7"
+    },
+    {
+      "alias": "ULVT_ND2D0",
+      "sha256": "74c915e14b093ebd12a2dbd006d2b304c26356701f39ec2ea17f792d09210108"
+    },
+    {
+      "alias": "PDK_TRANS_ULVT_PCELL",
+      "sha256": "e8d98b0603b4989ca6f8550737993b26f7abe83030bd3c957f1d522bf682922c"
+    }
+  ],
+  "configuration": {
+    "parameters": {
+      "LimitEnable": "1",
+      "Tfft": "4n",
+      "N": "16",
+      "cycle": "7",
+      "Fs": "1G",
+      "Ain": "0.9",
+      "GmIdeal": "1",
+      "AolIdeal": "1e8",
+      "Cflash": "5f",
+      "Cs2": "0.5p",
+      "Cs1": "1.5p",
+      "Tbit": "100p",
+      "TrModel": "1p",
+      "Tguard": "10p",
+      "Tamp": "500p",
+      "Ttrack": "250p",
+      "Iref": "100u",
+      "Vref": "2",
+      "Vcm": "0.5",
+      "Vdd": "1",
+      "Tper": "1n",
+      "Nfft": "16",
+      "Fin": "437500000.0"
+    },
+    "analysis": "tran tran stop=Tfft+(N+4)*Tper errpreset=conservative maxstep=2p  write=\"spectre.ic\" writefinal=\"spectre.fc\" savetime=[600]  savefile=\"spectre.tran.save\" method=gear2only annotate=status  flushtime=30 maxiters=20 ",
+    "solver": "simulatorOptions options psfversion=\"1.4.0\" reltol=1e-4 vabstol=1e-7  iabstol=1e-13 temp=27 tnom=27 scalem=1.0 scale=1.0 gmin=1e-12 rforce=1  maxnotes=5 maxwarns=5 digits=5 cols=80 pivrel=1e-3  sensfile=\"../psf/sens.output\" checklimitdest=psf ",
+    "model_sections": [
+      "pre_simu",
+      "noise_worst",
+      "ttmacro_mos_moscap",
+      "tt_res_bip_dio_disres",
+      "tt_mom",
+      "tt_ind_jvar",
+      "tt_r_metal"
+    ]
+  },
+  "design_origin": "sanitized-historical-netlist",
+  "reviewed_for_distribution": false,
+  "files": [
+    {
+      "source": "netlist/TB_PIPE_RS9_N06_save.scs",
+      "destination": "netlist/TB_PIPE_RS9_N06_save.scs",
+      "sha256": "f965514ef926456f9ad705aef109a8e47abe7348daf9b8da1b3d91ac8bf35c2b"
+    },
+    {
+      "source": "netlist/input.scs",
+      "destination": "netlist/input.scs",
+      "sha256": "922aa84ae10703762ea371d64977cd05b3610d4157f38793ae643378e9b68231"
+    },
+    {
+      "source": "netlist/models/PIPE_Clock250_250_500.va",
+      "destination": "netlist/models/PIPE_Clock250_250_500.va",
+      "sha256": "5bc5a1ded6cd039a717eca1dcfb573efc884732ab80da06f286e166a329c71c5"
+    },
+    {
+      "source": "netlist/models/PIPE_RailClamp.va",
+      "destination": "netlist/models/PIPE_RailClamp.va",
+      "sha256": "1abaf750089bbfcc11669cb2c086e3c2e7548cf2c839f0e966df9b87f2237d78"
+    },
+    {
+      "source": "netlist/models/PIPE_ThermDAC4_FS2.va",
+      "destination": "netlist/models/PIPE_ThermDAC4_FS2.va",
+      "sha256": "aab27d9968cde2bde0a5fe0f8ca98a3c2f33d479720ace621fb20394c13aede1"
+    },
+    {
+      "source": "netlist/models/RS9_IO_N06.va",
+      "destination": "netlist/models/RS9_IO_N06.va",
+      "sha256": "530f6b301f6ee8bb4e63cd3ba77784b32b2f8dc25fe352b292bb10a572959e93"
+    },
+    {
+      "source": "netlist/models/RS9_Merge_N06.va",
+      "destination": "netlist/models/RS9_Merge_N06.va",
+      "sha256": "c6f6e78e8116c3d4acfbfe8caf1baff30a2db741317bf10690aa161569b2f768"
+    },
+    {
+      "source": "netlist/numerical_options.scs",
+      "destination": "netlist/numerical_options.scs",
+      "sha256": "e7418e95af71be1425064a7efb64357d192b8eca2bf27b98e76ca3825fb95707"
+    },
+    {
+      "source": "netlist/project.scs",
+      "destination": "netlist/project.scs",
+      "sha256": "79057c5663690718c54004896eb155d1d176f1826ff4e45a66f108ce83c1d4c8"
+    }
+  ],
+  "simulator": {
+    "profile": "spectre-default",
+    "args": [
+      "-64",
+      "+aps",
+      "+mt=2",
+      "+lqtimeout",
+      "900",
+      "-maxw",
+      "5",
+      "-maxn",
+      "5"
+    ],
+    "output_format": "psfxl"
+  },
+  "postprocess": {
+    "signals": [
+      {
+        "name": "VINP",
+        "unit": "V"
+      },
+      {
+        "name": "VINN",
+        "unit": "V"
+      },
+      {
+        "name": "ROP",
+        "unit": "V"
+      },
+      {
+        "name": "RON",
+        "unit": "V"
+      },
+      {
+        "name": "VALID",
+        "unit": "V"
+      }
+    ],
+    "start_s": 0,
+    "end_s": 2.4e-08,
+    "step_s": 5e-12,
+    "max_display_points": 1600
+  }
+}

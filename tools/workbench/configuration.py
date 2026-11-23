@@ -352,7 +352,7 @@ def settings(files,entry,save_info,simulator,postprocess):
 
 def descriptor(project,configuration,commit,raw,bundle,files,sources):
     index=scan(files,bundle['entrypoint'])
-    return {'schema':SCHEMA,'project_id':project['id'],'configuration':configuration['id'],'source_commit':commit,
+    return {'schema':SCHEMA,'project_id':project['id'],**{k:project[k] for k in ('library_id','cell_id') if k in project},'configuration':configuration['id'],'source_commit':commit,
         'configuration_path':configuration['configuration_path'],'configuration_sha256':sha(raw),'configuration_text':raw.decode(),
         'configuration_json':load_configuration(raw),'source_hashes':sources,'template_path':configuration['bundle_template'],
         'template_reference':bundle['configuration']['template_reference'],'effective':bundle['configuration']['effective'],

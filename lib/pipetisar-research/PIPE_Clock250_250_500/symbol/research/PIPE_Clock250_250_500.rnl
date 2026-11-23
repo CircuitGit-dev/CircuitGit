@@ -1,0 +1,30 @@
+@RNL(type="header") { @VERSION("0.3"); @PACKAGE(name="virtuoso/2026_PIPETISAR_RESEARCH/PIPE_Clock250_250_500", version="0.1") }
+@RNL {
+$"2026_PIPETISAR_RESEARCH/PIPE_Clock250_250_500" = @DEFINE-SYMBOL(box=[0, -68.8, 70.4, 4.8]) {
+  @RECTANGLE {(0, -68.8) (70.4, 4.8)};
+  (35.2, 10.4) @TEXT("CLOCK PHASES", size=4.6, halign="middle", valign="middle");
+  ? @TEXT("${name}", size=3.8, halign="middle", valign="middle", key="name") => @PLACE(35.2, -73.9);
+  (0, 0) @PIN(terminal="VDD");
+  (2.2, 0) @TEXT("VDD", size=3.8, halign="start", valign="middle");
+  (0, -8) @PIN(terminal="VSS");
+  (2.2, -8) @TEXT("VSS", size=3.8, halign="start", valign="middle");
+  (70.4, 0) @PIN(terminal="TRACK");
+  (68.2, 0) @TEXT("TRACK", size=3.8, halign="end", valign="middle");
+  (70.4, -8) @PIN(terminal="PHI1EN");
+  (68.2, -8) @TEXT("PHI1EN", size=3.8, halign="end", valign="middle");
+  (70.4, -16) @PIN(terminal="PHI1N");
+  (68.2, -16) @TEXT("PHI1N", size=3.8, halign="end", valign="middle");
+  (70.4, -24) @PIN(terminal="PHI2P");
+  (68.2, -24) @TEXT("PHI2P", size=3.8, halign="end", valign="middle");
+  (70.4, -32) @PIN(terminal="PHI2N");
+  (68.2, -32) @TEXT("PHI2N", size=3.8, halign="end", valign="middle");
+  (70.4, -40) @PIN(terminal="AMP");
+  (68.2, -40) @TEXT("AMP", size=3.8, halign="end", valign="middle");
+  (70.4, -48) @PIN(terminal="RESET");
+  (68.2, -48) @TEXT("RESET", size=3.8, halign="end", valign="middle");
+  (70.4, -56) @PIN(terminal="TA");
+  (68.2, -56) @TEXT("TA", size=3.8, halign="end", valign="middle");
+  (70.4, -64) @PIN(terminal="TB");
+  (68.2, -64) @TEXT("TB", size=3.8, halign="end", valign="middle")
+};
+}

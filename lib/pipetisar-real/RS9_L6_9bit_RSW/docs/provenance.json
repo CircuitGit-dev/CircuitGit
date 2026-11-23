@@ -1,0 +1,98 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "RS9_L6_9bit_RSW",
+    "view": "schematic"
+  },
+  "native_level": "RS9_L6_9bit_RSW",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [
+    "nch_lvt_mac",
+    "pch_lvt_mac"
+  ],
+  "external_interface_stub": false,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/RS9_L6_9bit_RSW.scs",
+      "source_sha256": "8cd9a527cfea02f1bb84ad6ffb78d5672551cec007009a10b2821875f3fce362",
+      "path": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/RS9_L6_9bit_RSW.scs",
+      "sha256": "8cd9a527cfea02f1bb84ad6ffb78d5672551cec007009a10b2821875f3fce362",
+      "bytes": 45417,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/eda-symbol.rnl",
+      "source_sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "path": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/eda-symbol.rnl",
+      "sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "bytes": 94890,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-basic.rnl",
+      "source_sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "path": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-semiconductors.rnl",
+      "source_sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "path": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-spectre.rnl",
+      "source_sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "path": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/rnl-std-spectre.rnl",
+      "sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "bytes": 3128,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-RS9_L6_9bit_RSW.scs",
+      "source_sha256": "b6896d89eb468e9f5af5b9f01d0636260e3fca70c435ad0c57b911a393791c25",
+      "path": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/view-RS9_L6_9bit_RSW.scs",
+      "sha256": "b6896d89eb468e9f5af5b9f01d0636260e3fca70c435ad0c57b911a393791c25",
+      "bytes": 116,
+      "transformation": "none"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+// Explicit native hierarchy assembly; no automatic inclusion.
+simulator lang=spectre
+include "L4_stage1_flash_clkbooster.scs"

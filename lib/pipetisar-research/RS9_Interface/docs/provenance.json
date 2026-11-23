@@ -1,0 +1,63 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "RS9_Interface",
+    "view": "symbol"
+  },
+  "native_level": "@top",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [],
+  "external_interface_stub": false,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/research/RS9_Interface.rnl",
+      "source_sha256": "88313a7183eee3aa123cc238411b2f90259866d8dd6792c21963f710b42e8fd3",
+      "path": "lib/pipetisar-research/RS9_Interface/symbol/research/RS9_Interface.rnl",
+      "sha256": "88313a7183eee3aa123cc238411b2f90259866d8dd6792c21963f710b42e8fd3",
+      "bytes": 2935,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-research/RS9_Interface/symbol/research/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/symbol-RS9_Interface.scs",
+      "source_sha256": "803dbd6fc486270d2bf7c4e0959d40e21c9710c32ab98b7a82a67064045ccf92",
+      "path": "lib/pipetisar-research/RS9_Interface/symbol/research/symbol-RS9_Interface.scs",
+      "sha256": "803dbd6fc486270d2bf7c4e0959d40e21c9710c32ab98b7a82a67064045ccf92",
+      "bytes": 454,
+      "transformation": "none"
+    }
+  ]
+}

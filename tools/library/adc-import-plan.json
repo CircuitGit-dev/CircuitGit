@@ -1,0 +1,3842 @@
+{
+  "schema": "circuitgit.adc-import-plan.v1",
+  "source_root": "projects/real-sar-20261106/native",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "excluded_cells": [
+    {
+      "id": "trans_ulvt_mac_pcell_0",
+      "reason": "PDK implementation; not authorized for public distribution"
+    }
+  ],
+  "files": {
+    "L3_stage1_flash4_FS2.scs": {
+      "sha256": "273f5e85e1f5682765bb8ff18ef1cff7cef3bfeb145c82355375639e6b17fc5e",
+      "bytes": 46311,
+      "kind": "native-netlist"
+    },
+    "L4_stage1_flash4_encoder.scs": {
+      "sha256": "e3c9e3fa8726344033208e0da2d2ace76542b69084b26b375d9aba4fd26e48fe",
+      "bytes": 49829,
+      "kind": "native-netlist"
+    },
+    "L4_stage1_flash4_rdac_FS2.scs": {
+      "sha256": "20ffd496197096244a519330bed05b62f73185bcafa9a0b23b69da431ec0cf88",
+      "bytes": 12180,
+      "kind": "native-netlist"
+    },
+    "L4_stage1_flash_bootstrapper.scs": {
+      "sha256": "bb19b34492248147477aac885a8f542e1cdbd4b466cc777383ac5359d4f4b648",
+      "bytes": 29177,
+      "kind": "native-netlist"
+    },
+    "L4_stage1_flash_clkbooster.scs": {
+      "sha256": "0dcfd168211b2d00940d856cf5dc459af67dc90b04e0023adade37aeac1d49d8",
+      "bytes": 20260,
+      "kind": "native-netlist"
+    },
+    "L4_stage1_flash_comparator.scs": {
+      "sha256": "4a8a8443e67064b6ab2ab15052a81f9fb0fad377608298d31014387af6019838",
+      "bytes": 63103,
+      "kind": "native-netlist"
+    },
+    "PIPE_MDAC4_G8_SC.scs": {
+      "sha256": "dc7ba378f12ea121e951c039d4b9f9adf9853f860fc510c5140a276fa52b9529",
+      "bytes": 17284,
+      "kind": "native-netlist"
+    },
+    "PIPE_OTA_Diff_Ideal.scs": {
+      "sha256": "df37cb211fc2ad01a914a64c3e3cc608a865afb9f3dd2e5e3622cc572d9cb8f3",
+      "bytes": 10569,
+      "kind": "native-netlist"
+    },
+    "PIPE_SAR9_Real_N06.scs": {
+      "sha256": "8deaeaaca2f3c497226c6214fb9857f4bfc72f084d03055c310d01f4f63909ff",
+      "bytes": 18703,
+      "kind": "native-netlist"
+    },
+    "PIPE_TOP_F4_RS9_N06.scs": {
+      "sha256": "6d6fb46895e0877d003c6d08a954dd592e864382321cf5c9998100880b86e0b5",
+      "bytes": 48499,
+      "kind": "native-netlist"
+    },
+    "RS9_L3_9bit_SAR_2.scs": {
+      "sha256": "749874408ad6245a7a7799eb502da128c5df666689106952f07f0093aac5e458",
+      "bytes": 24440,
+      "kind": "native-netlist"
+    },
+    "RS9_L5_9bit_Bootstrap.scs": {
+      "sha256": "9b879b2fb1c6918606317875f3bfc1370f2c6380b34c747c013a3cc9ff5f78b6",
+      "bytes": 18860,
+      "kind": "native-netlist"
+    },
+    "RS9_L5_9bit_Comparator_LN.scs": {
+      "sha256": "0a140be5bbab33219cac46318b553c18e0f1369130f8953c1a96e5d24ea3f46e",
+      "bytes": 33262,
+      "kind": "native-netlist"
+    },
+    "RS9_L5_9bit_RSW_CDAC.scs": {
+      "sha256": "6b61f44dd8acd80d6797777862b4d6019bdc64aa9e5f9d92a8ff0576b10595e0",
+      "bytes": 9372,
+      "kind": "native-netlist"
+    },
+    "RS9_L5_9bit_SAR_Logic_1.scs": {
+      "sha256": "448efb1d50068e832fbf6e967857c15fd4195af35da747be7b055de60d17032f",
+      "bytes": 40906,
+      "kind": "native-netlist"
+    },
+    "RS9_L6_9bit_REF_Logic.scs": {
+      "sha256": "41e1c718ee33fe912350faf0b1fcc275389bca4f4be8b536f16aefc49fbff569",
+      "bytes": 43271,
+      "kind": "native-netlist"
+    },
+    "RS9_L6_9bit_RSW.scs": {
+      "sha256": "8cd9a527cfea02f1bb84ad6ffb78d5672551cec007009a10b2821875f3fce362",
+      "bytes": 45417,
+      "kind": "native-netlist"
+    },
+    "RS9_L6_SR_latch_1.scs": {
+      "sha256": "ce0a6d9829738e79bc917c8d8d0053c359a5e459e6203ce70f7595e777ff9182",
+      "bytes": 24345,
+      "kind": "native-netlist"
+    },
+    "RS9_L7_9bit_CDAC.scs": {
+      "sha256": "4336854bd974ecba3a9b90ce58de8427e66960787a8e3921c7014419dbc6d2e1",
+      "bytes": 22074,
+      "kind": "native-netlist"
+    },
+    "RS9_L8_9bit_CDAC_UNIT.scs": {
+      "sha256": "7eccc7793e8e250824819510c6dd16aa6199dc40f0fc0d9556e7a30cceda8295",
+      "bytes": 1763,
+      "kind": "native-netlist"
+    },
+    "Switch.scs": {
+      "sha256": "fa4d3ead3fc45a5a890a9013d872511955053037e117613bca3596f4aecaab9f",
+      "bytes": 2655,
+      "kind": "native-netlist"
+    },
+    "TB_PIPE_RS9_N06.scs": {
+      "sha256": "594d4855f702a57611891ccc0f3fe5d1a043eb3c9b20d6958b6b596c0d83b06d",
+      "bytes": 22351,
+      "kind": "native-netlist"
+    },
+    "eda-style.rnl": {
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "kind": "rnl"
+    },
+    "eda-symbol.rnl": {
+      "sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "bytes": 94890,
+      "kind": "rnl"
+    },
+    "original-sar/L3_9bit_SAR_2.scs": {
+      "sha256": "f2efb41f575fe9f19d223c1e11afff6bd310e13b9dd303ad48543f025e14e2c4",
+      "bytes": 24720,
+      "kind": "native-netlist"
+    },
+    "original-sar/L5_9bit_Bootstrap.scs": {
+      "sha256": "d198b3f06e56687ba73ea143f04895956c46fcf3b8c5b4a0b284b7dcae798218",
+      "bytes": 19084,
+      "kind": "native-netlist"
+    },
+    "original-sar/L5_9bit_Comparator_LN.scs": {
+      "sha256": "4676ae4bc03f9af69522f45ec6ff257489152ab91f182b307f69e8d75b904dc1",
+      "bytes": 33480,
+      "kind": "native-netlist"
+    },
+    "original-sar/L5_9bit_RSW_CDAC.scs": {
+      "sha256": "93a3f9a671e26d02c263a8d2995efd0b794ba4f9d160fc31be0f3c53adabcd5e",
+      "bytes": 9453,
+      "kind": "native-netlist"
+    },
+    "original-sar/L5_9bit_SAR_Logic_1.scs": {
+      "sha256": "14e781399394f29dad229a523d80a2d197e3db101efff7159afcd3b84942b1e2",
+      "bytes": 40736,
+      "kind": "native-netlist"
+    },
+    "original-sar/L6_9bit_REF_Logic.scs": {
+      "sha256": "2b6d15d859d98370409da0db10399150141f0c3d2cb1d1fc99ba8f52328f5f5a",
+      "bytes": 43495,
+      "kind": "native-netlist"
+    },
+    "original-sar/L6_9bit_RSW.scs": {
+      "sha256": "1f281fe0784bc5d6153b390b125e3a421e5702a7da84f50a23d69deb3175a90a",
+      "bytes": 44750,
+      "kind": "native-netlist"
+    },
+    "original-sar/L6_SR_latch_1.scs": {
+      "sha256": "5db713e0f714c8c1427ce719fac9a24e00c708a73b99e81b604a922907a82c68",
+      "bytes": 24555,
+      "kind": "native-netlist"
+    },
+    "original-sar/L7_9bit_CDAC.scs": {
+      "sha256": "a15504e0635a16480e89f72a7364814aea139af19c4e90e5ae9cd4d3b0392a9f",
+      "bytes": 20355,
+      "kind": "native-netlist"
+    },
+    "original-sar/L8_9bit_CDAC_UNIT.scs": {
+      "sha256": "cde7c3d6ada29a936f0c1e67b8c4c190d5fb468ee29f4b9237be36e84ab2b1bb",
+      "bytes": 1987,
+      "kind": "native-netlist"
+    },
+    "original-sar/eda-style.rnl": {
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "kind": "rnl"
+    },
+    "original-sar/eda-symbol.rnl": {
+      "sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "bytes": 94890,
+      "kind": "rnl"
+    },
+    "original-sar/rnl-std-basic.rnl": {
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "kind": "rnl"
+    },
+    "original-sar/rnl-std-semiconductors.rnl": {
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "kind": "rnl"
+    },
+    "original-sar/rnl-std-spectre.rnl": {
+      "sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "bytes": 3128,
+      "kind": "rnl"
+    },
+    "original-sar/view-L3_9bit_SAR_2.scs": {
+      "sha256": "4efc397ffd86761c471ec6e73944be5d4ca292359b7278c3aec511ec12538be6",
+      "bytes": 306,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L5_9bit_Bootstrap.scs": {
+      "sha256": "601608319d50a59c584686e5c08591d318697d10777182cd123d64ab7c50fe7c",
+      "bytes": 91,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L5_9bit_Comparator_LN.scs": {
+      "sha256": "4b42bbe00f8ee78c373f69bd096de9b621211d7ae2c1c1b1efb3235a1deb2aeb",
+      "bytes": 95,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L5_9bit_RSW_CDAC.scs": {
+      "sha256": "dd3892b8358bf3c77a8b669b0c54755d1b4c19acb05bfd73275647ac58df4884",
+      "bytes": 116,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L5_9bit_SAR_Logic_1.scs": {
+      "sha256": "854dc3192fe3ba522be571900a5a5889057b327c79e6988fd94237505c215f12",
+      "bytes": 153,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L6_9bit_REF_Logic.scs": {
+      "sha256": "4640960b81d2ee8e4d36d666c9f217cdf223daeb32d8381254e82c79cd8004c0",
+      "bytes": 91,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L6_9bit_RSW.scs": {
+      "sha256": "7c41c94c7c9ed9ae868f759125b9d16db9b1c7147e3b1abd419d9e51a554c19c",
+      "bytes": 85,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L6_SR_latch_1.scs": {
+      "sha256": "7ca1bca850094984b38969afadedc6da413ad4ad5c19101f18056d527442f090",
+      "bytes": 87,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L7_9bit_CDAC.scs": {
+      "sha256": "63715d7d90d5673eb9db85aced80b40e927f3c5684bfcea2c4a73ecb4686bc80",
+      "bytes": 118,
+      "kind": "native-assembly"
+    },
+    "original-sar/view-L8_9bit_CDAC_UNIT.scs": {
+      "sha256": "32f26fefa82105e600eb7237f19560710d8508e436a7e92748957bec91068323",
+      "bytes": 91,
+      "kind": "native-assembly"
+    },
+    "research/Amplifier_Main.scs": {
+      "sha256": "aa64cae430f97864b2445148adaeba4bfabb121af11013b93e6250834297a566",
+      "bytes": 7138,
+      "kind": "native-netlist"
+    },
+    "research/Buffer_Main.scs": {
+      "sha256": "f5acf98a0edef6b243ba0c7ed6a337f251d23f16749b21bf6b81bd65170b062d",
+      "bytes": 5581,
+      "kind": "native-netlist"
+    },
+    "research/L3_stage1_flash.scs": {
+      "sha256": "e9e606d082ff11d244450294794bb294c9b42d027c01ebb20255afe91c8662d2",
+      "bytes": 29833,
+      "kind": "native-netlist"
+    },
+    "research/L3_stage1_flash4.scs": {
+      "sha256": "13791f4a31c026a2f0a976cbd1610153ea4b7007ae81e413428b274960aec07a",
+      "bytes": 48095,
+      "kind": "native-netlist"
+    },
+    "research/L3_stage1_flash4_FS2.scs": {
+      "sha256": "78def12b9abe4d4dc5af757bbe0a672789fe313d2d4797ff77aac93ed35efd9b",
+      "bytes": 47524,
+      "kind": "native-netlist"
+    },
+    "research/L4_stage1_flash4_encoder.scs": {
+      "sha256": "e646f20c28152ac2c3527fa0b1c77a446dd6c8f7739a9abe2867059b39f06b63",
+      "bytes": 50235,
+      "kind": "native-netlist"
+    },
+    "research/L4_stage1_flash4_rdac.scs": {
+      "sha256": "38f7166b1b138632a9268ed6afcc21a082107d29dc4541ded13cc61ece3ded86",
+      "bytes": 15547,
+      "kind": "native-netlist"
+    },
+    "research/L4_stage1_flash4_rdac_FS2.scs": {
+      "sha256": "9d453eb69c29f787d323c4f9f2ae6e0c0de40ff68f1f64e25cc4ee36bb545def",
+      "bytes": 12447,
+      "kind": "native-netlist"
+    },
+    "research/L4_stage1_flash_bootstrapper.scs": {
+      "sha256": "ee8105ae0e09754859624e561369294e17d4fddedadb46683acda38cdb11fd51",
+      "bytes": 29446,
+      "kind": "native-netlist"
+    },
+    "research/L4_stage1_flash_calibration.scs": {
+      "sha256": "72057c166222382ce9fb0153946b5f7352a5bd6b2362bdbca3b72fac0a7c752a",
+      "bytes": 13166,
+      "kind": "native-netlist"
+    },
+    "research/L4_stage1_flash_clkbooster.scs": {
+      "sha256": "714bd40057a97c5997ac51adbabc3682ce43d627a5364732969e7e7a0f4caf2f",
+      "bytes": 20527,
+      "kind": "native-netlist"
+    },
+    "research/L4_stage1_flash_comparator.scs": {
+      "sha256": "28a8b10627ce005171061b2c35faa93301e6a3e22a8ab2b5a301b1d7282bd941",
+      "bytes": 63623,
+      "kind": "native-netlist"
+    },
+    "research/L4_stage1_flash_rdac.scs": {
+      "sha256": "05d0f63627dacb243c07e67581dcc10215172b7a6458ab40378c2e91ae62fb8e",
+      "bytes": 14181,
+      "kind": "native-netlist"
+    },
+    "research/L5_stage1_flash_cal_mux.scs": {
+      "sha256": "a3cf993ba7c205d6edce75fd05211187f7b1250c60eef8528d8bd3a1a044ac52",
+      "bytes": 42879,
+      "kind": "native-netlist"
+    },
+    "research/MDAC4_ARRAY_G8_N06.scs": {
+      "sha256": "e388e968f69cfeb1228c4a2ee39822c99041dc9f2a87057d06ecec3af0bcddef",
+      "bytes": 36045,
+      "kind": "native-netlist"
+    },
+    "research/MDAC4_MOM_BIT_N06.scs": {
+      "sha256": "fc30502bf014ea7c841a3a07f85c4e2f84e0d76131adc10be0e6f06954c372b4",
+      "bytes": 16822,
+      "kind": "native-netlist"
+    },
+    "research/MDAC4_REF_CTRL_N06.scs": {
+      "sha256": "869526c2c81a2fcd9fa7fd483a29daaa516b556db5cdeb8e8e07d87d8dc554db",
+      "bytes": 16728,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_Clock250_250_500.rnl": {
+      "sha256": "feacada71a41a4ee6ffad0432c44497a0eb89787e456d6063df0d06cacad5185",
+      "bytes": 1617,
+      "kind": "rnl"
+    },
+    "research/PIPE_IdealSwitch.rnl": {
+      "sha256": "68ff602f755a05109417d4dd4615a4c5847cede26d883099dd1b78baf46e8cdc",
+      "bytes": 796,
+      "kind": "rnl"
+    },
+    "research/PIPE_MDAC4_G8_SC.scs": {
+      "sha256": "94295a7d35f9d0925d528d3f9637bb4400d9d513add3e6b669d8c11faa065d21",
+      "bytes": 17794,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_Merge12.rnl": {
+      "sha256": "e5678f2f236f5417aedf6c7d2d741f162ac0e5d0c8d0f9a2da81d00f0e38310d",
+      "bytes": 2337,
+      "kind": "rnl"
+    },
+    "research/PIPE_OTA_Diff_Ideal.scs": {
+      "sha256": "3638533cbe7c7ba5bb8bc3ca74300fa8c8d18ea7f282e3622948eefe0f4fb237",
+      "bytes": 8983,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_RailClamp.rnl": {
+      "sha256": "e8ae211cdd8454306f2a4eabb67a661ee48839ed257609a9f5c1c36038e5277a",
+      "bytes": 837,
+      "kind": "rnl"
+    },
+    "research/PIPE_SAR9_Real.scs": {
+      "sha256": "c4e4003eb51f4624c59ae6f02e963c226b2712c2ba6324075391cec2e841e047",
+      "bytes": 26280,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_SAR9_Real_N06.scs": {
+      "sha256": "2a13a1a56c4a9f19f03fe1194cad79a874791df881cdfda9ec6bccb98e41afe3",
+      "bytes": 20298,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_SAR9_Timed.rnl": {
+      "sha256": "6b7fa1ae2bab024f60680f21ba118e3f23b621b5d0e33f1c866460707933c2a0",
+      "bytes": 2028,
+      "kind": "rnl"
+    },
+    "research/PIPE_TIMING_1G.scs": {
+      "sha256": "cd7e874edca7d92c188a91783578897b073bad884f1a6b9111fa591348123941",
+      "bytes": 5828,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_TOP_CA4_RS9_N06.scs": {
+      "sha256": "10847685beb3a3081980f8e9f9f385b84e8c7197fa3aa557e2f4f3f2c98ebe92",
+      "bytes": 49353,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_TOP_F4_RS9_N06.scs": {
+      "sha256": "c5699b263b21771a8c43fded47b52cf0fbe189e7d6182acef705b236b686051b",
+      "bytes": 51696,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_TOP_F4_TI2_RS9.scs": {
+      "sha256": "5e08a9befea62905e4c25c52fa849723d78da813feb214a40a5c3a525f387089",
+      "bytes": 60907,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_TOP_F4_TI2_S9.scs": {
+      "sha256": "f4caab2dbc314bb0ad10a0278a459cc3673ae1e330ac3a438356265093f3ff02",
+      "bytes": 60719,
+      "kind": "native-netlist"
+    },
+    "research/PIPE_ThermDAC4.rnl": {
+      "sha256": "b43bd613e58701be558785c68ed6d249466e3144bcdff13a9d3b303360e25535",
+      "bytes": 1513,
+      "kind": "rnl"
+    },
+    "research/PIPE_ThermDAC4_FS2.rnl": {
+      "sha256": "0a2f83d018a9b142b6240a96855515944e0432ada49f4b35ac69279d61fe8f07",
+      "bytes": 1533,
+      "kind": "rnl"
+    },
+    "research/RS9_IO_N06.rnl": {
+      "sha256": "c32313cd88aa49a039b9c4b465235827dd08ed69b7dafe13daf6382a45861e0d",
+      "bytes": 2897,
+      "kind": "rnl"
+    },
+    "research/RS9_Interface.rnl": {
+      "sha256": "88313a7183eee3aa123cc238411b2f90259866d8dd6792c21963f710b42e8fd3",
+      "bytes": 2935,
+      "kind": "rnl"
+    },
+    "research/RS9_L3_9bit_SAR_2.scs": {
+      "sha256": "f3cc831c970f7cfcff811963e656332257e86c1b02cd153df1c5b7844ade2a62",
+      "bytes": 25903,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L5_9bit_Bootstrap.scs": {
+      "sha256": "edb3580409003a55f5c04a31d4ecca40ac44a4c74a8a06ca1395c889b41369c6",
+      "bytes": 19122,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L5_9bit_Comparator_LN.scs": {
+      "sha256": "44220706c664976a8d554b62b306f201b72b533d80dae4a158655e2cbdb52256",
+      "bytes": 33528,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L5_9bit_RSW_CDAC.scs": {
+      "sha256": "4a818a1cbf5707b88f845fff0dee23b86e61a475e276e9d85c25ad30b475b540",
+      "bytes": 10027,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L5_9bit_SAR_Logic_1.scs": {
+      "sha256": "9f74632c98061382102d449b7c5c30a281952616a5ff0306ca1b2b17f691f6cd",
+      "bytes": 41436,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L6_9bit_REF_Logic.scs": {
+      "sha256": "4784276aa6a6cfa42bb2dbd1d3ec8c8b46066486c3dcc451db56967709dcef46",
+      "bytes": 43533,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L6_9bit_RSW.scs": {
+      "sha256": "d004e4fd60e17a7bfe806ba7a2ea229411e0f9556f518a90bcdf106575b9240e",
+      "bytes": 44788,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L6_SR_latch_1.scs": {
+      "sha256": "b4990cb9a3dfdd3e7055dd28a44cae0977296b311f3acc5b9ea356aceb246323",
+      "bytes": 24603,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L7_9bit_CDAC.scs": {
+      "sha256": "c4f4a21ef8ad124bc6fea2fd3f3f422162dc8a6a1de68b808d122c1659a108d1",
+      "bytes": 22466,
+      "kind": "native-netlist"
+    },
+    "research/RS9_L8_9bit_CDAC_UNIT.scs": {
+      "sha256": "9dcef40c26032340ae2f036daad01de15e641776c27e906119d2a0968c429a4d",
+      "bytes": 2025,
+      "kind": "native-netlist"
+    },
+    "research/RS9_Merge_N06.rnl": {
+      "sha256": "84a53cb74ee0cfc589c80840d89134a0f7a914050aa25500184dd6d258a183d2",
+      "bytes": 2647,
+      "kind": "rnl"
+    },
+    "research/Switch.scs": {
+      "sha256": "079af4020024caca33a18b0058e1153b3adc4e8e618216fb5591e07b4f633d99",
+      "bytes": 2902,
+      "kind": "native-netlist"
+    },
+    "research/TB_Flash4_Codes_1G.scs": {
+      "sha256": "f39b7bac4e88d0d9bdc31703b1e37c7265a605f33a101a9ee5b928314b5f3f89",
+      "bytes": 23561,
+      "kind": "native-netlist"
+    },
+    "research/TB_Flash4_Sine_1G.scs": {
+      "sha256": "adeb785c7ab4e4d1c979333e9244e7a66dd0dcc5166de90692550d6b525d91f4",
+      "bytes": 17122,
+      "kind": "native-netlist"
+    },
+    "research/TB_FlashComp_1G.scs": {
+      "sha256": "b09ce37cf761b47fe5ce9efa8aee0de246e6ab3b4b0f7db3f7d2ca6ee8d0b143",
+      "bytes": 18922,
+      "kind": "native-netlist"
+    },
+    "research/TB_FlashComp_NoiseReplay.scs": {
+      "sha256": "63fb25daf9805d5c6a7bb07bd56fefb140fc49e035c6484d1ef224e6b3d185eb",
+      "bytes": 20197,
+      "kind": "native-netlist"
+    },
+    "research/TB_FlashComp_SpeedReplay.scs": {
+      "sha256": "2c38eeb7e1b3028f7cd802eaee0806d2b46e46636cf56f37aad19f383c032019",
+      "bytes": 19935,
+      "kind": "native-netlist"
+    },
+    "research/TB_Flash_Sine_1G.scs": {
+      "sha256": "475e1441bdbd8c6dfbc0bd8a48b6399439a05fd07c15e71c9c330db64552447c",
+      "bytes": 18130,
+      "kind": "native-netlist"
+    },
+    "research/TB_MDAC_CA4_N06.scs": {
+      "sha256": "c5895b7b028fad7fb82859ab2de93d2d792a084bfa33d4f0d1f76083e44ef92f",
+      "bytes": 20094,
+      "kind": "native-netlist"
+    },
+    "research/TB_PIPE_CA4_RS9_N06.scs": {
+      "sha256": "384610dc598c22d5b6eb8b249d35ee9d319cb346338589680096194f7e1ee379",
+      "bytes": 22630,
+      "kind": "native-netlist"
+    },
+    "research/TB_PIPE_RS9_1G.scs": {
+      "sha256": "d2d6d8dc55485aa3d6424ebd7562f217dc2f2dd23ce95fede3ff227c1d1f291b",
+      "bytes": 25842,
+      "kind": "native-netlist"
+    },
+    "research/TB_PIPE_RS9_N06.scs": {
+      "sha256": "186ced13f7c5c9f0ad6b9af93feda3cd892cb17429790616e5df57eff18bd5b1",
+      "bytes": 22212,
+      "kind": "native-netlist"
+    },
+    "research/TB_PIPE_TOP_1G.scs": {
+      "sha256": "eaa4983c04cd5b61ac2a489eb9c5f3b3910463c3b314ad64421268ef4bfed050",
+      "bytes": 27754,
+      "kind": "native-netlist"
+    },
+    "research/TB_RS9_FFT.scs": {
+      "sha256": "b4d99d5931f88b66c3fa158ccd64a433cca2282e65cea3e81eb3965beb56b348",
+      "bytes": 14400,
+      "kind": "native-netlist"
+    },
+    "research/TB_RS9_UNIT.scs": {
+      "sha256": "acb5405099cc05a0f66f56dcbbdc9dcb84ec8b299cfe58f70d0265d6130ab07c",
+      "bytes": 15426,
+      "kind": "native-netlist"
+    },
+    "research/eda-style.rnl": {
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "kind": "rnl"
+    },
+    "research/eda-symbol.rnl": {
+      "sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "bytes": 94890,
+      "kind": "rnl"
+    },
+    "research/rnl-std-basic.rnl": {
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "kind": "rnl"
+    },
+    "research/rnl-std-semiconductors.rnl": {
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "kind": "rnl"
+    },
+    "research/rnl-std-spectre.rnl": {
+      "sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "bytes": 3128,
+      "kind": "rnl"
+    },
+    "research/symbol-PIPE_Clock250_250_500.scs": {
+      "sha256": "13e37d098260509d07ad5d14d014b2ed8f46b9584230e0f6008c47a061194a08",
+      "bytes": 486,
+      "kind": "native-netlist"
+    },
+    "research/symbol-PIPE_IdealSwitch.scs": {
+      "sha256": "c95a0445b4125217eeaff9018f84f88ca029da4d50f9f8ec20c71c3f221eea56",
+      "bytes": 466,
+      "kind": "native-netlist"
+    },
+    "research/symbol-PIPE_Merge12.scs": {
+      "sha256": "a5c3df91f45a82378bbf184b21092c1f969d1b50404e7116f2e4bbb0436cac45",
+      "bytes": 450,
+      "kind": "native-netlist"
+    },
+    "research/symbol-PIPE_RailClamp.scs": {
+      "sha256": "7678f3de5142e4f67eadba63ba8eb4b444d8f4779d1d9811d2f5be2ce846b5d4",
+      "bytes": 458,
+      "kind": "native-netlist"
+    },
+    "research/symbol-PIPE_SAR9_Timed.scs": {
+      "sha256": "6038e45ef49384a976b5117f182eebb6c51f5524ecaef000ad63db63fdab10af",
+      "bytes": 462,
+      "kind": "native-netlist"
+    },
+    "research/symbol-PIPE_ThermDAC4.scs": {
+      "sha256": "5e7a0465b149131e86cc73c77015ff52fc8985a4ab2bb3af3c4f19269e8902ee",
+      "bytes": 458,
+      "kind": "native-netlist"
+    },
+    "research/symbol-PIPE_ThermDAC4_FS2.scs": {
+      "sha256": "e19dbd48b32945eeca60ae0c6b48ae2df980c980e9858a392a880f822b63f438",
+      "bytes": 474,
+      "kind": "native-netlist"
+    },
+    "research/symbol-RS9_IO_N06.scs": {
+      "sha256": "c2f0dee6e6a4fd85703feca78896beb9d5b94973ba0644c41eaae7e7b862f462",
+      "bytes": 442,
+      "kind": "native-netlist"
+    },
+    "research/symbol-RS9_Interface.scs": {
+      "sha256": "803dbd6fc486270d2bf7c4e0959d40e21c9710c32ab98b7a82a67064045ccf92",
+      "bytes": 454,
+      "kind": "native-netlist"
+    },
+    "research/symbol-RS9_Merge_N06.scs": {
+      "sha256": "f6b9c8bf8d828fa8bbda81ade9d0c4bc1e48291fd3fd382763e074fafee3419e",
+      "bytes": 454,
+      "kind": "native-netlist"
+    },
+    "research/tb_Amplifier_Main.scs": {
+      "sha256": "7677367780bc332e5d9667b956914adff28cfd6261aabce9be7d76a0e77eff28",
+      "bytes": 4595,
+      "kind": "native-netlist"
+    },
+    "research/tb_Buffer_Main.scs": {
+      "sha256": "e2e458b0f6d7b43f1121dd8b32fa8bc7f17013e6f39b3eaa8a25e61d00de62ef",
+      "bytes": 5271,
+      "kind": "native-netlist"
+    },
+    "research/tb_Pipeline_Ideal_Model.scs": {
+      "sha256": "9b6cb458743e02112382b033c55078681179d4005a19d84c786aac2db2d09b28",
+      "bytes": 28721,
+      "kind": "native-netlist"
+    },
+    "research/tb_Pipeline_Ideal_Model_DiffSamp.scs": {
+      "sha256": "b81a81de23aa9a130772c10d4193b736c804067a8cc5c5b82336450caa516f04",
+      "bytes": 33389,
+      "kind": "native-netlist"
+    },
+    "research/view-Amplifier_Main.scs": {
+      "sha256": "b6edab7e19bd02af214934417e6559143a434b980d563cf562e5b1631ecc5147",
+      "bytes": 88,
+      "kind": "native-assembly"
+    },
+    "research/view-Buffer_Main.scs": {
+      "sha256": "32de4b77aefcb0c9b6ac80f0b3e7851db01e6d3194a33b3119103eec4a22a5c1",
+      "bytes": 85,
+      "kind": "native-assembly"
+    },
+    "research/view-L3_stage1_flash.scs": {
+      "sha256": "a12f103486d25b8f10611509d49d9f0a9dd10be7c91ecd031beda9abc6be4c9f",
+      "bytes": 329,
+      "kind": "native-assembly"
+    },
+    "research/view-L3_stage1_flash4.scs": {
+      "sha256": "c1423c3ec7b6eba67c7f60f2661dec6d3dd92aa45cf30e94af618bf82006ef7b",
+      "bytes": 290,
+      "kind": "native-assembly"
+    },
+    "research/view-L3_stage1_flash4_FS2.scs": {
+      "sha256": "7730d6ebf663c6a9820fa71af3bc3975091b78135328b32a77b21f6ad729aecf",
+      "bytes": 298,
+      "kind": "native-assembly"
+    },
+    "research/view-L4_stage1_flash4_encoder.scs": {
+      "sha256": "8b5f4cbdaf9797e5c9ffa60e0ab99892400d116fa709de1ff783f4076c649622",
+      "bytes": 98,
+      "kind": "native-assembly"
+    },
+    "research/view-L4_stage1_flash4_rdac.scs": {
+      "sha256": "6560b7158530f9a56c27314740400ad465f0d97e2302c4bd99c375f222b8763c",
+      "bytes": 95,
+      "kind": "native-assembly"
+    },
+    "research/view-L4_stage1_flash4_rdac_FS2.scs": {
+      "sha256": "bf56c6daa6d7e8c4af9dea8f593b896e4671b40521fefc934c7679c8c0f2ae7a",
+      "bytes": 99,
+      "kind": "native-assembly"
+    },
+    "research/view-L4_stage1_flash_bootstrapper.scs": {
+      "sha256": "368d13a887f50af0bff315b16ccb019eff3b353a3ff507a3ac44fd71cf47510f",
+      "bytes": 102,
+      "kind": "native-assembly"
+    },
+    "research/view-L4_stage1_flash_calibration.scs": {
+      "sha256": "2ed87938b91237268731587e21412fc1ff60ea97d48b2ff8905822dd005d5138",
+      "bytes": 139,
+      "kind": "native-assembly"
+    },
+    "research/view-L4_stage1_flash_clkbooster.scs": {
+      "sha256": "deda3faa87d5526846ba5960f796d12b129b7a3d516685c9b637abc4794a63f8",
+      "bytes": 100,
+      "kind": "native-assembly"
+    },
+    "research/view-L4_stage1_flash_comparator.scs": {
+      "sha256": "4e8ce47b13218d8e80ad6154e900368e57da029584b531b7395873e3084398d5",
+      "bytes": 100,
+      "kind": "native-assembly"
+    },
+    "research/view-L4_stage1_flash_rdac.scs": {
+      "sha256": "771e4fc0fbdf0e2894186645faec682bee7623a56775c6829c12039c40d30b0d",
+      "bytes": 94,
+      "kind": "native-assembly"
+    },
+    "research/view-L5_stage1_flash_cal_mux.scs": {
+      "sha256": "6ec1f6e862f5e5871d5643e68af0e38435fd55492dd82a8e397e655373d846b8",
+      "bytes": 97,
+      "kind": "native-assembly"
+    },
+    "research/view-MDAC4_ARRAY_G8_N06.scs": {
+      "sha256": "a39a21d3111fcb089ef36d2674fbe0c181a46a0570441e8798b55825083b6c60",
+      "bytes": 212,
+      "kind": "native-assembly"
+    },
+    "research/view-MDAC4_MOM_BIT_N06.scs": {
+      "sha256": "9930e7b482f3a6b1e04b1bf4ef87781c4981d1791c2335012cf055e16e4cc0b0",
+      "bytes": 112,
+      "kind": "native-assembly"
+    },
+    "research/view-MDAC4_REF_CTRL_N06.scs": {
+      "sha256": "e315685fe04e4114f8a72fc5b4056ab8266774da4b9f3370693aceda2011711b",
+      "bytes": 92,
+      "kind": "native-assembly"
+    },
+    "research/view-PIPE_MDAC4_G8_SC.scs": {
+      "sha256": "7d1c37a2fb4d3472c606d7b38352f6652221d1e0df58f5e7969eb9873bce0b5c",
+      "bytes": 145,
+      "kind": "native-assembly"
+    },
+    "research/view-PIPE_OTA_Diff_Ideal.scs": {
+      "sha256": "9b0e5fa339887c2fc7fa392531cc4525b4f046381082ea0ae1dced90648ea4f3",
+      "bytes": 93,
+      "kind": "native-assembly"
+    },
+    "research/view-PIPE_SAR9_Real.scs": {
+      "sha256": "76670086eed3dc4aa9a02a954e2932d832acf41622c8c4fde19dc56867036fa5",
+      "bytes": 434,
+      "kind": "native-assembly"
+    },
+    "research/view-PIPE_SAR9_Real_N06.scs": {
+      "sha256": "ef325967c05165626f9379e3fd5f5e998338305f0dc4515814f6b4e3d269bad5",
+      "bytes": 438,
+      "kind": "native-assembly"
+    },
+    "research/view-PIPE_TOP_CA4_RS9_N06.scs": {
+      "sha256": "80e892a3e143f7082f5207e180471b0fc87d4eb756b9d6b22df9624248522de6",
+      "bytes": 865,
+      "kind": "native-assembly"
+    },
+    "research/view-PIPE_TOP_F4_RS9_N06.scs": {
+      "sha256": "ece469f3ef3068fb0d0c696d0eaae1270e2419eef5caff087eececb5e9527ab9",
+      "bytes": 797,
+      "kind": "native-assembly"
+    },
+    "research/view-PIPE_TOP_F4_TI2_RS9.scs": {
+      "sha256": "5aa92566f961fa481efc4e4bca71c8d0b93bcede9500a8d8a12594a69c5ce062",
+      "bytes": 793,
+      "kind": "native-assembly"
+    },
+    "research/view-PIPE_TOP_F4_TI2_S9.scs": {
+      "sha256": "1f78e15d1e4338286266c01dbd101f102c6dc7878bf95f0d448aea6da2b74fc1",
+      "bytes": 417,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L3_9bit_SAR_2.scs": {
+      "sha256": "fccc66e547e8bf2ff95d4a6b30342ccbb0a0f373f5abf3c37ace756f99bae01d",
+      "bytes": 405,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L5_9bit_Bootstrap.scs": {
+      "sha256": "376a375f8626b78b1429fa87e82cc679e239aeb73b9c4d7a1db9e8a51d821431",
+      "bytes": 95,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L5_9bit_Comparator_LN.scs": {
+      "sha256": "5337f8b8a2ea65d9fcf7032b3bde24aa2a661240d186679c2da06643d31f71d1",
+      "bytes": 99,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L5_9bit_RSW_CDAC.scs": {
+      "sha256": "3450144ccae688276e2cd323fb3866e737b4199dc6a81582b0280e517f368b14",
+      "bytes": 191,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L5_9bit_SAR_Logic_1.scs": {
+      "sha256": "e225539790ae36d38fd115f8d4719662529188329873fc093317e86378489376",
+      "bytes": 165,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L6_9bit_REF_Logic.scs": {
+      "sha256": "0daa0dff29180a21cf2bfc6f6c1fbbfd287ead51a996f9e5ccfcbadd3f165992",
+      "bytes": 95,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L6_9bit_RSW.scs": {
+      "sha256": "4ce17dc7052f8c42a7b9a40d07096a21873e9f8a1ef144a1400c7a626ff42f9a",
+      "bytes": 89,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L6_SR_latch_1.scs": {
+      "sha256": "4ccad4791f4dad7da9c715deca583812e26fb2a6d08e97e84fce8bf7a0ad3f36",
+      "bytes": 91,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L7_9bit_CDAC.scs": {
+      "sha256": "39bb8189e6c27a852f544f7e6c64d700c8b4e02bec62e4773ace987dbd1deafc",
+      "bytes": 126,
+      "kind": "native-assembly"
+    },
+    "research/view-RS9_L8_9bit_CDAC_UNIT.scs": {
+      "sha256": "98ee2370bbe4f858eddb1524ad0bb69ab1732b93f998520eb79336284f998225",
+      "bytes": 95,
+      "kind": "native-assembly"
+    },
+    "research/view-Switch.scs": {
+      "sha256": "4e372250f8ead5c058e85ac9ed0f7c064264be198814bd0f171c4f1b56eb1347",
+      "bytes": 80,
+      "kind": "native-assembly"
+    },
+    "research/view-tb_Amplifier_Main.scs": {
+      "sha256": "2aa98df3a60465acf42dd8ac8af2f643331510c6fb1551fb9c4efa2f0d6da102",
+      "bytes": 120,
+      "kind": "native-assembly"
+    },
+    "research/view-tb_Buffer_Main.scs": {
+      "sha256": "bb5264e2280064d230a93750ff5dcf1f28e18c322778d6a3acb1e3c37732e316",
+      "bytes": 114,
+      "kind": "native-assembly"
+    },
+    "research/view-tb_Pipeline_Ideal_Model.scs": {
+      "sha256": "ebf11e4a2fa13e28b7a8984e2c1f4945f992134b96c8e362da49dcc85bfdfa52",
+      "bytes": 126,
+      "kind": "native-assembly"
+    },
+    "research/view-tb_Pipeline_Ideal_Model_DiffSamp.scs": {
+      "sha256": "abd6aec10195b6695e6756f26ae8d5972bb12831ac675cdafdf88855f7824257",
+      "bytes": 132,
+      "kind": "native-assembly"
+    },
+    "rnl-std-basic.rnl": {
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "kind": "rnl"
+    },
+    "rnl-std-semiconductors.rnl": {
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "kind": "rnl"
+    },
+    "rnl-std-spectre.rnl": {
+      "sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "bytes": 3128,
+      "kind": "rnl"
+    },
+    "trans_ulvt_mac.scs": {
+      "sha256": "9d9c6feb277b327b2af723b5591b8b28ee6a4d4045bc236125d21ddc0cd13bda",
+      "bytes": 7606,
+      "kind": "native-netlist"
+    },
+    "view-L3_stage1_flash4_FS2.scs": {
+      "sha256": "715ee1200067639d67ff5c12891766818312f00f6f7b251265d644e483f5440c",
+      "bytes": 354,
+      "kind": "native-assembly"
+    },
+    "view-L4_stage1_flash4_encoder.scs": {
+      "sha256": "5f38edce51e34e4a0eaad1bf3c641c953a6affe1d3a9382fbce19ed22f49b85e",
+      "bytes": 125,
+      "kind": "native-assembly"
+    },
+    "view-L4_stage1_flash4_rdac_FS2.scs": {
+      "sha256": "c02f1b253f4d0042b942f87ddf7cb6e343ca9b95f851f3d6841b882dc1ab876e",
+      "bytes": 126,
+      "kind": "native-assembly"
+    },
+    "view-L4_stage1_flash_bootstrapper.scs": {
+      "sha256": "c7e2dd698d98a009fe2f0ce937b852a1aed3edd11d6ce224de2c794d32478b2a",
+      "bytes": 129,
+      "kind": "native-assembly"
+    },
+    "view-L4_stage1_flash_clkbooster.scs": {
+      "sha256": "edd2a9b0113c9e96d66d42e9e173b2d7edb757dd7a5809533c63be96d31320a4",
+      "bytes": 127,
+      "kind": "native-assembly"
+    },
+    "view-L4_stage1_flash_comparator.scs": {
+      "sha256": "14421369a38d44b2b654f11b0f4f225c5b7c40506a845ce58e099f431ab8a706",
+      "bytes": 156,
+      "kind": "native-assembly"
+    },
+    "view-PIPE_MDAC4_G8_SC.scs": {
+      "sha256": "d0632ae2b246251920ea1567896af1cfe216d8224d016f558d157190791fc8ef",
+      "bytes": 172,
+      "kind": "native-assembly"
+    },
+    "view-PIPE_OTA_Diff_Ideal.scs": {
+      "sha256": "bb46367e106f14b7fae1ae8de9c423441ceeef7f0010ac0f739c954d17f50e6d",
+      "bytes": 120,
+      "kind": "native-assembly"
+    },
+    "view-PIPE_SAR9_Real_N06.scs": {
+      "sha256": "984771031dad13bd1e1c108b57e6c1732ce5ce3b7daf117e69b34bbcec7861a8",
+      "bytes": 465,
+      "kind": "native-assembly"
+    },
+    "view-PIPE_TOP_F4_RS9_N06.scs": {
+      "sha256": "d8a2a37fd52c25a7d717df4263cbcb735ac82edb0cf2367db13299a3758c074f",
+      "bytes": 853,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L3_9bit_SAR_2.scs": {
+      "sha256": "3fe0f31412622f2c6fa9c27770db599686dd75ff7d80eced292b1ca59722a3aa",
+      "bytes": 432,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L5_9bit_Bootstrap.scs": {
+      "sha256": "be8878aa88d8b6f27b2099bd2cfb41bd2e40bc8cff4a7d30890bd1046465bacc",
+      "bytes": 122,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L5_9bit_Comparator_LN.scs": {
+      "sha256": "1eae6a7c5e91ac6da8672baf2287559252a0a7f92cc803434a271870f6e53977",
+      "bytes": 126,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L5_9bit_RSW_CDAC.scs": {
+      "sha256": "86fa8a43fa3f961a5aac04e6ec6e823b73ebec701259f8d8b06821ef01bbee1d",
+      "bytes": 218,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L5_9bit_SAR_Logic_1.scs": {
+      "sha256": "d038f62a5b3fdddec80e9a8d6de35207ecf616d6b7e4860b911ee341bcbab82c",
+      "bytes": 192,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L6_9bit_REF_Logic.scs": {
+      "sha256": "acb1325826bbbbc3bb3115ac2fe4f2d4fa429a6f05774964f39291ec6bf445f9",
+      "bytes": 122,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L6_9bit_RSW.scs": {
+      "sha256": "b6896d89eb468e9f5af5b9f01d0636260e3fca70c435ad0c57b911a393791c25",
+      "bytes": 116,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L6_SR_latch_1.scs": {
+      "sha256": "f05c463a9b5d243e7f58da663193e96741479c4819dc39f5ae1095d891bd9d99",
+      "bytes": 118,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L7_9bit_CDAC.scs": {
+      "sha256": "8c6fb06abe5b03014ce2eaadae1757f81dac5031eed48cc7ea6aeceb3e9c498f",
+      "bytes": 153,
+      "kind": "native-assembly"
+    },
+    "view-RS9_L8_9bit_CDAC_UNIT.scs": {
+      "sha256": "57f926407cf9ec0682be4b361defaad28882f28f34f6e173483f293c0d60d131",
+      "bytes": 122,
+      "kind": "native-assembly"
+    },
+    "view-Switch.scs": {
+      "sha256": "7613b1674a2ed2b3467670c5e8c4d1eb4f55651d761b432b25763186afa3ae67",
+      "bytes": 107,
+      "kind": "native-assembly"
+    },
+    "view-trans_ulvt_mac_pcell_0.scs": {
+      "sha256": "a1960746746fbc4570b44b8aeb16d4ae8838c4da6d6a6614cb6aac8718884aed",
+      "bytes": 115,
+      "kind": "native-assembly"
+    }
+  },
+  "libraries": [
+    {
+      "id": "pipetisar-real",
+      "name": "PIPE–TI–SAR real SAR snapshot",
+      "description": "Native read-only snapshot of the 1 GS/s pipeline plus time-interleaved SAR project.",
+      "cells": [
+        {
+          "id": "TB_PIPE_RS9_N06",
+          "name": "TB_PIPE_RS9_N06",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "TB_PIPE_RS9_N06.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "cell": "TB_PIPE_RS9_N06",
+            "library": "2026_PIPETISAR_RESEARCH",
+            "view": "schematic"
+          },
+          "files": [
+            "L3_stage1_flash4_FS2.scs",
+            "L4_stage1_flash4_encoder.scs",
+            "L4_stage1_flash4_rdac_FS2.scs",
+            "L4_stage1_flash_bootstrapper.scs",
+            "L4_stage1_flash_clkbooster.scs",
+            "L4_stage1_flash_comparator.scs",
+            "PIPE_MDAC4_G8_SC.scs",
+            "PIPE_OTA_Diff_Ideal.scs",
+            "PIPE_SAR9_Real_N06.scs",
+            "PIPE_TOP_F4_RS9_N06.scs",
+            "RS9_L3_9bit_SAR_2.scs",
+            "RS9_L5_9bit_Bootstrap.scs",
+            "RS9_L5_9bit_Comparator_LN.scs",
+            "RS9_L5_9bit_RSW_CDAC.scs",
+            "RS9_L5_9bit_SAR_Logic_1.scs",
+            "RS9_L6_9bit_REF_Logic.scs",
+            "RS9_L6_9bit_RSW.scs",
+            "RS9_L6_SR_latch_1.scs",
+            "RS9_L7_9bit_CDAC.scs",
+            "RS9_L8_9bit_CDAC_UNIT.scs",
+            "Switch.scs",
+            "TB_PIPE_RS9_N06.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "trans_ulvt_mac.scs",
+            "view-L3_stage1_flash4_FS2.scs",
+            "view-L4_stage1_flash4_encoder.scs",
+            "view-L4_stage1_flash4_rdac_FS2.scs",
+            "view-L4_stage1_flash_bootstrapper.scs",
+            "view-L4_stage1_flash_clkbooster.scs",
+            "view-L4_stage1_flash_comparator.scs",
+            "view-PIPE_MDAC4_G8_SC.scs",
+            "view-PIPE_OTA_Diff_Ideal.scs",
+            "view-PIPE_SAR9_Real_N06.scs",
+            "view-PIPE_TOP_F4_RS9_N06.scs",
+            "view-RS9_L3_9bit_SAR_2.scs",
+            "view-RS9_L5_9bit_Bootstrap.scs",
+            "view-RS9_L5_9bit_Comparator_LN.scs",
+            "view-RS9_L5_9bit_RSW_CDAC.scs",
+            "view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "view-RS9_L6_9bit_REF_Logic.scs",
+            "view-RS9_L6_9bit_RSW.scs",
+            "view-RS9_L6_SR_latch_1.scs",
+            "view-RS9_L7_9bit_CDAC.scs",
+            "view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "view-Switch.scs",
+            "view-trans_ulvt_mac_pcell_0.scs"
+          ],
+          "additional_views": [
+            {
+              "id": "simulation",
+              "label": "Historical inputs — models incomplete",
+              "kind": "markdown",
+              "entry": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/README.md",
+              "files": [
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/README.md",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/bundle.json",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/configuration.json",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/provenance.json",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/TB_PIPE_RS9_N06_save.scs",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/input.scs",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/PIPE_Clock250_250_500.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/PIPE_RailClamp.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/PIPE_ThermDAC4_FS2.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/RS9_IO_N06.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/RS9_Merge_N06.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/numerical_options.scs",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/project.scs",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/bundle.json",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/configuration.json",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/provenance.json",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/TB_PIPE_RS9_N06_save.scs",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/input.scs",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/PIPE_Clock250_250_500.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/PIPE_RailClamp.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/PIPE_ThermDAC4_FS2.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/RS9_IO_N06.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/RS9_Merge_N06.va",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/numerical_options.scs",
+                "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/project.scs"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "L3_stage1_flash4_FS2",
+          "name": "L3_stage1_flash4_FS2",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-L3_stage1_flash4_FS2.scs",
+          "native_level": "L3_stage1_flash4_FS2",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L3_stage1_flash4_FS2",
+            "view": "schematic"
+          },
+          "files": [
+            "L3_stage1_flash4_FS2.scs",
+            "L4_stage1_flash4_encoder.scs",
+            "L4_stage1_flash4_rdac_FS2.scs",
+            "L4_stage1_flash_bootstrapper.scs",
+            "L4_stage1_flash_clkbooster.scs",
+            "L4_stage1_flash_comparator.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "trans_ulvt_mac.scs",
+            "view-L3_stage1_flash4_FS2.scs",
+            "view-L4_stage1_flash4_encoder.scs",
+            "view-L4_stage1_flash4_rdac_FS2.scs",
+            "view-L4_stage1_flash_bootstrapper.scs",
+            "view-L4_stage1_flash_clkbooster.scs",
+            "view-L4_stage1_flash_comparator.scs",
+            "view-trans_ulvt_mac_pcell_0.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash4_encoder",
+          "name": "L4_stage1_flash4_encoder",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-L4_stage1_flash4_encoder.scs",
+          "native_level": "L4_stage1_flash4_encoder",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash4_encoder",
+            "view": "schematic"
+          },
+          "files": [
+            "L4_stage1_flash4_encoder.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-L4_stage1_flash4_encoder.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash4_rdac_FS2",
+          "name": "L4_stage1_flash4_rdac_FS2",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-L4_stage1_flash4_rdac_FS2.scs",
+          "native_level": "L4_stage1_flash4_rdac_FS2",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash4_rdac_FS2",
+            "view": "schematic"
+          },
+          "files": [
+            "L4_stage1_flash4_rdac_FS2.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-L4_stage1_flash4_rdac_FS2.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash_bootstrapper",
+          "name": "L4_stage1_flash_bootstrapper",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-L4_stage1_flash_bootstrapper.scs",
+          "native_level": "L4_stage1_flash_bootstrapper",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash_bootstrapper",
+            "view": "schematic"
+          },
+          "files": [
+            "L4_stage1_flash_bootstrapper.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-L4_stage1_flash_bootstrapper.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash_clkbooster",
+          "name": "L4_stage1_flash_clkbooster",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-L4_stage1_flash_clkbooster.scs",
+          "native_level": "L4_stage1_flash_clkbooster",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash_clkbooster",
+            "view": "schematic"
+          },
+          "files": [
+            "L4_stage1_flash_clkbooster.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-L4_stage1_flash_clkbooster.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash_comparator",
+          "name": "L4_stage1_flash_comparator",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-L4_stage1_flash_comparator.scs",
+          "native_level": "L4_stage1_flash_comparator",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash_comparator",
+            "view": "schematic"
+          },
+          "files": [
+            "L4_stage1_flash_comparator.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "trans_ulvt_mac.scs",
+            "view-L4_stage1_flash_comparator.scs",
+            "view-trans_ulvt_mac_pcell_0.scs"
+          ]
+        },
+        {
+          "id": "PIPE_MDAC4_G8_SC",
+          "name": "PIPE_MDAC4_G8_SC",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-PIPE_MDAC4_G8_SC.scs",
+          "native_level": "PIPE_MDAC4_G8_SC",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_MDAC4_G8_SC",
+            "view": "schematic"
+          },
+          "files": [
+            "PIPE_MDAC4_G8_SC.scs",
+            "PIPE_OTA_Diff_Ideal.scs",
+            "Switch.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-PIPE_MDAC4_G8_SC.scs",
+            "view-PIPE_OTA_Diff_Ideal.scs",
+            "view-Switch.scs"
+          ]
+        },
+        {
+          "id": "PIPE_OTA_Diff_Ideal",
+          "name": "PIPE_OTA_Diff_Ideal",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-PIPE_OTA_Diff_Ideal.scs",
+          "native_level": "PIPE_OTA_Diff_Ideal",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_OTA_Diff_Ideal",
+            "view": "schematic"
+          },
+          "files": [
+            "PIPE_OTA_Diff_Ideal.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-PIPE_OTA_Diff_Ideal.scs"
+          ]
+        },
+        {
+          "id": "PIPE_SAR9_Real_N06",
+          "name": "PIPE_SAR9_Real_N06",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-PIPE_SAR9_Real_N06.scs",
+          "native_level": "PIPE_SAR9_Real_N06",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_SAR9_Real_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "PIPE_SAR9_Real_N06.scs",
+            "RS9_L3_9bit_SAR_2.scs",
+            "RS9_L5_9bit_Bootstrap.scs",
+            "RS9_L5_9bit_Comparator_LN.scs",
+            "RS9_L5_9bit_RSW_CDAC.scs",
+            "RS9_L5_9bit_SAR_Logic_1.scs",
+            "RS9_L6_9bit_REF_Logic.scs",
+            "RS9_L6_9bit_RSW.scs",
+            "RS9_L6_SR_latch_1.scs",
+            "RS9_L7_9bit_CDAC.scs",
+            "RS9_L8_9bit_CDAC_UNIT.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-PIPE_SAR9_Real_N06.scs",
+            "view-RS9_L3_9bit_SAR_2.scs",
+            "view-RS9_L5_9bit_Bootstrap.scs",
+            "view-RS9_L5_9bit_Comparator_LN.scs",
+            "view-RS9_L5_9bit_RSW_CDAC.scs",
+            "view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "view-RS9_L6_9bit_REF_Logic.scs",
+            "view-RS9_L6_9bit_RSW.scs",
+            "view-RS9_L6_SR_latch_1.scs",
+            "view-RS9_L7_9bit_CDAC.scs",
+            "view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "PIPE_TOP_F4_RS9_N06",
+          "name": "PIPE_TOP_F4_RS9_N06",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-PIPE_TOP_F4_RS9_N06.scs",
+          "native_level": "PIPE_TOP_F4_RS9_N06",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_TOP_F4_RS9_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "L3_stage1_flash4_FS2.scs",
+            "L4_stage1_flash4_encoder.scs",
+            "L4_stage1_flash4_rdac_FS2.scs",
+            "L4_stage1_flash_bootstrapper.scs",
+            "L4_stage1_flash_clkbooster.scs",
+            "L4_stage1_flash_comparator.scs",
+            "PIPE_MDAC4_G8_SC.scs",
+            "PIPE_OTA_Diff_Ideal.scs",
+            "PIPE_SAR9_Real_N06.scs",
+            "PIPE_TOP_F4_RS9_N06.scs",
+            "RS9_L3_9bit_SAR_2.scs",
+            "RS9_L5_9bit_Bootstrap.scs",
+            "RS9_L5_9bit_Comparator_LN.scs",
+            "RS9_L5_9bit_RSW_CDAC.scs",
+            "RS9_L5_9bit_SAR_Logic_1.scs",
+            "RS9_L6_9bit_REF_Logic.scs",
+            "RS9_L6_9bit_RSW.scs",
+            "RS9_L6_SR_latch_1.scs",
+            "RS9_L7_9bit_CDAC.scs",
+            "RS9_L8_9bit_CDAC_UNIT.scs",
+            "Switch.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "trans_ulvt_mac.scs",
+            "view-L3_stage1_flash4_FS2.scs",
+            "view-L4_stage1_flash4_encoder.scs",
+            "view-L4_stage1_flash4_rdac_FS2.scs",
+            "view-L4_stage1_flash_bootstrapper.scs",
+            "view-L4_stage1_flash_clkbooster.scs",
+            "view-L4_stage1_flash_comparator.scs",
+            "view-PIPE_MDAC4_G8_SC.scs",
+            "view-PIPE_OTA_Diff_Ideal.scs",
+            "view-PIPE_SAR9_Real_N06.scs",
+            "view-PIPE_TOP_F4_RS9_N06.scs",
+            "view-RS9_L3_9bit_SAR_2.scs",
+            "view-RS9_L5_9bit_Bootstrap.scs",
+            "view-RS9_L5_9bit_Comparator_LN.scs",
+            "view-RS9_L5_9bit_RSW_CDAC.scs",
+            "view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "view-RS9_L6_9bit_REF_Logic.scs",
+            "view-RS9_L6_9bit_RSW.scs",
+            "view-RS9_L6_SR_latch_1.scs",
+            "view-RS9_L7_9bit_CDAC.scs",
+            "view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "view-Switch.scs",
+            "view-trans_ulvt_mac_pcell_0.scs"
+          ]
+        },
+        {
+          "id": "RS9_L3_9bit_SAR_2",
+          "name": "RS9_L3_9bit_SAR_2",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L3_9bit_SAR_2.scs",
+          "native_level": "RS9_L3_9bit_SAR_2",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L3_9bit_SAR_2",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L3_9bit_SAR_2.scs",
+            "RS9_L5_9bit_Bootstrap.scs",
+            "RS9_L5_9bit_Comparator_LN.scs",
+            "RS9_L5_9bit_RSW_CDAC.scs",
+            "RS9_L5_9bit_SAR_Logic_1.scs",
+            "RS9_L6_9bit_REF_Logic.scs",
+            "RS9_L6_9bit_RSW.scs",
+            "RS9_L6_SR_latch_1.scs",
+            "RS9_L7_9bit_CDAC.scs",
+            "RS9_L8_9bit_CDAC_UNIT.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L3_9bit_SAR_2.scs",
+            "view-RS9_L5_9bit_Bootstrap.scs",
+            "view-RS9_L5_9bit_Comparator_LN.scs",
+            "view-RS9_L5_9bit_RSW_CDAC.scs",
+            "view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "view-RS9_L6_9bit_REF_Logic.scs",
+            "view-RS9_L6_9bit_RSW.scs",
+            "view-RS9_L6_SR_latch_1.scs",
+            "view-RS9_L7_9bit_CDAC.scs",
+            "view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "RS9_L5_9bit_Bootstrap",
+          "name": "RS9_L5_9bit_Bootstrap",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L5_9bit_Bootstrap.scs",
+          "native_level": "RS9_L5_9bit_Bootstrap",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L5_9bit_Bootstrap",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L5_9bit_Bootstrap.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L5_9bit_Bootstrap.scs"
+          ]
+        },
+        {
+          "id": "RS9_L5_9bit_Comparator_LN",
+          "name": "RS9_L5_9bit_Comparator_LN",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L5_9bit_Comparator_LN.scs",
+          "native_level": "RS9_L5_9bit_Comparator_LN",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L5_9bit_Comparator_LN",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L5_9bit_Comparator_LN.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L5_9bit_Comparator_LN.scs"
+          ]
+        },
+        {
+          "id": "RS9_L5_9bit_RSW_CDAC",
+          "name": "RS9_L5_9bit_RSW_CDAC",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L5_9bit_RSW_CDAC.scs",
+          "native_level": "RS9_L5_9bit_RSW_CDAC",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L5_9bit_RSW_CDAC",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L5_9bit_RSW_CDAC.scs",
+            "RS9_L6_9bit_RSW.scs",
+            "RS9_L7_9bit_CDAC.scs",
+            "RS9_L8_9bit_CDAC_UNIT.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L5_9bit_RSW_CDAC.scs",
+            "view-RS9_L6_9bit_RSW.scs",
+            "view-RS9_L7_9bit_CDAC.scs",
+            "view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "RS9_L5_9bit_SAR_Logic_1",
+          "name": "RS9_L5_9bit_SAR_Logic_1",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L5_9bit_SAR_Logic_1.scs",
+          "native_level": "RS9_L5_9bit_SAR_Logic_1",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L5_9bit_SAR_Logic_1",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L5_9bit_SAR_Logic_1.scs",
+            "RS9_L6_9bit_REF_Logic.scs",
+            "RS9_L6_SR_latch_1.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "view-RS9_L6_9bit_REF_Logic.scs",
+            "view-RS9_L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "RS9_L6_9bit_REF_Logic",
+          "name": "RS9_L6_9bit_REF_Logic",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L6_9bit_REF_Logic.scs",
+          "native_level": "RS9_L6_9bit_REF_Logic",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L6_9bit_REF_Logic",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L6_9bit_REF_Logic.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L6_9bit_REF_Logic.scs"
+          ]
+        },
+        {
+          "id": "RS9_L6_9bit_RSW",
+          "name": "RS9_L6_9bit_RSW",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L6_9bit_RSW.scs",
+          "native_level": "RS9_L6_9bit_RSW",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L6_9bit_RSW",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L6_9bit_RSW.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L6_9bit_RSW.scs"
+          ]
+        },
+        {
+          "id": "RS9_L6_SR_latch_1",
+          "name": "RS9_L6_SR_latch_1",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L6_SR_latch_1.scs",
+          "native_level": "RS9_L6_SR_latch_1",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L6_SR_latch_1",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L6_SR_latch_1.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "RS9_L7_9bit_CDAC",
+          "name": "RS9_L7_9bit_CDAC",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L7_9bit_CDAC.scs",
+          "native_level": "RS9_L7_9bit_CDAC",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L7_9bit_CDAC",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L7_9bit_CDAC.scs",
+            "RS9_L8_9bit_CDAC_UNIT.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L7_9bit_CDAC.scs",
+            "view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "RS9_L8_9bit_CDAC_UNIT",
+          "name": "RS9_L8_9bit_CDAC_UNIT",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "view-RS9_L8_9bit_CDAC_UNIT.scs",
+          "native_level": "RS9_L8_9bit_CDAC_UNIT",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L8_9bit_CDAC_UNIT",
+            "view": "schematic"
+          },
+          "files": [
+            "RS9_L8_9bit_CDAC_UNIT.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "Switch",
+          "name": "Switch",
+          "kind": "primitive",
+          "symbol_only": false,
+          "entry": "view-Switch.scs",
+          "native_level": "Switch",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "Switch",
+            "view": "schematic"
+          },
+          "files": [
+            "Switch.scs",
+            "eda-style.rnl",
+            "eda-symbol.rnl",
+            "rnl-std-basic.rnl",
+            "rnl-std-semiconductors.rnl",
+            "rnl-std-spectre.rnl",
+            "view-Switch.scs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pipetisar-research",
+      "name": "PIPE–TI–SAR research library",
+      "description": "Saved flash, MDAC, ideal and actual-SAR research cells and symbol-only models.",
+      "cells": [
+        {
+          "id": "Amplifier_Main",
+          "name": "Amplifier_Main",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-Amplifier_Main.scs",
+          "native_level": "Amplifier_Main",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "Amplifier_Main",
+            "view": "schematic"
+          },
+          "files": [
+            "research/Amplifier_Main.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-Amplifier_Main.scs"
+          ]
+        },
+        {
+          "id": "Buffer_Main",
+          "name": "Buffer_Main",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-Buffer_Main.scs",
+          "native_level": "Buffer_Main",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "Buffer_Main",
+            "view": "schematic"
+          },
+          "files": [
+            "research/Buffer_Main.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-Buffer_Main.scs"
+          ]
+        },
+        {
+          "id": "L3_stage1_flash",
+          "name": "L3_stage1_flash",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L3_stage1_flash.scs",
+          "native_level": "L3_stage1_flash",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L3_stage1_flash",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_calibration.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/L4_stage1_flash_rdac.scs",
+            "research/L5_stage1_flash_cal_mux.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_calibration.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-L4_stage1_flash_rdac.scs",
+            "research/view-L5_stage1_flash_cal_mux.scs"
+          ]
+        },
+        {
+          "id": "L3_stage1_flash4",
+          "name": "L3_stage1_flash4",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L3_stage1_flash4.scs",
+          "native_level": "L3_stage1_flash4",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L3_stage1_flash4",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs"
+          ]
+        },
+        {
+          "id": "L3_stage1_flash4_FS2",
+          "name": "L3_stage1_flash4_FS2",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L3_stage1_flash4_FS2.scs",
+          "native_level": "L3_stage1_flash4_FS2",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L3_stage1_flash4_FS2",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash4_encoder",
+          "name": "L4_stage1_flash4_encoder",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L4_stage1_flash4_encoder.scs",
+          "native_level": "L4_stage1_flash4_encoder",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash4_encoder",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash4_encoder.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash4_rdac",
+          "name": "L4_stage1_flash4_rdac",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L4_stage1_flash4_rdac.scs",
+          "native_level": "L4_stage1_flash4_rdac",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash4_rdac",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash4_rdac.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash4_rdac.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash4_rdac_FS2",
+          "name": "L4_stage1_flash4_rdac_FS2",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L4_stage1_flash4_rdac_FS2.scs",
+          "native_level": "L4_stage1_flash4_rdac_FS2",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash4_rdac_FS2",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash_bootstrapper",
+          "name": "L4_stage1_flash_bootstrapper",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L4_stage1_flash_bootstrapper.scs",
+          "native_level": "L4_stage1_flash_bootstrapper",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash_bootstrapper",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash_bootstrapper.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash_calibration",
+          "name": "L4_stage1_flash_calibration",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L4_stage1_flash_calibration.scs",
+          "native_level": "L4_stage1_flash_calibration",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash_calibration",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash_calibration.scs",
+            "research/L5_stage1_flash_cal_mux.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash_calibration.scs",
+            "research/view-L5_stage1_flash_cal_mux.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash_clkbooster",
+          "name": "L4_stage1_flash_clkbooster",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L4_stage1_flash_clkbooster.scs",
+          "native_level": "L4_stage1_flash_clkbooster",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash_clkbooster",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash_clkbooster.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash_comparator",
+          "name": "L4_stage1_flash_comparator",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L4_stage1_flash_comparator.scs",
+          "native_level": "L4_stage1_flash_comparator",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash_comparator",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash_comparator.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash_comparator.scs"
+          ]
+        },
+        {
+          "id": "L4_stage1_flash_rdac",
+          "name": "L4_stage1_flash_rdac",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L4_stage1_flash_rdac.scs",
+          "native_level": "L4_stage1_flash_rdac",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L4_stage1_flash_rdac",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash_rdac.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash_rdac.scs"
+          ]
+        },
+        {
+          "id": "L5_stage1_flash_cal_mux",
+          "name": "L5_stage1_flash_cal_mux",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-L5_stage1_flash_cal_mux.scs",
+          "native_level": "L5_stage1_flash_cal_mux",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "L5_stage1_flash_cal_mux",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L5_stage1_flash_cal_mux.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L5_stage1_flash_cal_mux.scs"
+          ]
+        },
+        {
+          "id": "MDAC4_ARRAY_G8_N06",
+          "name": "MDAC4_ARRAY_G8_N06",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-MDAC4_ARRAY_G8_N06.scs",
+          "native_level": "MDAC4_ARRAY_G8_N06",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "MDAC4_ARRAY_G8_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/MDAC4_ARRAY_G8_N06.scs",
+            "research/MDAC4_MOM_BIT_N06.scs",
+            "research/MDAC4_REF_CTRL_N06.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/Switch.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-MDAC4_ARRAY_G8_N06.scs",
+            "research/view-MDAC4_MOM_BIT_N06.scs",
+            "research/view-MDAC4_REF_CTRL_N06.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "MDAC4_MOM_BIT_N06",
+          "name": "MDAC4_MOM_BIT_N06",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-MDAC4_MOM_BIT_N06.scs",
+          "native_level": "MDAC4_MOM_BIT_N06",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "MDAC4_MOM_BIT_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/MDAC4_MOM_BIT_N06.scs",
+            "research/Switch.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-MDAC4_MOM_BIT_N06.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "MDAC4_REF_CTRL_N06",
+          "name": "MDAC4_REF_CTRL_N06",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-MDAC4_REF_CTRL_N06.scs",
+          "native_level": "MDAC4_REF_CTRL_N06",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "MDAC4_REF_CTRL_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/MDAC4_REF_CTRL_N06.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-MDAC4_REF_CTRL_N06.scs"
+          ]
+        },
+        {
+          "id": "PIPE_MDAC4_G8_SC",
+          "name": "PIPE_MDAC4_G8_SC",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-PIPE_MDAC4_G8_SC.scs",
+          "native_level": "PIPE_MDAC4_G8_SC",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_MDAC4_G8_SC",
+            "view": "schematic"
+          },
+          "files": [
+            "research/PIPE_MDAC4_G8_SC.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/Switch.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-PIPE_MDAC4_G8_SC.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "PIPE_OTA_Diff_Ideal",
+          "name": "PIPE_OTA_Diff_Ideal",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-PIPE_OTA_Diff_Ideal.scs",
+          "native_level": "PIPE_OTA_Diff_Ideal",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_OTA_Diff_Ideal",
+            "view": "schematic"
+          },
+          "files": [
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-PIPE_OTA_Diff_Ideal.scs"
+          ]
+        },
+        {
+          "id": "PIPE_SAR9_Real",
+          "name": "PIPE_SAR9_Real",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-PIPE_SAR9_Real.scs",
+          "native_level": "PIPE_SAR9_Real",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_SAR9_Real",
+            "view": "schematic"
+          },
+          "files": [
+            "research/PIPE_SAR9_Real.scs",
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-PIPE_SAR9_Real.scs",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "PIPE_SAR9_Real_N06",
+          "name": "PIPE_SAR9_Real_N06",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-PIPE_SAR9_Real_N06.scs",
+          "native_level": "PIPE_SAR9_Real_N06",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_SAR9_Real_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/PIPE_SAR9_Real_N06.scs",
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-PIPE_SAR9_Real_N06.scs",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "PIPE_TIMING_1G",
+          "name": "PIPE_TIMING_1G",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/PIPE_TIMING_1G.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_TIMING_1G",
+            "view": "schematic"
+          },
+          "files": [
+            "research/PIPE_TIMING_1G.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl"
+          ]
+        },
+        {
+          "id": "PIPE_TOP_CA4_RS9_N06",
+          "name": "PIPE_TOP_CA4_RS9_N06",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-PIPE_TOP_CA4_RS9_N06.scs",
+          "native_level": "PIPE_TOP_CA4_RS9_N06",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_TOP_CA4_RS9_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/MDAC4_ARRAY_G8_N06.scs",
+            "research/MDAC4_MOM_BIT_N06.scs",
+            "research/MDAC4_REF_CTRL_N06.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/PIPE_SAR9_Real_N06.scs",
+            "research/PIPE_TOP_CA4_RS9_N06.scs",
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/Switch.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-MDAC4_ARRAY_G8_N06.scs",
+            "research/view-MDAC4_MOM_BIT_N06.scs",
+            "research/view-MDAC4_REF_CTRL_N06.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-PIPE_SAR9_Real_N06.scs",
+            "research/view-PIPE_TOP_CA4_RS9_N06.scs",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "PIPE_TOP_F4_RS9_N06",
+          "name": "PIPE_TOP_F4_RS9_N06",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-PIPE_TOP_F4_RS9_N06.scs",
+          "native_level": "PIPE_TOP_F4_RS9_N06",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_TOP_F4_RS9_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/PIPE_MDAC4_G8_SC.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/PIPE_SAR9_Real_N06.scs",
+            "research/PIPE_TOP_F4_RS9_N06.scs",
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/Switch.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-PIPE_MDAC4_G8_SC.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-PIPE_SAR9_Real_N06.scs",
+            "research/view-PIPE_TOP_F4_RS9_N06.scs",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "PIPE_TOP_F4_TI2_RS9",
+          "name": "PIPE_TOP_F4_TI2_RS9",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-PIPE_TOP_F4_TI2_RS9.scs",
+          "native_level": "PIPE_TOP_F4_TI2_RS9",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_TOP_F4_TI2_RS9",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/PIPE_MDAC4_G8_SC.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/PIPE_SAR9_Real.scs",
+            "research/PIPE_TOP_F4_TI2_RS9.scs",
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/Switch.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-PIPE_MDAC4_G8_SC.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-PIPE_SAR9_Real.scs",
+            "research/view-PIPE_TOP_F4_TI2_RS9.scs",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "PIPE_TOP_F4_TI2_S9",
+          "name": "PIPE_TOP_F4_TI2_S9",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-PIPE_TOP_F4_TI2_S9.scs",
+          "native_level": "PIPE_TOP_F4_TI2_S9",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_TOP_F4_TI2_S9",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/PIPE_MDAC4_G8_SC.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/PIPE_TOP_F4_TI2_S9.scs",
+            "research/Switch.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-PIPE_MDAC4_G8_SC.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-PIPE_TOP_F4_TI2_S9.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "RS9_L3_9bit_SAR_2",
+          "name": "RS9_L3_9bit_SAR_2",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L3_9bit_SAR_2.scs",
+          "native_level": "RS9_L3_9bit_SAR_2",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L3_9bit_SAR_2",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "RS9_L5_9bit_Bootstrap",
+          "name": "RS9_L5_9bit_Bootstrap",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L5_9bit_Bootstrap.scs",
+          "native_level": "RS9_L5_9bit_Bootstrap",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L5_9bit_Bootstrap",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L5_9bit_Bootstrap.scs"
+          ]
+        },
+        {
+          "id": "RS9_L5_9bit_Comparator_LN",
+          "name": "RS9_L5_9bit_Comparator_LN",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L5_9bit_Comparator_LN.scs",
+          "native_level": "RS9_L5_9bit_Comparator_LN",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L5_9bit_Comparator_LN",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs"
+          ]
+        },
+        {
+          "id": "RS9_L5_9bit_RSW_CDAC",
+          "name": "RS9_L5_9bit_RSW_CDAC",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+          "native_level": "RS9_L5_9bit_RSW_CDAC",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L5_9bit_RSW_CDAC",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "RS9_L5_9bit_SAR_Logic_1",
+          "name": "RS9_L5_9bit_SAR_Logic_1",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+          "native_level": "RS9_L5_9bit_SAR_Logic_1",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L5_9bit_SAR_Logic_1",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "RS9_L6_9bit_REF_Logic",
+          "name": "RS9_L6_9bit_REF_Logic",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L6_9bit_REF_Logic.scs",
+          "native_level": "RS9_L6_9bit_REF_Logic",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L6_9bit_REF_Logic",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L6_9bit_REF_Logic.scs"
+          ]
+        },
+        {
+          "id": "RS9_L6_9bit_RSW",
+          "name": "RS9_L6_9bit_RSW",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L6_9bit_RSW.scs",
+          "native_level": "RS9_L6_9bit_RSW",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L6_9bit_RSW",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L6_9bit_RSW.scs"
+          ]
+        },
+        {
+          "id": "RS9_L6_SR_latch_1",
+          "name": "RS9_L6_SR_latch_1",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L6_SR_latch_1.scs",
+          "native_level": "RS9_L6_SR_latch_1",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L6_SR_latch_1",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "RS9_L7_9bit_CDAC",
+          "name": "RS9_L7_9bit_CDAC",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L7_9bit_CDAC.scs",
+          "native_level": "RS9_L7_9bit_CDAC",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L7_9bit_CDAC",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "RS9_L8_9bit_CDAC_UNIT",
+          "name": "RS9_L8_9bit_CDAC_UNIT",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "research/view-RS9_L8_9bit_CDAC_UNIT.scs",
+          "native_level": "RS9_L8_9bit_CDAC_UNIT",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_L8_9bit_CDAC_UNIT",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "Switch",
+          "name": "Switch",
+          "kind": "primitive",
+          "symbol_only": false,
+          "entry": "research/view-Switch.scs",
+          "native_level": "Switch",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "Switch",
+            "view": "schematic"
+          },
+          "files": [
+            "research/Switch.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "TB_Flash4_Codes_1G",
+          "name": "TB_Flash4_Codes_1G",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_Flash4_Codes_1G.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_Flash4_Codes_1G",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/TB_Flash4_Codes_1G.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs"
+          ]
+        },
+        {
+          "id": "TB_Flash4_Sine_1G",
+          "name": "TB_Flash4_Sine_1G",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_Flash4_Sine_1G.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_Flash4_Sine_1G",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/TB_Flash4_Sine_1G.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs"
+          ]
+        },
+        {
+          "id": "TB_FlashComp_1G",
+          "name": "TB_FlashComp_1G",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_FlashComp_1G.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_FlashComp_1G",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash_comparator.scs",
+            "research/TB_FlashComp_1G.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash_comparator.scs"
+          ]
+        },
+        {
+          "id": "TB_FlashComp_NoiseReplay",
+          "name": "TB_FlashComp_NoiseReplay",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_FlashComp_NoiseReplay.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_FlashComp_NoiseReplay",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash_comparator.scs",
+            "research/TB_FlashComp_NoiseReplay.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash_comparator.scs"
+          ]
+        },
+        {
+          "id": "TB_FlashComp_SpeedReplay",
+          "name": "TB_FlashComp_SpeedReplay",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_FlashComp_SpeedReplay.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_FlashComp_SpeedReplay",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L4_stage1_flash_comparator.scs",
+            "research/TB_FlashComp_SpeedReplay.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L4_stage1_flash_comparator.scs"
+          ]
+        },
+        {
+          "id": "TB_Flash_Sine_1G",
+          "name": "TB_Flash_Sine_1G",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_Flash_Sine_1G.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_Flash_Sine_1G",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_calibration.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/L4_stage1_flash_rdac.scs",
+            "research/L5_stage1_flash_cal_mux.scs",
+            "research/TB_Flash_Sine_1G.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_calibration.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-L4_stage1_flash_rdac.scs",
+            "research/view-L5_stage1_flash_cal_mux.scs"
+          ]
+        },
+        {
+          "id": "TB_MDAC_CA4_N06",
+          "name": "TB_MDAC_CA4_N06",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_MDAC_CA4_N06.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_MDAC_CA4_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/MDAC4_ARRAY_G8_N06.scs",
+            "research/MDAC4_MOM_BIT_N06.scs",
+            "research/MDAC4_REF_CTRL_N06.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/Switch.scs",
+            "research/TB_MDAC_CA4_N06.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-MDAC4_ARRAY_G8_N06.scs",
+            "research/view-MDAC4_MOM_BIT_N06.scs",
+            "research/view-MDAC4_REF_CTRL_N06.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-Switch.scs"
+          ],
+          "additional_views": [
+            {
+              "id": "simulation",
+              "label": "Historical inputs — models incomplete",
+              "kind": "markdown",
+              "entry": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/README.md",
+              "files": [
+                "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/README.md",
+                "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/configuration.json",
+                "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/audit.json"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "TB_PIPE_CA4_RS9_N06",
+          "name": "TB_PIPE_CA4_RS9_N06",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_PIPE_CA4_RS9_N06.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_PIPE_CA4_RS9_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/MDAC4_ARRAY_G8_N06.scs",
+            "research/MDAC4_MOM_BIT_N06.scs",
+            "research/MDAC4_REF_CTRL_N06.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/PIPE_SAR9_Real_N06.scs",
+            "research/PIPE_TOP_CA4_RS9_N06.scs",
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/Switch.scs",
+            "research/TB_PIPE_CA4_RS9_N06.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-MDAC4_ARRAY_G8_N06.scs",
+            "research/view-MDAC4_MOM_BIT_N06.scs",
+            "research/view-MDAC4_REF_CTRL_N06.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-PIPE_SAR9_Real_N06.scs",
+            "research/view-PIPE_TOP_CA4_RS9_N06.scs",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/view-Switch.scs"
+          ],
+          "additional_views": [
+            {
+              "id": "simulation",
+              "label": "Historical inputs — models incomplete",
+              "kind": "markdown",
+              "entry": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/README.md",
+              "files": [
+                "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/README.md",
+                "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/configuration.json",
+                "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/audit.json",
+                "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/configuration.json",
+                "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/audit.json"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "TB_PIPE_RS9_1G",
+          "name": "TB_PIPE_RS9_1G",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_PIPE_RS9_1G.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_PIPE_RS9_1G",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/PIPE_MDAC4_G8_SC.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/PIPE_SAR9_Real.scs",
+            "research/PIPE_TOP_F4_TI2_RS9.scs",
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/Switch.scs",
+            "research/TB_PIPE_RS9_1G.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-PIPE_MDAC4_G8_SC.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-PIPE_SAR9_Real.scs",
+            "research/view-PIPE_TOP_F4_TI2_RS9.scs",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "TB_PIPE_RS9_N06",
+          "name": "TB_PIPE_RS9_N06",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_PIPE_RS9_N06.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_PIPE_RS9_N06",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/PIPE_MDAC4_G8_SC.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/PIPE_SAR9_Real_N06.scs",
+            "research/PIPE_TOP_F4_RS9_N06.scs",
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/Switch.scs",
+            "research/TB_PIPE_RS9_N06.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-PIPE_MDAC4_G8_SC.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-PIPE_SAR9_Real_N06.scs",
+            "research/view-PIPE_TOP_F4_RS9_N06.scs",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "TB_PIPE_TOP_1G",
+          "name": "TB_PIPE_TOP_1G",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_PIPE_TOP_1G.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_PIPE_TOP_1G",
+            "view": "schematic"
+          },
+          "files": [
+            "research/L3_stage1_flash4_FS2.scs",
+            "research/L4_stage1_flash4_encoder.scs",
+            "research/L4_stage1_flash4_rdac_FS2.scs",
+            "research/L4_stage1_flash_bootstrapper.scs",
+            "research/L4_stage1_flash_clkbooster.scs",
+            "research/L4_stage1_flash_comparator.scs",
+            "research/PIPE_MDAC4_G8_SC.scs",
+            "research/PIPE_OTA_Diff_Ideal.scs",
+            "research/PIPE_TOP_F4_TI2_S9.scs",
+            "research/Switch.scs",
+            "research/TB_PIPE_TOP_1G.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-L3_stage1_flash4_FS2.scs",
+            "research/view-L4_stage1_flash4_encoder.scs",
+            "research/view-L4_stage1_flash4_rdac_FS2.scs",
+            "research/view-L4_stage1_flash_bootstrapper.scs",
+            "research/view-L4_stage1_flash_clkbooster.scs",
+            "research/view-L4_stage1_flash_comparator.scs",
+            "research/view-PIPE_MDAC4_G8_SC.scs",
+            "research/view-PIPE_OTA_Diff_Ideal.scs",
+            "research/view-PIPE_TOP_F4_TI2_S9.scs",
+            "research/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "TB_RS9_FFT",
+          "name": "TB_RS9_FFT",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_RS9_FFT.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_RS9_FFT",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/TB_RS9_FFT.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "TB_RS9_UNIT",
+          "name": "TB_RS9_UNIT",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/TB_RS9_UNIT.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "TB_RS9_UNIT",
+            "view": "schematic"
+          },
+          "files": [
+            "research/RS9_L3_9bit_SAR_2.scs",
+            "research/RS9_L5_9bit_Bootstrap.scs",
+            "research/RS9_L5_9bit_Comparator_LN.scs",
+            "research/RS9_L5_9bit_RSW_CDAC.scs",
+            "research/RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/RS9_L6_9bit_REF_Logic.scs",
+            "research/RS9_L6_9bit_RSW.scs",
+            "research/RS9_L6_SR_latch_1.scs",
+            "research/RS9_L7_9bit_CDAC.scs",
+            "research/RS9_L8_9bit_CDAC_UNIT.scs",
+            "research/TB_RS9_UNIT.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/view-RS9_L3_9bit_SAR_2.scs",
+            "research/view-RS9_L5_9bit_Bootstrap.scs",
+            "research/view-RS9_L5_9bit_Comparator_LN.scs",
+            "research/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "research/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "research/view-RS9_L6_9bit_REF_Logic.scs",
+            "research/view-RS9_L6_9bit_RSW.scs",
+            "research/view-RS9_L6_SR_latch_1.scs",
+            "research/view-RS9_L7_9bit_CDAC.scs",
+            "research/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "tb_Amplifier_Main",
+          "name": "tb_Amplifier_Main",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/view-tb_Amplifier_Main.scs",
+          "native_level": "tb_Amplifier_Main",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "tb_Amplifier_Main",
+            "view": "schematic"
+          },
+          "files": [
+            "research/Amplifier_Main.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/tb_Amplifier_Main.scs",
+            "research/view-Amplifier_Main.scs",
+            "research/view-tb_Amplifier_Main.scs"
+          ]
+        },
+        {
+          "id": "tb_Buffer_Main",
+          "name": "tb_Buffer_Main",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/view-tb_Buffer_Main.scs",
+          "native_level": "tb_Buffer_Main",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "tb_Buffer_Main",
+            "view": "schematic"
+          },
+          "files": [
+            "research/Buffer_Main.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/tb_Buffer_Main.scs",
+            "research/view-Buffer_Main.scs",
+            "research/view-tb_Buffer_Main.scs"
+          ]
+        },
+        {
+          "id": "tb_Pipeline_Ideal_Model",
+          "name": "tb_Pipeline_Ideal_Model",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/view-tb_Pipeline_Ideal_Model.scs",
+          "native_level": "tb_Pipeline_Ideal_Model",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "tb_Pipeline_Ideal_Model",
+            "view": "schematic"
+          },
+          "files": [
+            "research/Amplifier_Main.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/tb_Pipeline_Ideal_Model.scs",
+            "research/view-Amplifier_Main.scs",
+            "research/view-tb_Pipeline_Ideal_Model.scs"
+          ]
+        },
+        {
+          "id": "tb_Pipeline_Ideal_Model_DiffSamp",
+          "name": "tb_Pipeline_Ideal_Model_DiffSamp",
+          "kind": "testbench",
+          "symbol_only": false,
+          "entry": "research/view-tb_Pipeline_Ideal_Model_DiffSamp.scs",
+          "native_level": "tb_Pipeline_Ideal_Model_DiffSamp",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "tb_Pipeline_Ideal_Model_DiffSamp",
+            "view": "schematic"
+          },
+          "files": [
+            "research/Buffer_Main.scs",
+            "research/eda-style.rnl",
+            "research/eda-symbol.rnl",
+            "research/rnl-std-basic.rnl",
+            "research/rnl-std-semiconductors.rnl",
+            "research/rnl-std-spectre.rnl",
+            "research/tb_Pipeline_Ideal_Model_DiffSamp.scs",
+            "research/view-Buffer_Main.scs",
+            "research/view-tb_Pipeline_Ideal_Model_DiffSamp.scs"
+          ]
+        },
+        {
+          "id": "PIPE_Clock250_250_500",
+          "name": "PIPE_Clock250_250_500",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-PIPE_Clock250_250_500.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_Clock250_250_500",
+            "view": "symbol"
+          },
+          "files": [
+            "research/PIPE_Clock250_250_500.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-PIPE_Clock250_250_500.scs"
+          ]
+        },
+        {
+          "id": "PIPE_IdealSwitch",
+          "name": "PIPE_IdealSwitch",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-PIPE_IdealSwitch.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_IdealSwitch",
+            "view": "symbol"
+          },
+          "files": [
+            "research/PIPE_IdealSwitch.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-PIPE_IdealSwitch.scs"
+          ]
+        },
+        {
+          "id": "PIPE_Merge12",
+          "name": "PIPE_Merge12",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-PIPE_Merge12.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_Merge12",
+            "view": "symbol"
+          },
+          "files": [
+            "research/PIPE_Merge12.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-PIPE_Merge12.scs"
+          ]
+        },
+        {
+          "id": "PIPE_RailClamp",
+          "name": "PIPE_RailClamp",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-PIPE_RailClamp.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_RailClamp",
+            "view": "symbol"
+          },
+          "files": [
+            "research/PIPE_RailClamp.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-PIPE_RailClamp.scs"
+          ]
+        },
+        {
+          "id": "PIPE_SAR9_Timed",
+          "name": "PIPE_SAR9_Timed",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-PIPE_SAR9_Timed.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_SAR9_Timed",
+            "view": "symbol"
+          },
+          "files": [
+            "research/PIPE_SAR9_Timed.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-PIPE_SAR9_Timed.scs"
+          ]
+        },
+        {
+          "id": "PIPE_ThermDAC4",
+          "name": "PIPE_ThermDAC4",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-PIPE_ThermDAC4.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_ThermDAC4",
+            "view": "symbol"
+          },
+          "files": [
+            "research/PIPE_ThermDAC4.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-PIPE_ThermDAC4.scs"
+          ]
+        },
+        {
+          "id": "PIPE_ThermDAC4_FS2",
+          "name": "PIPE_ThermDAC4_FS2",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-PIPE_ThermDAC4_FS2.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "PIPE_ThermDAC4_FS2",
+            "view": "symbol"
+          },
+          "files": [
+            "research/PIPE_ThermDAC4_FS2.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-PIPE_ThermDAC4_FS2.scs"
+          ]
+        },
+        {
+          "id": "RS9_IO_N06",
+          "name": "RS9_IO_N06",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-RS9_IO_N06.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_IO_N06",
+            "view": "symbol"
+          },
+          "files": [
+            "research/RS9_IO_N06.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-RS9_IO_N06.scs"
+          ]
+        },
+        {
+          "id": "RS9_Interface",
+          "name": "RS9_Interface",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-RS9_Interface.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_Interface",
+            "view": "symbol"
+          },
+          "files": [
+            "research/RS9_Interface.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-RS9_Interface.scs"
+          ]
+        },
+        {
+          "id": "RS9_Merge_N06",
+          "name": "RS9_Merge_N06",
+          "kind": "circuit",
+          "symbol_only": true,
+          "entry": "research/symbol-RS9_Merge_N06.scs",
+          "native_level": "@top",
+          "source_cell": {
+            "library": "2026_PIPETISAR_RESEARCH",
+            "cell": "RS9_Merge_N06",
+            "view": "symbol"
+          },
+          "files": [
+            "research/RS9_Merge_N06.rnl",
+            "research/eda-style.rnl",
+            "research/symbol-RS9_Merge_N06.scs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pipesar-original",
+      "name": "Original 9-bit SAR library",
+      "description": "Original SAR, bootstrap, comparator, CDAC and logic snapshot; separate from later adapted variants.",
+      "cells": [
+        {
+          "id": "L3_9bit_SAR_2",
+          "name": "L3_9bit_SAR_2",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L3_9bit_SAR_2.scs",
+          "native_level": "L3_9bit_SAR_2",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L3_9bit_SAR_2",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L3_9bit_SAR_2.scs",
+            "original-sar/L5_9bit_Bootstrap.scs",
+            "original-sar/L5_9bit_Comparator_LN.scs",
+            "original-sar/L5_9bit_RSW_CDAC.scs",
+            "original-sar/L5_9bit_SAR_Logic_1.scs",
+            "original-sar/L6_9bit_REF_Logic.scs",
+            "original-sar/L6_9bit_RSW.scs",
+            "original-sar/L6_SR_latch_1.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L3_9bit_SAR_2.scs",
+            "original-sar/view-L5_9bit_Bootstrap.scs",
+            "original-sar/view-L5_9bit_Comparator_LN.scs",
+            "original-sar/view-L5_9bit_RSW_CDAC.scs",
+            "original-sar/view-L5_9bit_SAR_Logic_1.scs",
+            "original-sar/view-L6_9bit_REF_Logic.scs",
+            "original-sar/view-L6_9bit_RSW.scs",
+            "original-sar/view-L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "L5_9bit_Bootstrap",
+          "name": "L5_9bit_Bootstrap",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L5_9bit_Bootstrap.scs",
+          "native_level": "L5_9bit_Bootstrap",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L5_9bit_Bootstrap",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L5_9bit_Bootstrap.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L5_9bit_Bootstrap.scs"
+          ]
+        },
+        {
+          "id": "L5_9bit_Comparator_LN",
+          "name": "L5_9bit_Comparator_LN",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L5_9bit_Comparator_LN.scs",
+          "native_level": "L5_9bit_Comparator_LN",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L5_9bit_Comparator_LN",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L5_9bit_Comparator_LN.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L5_9bit_Comparator_LN.scs"
+          ]
+        },
+        {
+          "id": "L5_9bit_RSW_CDAC",
+          "name": "L5_9bit_RSW_CDAC",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L5_9bit_RSW_CDAC.scs",
+          "native_level": "L5_9bit_RSW_CDAC",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L5_9bit_RSW_CDAC",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L5_9bit_RSW_CDAC.scs",
+            "original-sar/L6_9bit_RSW.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L5_9bit_RSW_CDAC.scs",
+            "original-sar/view-L6_9bit_RSW.scs"
+          ]
+        },
+        {
+          "id": "L5_9bit_SAR_Logic_1",
+          "name": "L5_9bit_SAR_Logic_1",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L5_9bit_SAR_Logic_1.scs",
+          "native_level": "L5_9bit_SAR_Logic_1",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L5_9bit_SAR_Logic_1",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L5_9bit_SAR_Logic_1.scs",
+            "original-sar/L6_9bit_REF_Logic.scs",
+            "original-sar/L6_SR_latch_1.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L5_9bit_SAR_Logic_1.scs",
+            "original-sar/view-L6_9bit_REF_Logic.scs",
+            "original-sar/view-L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "L6_9bit_REF_Logic",
+          "name": "L6_9bit_REF_Logic",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L6_9bit_REF_Logic.scs",
+          "native_level": "L6_9bit_REF_Logic",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L6_9bit_REF_Logic",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L6_9bit_REF_Logic.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L6_9bit_REF_Logic.scs"
+          ]
+        },
+        {
+          "id": "L6_9bit_RSW",
+          "name": "L6_9bit_RSW",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L6_9bit_RSW.scs",
+          "native_level": "L6_9bit_RSW",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L6_9bit_RSW",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L6_9bit_RSW.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L6_9bit_RSW.scs"
+          ]
+        },
+        {
+          "id": "L6_SR_latch_1",
+          "name": "L6_SR_latch_1",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L6_SR_latch_1.scs",
+          "native_level": "L6_SR_latch_1",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L6_SR_latch_1",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L6_SR_latch_1.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "L7_9bit_CDAC",
+          "name": "L7_9bit_CDAC",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L7_9bit_CDAC.scs",
+          "native_level": "L7_9bit_CDAC",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L7_9bit_CDAC",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L7_9bit_CDAC.scs",
+            "original-sar/L8_9bit_CDAC_UNIT.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L7_9bit_CDAC.scs",
+            "original-sar/view-L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "L8_9bit_CDAC_UNIT",
+          "name": "L8_9bit_CDAC_UNIT",
+          "kind": "circuit",
+          "symbol_only": false,
+          "entry": "original-sar/view-L8_9bit_CDAC_UNIT.scs",
+          "native_level": "L8_9bit_CDAC_UNIT",
+          "source_cell": {
+            "library": "2026_PIPESAR",
+            "cell": "L8_9bit_CDAC_UNIT",
+            "view": "schematic"
+          },
+          "files": [
+            "original-sar/L8_9bit_CDAC_UNIT.scs",
+            "original-sar/eda-style.rnl",
+            "original-sar/eda-symbol.rnl",
+            "original-sar/rnl-std-basic.rnl",
+            "original-sar/rnl-std-semiconductors.rnl",
+            "original-sar/rnl-std-spectre.rnl",
+            "original-sar/view-L8_9bit_CDAC_UNIT.scs"
+          ]
+        }
+      ]
+    }
+  ],
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "additional_libraries": [
+    {
+      "id": "basics",
+      "name": "基础电路",
+      "description": "Existing primitive-only RC smoke project; no ADC performance claim."
+    }
+  ]
+}

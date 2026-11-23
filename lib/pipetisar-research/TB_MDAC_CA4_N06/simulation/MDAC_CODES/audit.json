@@ -1,0 +1,50 @@
+{
+  "source": "outputs/adc/mdac_array_20261106/results/TB_MDAC_CA4_N06/Interactive.2/MDAC_CODES/input.scs",
+  "source_sha256": "f58557e559be51614573e9b34ea94cbd357da28926a32e0d0ba966838b8cc09f",
+  "design_sha256": "ba1f933c85e0565d98fbb206017551bd3162be8c8a2a1be085a3e40eae309b54",
+  "history": "Interactive.2",
+  "test": "MDAC_CODES",
+  "parameters_observed": {
+    "CuNominal": "99.8585f",
+    "LimitEnable": "1",
+    "Fs": "1G",
+    "Fin": "62500000",
+    "Ain": "0.9",
+    "GmIdeal": "1",
+    "AolIdeal": "1e8",
+    "Cflash": "5f",
+    "Cs2": "0.5p",
+    "Cs1": "1.5p",
+    "Tbit": "100p",
+    "TrModel": "1p",
+    "Tguard": "10p",
+    "Tamp": "500p",
+    "Ttrack": "250p",
+    "Tper": "1n",
+    "Iref": "100u",
+    "Vref": "2",
+    "Vcm": "0.5",
+    "Vdd": "1"
+  },
+  "analysis_observed": "tran tran stop=20n errpreset=conservative maxstep=2p write=\"spectre.ic\"  writefinal=\"spectre.fc\" savetime=[600] savefile=\"spectre.tran.save\"  method=gear2only annotate=status flushtime=30 maxiters=20 ",
+  "external_model_sections": [
+    "pre_simu",
+    "noise_worst",
+    "ttmacro_mos_moscap",
+    "tt_res_bip_dio_disres",
+    "tt_mom",
+    "tt_ind_jvar",
+    "tt_r_metal"
+  ],
+  "external_implementation_definitions_to_remove": [
+    "ND2D4BWP12T30P140ULVT"
+  ],
+  "project_veriloga_dependencies": [
+    "PIPE_RailClamp",
+    "PIPE_Clock250_250_500"
+  ],
+  "registration": "not active; unsanitized input/design not copied; complete model/VA revision closure not established",
+  "configuration_use": "Keep parameters empty when entry has inline subckt parameter blocks; first form a reviewed split entry/project closure before parameter overrides.",
+  "suggested_cell": "lib/pipetisar-research/TB_MDAC_CA4_N06",
+  "simulation_executed": false
+}

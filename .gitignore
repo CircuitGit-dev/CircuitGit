@@ -255,3 +255,7 @@ node_modules/
 .test-state/
 
 /site/
+
+# Versioned circuit libraries (distinct from generated Python lib directories).
+!/lib/
+!/lib/**

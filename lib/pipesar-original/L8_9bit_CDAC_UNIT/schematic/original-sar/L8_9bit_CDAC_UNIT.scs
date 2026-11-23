@@ -1,0 +1,45 @@
+// Generated for: spectre
+// @RNL(type="header") {
+//   @VERSION("0.3");
+//   @USE-PACKAGE(name="rnl-std-spectre", version="0.3", path="rnl-std-spectre.rnl");
+//   @USE-PACKAGE(name="eda-symbol", version="0.1", path="eda-symbol.rnl");
+//   @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl")
+// }
+// Generated on: Nov  9 19:07:00 2026
+// Design library name: 2026_PIPESAR
+// Design cell name: L8_9bit_CDAC_UNIT
+// Design view name: schematic
+simulator lang=spectre
+global 0
+
+// Library name: 2026_PIPESAR
+// Cell name: L8_9bit_CDAC_UNIT
+// View name: schematic
+subckt L8_9bit_CDAC_UNIT BOT TOP
+    C0 (TOP BOT) capacitor c=400a
+// @RNL(author="rnl-virtuoso") {
+//   %block_symbol = @DEFINE-SYMBOL(box=[-2, -8, 2, -2]) {
+//     @LINE {(0, -2) (0, -4)};
+//     @LINE {(0, -8) (0, -5)};
+//     @LINE {(-2, -6) (-2, -4) (2, -4) (2, -6)};
+//     @LINE {(-1, -5) (1, -5)};
+//     ? @TEXT("${name}", size=1, halign="start", valign="middle", key="name") => @PLACE(0, -1);
+//     ? @TEXT("${model}", size=1, halign="middle", valign="middle", key="model") => @PLACE(0, -4.5);
+//     (0, -8) @PIN(terminal="TOP");
+//     (-1, -9.4) @TEXT("TOP", size=1, halign="start", valign="middle", rotate=90);
+//     (0, -2) @PIN(terminal="BOT");
+//     (-1, -0.6) @TEXT("BOT", size=1, halign="end", valign="middle", rotate=90)
+//   };
+//   # @SET-SYMBOL %block_symbol;
+//   #"C0" @SET-SYMBOL $CAPACITOR;
+//   #"C0" @PLACE(-15, 1) => @ORIENT("R0");
+//   %port_0 = $IO_PORT @ATTACH &"TOP" => @PLACE(-21, 8) => @ORIENT("R0");
+//   %port_1 = $IO_PORT @ATTACH &"BOT" => @PLACE(-21, 5) => @ORIENT("R0");
+//   %p0 = (-15, -6);
+//   %wire_0 = &"BOT" @WIRE(mode="straight") {%p0 #"C0":2};
+//   %wire_0 @TEXT("BOT", size=1, halign="end", valign="baseline", rotate=90) => @PLACE(-15.7, -2.4);
+//   %p1 = (-15, 8);
+//   %wire_1 = &"TOP" @WIRE(mode="straight") {#"C0":1 %p1};
+//   %wire_1 @TEXT("TOP", size=1, halign="start", valign="baseline", rotate=90) => @PLACE(-15.7, 4.4)
+// }
+ends L8_9bit_CDAC_UNIT

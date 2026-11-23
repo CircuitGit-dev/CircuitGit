@@ -1,0 +1,448 @@
+// Generated for: spectre
+// @RNL(type="header") {
+//   @VERSION("0.3");
+//   @USE-PACKAGE(name="rnl-std-spectre", version="0.3", path="rnl-std-spectre.rnl");
+//   @USE-PACKAGE(name="eda-symbol", version="0.1", path="eda-symbol.rnl");
+//   @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl")
+// }
+// Generated on: Nov  9 19:40:06 2026
+// Design library name: 2026_PIPETISAR_RESEARCH
+// Design cell name: PIPE_SAR9_Real
+// Design view name: schematic
+simulator lang=spectre
+global 0
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_Bootstrap
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_Comparator_LN
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_SR_latch_1
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_9bit_REF_Logic
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_SAR_Logic_1
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L8_9bit_CDAC_UNIT
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L7_9bit_CDAC
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_9bit_RSW
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_RSW_CDAC
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L3_9bit_SAR_2
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_SAR9_Real
+// View name: schematic
+subckt PIPE_SAR9_Real BUSY DONE KIN_3 KIN_2 KIN_1 KIN_0 KOUT_3 KOUT_2 \
+        KOUT_1 KOUT_0 OVF Q_8 Q_7 Q_6 Q_5 Q_4 Q_3 Q_2 Q_1 Q_0 STEP TRACK \
+        VCM VDAC VDD VH VIN VIP VREFN VREFP VSS
+    XCORE (VDD VSS CLKA CLKAE CLKB CLKC CLKD RAW_9 RAW_8 RAW_7 RAW_6 RAW_5 \
+        RAW_4 RAW_3 RAW_2 RAW_1 RAW_0 EOC VDD VSS TOPNB TOPPB VBSTN VBSTP \
+        VCM VCM VIP VIN VREFN VREFP) RS9_L3_9bit_SAR_2
+    XIO (TRACK KIN_3 KIN_2 KIN_1 KIN_0 RAW_9 RAW_8 RAW_7 RAW_6 RAW_5 RAW_4 \
+        RAW_3 RAW_2 RAW_1 RAW_0 EOC CLKC VIP VIN CLKA CLKAE CLKB CLKD Q_8 \
+        Q_7 Q_6 Q_5 Q_4 Q_3 Q_2 Q_1 Q_0 KOUT_3 KOUT_2 KOUT_1 KOUT_0 DONE \
+        BUSY OVF STEP VH VDAC VDD VSS) RS9_Interface tr=1p trackwidth=490p \
+        early=20p startgap=20p tbudget=1400p tcapture=50p vfs=2
+// @RNL(author="rnl-virtuoso") {
+//   %block_symbol = @DEFINE-SYMBOL(box=[0, -30.4, 41.6, 2.4]) {
+//     @RECTANGLE {(0, -30.4) (41.6, 2.4)};
+//     (20.8, 6.7) @TEXT("SAR 9b / transistor", size=3.2, halign="middle", valign="middle");
+//     ? @TEXT("${name}", size=1.9, halign="middle", valign="middle", key="name") => @PLACE(20.8, -34.4);
+//     (41.6, -28) @PIN(terminal="STEP");
+//     (40, -28) @TEXT("STEP", size=2.6, halign="end", valign="middle");
+//     (41.6, -24) @PIN(terminal="VDAC");
+//     (40, -24) @TEXT("VDAC", size=2.6, halign="end", valign="middle");
+//     (41.6, -20) @PIN(terminal="VH");
+//     (40, -20) @TEXT("VH", size=2.6, halign="end", valign="middle");
+//     (41.6, -16) @PIN(terminal="BUSY");
+//     (40, -16) @TEXT("BUSY", size=2.6, halign="end", valign="middle");
+//     (41.6, -12) @PIN(terminal="OVF");
+//     (40, -12) @TEXT("OVF", size=2.6, halign="end", valign="middle");
+//     (41.6, -8) @PIN(terminal="DONE");
+//     (40, -8) @TEXT("DONE", size=2.6, halign="end", valign="middle");
+//     (0, -20) @PIN(terminal="VSS");
+//     (1.6, -20) @TEXT("VSS", size=2.6, halign="start", valign="middle");
+//     (41.6, 0) @PIN(terminal=["Q_8", "Q_7", "Q_6", "Q_5", "Q_4", "Q_3", "Q_2", "Q_1", "Q_0"]);
+//     (40, 0) @TEXT("Q<8:0>", size=2.6, halign="end", valign="middle");
+//     (41.6, -4) @PIN(terminal=["KOUT_3", "KOUT_2", "KOUT_1", "KOUT_0"]);
+//     (40, -4) @TEXT("KOUT<3:0>", size=2.6, halign="end", valign="middle");
+//     (0, -16) @PIN(terminal="VDD");
+//     (1.6, -16) @TEXT("VDD", size=2.6, halign="start", valign="middle");
+//     (0, -12) @PIN(terminal=["KIN_3", "KIN_2", "KIN_1", "KIN_0"]);
+//     (1.6, -12) @TEXT("KIN<3:0>", size=2.6, halign="start", valign="middle");
+//     (0, -8) @PIN(terminal="TRACK");
+//     (1.6, -8) @TEXT("TRACK", size=2.6, halign="start", valign="middle");
+//     (0, -4) @PIN(terminal="VIN");
+//     (1.6, -4) @TEXT("VIN", size=2.6, halign="start", valign="middle");
+//     (0, 0) @PIN(terminal="VIP");
+//     (1.6, 0) @TEXT("VIP", size=2.6, halign="start", valign="middle");
+//     (0, -24) @PIN(terminal="VCM");
+//     (1.6, -24) @TEXT("VCM", size=2.2, halign="start", valign="middle");
+//     (0, -28) @PIN(terminal="VREFP");
+//     (1.6, -28) @TEXT("VREFP", size=2.2, halign="start", valign="middle");
+//     (0, -32) @PIN(terminal="VREFN");
+//     (1.6, -32) @TEXT("VREFN", size=2.2, halign="start", valign="middle")
+//   };
+//   # @SET-SYMBOL %block_symbol;
+//   #"XCORE" @PLACE(0, 0) => @ORIENT("R0");
+//   %symbol_0 = @DEFINE-SYMBOL(box=[0, -55.7, 49.6, 2.9]) {
+//     @RECTANGLE {(0, -55.7) (49.6, 2.9)};
+//     (24.8, 8) @TEXT("CLOCK + DIGITAL DECODE", size=2.9, halign="middle", valign="middle");
+//     ? @TEXT("${name}", size=1.9, halign="middle", valign="middle", key="name") => @PLACE(24.8, -59.5);
+//     (0, 0) @PIN(terminal=1);
+//     (1.6, 0) @TEXT("TRACK", size=2.2, halign="start", valign="middle");
+//     (0, -4.8) @PIN(terminal=[2, 3, 4, 5]);
+//     (1.6, -4.8) @TEXT("KIN<3:0>", size=2.2, halign="start", valign="middle");
+//     (0, -9.6) @PIN(terminal=[6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+//     (1.6, -9.6) @TEXT("RAW<9:0>", size=2.2, halign="start", valign="middle");
+//     (0, -14.4) @PIN(terminal=16);
+//     (1.6, -14.4) @TEXT("EOC", size=2.2, halign="start", valign="middle");
+//     (0, -19.2) @PIN(terminal=17);
+//     (1.6, -19.2) @TEXT("CLKC", size=2.2, halign="start", valign="middle");
+//     (0, -24) @PIN(terminal=18);
+//     (1.6, -24) @TEXT("VIP", size=2.2, halign="start", valign="middle");
+//     (0, -28.8) @PIN(terminal=19);
+//     (1.6, -28.8) @TEXT("VIN", size=2.2, halign="start", valign="middle");
+//     (0, -33.6) @PIN(terminal=43);
+//     (1.6, -33.6) @TEXT("VDD", size=2.2, halign="start", valign="middle");
+//     (0, -38.4) @PIN(terminal=44);
+//     (1.6, -38.4) @TEXT("VSS", size=2.2, halign="start", valign="middle");
+//     (49.6, 0) @PIN(terminal=20);
+//     (48, 0) @TEXT("CLKA", size=2.2, halign="end", valign="middle");
+//     (49.6, -4.8) @PIN(terminal=21);
+//     (48, -4.8) @TEXT("CLKAE", size=2.2, halign="end", valign="middle");
+//     (49.6, -9.6) @PIN(terminal=22);
+//     (48, -9.6) @TEXT("CLKB", size=2.2, halign="end", valign="middle");
+//     (49.6, -14.4) @PIN(terminal=23);
+//     (48, -14.4) @TEXT("CLKD", size=2.2, halign="end", valign="middle");
+//     (49.6, -19.2) @PIN(terminal=[24, 25, 26, 27, 28, 29, 30, 31, 32]);
+//     (48, -19.2) @TEXT("Q<8:0>", size=2.2, halign="end", valign="middle");
+//     (49.6, -24) @PIN(terminal=[33, 34, 35, 36]);
+//     (48, -24) @TEXT("KOUT<3:0>", size=2.2, halign="end", valign="middle");
+//     (49.6, -28.8) @PIN(terminal=37);
+//     (48, -28.8) @TEXT("DONE", size=2.2, halign="end", valign="middle");
+//     (49.6, -33.6) @PIN(terminal=38);
+//     (48, -33.6) @TEXT("BUSY", size=2.2, halign="end", valign="middle");
+//     (49.6, -38.4) @PIN(terminal=39);
+//     (48, -38.4) @TEXT("OVF", size=2.2, halign="end", valign="middle");
+//     (49.6, -43.2) @PIN(terminal=40);
+//     (48, -43.2) @TEXT("STEP", size=2.2, halign="end", valign="middle");
+//     (49.6, -48) @PIN(terminal=41);
+//     (48, -48) @TEXT("VH", size=2.2, halign="end", valign="middle");
+//     (49.6, -52.8) @PIN(terminal=42);
+//     (48, -52.8) @TEXT("VDAC", size=2.2, halign="end", valign="middle")
+//   };
+//   #"XIO" @SET-SYMBOL %symbol_0;
+//   #"XIO" @PLACE(96, 0) => @ORIENT("R0");
+//   %marker_2 = (60.8, -32);
+//   $FIGURE @ATTACH %marker_2 => @SET-SYMBOL $NO_CONNECT_SYMBOL => @ORIENT("R0");
+//   %marker_3 = (60.8, -16);
+//   $FIGURE @ATTACH %marker_3 => @SET-SYMBOL $NO_CONNECT_SYMBOL => @ORIENT("R0");
+//   %marker_4 = (60.8, -48);
+//   $FIGURE @ATTACH %marker_4 => @SET-SYMBOL $NO_CONNECT_SYMBOL => @ORIENT("R0");
+//   %marker_5 = (60.8, 0);
+//   $FIGURE @ATTACH %marker_5 => @SET-SYMBOL $NO_CONNECT_SYMBOL => @ORIENT("R0");
+//   %input_port_symbol = @DEFINE-SYMBOL(box=[-2, -1, 0, 1]) {
+//       @LINE(fill="linecolor", linestyle="none") {(-2, -0.9) (-2, 0.9) (-0.9, 0.9) (0, 0) (-0.9, -0.9) (-2, -0.9)};
+//       (0, 0) @PIN(terminal=1, direction="right");
+//       ? @TEXT("${name}", key="name", halign="middle") => @PLACE(-1, 1.6)
+//     };
+//   %port_0 = $IO_PORT @ATTACH &"VSS" => @PLACE(-48, 0) => @ORIENT("R0");
+//   %port_0 @SET-SYMBOL %input_port_symbol;
+//   %port_0 @TEXT("VSS", key="name");
+//   %port_1 = $IO_PORT @ATTACH &"VDD" => @PLACE(-48, -8) => @ORIENT("R0");
+//   %port_1 @SET-SYMBOL %input_port_symbol;
+//   %port_1 @TEXT("VDD", key="name");
+//   %bus_port_type_2 = @DEFINE(roles=[["p", "net"], ["p1", "net"], ["p2", "net"], ["p3", "net"]]) {};
+//   %bus_port_type_2_symbol = @DEFINE-SYMBOL {(0, 0) @PIN(terminal=[1, 2, 3, 4])};
+//   {&"KIN_3" &"KIN_2" &"KIN_1" &"KIN_0"} @REMOVE-FROM $PORT_FILL_SET;
+//   %port_2 = %bus_port_type_2 @ATTACH &"KIN_3" &"KIN_2" &"KIN_1" &"KIN_0" => @PLACE(-48, -16) => @ORIENT("R0");
+//   %port_2 @SET-SYMBOL %bus_port_type_2_symbol;
+//   %port_2_marker = $IO_PORT @ATTACH &"KIN_3" => @PLACE(-48, -16) => @ORIENT("R0");
+//   %port_2_marker @SET-SYMBOL %input_port_symbol;
+//   %port_2_marker @TEXT("KIN<3:0>", key="name");
+//   %port_3 = $IO_PORT @ATTACH &"TRACK" => @PLACE(-48, -24) => @ORIENT("R0");
+//   %port_3 @SET-SYMBOL %input_port_symbol;
+//   %port_3 @TEXT("TRACK", key="name");
+//   %port_4 = $IO_PORT @ATTACH &"VIN" => @PLACE(-48, -32) => @ORIENT("R0");
+//   %port_4 @SET-SYMBOL %input_port_symbol;
+//   %port_4 @TEXT("VIN", key="name");
+//   %port_5 = $IO_PORT @ATTACH &"VIP" => @PLACE(-48, -40) => @ORIENT("R0");
+//   %port_5 @SET-SYMBOL %input_port_symbol;
+//   %port_5 @TEXT("VIP", key="name");
+//   %port_6 = $IO_PORT @ATTACH &"VCM" => @PLACE(-48, -48) => @ORIENT("R0");
+//   %port_6 @SET-SYMBOL %input_port_symbol;
+//   %port_6 @TEXT("VCM", key="name");
+//   %port_7 = $IO_PORT @ATTACH &"VREFP" => @PLACE(-48, -56) => @ORIENT("R0");
+//   %port_7 @SET-SYMBOL %input_port_symbol;
+//   %port_7 @TEXT("VREFP", key="name");
+//   %port_8 = $IO_PORT @ATTACH &"VREFN" => @PLACE(-48, -64) => @ORIENT("R0");
+//   %port_8 @SET-SYMBOL %input_port_symbol;
+//   %port_8 @TEXT("VREFN", key="name");
+//   %output_port_symbol = @DEFINE-SYMBOL(box=[0, -1, 2, 1]) {
+//       @LINE(fill="linecolor", linestyle="none") {(0, -0.9) (0, 0.9) (1.1, 0.9) (2, 0) (1.1, -0.9) (0, -0.9)};
+//       (0, 0) @PIN(terminal=1, direction="left");
+//       ? @TEXT("${name}", key="name", halign="middle") => @PLACE(1, 1.6)
+//     };
+//   %port_9 = $IO_PORT @ATTACH &"STEP" => @PLACE(176, 0) => @ORIENT("R0");
+//   %port_9 @SET-SYMBOL %output_port_symbol;
+//   %port_9 @TEXT("STEP", key="name");
+//   %port_10 = $IO_PORT @ATTACH &"VDAC" => @PLACE(176, -8) => @ORIENT("R0");
+//   %port_10 @SET-SYMBOL %output_port_symbol;
+//   %port_10 @TEXT("VDAC", key="name");
+//   %port_11 = $IO_PORT @ATTACH &"VH" => @PLACE(176, -16) => @ORIENT("R0");
+//   %port_11 @SET-SYMBOL %output_port_symbol;
+//   %port_11 @TEXT("VH", key="name");
+//   %port_12 = $IO_PORT @ATTACH &"BUSY" => @PLACE(176, -24) => @ORIENT("R0");
+//   %port_12 @SET-SYMBOL %output_port_symbol;
+//   %port_12 @TEXT("BUSY", key="name");
+//   %port_13 = $IO_PORT @ATTACH &"OVF" => @PLACE(176, -32) => @ORIENT("R0");
+//   %port_13 @SET-SYMBOL %output_port_symbol;
+//   %port_13 @TEXT("OVF", key="name");
+//   %port_14 = $IO_PORT @ATTACH &"DONE" => @PLACE(176, -40) => @ORIENT("R0");
+//   %port_14 @SET-SYMBOL %output_port_symbol;
+//   %port_14 @TEXT("DONE", key="name");
+//   %bus_port_type_15 = @DEFINE(roles=[["p", "net"], ["p1", "net"], ["p2", "net"], ["p3", "net"], ["p4", "net"], ["p5", "net"], ["p6", "net"], ["p7", "net"], ["p8", "net"]]) {};
+//   %bus_port_type_15_symbol = @DEFINE-SYMBOL {(0, 0) @PIN(terminal=[1, 2, 3, 4, 5, 6, 7, 8, 9])};
+//   {&"Q_8" &"Q_7" &"Q_6" &"Q_5" &"Q_4" &"Q_3" &"Q_2" &"Q_1" &"Q_0"} @REMOVE-FROM $PORT_FILL_SET;
+//   %port_15 = %bus_port_type_15 @ATTACH &"Q_8" &"Q_7" &"Q_6" &"Q_5" &"Q_4" &"Q_3" &"Q_2" &"Q_1" &"Q_0" => @PLACE(176, -48) => @ORIENT("R0");
+//   %port_15 @SET-SYMBOL %bus_port_type_15_symbol;
+//   %port_15_marker = $IO_PORT @ATTACH &"Q_8" => @PLACE(176, -48) => @ORIENT("R0");
+//   %port_15_marker @SET-SYMBOL %output_port_symbol;
+//   %port_15_marker @TEXT("Q<8:0>", key="name");
+//   %bus_port_type_16 = @DEFINE(roles=[["p", "net"], ["p1", "net"], ["p2", "net"], ["p3", "net"]]) {};
+//   %bus_port_type_16_symbol = @DEFINE-SYMBOL {(0, 0) @PIN(terminal=[1, 2, 3, 4])};
+//   {&"KOUT_3" &"KOUT_2" &"KOUT_1" &"KOUT_0"} @REMOVE-FROM $PORT_FILL_SET;
+//   %port_16 = %bus_port_type_16 @ATTACH &"KOUT_3" &"KOUT_2" &"KOUT_1" &"KOUT_0" => @PLACE(176, -56) => @ORIENT("R0");
+//   %port_16 @SET-SYMBOL %bus_port_type_16_symbol;
+//   %port_16_marker = $IO_PORT @ATTACH &"KOUT_3" => @PLACE(176, -56) => @ORIENT("R0");
+//   %port_16_marker @SET-SYMBOL %output_port_symbol;
+//   %port_16_marker @TEXT("KOUT<3:0>", key="name");
+//   %p0 = (60.8, -29.1);
+//   %wire_0 = &"VBSTP" @WIRE(mode="straight") {%marker_2 %p0};
+//   %p1 = (52.5, -24);
+//   %wire_1 = &"VBSTP" @WIRE(mode="straight") {#"XCORE":24 %p1};
+//   %wire_1 @TEXT("VBSTP", size=1.8, halign="middle", valign="baseline") => @PLACE(51, -24);
+//   %wire_0 @TEXT("VBSTP", size=1.8, halign="middle", valign="baseline") => @PLACE(60.8, -30.6);
+//   %p2 = (60.8, -45.1);
+//   %wire_2 = &"VBSTN" @WIRE(mode="straight") {%marker_4 %p2};
+//   %p3 = (52.5, -28.8);
+//   %wire_3 = &"VBSTN" @WIRE(mode="straight") {#"XCORE":23 %p3};
+//   %wire_3 @TEXT("VBSTN", size=1.8, halign="middle", valign="baseline") => @PLACE(51, -28.8);
+//   %wire_2 @TEXT("VBSTN", size=1.8, halign="middle", valign="baseline") => @PLACE(60.8, -46.6);
+//   %p4 = (60.8, 2.9);
+//   %wire_4 = &"TOPPB" @WIRE(mode="straight") {%marker_5 %p4};
+//   %p5 = (52.5, -14.4);
+//   %wire_5 = &"TOPPB" @WIRE(mode="straight") {#"XCORE":22 %p5};
+//   %wire_5 @TEXT("TOPPB", size=1.8, halign="middle", valign="baseline") => @PLACE(51, -14.4);
+//   %wire_4 @TEXT("TOPPB", size=1.8, halign="middle", valign="baseline") => @PLACE(60.8, 1.4);
+//   %p6 = (60.8, -13.1);
+//   %wire_6 = &"TOPNB" @WIRE(mode="straight") {%marker_3 %p6};
+//   %p7 = (52.5, -19.2);
+//   %wire_7 = &"TOPNB" @WIRE(mode="straight") {#"XCORE":21 %p7};
+//   %wire_7 @TEXT("TOPNB", size=1.8, halign="middle", valign="baseline") => @PLACE(51, -19.2);
+//   %wire_6 @TEXT("TOPNB", size=1.8, halign="middle", valign="baseline") => @PLACE(60.8, -14.6);
+//   %p8 = (93.1, -14.4);
+//   %wire_8 = &"EOC" @WIRE(mode="straight") {%p8 #"XIO":16};
+//   %p9 = (49.6, -1.9);
+//   %wire_9 = &"EOC" @WIRE(mode="straight") {#"XCORE":18 %p9};
+//   %wire_9 @TEXT("EOC", size=1.8, halign="middle", valign="baseline") => @PLACE(49.6, -3.4);
+//   %wire_8 @TEXT("EOC", size=1.8, halign="middle", valign="baseline") => @PLACE(94.6, -14.4);
+//   %p10 = (148.5, -14.4);
+//   %wire_10 = &"CLKD" @WIRE(mode="straight") {#"XIO":23 %p10};
+//   %p11 = (-2.9, -24);
+//   %wire_11 = &"CLKD" @WIRE(mode="straight") {%p11 #"XCORE":7};
+//   %wire_11 @TEXT("CLKD", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -24);
+//   %wire_10 @TEXT("CLKD", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -14.4);
+//   %p12 = (93.1, -19.2);
+//   %wire_12 = &"CLKC" @WIRE(mode="straight") {%p12 #"XIO":17};
+//   %p13 = (52.5, -9.6);
+//   %wire_13 = &"CLKC" @WIRE(mode="straight") {#"XCORE":6 %p13};
+//   %wire_13 @TEXT("CLKC", size=1.8, halign="middle", valign="baseline") => @PLACE(51, -9.6);
+//   %wire_12 @TEXT("CLKC", size=1.8, halign="middle", valign="baseline") => @PLACE(94.6, -19.2);
+//   %p14 = (148.5, -9.6);
+//   %wire_14 = &"CLKB" @WIRE(mode="straight") {#"XIO":22 %p14};
+//   %p15 = (-2.9, -19.2);
+//   %wire_15 = &"CLKB" @WIRE(mode="straight") {%p15 #"XCORE":5};
+//   %wire_15 @TEXT("CLKB", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -19.2);
+//   %wire_14 @TEXT("CLKB", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -9.6);
+//   %p16 = (148.5, -4.8);
+//   %wire_16 = &"CLKAE" @WIRE(mode="straight") {#"XIO":21 %p16};
+//   %p17 = (-2.9, -14.4);
+//   %wire_17 = &"CLKAE" @WIRE(mode="straight") {%p17 #"XCORE":4};
+//   %wire_17 @TEXT("CLKAE", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -14.4);
+//   %wire_16 @TEXT("CLKAE", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -4.8);
+//   %p18 = (145.6, 2.9);
+//   %wire_18 = &"CLKA" @WIRE(mode="straight") {#"XIO":20 %p18};
+//   %p19 = (-2.9, -9.6);
+//   %wire_19 = &"CLKA" @WIRE(mode="straight") {%p19 #"XCORE":3};
+//   %wire_19 @TEXT("CLKA", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -9.6);
+//   %wire_18 @TEXT("CLKA", size=1.8, halign="middle", valign="baseline") => @PLACE(145.6, 1.4);
+//   %p20 = (93.1, -9.6);
+//   %wire_20 = {&"RAW_9" &"RAW_8" &"RAW_7" &"RAW_6" &"RAW_5" &"RAW_4" &"RAW_3" &"RAW_2" &"RAW_1" &"RAW_0"} @WIRE(mode="straight") {%p20 #"XIO":6};
+//   %p21 = (49.6, 2.9);
+//   %wire_21 = {&"RAW_9" &"RAW_8" &"RAW_7" &"RAW_6" &"RAW_5" &"RAW_4" &"RAW_3" &"RAW_2" &"RAW_1" &"RAW_0"} @WIRE(mode="straight") {#"XCORE":8 %p21};
+//   %wire_21 @TEXT("RAW<9:0>", size=1.8, halign="middle", valign="baseline") => @PLACE(49.6, 1.4);
+//   %wire_20 @TEXT("RAW<9:0>", size=1.8, halign="middle", valign="baseline") => @PLACE(94.6, -9.6);
+//   %p22 = (182.4, -56);
+//   %wire_22 = {&"KOUT_3" &"KOUT_2" &"KOUT_1" &"KOUT_0"} @WIRE(mode="straight") {%port_16:1 %p22};
+//   %p23 = (148.5, -24);
+//   %wire_23 = {&"KOUT_3" &"KOUT_2" &"KOUT_1" &"KOUT_0"} @WIRE(mode="straight") {#"XIO":33 %p23};
+//   %wire_23 @TEXT("KOUT<3:0>", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -24);
+//   %wire_22 @TEXT("KOUT<3:0>", size=1, halign="middle", valign="middle") => @PLACE(179.2, -56);
+//   %p24 = (182.4, -48);
+//   %wire_24 = {&"Q_8" &"Q_7" &"Q_6" &"Q_5" &"Q_4" &"Q_3" &"Q_2" &"Q_1" &"Q_0"} @WIRE(mode="straight") {%port_15:1 %p24};
+//   %p25 = (148.5, -19.2);
+//   %wire_25 = {&"Q_8" &"Q_7" &"Q_6" &"Q_5" &"Q_4" &"Q_3" &"Q_2" &"Q_1" &"Q_0"} @WIRE(mode="straight") {#"XIO":24 %p25};
+//   %wire_25 @TEXT("Q<8:0>", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -19.2);
+//   %wire_24 @TEXT("Q<8:0>", size=1, halign="middle", valign="middle") => @PLACE(179.2, -48);
+//   %p26 = (182.4, -40);
+//   %wire_26 = &"DONE" @WIRE(mode="straight") {%port_14:p %p26};
+//   %p27 = (148.5, -28.8);
+//   %wire_27 = &"DONE" @WIRE(mode="straight") {#"XIO":37 %p27};
+//   %wire_27 @TEXT("DONE", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -28.8);
+//   %wire_26 @TEXT("DONE", size=1, halign="middle", valign="middle") => @PLACE(179.2, -40);
+//   %p28 = (182.4, -32);
+//   %wire_28 = &"OVF" @WIRE(mode="straight") {%port_13:p %p28};
+//   %p29 = (148.5, -38.4);
+//   %wire_29 = &"OVF" @WIRE(mode="straight") {#"XIO":39 %p29};
+//   %wire_29 @TEXT("OVF", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -38.4);
+//   %wire_28 @TEXT("OVF", size=1, halign="middle", valign="middle") => @PLACE(179.2, -32);
+//   %p30 = (182.4, -24);
+//   %wire_30 = &"BUSY" @WIRE(mode="straight") {%port_12:p %p30};
+//   %p31 = (148.5, -33.6);
+//   %wire_31 = &"BUSY" @WIRE(mode="straight") {#"XIO":38 %p31};
+//   %wire_31 @TEXT("BUSY", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -33.6);
+//   %wire_30 @TEXT("BUSY", size=1, halign="middle", valign="middle") => @PLACE(179.2, -24);
+//   %p32 = (182.4, -16);
+//   %wire_32 = &"VH" @WIRE(mode="straight") {%port_11:p %p32};
+//   %p33 = (148.5, -48);
+//   %wire_33 = &"VH" @WIRE(mode="straight") {#"XIO":41 %p33};
+//   %wire_33 @TEXT("VH", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -48);
+//   %wire_32 @TEXT("VH", size=1, halign="middle", valign="middle") => @PLACE(179.2, -16);
+//   %p34 = (182.4, -8);
+//   %wire_34 = &"VDAC" @WIRE(mode="straight") {%port_10:p %p34};
+//   %p35 = (145.6, -55.7);
+//   %wire_35 = &"VDAC" @WIRE(mode="straight") {%p35 #"XIO":42};
+//   %wire_35 @TEXT("VDAC", size=1.8, halign="middle", valign="baseline") => @PLACE(145.6, -54.2);
+//   %wire_34 @TEXT("VDAC", size=1, halign="middle", valign="middle") => @PLACE(179.2, -8);
+//   %p36 = (182.4, 0);
+//   %wire_36 = &"STEP" @WIRE(mode="straight") {%port_9:p %p36};
+//   %p37 = (148.5, -43.2);
+//   %wire_37 = &"STEP" @WIRE(mode="straight") {#"XIO":40 %p37};
+//   %wire_37 @TEXT("STEP", size=1.8, halign="middle", valign="baseline") => @PLACE(147, -43.2);
+//   %wire_36 @TEXT("STEP", size=1, halign="middle", valign="middle") => @PLACE(179.2, 0);
+//   %p38 = (-41.6, -64);
+//   %wire_38 = &"VREFN" @WIRE(mode="straight") {%port_8:p %p38};
+//   %p39 = (-2.9, -43.2);
+//   %wire_39 = &"VREFN" @WIRE(mode="straight") {%p39 #"XCORE":29};
+//   %wire_39 @TEXT("VREFN", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -43.2);
+//   %wire_38 @TEXT("VREFN", size=1, halign="middle", valign="middle") => @PLACE(-44.8, -64);
+//   %p40 = (-41.6, -56);
+//   %wire_40 = &"VREFP" @WIRE(mode="straight") {%port_7:p %p40};
+//   %p41 = (-2.9, -38.4);
+//   %wire_41 = &"VREFP" @WIRE(mode="straight") {%p41 #"XCORE":30};
+//   %wire_41 @TEXT("VREFP", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -38.4);
+//   %wire_40 @TEXT("VREFP", size=1, halign="middle", valign="middle") => @PLACE(-44.8, -56);
+//   %p42 = (-41.6, -48);
+//   %wire_42 = &"VCM" @WIRE(mode="straight") {%port_6:p %p42};
+//   %p43 = (-2.9, -33.6);
+//   %wire_43 = &"VCM" @WIRE(mode="straight") {%p43 #"XCORE":25};
+//   %p44 = (-2.9, -28.8);
+//   %wire_44 = &"VCM" @WIRE(mode="straight") {%p44 #"XCORE":26};
+//   %wire_44 @TEXT("VCM", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -28.8);
+//   %wire_43 @TEXT("VCM", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -33.6);
+//   %wire_42 @TEXT("VCM", size=1, halign="middle", valign="middle") => @PLACE(-44.8, -48);
+//   %p45 = (-41.6, -40);
+//   %wire_45 = &"VIP" @WIRE(mode="straight") {%port_5:p %p45};
+//   %p46 = (93.1, -24);
+//   %wire_46 = &"VIP" @WIRE(mode="straight") {%p46 #"XIO":18};
+//   %p47 = (0, -1.9);
+//   %wire_47 = &"VIP" @WIRE(mode="straight") {#"XCORE":27 %p47};
+//   %wire_47 @TEXT("VIP", size=1.8, halign="middle", valign="baseline") => @PLACE(0, -3.4);
+//   %wire_46 @TEXT("VIP", size=1.8, halign="middle", valign="baseline") => @PLACE(94.6, -24);
+//   %wire_45 @TEXT("VIP", size=1, halign="middle", valign="middle") => @PLACE(-44.8, -40);
+//   %p48 = (-41.6, -32);
+//   %wire_48 = &"VIN" @WIRE(mode="straight") {%port_4:p %p48};
+//   %p49 = (93.1, -28.8);
+//   %wire_49 = &"VIN" @WIRE(mode="straight") {%p49 #"XIO":19};
+//   %p50 = (0, 2.9);
+//   %wire_50 = &"VIN" @WIRE(mode="straight") {#"XCORE":28 %p50};
+//   %wire_50 @TEXT("VIN", size=1.8, halign="middle", valign="baseline") => @PLACE(0, 1.4);
+//   %wire_49 @TEXT("VIN", size=1.8, halign="middle", valign="baseline") => @PLACE(94.6, -28.8);
+//   %wire_48 @TEXT("VIN", size=1, halign="middle", valign="middle") => @PLACE(-44.8, -32);
+//   %p51 = (-41.6, -24);
+//   %wire_51 = &"TRACK" @WIRE(mode="straight") {%port_3:p %p51};
+//   %p52 = (96, 2.9);
+//   %wire_52 = &"TRACK" @WIRE(mode="straight") {#"XIO":1 %p52};
+//   %wire_52 @TEXT("TRACK", size=1.8, halign="middle", valign="baseline") => @PLACE(96, 1.4);
+//   %wire_51 @TEXT("TRACK", size=1, halign="middle", valign="middle") => @PLACE(-44.8, -24);
+//   %p53 = (-41.6, -16);
+//   %wire_53 = {&"KIN_3" &"KIN_2" &"KIN_1" &"KIN_0"} @WIRE(mode="straight") {%port_2:1 %p53};
+//   %p54 = (93.1, -4.8);
+//   %wire_54 = {&"KIN_3" &"KIN_2" &"KIN_1" &"KIN_0"} @WIRE(mode="straight") {%p54 #"XIO":2};
+//   %wire_54 @TEXT("KIN<3:0>", size=1.8, halign="middle", valign="baseline") => @PLACE(94.6, -4.8);
+//   %wire_53 @TEXT("KIN<3:0>", size=1, halign="middle", valign="middle") => @PLACE(-44.8, -16);
+//   %p55 = (-41.6, -8);
+//   %wire_55 = &"VDD" @WIRE(mode="straight") {%port_1:p %p55};
+//   %p56 = (93.1, -33.6);
+//   %wire_56 = &"VDD" @WIRE(mode="straight") {%p56 #"XIO":43};
+//   %p57 = (0, -60.5);
+//   %wire_57 = &"VDD" @WIRE(mode="straight") {%p57 #"XCORE":19};
+//   %p58 = (-2.9, -48);
+//   %wire_58 = &"VDD" @WIRE(mode="straight") {%p58 #"XCORE":1};
+//   %wire_58 @TEXT("VDD", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -48);
+//   %wire_57 @TEXT("VDD", size=1.8, halign="middle", valign="baseline") => @PLACE(0, -59);
+//   %wire_56 @TEXT("VDD", size=1.8, halign="middle", valign="baseline") => @PLACE(94.6, -33.6);
+//   %wire_55 @TEXT("VDD", size=1, halign="middle", valign="middle") => @PLACE(-44.8, -8);
+//   %p59 = (-41.6, 0);
+//   %wire_59 = &"VSS" @WIRE(mode="straight") {%port_0:p %p59};
+//   %p60 = (93.1, -38.4);
+//   %wire_60 = &"VSS" @WIRE(mode="straight") {%p60 #"XIO":44};
+//   %p61 = (0, -65.3);
+//   %wire_61 = &"VSS" @WIRE(mode="straight") {%p61 #"XCORE":20};
+//   %p62 = (-2.9, -52.8);
+//   %wire_62 = &"VSS" @WIRE(mode="straight") {%p62 #"XCORE":2};
+//   %wire_62 @TEXT("VSS", size=1.8, halign="middle", valign="baseline") => @PLACE(-1.4, -52.8);
+//   %wire_61 @TEXT("VSS", size=1.8, halign="middle", valign="baseline") => @PLACE(0, -63.8);
+//   %wire_60 @TEXT("VSS", size=1.8, halign="middle", valign="baseline") => @PLACE(94.6, -38.4);
+//   %wire_59 @TEXT("VSS", size=1, halign="middle", valign="middle") => @PLACE(-44.8, 0);
+//   (-48, 24) @TEXT("Real SAR: bootstrap + transistor sampling/reference switches + CDAC + comparator + asynchronous logic", size=2.7, halign="start", valign="baseline");
+//   (-48, -96) @TEXT("XIO generates clocks, decodes nonbinary RAW and retimes; it does NOT quantize the input.", size=2.7, halign="start", valign="baseline");
+//   (-48, -102.4) @TEXT("EOC comes from the actual SAR. Commit at TRACK fall +1.40ns; timeout raises OVF and suppresses DONE.", size=2.7, halign="start", valign="baseline");
+//   (-48, -108.8) @TEXT("Q9 weights D9..D0:216,140,72,38,20,12,6,4,2,1. FSdiff=2Vpp.", size=2.7, halign="start", valign="baseline")
+// }
+ends PIPE_SAR9_Real

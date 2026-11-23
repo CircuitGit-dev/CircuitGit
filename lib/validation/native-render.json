@@ -1,0 +1,1745 @@
+{
+  "schema": "circuitgit.native-validation.v1",
+  "renderer_wasm_sha256": "01fc0c1faf2a41774095792f8e3d8db0a2f1eaeb9b6663f45ad4fe1fe75a000b",
+  "checked_views": 96,
+  "source_comparison": true,
+  "auto_include": false,
+  "auto_layout": false,
+  "simulation_performed": false,
+  "native_export_fidelity": "partial",
+  "limitations": [
+    "Dynamic parameter/terminal labels were already omitted by the source exporter.",
+    "Omitted external transmission-gate implementation is an empty interface with six unplaced ports; it is not a runnable model.",
+    "Rendering and source-geometry equality do not establish electrical correctness, full OA fidelity or ADC performance."
+  ],
+  "views": [
+    {
+      "library": "pipetisar-real",
+      "cell": "TB_PIPE_RS9_N06",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 22,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 709,
+      "source_instance_definitions": 711,
+      "external_interface_stub": true,
+      "selected_hit_geometry_sha256": "c0d576b1f8689ab90c4634a4a5c59e760bc63189afbad85bbcdc81399035a11d",
+      "selected_svg_sha256": "3f6dca0c71dab65f00693d2ee99a98966235dbf31ac11c26e41e28ca1d01ad02",
+      "diagnostic_counts": {
+        "hint": 1341
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "L3_stage1_flash4_FS2",
+      "view": "schematic",
+      "level": "L3_stage1_flash4_FS2",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 7,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 160,
+      "source_instance_definitions": 162,
+      "external_interface_stub": true,
+      "selected_hit_geometry_sha256": "59d26e743c313bfc5f3960bec82908457c750384fa03fac7f113b57481100a02",
+      "selected_svg_sha256": "07c1b55d02eaab560bb202c9eb8aeeb17768d19706949f3cccd56d25cf4a9159",
+      "diagnostic_counts": {
+        "hint": 356
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "L4_stage1_flash4_encoder",
+      "view": "schematic",
+      "level": "L4_stage1_flash4_encoder",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 42,
+      "source_instance_definitions": 42,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "a2de15460983c826659bd67eeab595c3505c89c7d69d92c45a94983977cae20f",
+      "selected_svg_sha256": "d82711178cd5f253ddd7acc44d7f69c61115b494708c33b95db3d80ad8917c8b",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "L4_stage1_flash4_rdac_FS2",
+      "view": "schematic",
+      "level": "L4_stage1_flash4_rdac_FS2",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 16,
+      "source_instance_definitions": 16,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "7ae95f0bae8797848c10bedf075c71a0bb4407cb36d0de39bac4842f7422d012",
+      "selected_svg_sha256": "367de95e1b33599cc5b031008d9507919eeb023291e83dc5b6d3227b07ee3238",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "L4_stage1_flash_bootstrapper",
+      "view": "schematic",
+      "level": "L4_stage1_flash_bootstrapper",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 22,
+      "source_instance_definitions": 22,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "fd1d8ed6109dc56d899ae9b07bfca168f4e277de32c4e92fe7a85aeba61215ca",
+      "selected_svg_sha256": "ed0cb9f4796561e356313d2b83efe37513096edeff7e0fa61fdb4e67c632b290",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "L4_stage1_flash_clkbooster",
+      "view": "schematic",
+      "level": "L4_stage1_flash_clkbooster",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 12,
+      "source_instance_definitions": 12,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "a4daad8081769e9c4525242a35706e184a18e417d41774e5dbad9834a4e48776",
+      "selected_svg_sha256": "a4c6742edd592d5fd5583aa1cf1de37ffe45d9f4b1b9aa240862b6a8230971f7",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "L4_stage1_flash_comparator",
+      "view": "schematic",
+      "level": "L4_stage1_flash_comparator",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 39,
+      "source_instance_definitions": 41,
+      "external_interface_stub": true,
+      "selected_hit_geometry_sha256": "ef3d4667f646a51c2a78ef389c8bedc4d8d61be3dc523abb73857669b9316f7f",
+      "selected_svg_sha256": "fca9002e8d63eaba12db83e23460c8a9152b03e723a74db6f2cedfab6c13ba4f",
+      "diagnostic_counts": {
+        "hint": 58
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "PIPE_MDAC4_G8_SC",
+      "view": "schematic",
+      "level": "PIPE_MDAC4_G8_SC",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 4,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 21,
+      "source_instance_definitions": 21,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "413d3b4120278175fcb84dbc766f355a7563090aa4a1312212dbe934d329f178",
+      "selected_svg_sha256": "381f977b1791240c01ccbe449bb95d89499231c4972edc8065504d9349d1480c",
+      "diagnostic_counts": {
+        "hint": 179
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "PIPE_OTA_Diff_Ideal",
+      "view": "schematic",
+      "level": "PIPE_OTA_Diff_Ideal",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 7,
+      "source_instance_definitions": 7,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "9ed9ea7bb93fa98ce90590882444c137f7a9b412f298e52224e4ead22a47bc67",
+      "selected_svg_sha256": "1058db55e5b8454134f63892edaf5aff2a193a7e63f12e8d688e09eca485e19e",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "PIPE_SAR9_Real_N06",
+      "view": "schematic",
+      "level": "PIPE_SAR9_Real_N06",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 12,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 404,
+      "source_instance_definitions": 404,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "5f4b9ff18e7bafc3a022ae2b3ce9a54dfb28c2223f3a94f59b0391a1f09525b5",
+      "selected_svg_sha256": "453f5f86202725db8ee252d3989e655702458e26e98e9288fb6f4ac138063e3b",
+      "diagnostic_counts": {
+        "hint": 659
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "PIPE_TOP_F4_RS9_N06",
+      "view": "schematic",
+      "level": "PIPE_TOP_F4_RS9_N06",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 22,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 657,
+      "source_instance_definitions": 659,
+      "external_interface_stub": true,
+      "selected_hit_geometry_sha256": "66291dee5247352f61727aea0f69e3f05d9d732b1dcc604a80b71c5fc3a68a48",
+      "selected_svg_sha256": "f1081cf91bcc887523be23a850f98c099e54a8b2edfcbb254dc5f705a5347d14",
+      "diagnostic_counts": {
+        "hint": 1286
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L3_9bit_SAR_2",
+      "view": "schematic",
+      "level": "RS9_L3_9bit_SAR_2",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 11,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 402,
+      "source_instance_definitions": 402,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "3c1618a373978b1fb938700b4fce27012d40e1219be8db0786e908eaee3d1bde",
+      "selected_svg_sha256": "513e8ea65d585f801443827a0b42e8a9f2ad5a026c648e668a98b9da9aea34b8",
+      "diagnostic_counts": {
+        "hint": 581
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L5_9bit_Bootstrap",
+      "view": "schematic",
+      "level": "RS9_L5_9bit_Bootstrap",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 12,
+      "source_instance_definitions": 12,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "363397541b2d06b7bd02b5156f16691b4b97cfd085c39fbe2c280e26e9b2cb7a",
+      "selected_svg_sha256": "0c8e3496798df4f56530cf5a3cad0094c22e8c247528fdb7f1b18bc83afae2f5",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L5_9bit_Comparator_LN",
+      "view": "schematic",
+      "level": "RS9_L5_9bit_Comparator_LN",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 22,
+      "source_instance_definitions": 22,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "ff53ed66926c7c4c5e1d9fe41c7a0363d00b0d9ef9e751a500b7544869ddba50",
+      "selected_svg_sha256": "b70a8c951d763ed4c2c5fdb99a17da94f802e26bf6b411304400a3f8181dac50",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L5_9bit_RSW_CDAC",
+      "view": "schematic",
+      "level": "RS9_L5_9bit_RSW_CDAC",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 5,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 288,
+      "source_instance_definitions": 288,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "d24f5256b067d3682c4465981ed75f76edbfd667559f47644a157fab41b42119",
+      "selected_svg_sha256": "d376a7d7a6e7bc90273e6be541de5573aa9fc4f93b2d9e43a419dcea80842633",
+      "diagnostic_counts": {
+        "hint": 225
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L5_9bit_SAR_Logic_1",
+      "view": "schematic",
+      "level": "RS9_L5_9bit_SAR_Logic_1",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 4,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 72,
+      "source_instance_definitions": 72,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "fbf3a4837b9270b34de94861d0afd82cbea8495938cdeef9a2d81908a9a71134",
+      "selected_svg_sha256": "e5e28a1139bc32e5257315446e5ea5a3ea253c9699e6699f8dd8f76d0a67c918",
+      "diagnostic_counts": {
+        "hint": 169
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L6_9bit_REF_Logic",
+      "view": "schematic",
+      "level": "RS9_L6_9bit_REF_Logic",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 36,
+      "source_instance_definitions": 36,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "7cc626f91efefef6d81886b062bbbd49c8a95c8561470ef6c1aecd72e9882b0f",
+      "selected_svg_sha256": "b20c857e3fb22c213e1b2099fd0348ecc3f20ff80f8e7f8bd96642800d3f4cf8",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L6_9bit_RSW",
+      "view": "schematic",
+      "level": "RS9_L6_9bit_RSW",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 29,
+      "source_instance_definitions": 29,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "8f08cdae0957a306d289d7ecd19355aaf87c8443ff278b2d5e3be025f0e32c6b",
+      "selected_svg_sha256": "4341b24882c72b53f1d45336c6c817be387b7ad993e98196a7028b112374bfe6",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L6_SR_latch_1",
+      "view": "schematic",
+      "level": "RS9_L6_SR_latch_1",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 13,
+      "source_instance_definitions": 13,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "89b8118300d129d0c44d0f296aeef32deb71e778100e6c94c9da57522a49336e",
+      "selected_svg_sha256": "a66698f2b9462f101b1fef2d8d8b3ceb4b927dbc250cef6e1076235bfb646937",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L7_9bit_CDAC",
+      "view": "schematic",
+      "level": "RS9_L7_9bit_CDAC",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 257,
+      "source_instance_definitions": 257,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "4e8df87e2b55b476a29bc88efd3eb1de82e44aef2ec868c5fc38411a93e2d975",
+      "selected_svg_sha256": "aa3ddc9861fa3358f4b972f6cb4991b89b5ff34dd0c78faba5ef6cb092ffa001",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "RS9_L8_9bit_CDAC_UNIT",
+      "view": "schematic",
+      "level": "RS9_L8_9bit_CDAC_UNIT",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 1,
+      "source_instance_definitions": 1,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "8e65dbf97075d752d845c1fb8344c19b1d48c6be9465480ec0d2856197d4b612",
+      "selected_svg_sha256": "c7c16a672ccbf54b83f1a0036b0ddfc97ef1ec29ec4a3fd51ac9b95e15e6a354",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-real",
+      "cell": "Switch",
+      "view": "schematic",
+      "level": "Switch",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 2,
+      "source_instance_definitions": 2,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "044a794a9d13662dafe69f332e27294b2b9254fe9282ee468417f94b2e2ed88f",
+      "selected_svg_sha256": "88061fedc48366aa39f78218465e2d20805e0c2025ef042a5208a214a7d0204d",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "Amplifier_Main",
+      "view": "schematic",
+      "level": "Amplifier_Main",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 4,
+      "source_instance_definitions": 4,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "707a88fd3c86fffffb368e65168e195b29185154826143d886875f88adfcf430",
+      "selected_svg_sha256": "0889bc4e726193312bfb32677dc2d54b5514199e7c9862cca8affca62330bf91",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "Buffer_Main",
+      "view": "schematic",
+      "level": "Buffer_Main",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 2,
+      "source_instance_definitions": 2,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "41a568a3e0268adee48a81304db64d4f6304df7c4d465374edc117b2cde9f51b",
+      "selected_svg_sha256": "bacda06e8bd726e14791a9968d88b8ad05135b4bb05afeb615ab1ecf89e38487",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L3_stage1_flash",
+      "view": "schematic",
+      "level": "L3_stage1_flash",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 8,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 157,
+      "source_instance_definitions": 157,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "452744c437c317b91ac77a61340903dea9f12d5e8c0322042cf3c8998decc721",
+      "selected_svg_sha256": "5bd01baba4c464a98a3898254ce8562666ebcdac3a3b90d71d8cedd8e50a41c1",
+      "diagnostic_counts": {
+        "hint": 393
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L3_stage1_flash4",
+      "view": "schematic",
+      "level": "L3_stage1_flash4",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 7,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 176,
+      "source_instance_definitions": 176,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "16f72397ec5fe7e1ee086846405330acac7a2fac3d4e18688065b72d6b4d4c50",
+      "selected_svg_sha256": "c72ffb5a6bbf4c014eb79442a5cd636c549fe5c35830133e0e3a1349a74d1043",
+      "diagnostic_counts": {
+        "hint": 337
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L3_stage1_flash4_FS2",
+      "view": "schematic",
+      "level": "L3_stage1_flash4_FS2",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 7,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 160,
+      "source_instance_definitions": 160,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "59d26e743c313bfc5f3960bec82908457c750384fa03fac7f113b57481100a02",
+      "selected_svg_sha256": "07c1b55d02eaab560bb202c9eb8aeeb17768d19706949f3cccd56d25cf4a9159",
+      "diagnostic_counts": {
+        "hint": 355
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L4_stage1_flash4_encoder",
+      "view": "schematic",
+      "level": "L4_stage1_flash4_encoder",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 42,
+      "source_instance_definitions": 42,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "a2de15460983c826659bd67eeab595c3505c89c7d69d92c45a94983977cae20f",
+      "selected_svg_sha256": "d82711178cd5f253ddd7acc44d7f69c61115b494708c33b95db3d80ad8917c8b",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L4_stage1_flash4_rdac",
+      "view": "schematic",
+      "level": "L4_stage1_flash4_rdac",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 32,
+      "source_instance_definitions": 32,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "10d2d03bf7f496c944269fbf77b0a75375acbd5f27ded3d3de55c39076446857",
+      "selected_svg_sha256": "5b4cddadc1f1bc8acc1a54e2f7513b4a21075d8cf3ffa6ff0abd38bef4b8822d",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L4_stage1_flash4_rdac_FS2",
+      "view": "schematic",
+      "level": "L4_stage1_flash4_rdac_FS2",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 16,
+      "source_instance_definitions": 16,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "7ae95f0bae8797848c10bedf075c71a0bb4407cb36d0de39bac4842f7422d012",
+      "selected_svg_sha256": "367de95e1b33599cc5b031008d9507919eeb023291e83dc5b6d3227b07ee3238",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L4_stage1_flash_bootstrapper",
+      "view": "schematic",
+      "level": "L4_stage1_flash_bootstrapper",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 22,
+      "source_instance_definitions": 22,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "652d00b2986a9a4dbc5cc39af404b2ef2f518b8a85d8f45bc6fe9a75bd27772b",
+      "selected_svg_sha256": "ed0cb9f4796561e356313d2b83efe37513096edeff7e0fa61fdb4e67c632b290",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L4_stage1_flash_calibration",
+      "view": "schematic",
+      "level": "L4_stage1_flash_calibration",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 36,
+      "source_instance_definitions": 36,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "66b9767bfaaf919e4e3373aa529015a995dc25a37303a78cfeb1d8cfe2f92ad8",
+      "selected_svg_sha256": "06e73b0021cd93413bb55aeb8bf305e60eaedc68e1bce8714dec12eddf36efa7",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L4_stage1_flash_clkbooster",
+      "view": "schematic",
+      "level": "L4_stage1_flash_clkbooster",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 12,
+      "source_instance_definitions": 12,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "4a342d265fd512510934e1ebb12f6c0c3b9538b6b0bfe6dd5da1c11ea457e9ce",
+      "selected_svg_sha256": "a4c6742edd592d5fd5583aa1cf1de37ffe45d9f4b1b9aa240862b6a8230971f7",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L4_stage1_flash_comparator",
+      "view": "schematic",
+      "level": "L4_stage1_flash_comparator",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 39,
+      "source_instance_definitions": 39,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "6d2df08c87016e248c1feb30df21dd2e25ddb29e6babac1d54f57e56583364f9",
+      "selected_svg_sha256": "fca9002e8d63eaba12db83e23460c8a9152b03e723a74db6f2cedfab6c13ba4f",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L4_stage1_flash_rdac",
+      "view": "schematic",
+      "level": "L4_stage1_flash_rdac",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 32,
+      "source_instance_definitions": 32,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "a1efc48545aef030436dfcb6d7f9d9fcd97f7893991f8fc2bc1cae343c735a44",
+      "selected_svg_sha256": "61b2dcf3ed94c1f7867e070a7f4dc4b3aff50ca792406b8e465144bdc50daa99",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "L5_stage1_flash_cal_mux",
+      "view": "schematic",
+      "level": "L5_stage1_flash_cal_mux",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 28,
+      "source_instance_definitions": 28,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "0185c579111d0727ceed4da417556379de1beed16bbbc7c03d375b7c3fc2ecf8",
+      "selected_svg_sha256": "67c267fb4a07b8a709acaf4c786fe647b511f2329231231c753612a33a415cac",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "MDAC4_ARRAY_G8_N06",
+      "view": "schematic",
+      "level": "MDAC4_ARRAY_G8_N06",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 6,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 67,
+      "source_instance_definitions": 67,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "ce58284c12a74670af2d46b5add0928f3329e37ffdd9dbd8d6dcb2e384ab2825",
+      "selected_svg_sha256": "4df78722b2e9440197fe13f466c73f98f8065c580aef1b499196bfe15c40cccb",
+      "diagnostic_counts": {
+        "hint": 314
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "MDAC4_MOM_BIT_N06",
+      "view": "schematic",
+      "level": "MDAC4_MOM_BIT_N06",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 10,
+      "source_instance_definitions": 10,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "ba6ae5fa0f276baf4c4a68b91ee043a93ec591b8453727f9de7e15e63173db01",
+      "selected_svg_sha256": "ca9649e73989c9e515723f66a07b488a1832d7ec9753ac7524d4c477dc5dff65",
+      "diagnostic_counts": {
+        "hint": 125
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "MDAC4_REF_CTRL_N06",
+      "view": "schematic",
+      "level": "MDAC4_REF_CTRL_N06",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 20,
+      "source_instance_definitions": 20,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "8cbb28adf0c81e10f86077ac4719d418f21128bc624eb43a41815f4111d71c27",
+      "selected_svg_sha256": "1f690b60764c2b76c940b8571911e15c908fb5659e58fbc31b3a7a72513fa801",
+      "diagnostic_counts": {
+        "hint": 64
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_MDAC4_G8_SC",
+      "view": "schematic",
+      "level": "PIPE_MDAC4_G8_SC",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 4,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 21,
+      "source_instance_definitions": 21,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "86ee44f2cd4ccae7c5eaeb1c0fa5f4a685f75b54c1d156bd8fae64c680f32fca",
+      "selected_svg_sha256": "381f977b1791240c01ccbe449bb95d89499231c4972edc8065504d9349d1480c",
+      "diagnostic_counts": {
+        "hint": 179
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_OTA_Diff_Ideal",
+      "view": "schematic",
+      "level": "PIPE_OTA_Diff_Ideal",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 7,
+      "source_instance_definitions": 7,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "db70cf5da5d66ed16c16faa9898f8619d66a0a55afff0a3dc3cff1f57f429a44",
+      "selected_svg_sha256": "72438da36e9824172b2efcda95590087fe9b3bc01802358ca1b25736cb0a9a48",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_SAR9_Real",
+      "view": "schematic",
+      "level": "PIPE_SAR9_Real",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 12,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 404,
+      "source_instance_definitions": 404,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "080fc1ef00f846b4e74c4b644c0ebcc5309a00c1c82be2692c26d8e86414a66e",
+      "selected_svg_sha256": "8bbbeae86efd5179920d73cecee5cb02d075b59fc5d71b175743c49dc2b8323c",
+      "diagnostic_counts": {
+        "hint": 664
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_SAR9_Real_N06",
+      "view": "schematic",
+      "level": "PIPE_SAR9_Real_N06",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 12,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 404,
+      "source_instance_definitions": 404,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "6315e601c11eee1e438c70a47d681f775ab1fcd1b07f4dc175faf05909845b49",
+      "selected_svg_sha256": "453f5f86202725db8ee252d3989e655702458e26e98e9288fb6f4ac138063e3b",
+      "diagnostic_counts": {
+        "hint": 659
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_TIMING_1G",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "selected_svg_sha256": "8abf358a940c7ada60cf09bee1bbb5f314c08b7b4bb1d7ff5293c6dea9ac44a0",
+      "diagnostic_counts": {
+        "hint": 56
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_TOP_CA4_RS9_N06",
+      "view": "schematic",
+      "level": "PIPE_TOP_CA4_RS9_N06",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 24,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 702,
+      "source_instance_definitions": 702,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "1d015a151d26f97885770b1a3a6fdd4d34df490c8e0f2f002c7d9e0f8cf66912",
+      "selected_svg_sha256": "d091c23e5281ad2bab6246248e9a8457fdb9e0ee1d7c6e1e58d2a67747e09c33",
+      "diagnostic_counts": {
+        "hint": 1417
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_TOP_F4_RS9_N06",
+      "view": "schematic",
+      "level": "PIPE_TOP_F4_RS9_N06",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 22,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 657,
+      "source_instance_definitions": 657,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "90dde675b6a2ce99e89126488895c43018045b220352ee8980ca05e37b68b75e",
+      "selected_svg_sha256": "f1081cf91bcc887523be23a850f98c099e54a8b2edfcbb254dc5f705a5347d14",
+      "diagnostic_counts": {
+        "hint": 1285
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_TOP_F4_TI2_RS9",
+      "view": "schematic",
+      "level": "PIPE_TOP_F4_TI2_RS9",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 22,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 657,
+      "source_instance_definitions": 657,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "1f40fa9cdb71981a94ce9dd14d3151dea0375e61a13b32d509b076242a5ae44a",
+      "selected_svg_sha256": "cd71f096bca63317264fb6e196ebb5925ee0275b7841a7ad67417b8f8fbac846",
+      "diagnostic_counts": {
+        "hint": 1279
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_TOP_F4_TI2_S9",
+      "view": "schematic",
+      "level": "PIPE_TOP_F4_TI2_S9",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 11,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 253,
+      "source_instance_definitions": 253,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "bb0e690c69027c09356b32407ae919a77fc92afd7a500edbe0a93aea8070323f",
+      "selected_svg_sha256": "a99d24e41198bb7121e660c7221b6c092cebdb2c1053e680fa45df65cd449da2",
+      "diagnostic_counts": {
+        "hint": 624
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L3_9bit_SAR_2",
+      "view": "schematic",
+      "level": "RS9_L3_9bit_SAR_2",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 11,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 402,
+      "source_instance_definitions": 402,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "7406ba588ec16b39e7d7c6b85cc0981c54ee755ad7ded9aa529229b6718d3fb2",
+      "selected_svg_sha256": "513e8ea65d585f801443827a0b42e8a9f2ad5a026c648e668a98b9da9aea34b8",
+      "diagnostic_counts": {
+        "hint": 581
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L5_9bit_Bootstrap",
+      "view": "schematic",
+      "level": "RS9_L5_9bit_Bootstrap",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 12,
+      "source_instance_definitions": 12,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "6649258299b0c60e3a0de6ad797ee0710b80ca5a595eed3addfbc95c529f5f04",
+      "selected_svg_sha256": "0c8e3496798df4f56530cf5a3cad0094c22e8c247528fdb7f1b18bc83afae2f5",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L5_9bit_Comparator_LN",
+      "view": "schematic",
+      "level": "RS9_L5_9bit_Comparator_LN",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 22,
+      "source_instance_definitions": 22,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "bc0d15f319e0db7d1ba5efe44e267b85804299337049bf4d25b127ae46154bb3",
+      "selected_svg_sha256": "b70a8c951d763ed4c2c5fdb99a17da94f802e26bf6b411304400a3f8181dac50",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L5_9bit_RSW_CDAC",
+      "view": "schematic",
+      "level": "RS9_L5_9bit_RSW_CDAC",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 5,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 288,
+      "source_instance_definitions": 288,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "d24f5256b067d3682c4465981ed75f76edbfd667559f47644a157fab41b42119",
+      "selected_svg_sha256": "d376a7d7a6e7bc90273e6be541de5573aa9fc4f93b2d9e43a419dcea80842633",
+      "diagnostic_counts": {
+        "hint": 225
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L5_9bit_SAR_Logic_1",
+      "view": "schematic",
+      "level": "RS9_L5_9bit_SAR_Logic_1",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 4,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 72,
+      "source_instance_definitions": 72,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "ddd4f5e306e0a989327357b87d56932667dd8614c3d13d9ca24e4fa9a748f421",
+      "selected_svg_sha256": "e5e28a1139bc32e5257315446e5ea5a3ea253c9699e6699f8dd8f76d0a67c918",
+      "diagnostic_counts": {
+        "hint": 169
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L6_9bit_REF_Logic",
+      "view": "schematic",
+      "level": "RS9_L6_9bit_REF_Logic",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 36,
+      "source_instance_definitions": 36,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "7cc626f91efefef6d81886b062bbbd49c8a95c8561470ef6c1aecd72e9882b0f",
+      "selected_svg_sha256": "b20c857e3fb22c213e1b2099fd0348ecc3f20ff80f8e7f8bd96642800d3f4cf8",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L6_9bit_RSW",
+      "view": "schematic",
+      "level": "RS9_L6_9bit_RSW",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 29,
+      "source_instance_definitions": 29,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "78a5f876dd762d29a7a034df703efba641e45ea6b2993df03549d4ec24ff9a9a",
+      "selected_svg_sha256": "9abd8857cdddb61cd1a0bf078096216293b33afd8b6be0872115029453819091",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L6_SR_latch_1",
+      "view": "schematic",
+      "level": "RS9_L6_SR_latch_1",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 13,
+      "source_instance_definitions": 13,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "a9fb7129404f9eac7a82b5d52589e8f31cc4da9bf18749afac463481e63c0a41",
+      "selected_svg_sha256": "a66698f2b9462f101b1fef2d8d8b3ceb4b927dbc250cef6e1076235bfb646937",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L7_9bit_CDAC",
+      "view": "schematic",
+      "level": "RS9_L7_9bit_CDAC",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 257,
+      "source_instance_definitions": 257,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "b2d2e6e510bda7607fdb24b5a3f3a89e8d13dec6e15f4bf97e82906b2f88eeb9",
+      "selected_svg_sha256": "aa3ddc9861fa3358f4b972f6cb4991b89b5ff34dd0c78faba5ef6cb092ffa001",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_L8_9bit_CDAC_UNIT",
+      "view": "schematic",
+      "level": "RS9_L8_9bit_CDAC_UNIT",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 1,
+      "source_instance_definitions": 1,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "8e65dbf97075d752d845c1fb8344c19b1d48c6be9465480ec0d2856197d4b612",
+      "selected_svg_sha256": "c7c16a672ccbf54b83f1a0036b0ddfc97ef1ec29ec4a3fd51ac9b95e15e6a354",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "Switch",
+      "view": "schematic",
+      "level": "Switch",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 2,
+      "source_instance_definitions": 2,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "044a794a9d13662dafe69f332e27294b2b9254fe9282ee468417f94b2e2ed88f",
+      "selected_svg_sha256": "88061fedc48366aa39f78218465e2d20805e0c2025ef042a5208a214a7d0204d",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_Flash4_Codes_1G",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 7,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 238,
+      "source_instance_definitions": 238,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "eddaffa31c3206b4e126304592886bdc1288e0563d94fd096b93fa59b16a85a9",
+      "selected_svg_sha256": "febc0586d8fe388fcacdd0d736395e295eee04821dc5ee14f11ef00c2aa5952b",
+      "diagnostic_counts": {
+        "hint": 392
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_Flash4_Sine_1G",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 7,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 238,
+      "source_instance_definitions": 238,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "773f1c3e29c5b8b5597e3ee7060c5462fe6195db01ffee499e3103fb92ddf546",
+      "selected_svg_sha256": "4929b95d88b07a156634d6c0072910225f75939dc49176fa4e41db9669d5cf3a",
+      "diagnostic_counts": {
+        "hint": 392
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_FlashComp_1G",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 61,
+      "source_instance_definitions": 61,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "73a0db089ba67a0badfa79d3d081346ad2b6d6893eba630694159b6fce843234",
+      "selected_svg_sha256": "b29ae8cb2a510fb59996517a8b6bc5fe3c2e576efde393905b024f17dd635df3",
+      "diagnostic_counts": {
+        "hint": 112
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_FlashComp_NoiseReplay",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 61,
+      "source_instance_definitions": 61,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "d7c1a35ec9f42e0d70ce7e4f36aca307f9addfbc5c023d51ec86530f942d4c40",
+      "selected_svg_sha256": "16b08026cb02e17ffa4a10f70898c03130203575a9bcd86a9268c877d4a6baaf",
+      "diagnostic_counts": {
+        "hint": 112
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_FlashComp_SpeedReplay",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 61,
+      "source_instance_definitions": 61,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "d7c1a35ec9f42e0d70ce7e4f36aca307f9addfbc5c023d51ec86530f942d4c40",
+      "selected_svg_sha256": "16b08026cb02e17ffa4a10f70898c03130203575a9bcd86a9268c877d4a6baaf",
+      "diagnostic_counts": {
+        "hint": 112
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_Flash_Sine_1G",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 8,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 200,
+      "source_instance_definitions": 200,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "0846ed98fbc1869771cdc583cfc3e668131cb83e7b8b1251a07fc28f478fc4a5",
+      "selected_svg_sha256": "4ed71c089b8683c89de72964307b2183f91c560c0ae75c675b1fd7d548dfe525",
+      "diagnostic_counts": {
+        "hint": 448
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_MDAC_CA4_N06",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 6,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 81,
+      "source_instance_definitions": 81,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "566afbc044c7b503e188a2c9e38f94d575fa484474e01ad709d4cfc8372390b6",
+      "selected_svg_sha256": "1405dc5b29b113528d8dd82d1cbacb2620e2e3c93c2704fdd95738d5790bc075",
+      "diagnostic_counts": {
+        "hint": 378
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_PIPE_CA4_RS9_N06",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 24,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 754,
+      "source_instance_definitions": 754,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "c0e8a1eeb2b8b054dd4933798b27f1f7c62c089869677642650c6327e16a42cb",
+      "selected_svg_sha256": "67e4b25c69c501251b045ac1d848a82793a5ba6eb10a24eaaab8af4ff5b2a132",
+      "diagnostic_counts": {
+        "hint": 1472
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_PIPE_RS9_1G",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 22,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 709,
+      "source_instance_definitions": 709,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "10a24a7cd34ad17239f02d24aecc31afdb1abcdbd7c759702198de932fd4478d",
+      "selected_svg_sha256": "5029d31d10390c535040e87ee7be919568cd68c2d8fbe990f05e2e87465a66f8",
+      "diagnostic_counts": {
+        "hint": 1334
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_PIPE_RS9_N06",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 22,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 709,
+      "source_instance_definitions": 709,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "c0d576b1f8689ab90c4634a4a5c59e760bc63189afbad85bbcdc81399035a11d",
+      "selected_svg_sha256": "3f6dca0c71dab65f00693d2ee99a98966235dbf31ac11c26e41e28ca1d01ad02",
+      "diagnostic_counts": {
+        "hint": 1340
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_PIPE_TOP_1G",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 11,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 305,
+      "source_instance_definitions": 305,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "6aa4af5caf8a5cb8ad3c2280f03eeeb6dbd609f915e1399fd70951889bcff800",
+      "selected_svg_sha256": "505e66c252d7ea294f1c5df2020a2f5bad55de2d400524eae846697505700cae",
+      "diagnostic_counts": {
+        "hint": 679
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_RS9_FFT",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 11,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 414,
+      "source_instance_definitions": 414,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "40b693225a8d424c36af447e84408d72d8daebc3b6683b916e7034679796f985",
+      "selected_svg_sha256": "95284b8cc9596a8a0d91aea008db67217d37e5f299731aa6df0273dfc9fc69d6",
+      "diagnostic_counts": {
+        "hint": 636
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "TB_RS9_UNIT",
+      "view": "schematic",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 11,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 414,
+      "source_instance_definitions": 414,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "4021e47fb3dd31b6d0b941af84b07dfa6f3d6f651b7c832ccae567099700f512",
+      "selected_svg_sha256": "de24bda35991857822c53221d5daeac39d26a8e65db3447416e897973b8dfd79",
+      "diagnostic_counts": {
+        "hint": 636
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "tb_Amplifier_Main",
+      "view": "schematic",
+      "level": "tb_Amplifier_Main",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 9,
+      "source_instance_definitions": 9,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "c7a3542bb47a2301b346f9ea016aa57fbdbc58c4c88708aa33d10dca3e60e9a0",
+      "selected_svg_sha256": "3179399fb71d0eafbf676b4ba73cf8d10b8dc448658d671fae27a476239e9a68",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "tb_Buffer_Main",
+      "view": "schematic",
+      "level": "tb_Buffer_Main",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 8,
+      "source_instance_definitions": 8,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "22309e9f088eebba3a989d68454c8d8452abe1c8f88c9ab48a87c3208177d80e",
+      "selected_svg_sha256": "a9a3d3ccdf65ff8291b868a01aef32b5fd29cc2744ecabb274fe5eac7c961e1a",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "tb_Pipeline_Ideal_Model",
+      "view": "schematic",
+      "level": "tb_Pipeline_Ideal_Model",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 43,
+      "source_instance_definitions": 43,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "2271330d69e3b7bdaf0f907fb0683a287d94fbc5f096974d0b2f9171119801cb",
+      "selected_svg_sha256": "dc4e0076957f3256421405444bc022d0aacdfce00a8e8788ff9ef722a297a6f8",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "tb_Pipeline_Ideal_Model_DiffSamp",
+      "view": "schematic",
+      "level": "tb_Pipeline_Ideal_Model_DiffSamp",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 48,
+      "source_instance_definitions": 48,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "67eb7c6f41888ede36ee17cbca8f6684af1ca88e0daa01bf4fa7174e61f4563e",
+      "selected_svg_sha256": "dd1ae3034eb18180e222d6829e5f2d9a8b309b4fa2272421d2f2acfbc0b29231",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_Clock250_250_500",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "5e59213d6787102ffc90648905ad6c7a1a8bc9f8a3bc86f391a20ea97e1fb051",
+      "selected_svg_sha256": "dab22c60668c82644cb092900efa5363a132737cda5d1437021c2b43aadcc211",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_IdealSwitch",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "46202f6be80ccfcd4dbcec08a05ddd865b04ea17f88606ebafce77e6449d6c53",
+      "selected_svg_sha256": "ea82b5d8bcbda356c33f33a0db5ef904312fe617bf4ad93d834928a316c30267",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_Merge12",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "e428b8e964ea58986983466a21584e5c24e8de071f3c72a3db227eddddcd2604",
+      "selected_svg_sha256": "c032b9f14dfea302ec54395bba7a8b1634b2663e86a8ccd793c13f3394df9233",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_RailClamp",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "5f7dd352c3bc7adabd4b02e0788aa4e9c7acb0a8ab71380b4e67c7ce8b39e81d",
+      "selected_svg_sha256": "a6feb9a84221fd1cd1c5015b8210a02363b0c35fa90588601654850450ab07c2",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_SAR9_Timed",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "70016586acc2781ed2da7da9811adab618c81ecc9f818b40e1c5bd174823a7a4",
+      "selected_svg_sha256": "f2e3d67c7536c22444e52aca285c47254a1873639b8251a4dc4c03f080a73b80",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_ThermDAC4",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "557932f956f4e19da9b4df7cec6a4e5fc946c0965bf3d691078133b809b6ebaa",
+      "selected_svg_sha256": "fc294f42232685f95b523b594c66825607a4bb9fe8ecc3771e93b0bfbbb0bcc0",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "PIPE_ThermDAC4_FS2",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "90c2ded71b4d2ca089ec893a86392c17da61daf1b7dba424f2b35ec1a875baf8",
+      "selected_svg_sha256": "d378008f1df9f46e34e607f72c523201ece8c687846392217f0e38a142d1697b",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_IO_N06",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "31e3fdfa5720eb28f954b2c86ce06ef5bc2f62c4177db6ad1bfa458ef35b5b78",
+      "selected_svg_sha256": "d2f20b1cfd4a0a7a0c8e22c71eac07f1c64815a93b61049d4ecac1568294e247",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_Interface",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "2efaa21f4b0a5e487c9955f4be4f0132a5968adb65be849c91c1b8054db8c443",
+      "selected_svg_sha256": "472759586f3eeb326c19393f6ef6fc90aa78d4c75db22487cc6ddc58a9737839",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipetisar-research",
+      "cell": "RS9_Merge_N06",
+      "view": "symbol",
+      "level": "@top",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 1,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 0,
+      "source_instance_definitions": 0,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "77d2067aecb1b929bfdd2f1e3f86c0a3373936794f3a12a4b13d3b87894f4988",
+      "selected_svg_sha256": "f8e2606287f60b3b8457b3d979366cf232edd7652d29cc095775cb163ba11cb2",
+      "diagnostic_counts": {
+        "hint": 5
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L3_9bit_SAR_2",
+      "view": "schematic",
+      "level": "L3_9bit_SAR_2",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 9,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 144,
+      "source_instance_definitions": 144,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "f8ddc581ce17f36a28693a0cf08a6be7c45519c466c60694e1d747b818d730e0",
+      "selected_svg_sha256": "fa2a36eba714abb166629a338b2c0e749fd624ac761f00736b144e808b530090",
+      "diagnostic_counts": {
+        "hint": 449
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L5_9bit_Bootstrap",
+      "view": "schematic",
+      "level": "L5_9bit_Bootstrap",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 12,
+      "source_instance_definitions": 12,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "378532cfe7360ccac270c580a42471e4e3b5f49b25ce5dc232457a495236d9f7",
+      "selected_svg_sha256": "0c8e3496798df4f56530cf5a3cad0094c22e8c247528fdb7f1b18bc83afae2f5",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L5_9bit_Comparator_LN",
+      "view": "schematic",
+      "level": "L5_9bit_Comparator_LN",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 22,
+      "source_instance_definitions": 22,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "7b408c7676161d9b750e4509817f308c9fcc7f0d6b49c7789186e032482976c2",
+      "selected_svg_sha256": "b70a8c951d763ed4c2c5fdb99a17da94f802e26bf6b411304400a3f8181dac50",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L5_9bit_RSW_CDAC",
+      "view": "schematic",
+      "level": "L5_9bit_RSW_CDAC",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 30,
+      "source_instance_definitions": 30,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "a16df89027b8aa01dbc943edefca0a28510bc9590c6d0bd1dde8a1cc817f1c4c",
+      "selected_svg_sha256": "12040ada99490e7df46bc07ddb12833ada6e17f51c2f41cbda4c779c8465737e",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L5_9bit_SAR_Logic_1",
+      "view": "schematic",
+      "level": "L5_9bit_SAR_Logic_1",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 4,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 72,
+      "source_instance_definitions": 72,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "888920c3f78d47f19931b37e76b194cc46ab87b1a5304826fa57ebe8d5a4c522",
+      "selected_svg_sha256": "3f996ec6a228861d97a176d04779fad1cb0b72e672b31d29687f16e91b288f9b",
+      "diagnostic_counts": {
+        "hint": 169
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L6_9bit_REF_Logic",
+      "view": "schematic",
+      "level": "L6_9bit_REF_Logic",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 36,
+      "source_instance_definitions": 36,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "7cc626f91efefef6d81886b062bbbd49c8a95c8561470ef6c1aecd72e9882b0f",
+      "selected_svg_sha256": "b20c857e3fb22c213e1b2099fd0348ecc3f20ff80f8e7f8bd96642800d3f4cf8",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L6_9bit_RSW",
+      "view": "schematic",
+      "level": "L6_9bit_RSW",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 29,
+      "source_instance_definitions": 29,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "a01c123a0ead2396093070ad5f5f651f1db8dd020f1fc66a62813a0c9a0e4171",
+      "selected_svg_sha256": "9abd8857cdddb61cd1a0bf078096216293b33afd8b6be0872115029453819091",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L6_SR_latch_1",
+      "view": "schematic",
+      "level": "L6_SR_latch_1",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 13,
+      "source_instance_definitions": 13,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "d0cdcd7bc7abee56d9b39450f88ebf21f85335924a376b9f2c7991c59188b009",
+      "selected_svg_sha256": "a66698f2b9462f101b1fef2d8d8b3ceb4b927dbc250cef6e1076235bfb646937",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L7_9bit_CDAC",
+      "view": "schematic",
+      "level": "L7_9bit_CDAC",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 3,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 257,
+      "source_instance_definitions": 257,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "554df1b49a20378f72221a1590c37e73c0b22365da9683029e0ea2439ac31cad",
+      "selected_svg_sha256": "576dfb38fa02a80e0a5b47bffcce999a2f6449d0a295b05c3a10268bd5738d4f",
+      "diagnostic_counts": {
+        "hint": 113
+      }
+    },
+    {
+      "library": "pipesar-original",
+      "cell": "L8_9bit_CDAC_UNIT",
+      "view": "schematic",
+      "level": "L8_9bit_CDAC_UNIT",
+      "render": "passed",
+      "geometry_matches_source": true,
+      "retained_levels": 2,
+      "unplaced_in_retained_levels": 0,
+      "viewer_instance_definitions": 1,
+      "source_instance_definitions": 1,
+      "external_interface_stub": false,
+      "selected_hit_geometry_sha256": "8e65dbf97075d752d845c1fb8344c19b1d48c6be9465480ec0d2856197d4b612",
+      "selected_svg_sha256": "c7c16a672ccbf54b83f1a0036b0ddfc97ef1ec29ec4a3fd51ac9b95e15e6a354",
+      "diagnostic_counts": {
+        "hint": 57
+      }
+    }
+  ]
+}

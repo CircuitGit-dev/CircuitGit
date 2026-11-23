@@ -14,7 +14,7 @@ from pathlib import PurePosixPath
 from urllib.parse import urlencode
 
 from runner import locked
-from workspace import Conflict
+from workspace import Conflict, project_path, project_metadata
 
 MANIFEST_BYTES = 1024 * 1024
 FILE_BYTES = 2 * 1024 * 1024
@@ -170,10 +170,17 @@ class Geometry:
         if not path:
             raise FileNotFoundError("native geometry manifest is not registered")
         relative(path)
-        project_root = str(PurePosixPath(p["source_path"]).parent)
+        source = project_path(p["source_path"])
+        project_metadata(p)
+        if source.startswith("lib/"):
+            project_root = "/".join(source.split("/")[:3])
+            folders = ("schematic", "native", "geometry")
+        else:
+            project_root = str(PurePosixPath(source).parent)
+            folders = ("native", "geometry")
         if (not path.endswith(".json") or
-                not any(path.startswith(project_root + "/" + folder + "/") for folder in ("native", "geometry"))):
-            raise ValueError("registered manifest must be under this project's native/ or geometry/ directory")
+                not any(path.startswith(project_root + "/" + folder + "/") for folder in folders)):
+            raise ValueError("registered manifest must be under this project's native/geometry or library cell schematic directory")
         return p, path
 
     def snapshot(self, project_id, commit, manifest_hash=None):

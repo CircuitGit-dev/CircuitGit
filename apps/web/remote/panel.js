@@ -5,7 +5,7 @@ import {mount as mountAI} from '../studio/ai/index.js';
 const REPO='https://github.com/joshuazeng713/CircuitGit';
 const DOCS=REPO+'/blob/main/docs/remote-node.md';
 
-/** Remote chat owns its context; the RC canvas never supplies an engineering identity. */
+/** Remote chat owns its context; the public preview never supplies an engineering identity. */
 export function mountRemoteNode(host) {
   const parent=host.slots.ai,doc=parent.element.ownerDocument,win=doc.defaultView;
   const css=doc.createElement('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url);doc.head.append(css);
@@ -33,23 +33,29 @@ export function mountRemoteNode(host) {
     <div class="cg-node-identity"><strong></strong><button type="button" data-action="disconnect">断开</button></div>
     <div class="cg-node-account" hidden><span></span><button type="button" data-action="login" hidden>在官方页面登录 ChatGPT</button><button type="button" data-action="account-refresh">重新检查</button></div>
     <div class="cg-node-project"><select aria-label="运行节点项目"><option value="">选择工程</option></select><button type="button" data-action="open-project">打开对话</button></div>
-    <p class="cg-context-label">AI 将使用所选工程。当前画布仍是 RC 演示。</p>
+    <p class="cg-context-label">画布是公开电路预览，AI 使用此处选定的节点工程。</p>
   </div>
   <p class="cg-node-status" role="status" aria-live="polite"></p><div class="cg-node-chat"></div>`;
   parent.element.replaceChildren(root);
   const $=s=>root.querySelector(s),welcome=$('.cg-node-welcome'),form=$('form'),connected=$('.cg-node-connected'),status=$('.cg-node-status'),chat=$('.cg-node-chat'),projects=$('select');
   const localButton=$('[data-action=local]'),openButton=$('[data-action=open-project]'),loginButton=$('[data-action=login]');
-  let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true;
+  const initialSettings=doc.createElement('div'),initialToggle=doc.createElement('button'),initialHint=doc.createElement('span'),settingsHome=doc.createElement('div'),connectionSettings=doc.createElement('details'),connectionSummary=doc.createElement('summary');
+  initialSettings.className='cg-node-initial-settings';initialToggle.type='button';initialToggle.textContent='⚙';initialToggle.setAttribute('aria-label','AI连接设置');initialToggle.setAttribute('aria-expanded','false');initialHint.textContent='在设置中连接你的 Codex';initialSettings.append(initialToggle,initialHint);
+  settingsHome.className='cg-node-settings-home';settingsHome.hidden=true;connectionSettings.className='cg-node-connection-settings';connectionSummary.textContent='连接与工程';connectionSettings.append(connectionSummary,welcome,connected,status);settingsHome.append(connectionSettings);root.insertBefore(initialSettings,chat);root.insertBefore(settingsHome,chat);
+  function showConnectionSettings(){settingsHome.hidden=false;connectionSettings.open=true;initialToggle.setAttribute('aria-expanded','true');}
+  initialToggle.onclick=()=>{settingsHome.hidden=!settingsHome.hidden;initialToggle.setAttribute('aria-expanded',String(!settingsHome.hidden));if(!settingsHome.hidden)connectionSettings.open=true;};
+  let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true,ownerWindow=null,ownerTimer=null,ownerResolve=null;
   const listeners=new Set();
   const contextAdapter={getContext:()=>context&&structuredClone(context),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
     async readSelection(){throw Error('示例画布未绑定到本机工程，请让 AI 读取当前工程源码。');}};
   function message(text,error=false){status.textContent=text;status.dataset.error=String(error);}
   function setBusy(value){busy=value;localButton.disabled=value;form.querySelector('button').disabled=value;openButton.disabled=value||!!context||!accountReady;}
-  function drop(){++epoch;pairing?.cancel();pairing=null;clearTimeout(loginTimer);client?.close();client=null;ai?.destroy();ai=null;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
+  function drop(){++epoch;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;client?.close();client=null;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
   function disconnect(){
     drop();setBusy(false);welcome.hidden=false;connected.hidden=true;$('.cg-node-account').hidden=true;$('.cg-node-project').hidden=false;
     projects.disabled=false;projects.title='';openButton.disabled=false;openButton.textContent='打开对话';
     projects.replaceChildren(new Option('选择工程',''));form.elements.accessCode.value='';
+    showConnectionSettings();
     message('已断开。失去心跳的 AI 回合会由助手暂停；已提交的仿真不会因此取消。未自动重发或批准。');
   }
   $('[data-action=disconnect]').onclick=disconnect;
@@ -141,13 +147,25 @@ export function mountRemoteNode(host) {
       context={...next,revision:(context?.revision||0)+1,mode:'live'};
       for(const listener of listeners)listener(structuredClone(context));
       const slot={...parent,element:chat,setVisible:value=>parent.setVisible(value),isVisible:()=>parent.isVisible(),setBadge:value=>parent.setBadge(value),toggle:()=>parent.toggle()};
-      ai=mountAI({...host,context:contextAdapter,slots:{...host.slots,ai:slot},gateway:{request:(path,options)=>client?client.request(path,options):Promise.reject(Error('连接已断开。'))}});
-      $('.cg-context-label').textContent=`AI 工程：${id} · ${next.project.sourceCommit.slice(0,8)}。当前原理图与波形仍是公开示例。`;
+      ai=mountAI({...host,context:contextAdapter,aiSettings:{element:connectionSettings,configureDevelopment},slots:{...host.slots,ai:slot},gateway:{request:(path,options)=>client?client.request(path,options):Promise.reject(Error('连接已断开。'))}});
+      $('.cg-context-label').textContent=`AI 工程：${id} · ${next.project.sourceCommit.slice(0,8)}。画布是公开电路预览，与此节点工程独立。`;
       projects.disabled=true;openButton.textContent='工程已绑定';projects.title='更换工程或刷新源码版本，请先断开再连接。';
-      $('.cg-node-project').hidden=true;message('');
+      $('.cg-node-project').hidden=true;initialSettings.hidden=true;settingsHome.hidden=true;connectionSettings.open=false;message('');
     }catch(error){if(generation===epoch&&!destroyed){context=null;message(error.message,true);}}
     finally{if(generation===epoch&&!destroyed){setBusy(false);openButton.disabled=!!context||!accountReady;}}
   };
-  const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 Codex',run:()=>{parent.setVisible(true);(connected.hidden?localButton:openButton).focus();}});
+  async function configureDevelopment(){
+    if(!client||destroyed)throw Error('请先连接本机助手。');
+    if(ownerWindow&&!ownerWindow.closed){ownerWindow.focus();return;}
+    const popup=win.open('about:blank','_blank');if(!popup)throw Error('请允许弹出本机设置窗口。');popup.opener=null;
+    const generation=epoch;ownerWindow=popup;
+    try{const receipt=await client.request('/ai/development/settings-request',{method:'POST',body:{}}),url=new URL(receipt.url),base=new URL(client.base);
+      if(generation!==epoch||destroyed){popup.close();return;}
+      if(url.origin!==base.origin||url.protocol!=='http:'||url.hostname!=='127.0.0.1'||url.username||url.password||url.hash||url.pathname!=='/development/settings'||url.searchParams.getAll('request').length!==1||!url.searchParams.get('request')||[...url.searchParams.keys()].some(key=>key!=='request'))throw Error('本机设置地址不匹配。');
+      popup.location.replace(url.href);message('请在本机设置窗口选择工作目录和访问权限；关闭窗口后自动重新读取。');
+      await new Promise(resolve=>{ownerResolve=resolve;const deadline=Date.now()+300000;ownerTimer=setInterval(()=>{if(popup.closed||generation!==epoch||Date.now()>deadline){clearInterval(ownerTimer);ownerTimer=null;ownerWindow=null;ownerResolve=null;resolve();}},400);});
+    }catch(error){popup.close();ownerWindow=null;throw error;}
+  }
+  const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 Codex',run:()=>{parent.setVisible(true);if(!context){showConnectionSettings();(connected.hidden?localButton:openButton).focus();}else ai?.show();}});
   return {destroy(){if(destroyed)return;destroyed=true;drop();off?.();css.remove();root.remove();}};
 }

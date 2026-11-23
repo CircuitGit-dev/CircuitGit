@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 from build import build
+from build_library import publish as publish_library
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / 'site'
@@ -25,11 +26,17 @@ def main():
     for line in output.splitlines():
         sha,subject=line.split('\t',1);commits.append({'sha':sha,'subject':subject})
     (OUTPUT / 'demo/release.json').write_text(json.dumps({'repository':'joshuazeng713/CircuitGit','commits':commits},indent=2)+'\n')
+    library = publish_library(ROOT, OUTPUT)
+    published_library_files = {item['path'] for item in library['files']}
     forbidden={'projects','design','results','runs','validation','config','.local','.git'}
     for path in OUTPUT.rglob('*'):
         rel=path.relative_to(OUTPUT)
-        if path.is_symlink() or any(x in forbidden for x in rel.parts) or path.name.endswith('.local.json'):
+        indexed = rel.parts[0] == 'library-files'
+        if path.is_symlink() or path.name.endswith('.local.json') or (not indexed and any(x in forbidden for x in rel.parts)):
             raise ValueError('Private or unsupported Pages asset: '+str(rel))
-    print(json.dumps({**result,'mode':'static-demo','entry':'index.html','backend_required':False}))
+        if indexed and path.is_file() and rel.relative_to('library-files').as_posix() not in published_library_files:
+            raise ValueError('Unindexed library asset: '+str(rel))
+    print(json.dumps({**result,'mode':'static-demo','entry':'index.html','backend_required':False,
+                      'libraries':library['libraries'],'library_cells':library['cells'],'library_files':len(library['files'])}))
 
 if __name__ == '__main__':main()

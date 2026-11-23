@@ -28,6 +28,9 @@
 .ic-ai .ic-ai-settings-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; font: 18px/1 system-ui,sans-serif; }
 .ic-ai .ic-ai-settings-button[aria-expanded=true] { background: var(--bg,#f0f5ff); border-color: var(--accent,#327a9c); }
 .ic-ai-development { grid-column: 1/-1; min-width: 0; }
+.ic-ai-settings-state-note { grid-column: 1/-1; margin: 0; color: var(--muted,#526778); font: 12px/1.5 system-ui,sans-serif; }
+.ic-ai-settings-new-session { grid-column: 1/-1; justify-self: start; }
+.ic-ai-configure-development { margin-top: 6px; }
 .ic-ai-development-details { margin-top: 4px; color: var(--muted,#526778); font: 11px/1.5 system-ui,sans-serif; }
 .ic-ai-development-details summary, .ic-ai-native-request summary { cursor: pointer; }
 .ic-ai .ic-ai-development-details pre { margin: 5px 0 0; font-size: 11px; max-height: 80px; }

@@ -1,0 +1,63 @@
+// Generated for: spectre
+// @RNL(type="header") {
+//   @VERSION("0.3");
+//   @USE-PACKAGE(name="rnl-std-spectre", version="0.3", path="rnl-std-spectre.rnl");
+//   @USE-PACKAGE(name="eda-symbol", version="0.1", path="eda-symbol.rnl");
+//   @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl")
+// }
+// Generated on: Nov  9 19:40:33 2026
+// Design library name: 2026_PIPETISAR_RESEARCH
+// Design cell name: PIPE_TIMING_1G
+// Design view name: schematic
+simulator lang=spectre
+global 0
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_TIMING_1G
+// View name: schematic
+// @RNL(author="rnl-virtuoso") {
+//   (0, 24) @TEXT("1GS/s PIPELINE TIMING / THREE CONSECUTIVE SAMPLES", size=4, halign="start", valign="baseline");
+//   (0, 15.2) @TEXT("0-250ps SAMPLE | 250-500ps FLASH | 500-1000ps AMPLIFY", size=3.2, halign="start", valign="baseline");
+//   (65.9, 6.1) @TEXT("0", size=2.2, halign="start", valign="baseline");
+//   (85.9, 6.1) @TEXT("0.25", size=2.2, halign="start", valign="baseline");
+//   (105.9, 6.1) @TEXT("0.5", size=2.2, halign="start", valign="baseline");
+//   (145.9, 6.1) @TEXT("1", size=2.2, halign="start", valign="baseline");
+//   (165.9, 6.1) @TEXT("1.25", size=2.2, halign="start", valign="baseline");
+//   (185.9, 6.1) @TEXT("1.5", size=2.2, halign="start", valign="baseline");
+//   (225.9, 6.1) @TEXT("2", size=2.2, halign="start", valign="baseline");
+//   (245.9, 6.1) @TEXT("2.25", size=2.2, halign="start", valign="baseline");
+//   (265.9, 6.1) @TEXT("2.5", size=2.2, halign="start", valign="baseline");
+//   (305.9, 6.1) @TEXT("3", size=2.2, halign="start", valign="baseline");
+//   (323.2, 6.1) @TEXT("ns", size=2.2, halign="start", valign="baseline");
+//   (0, 0.8) @TEXT("TRACK / S1", size=2.7, halign="start", valign="baseline");
+//   (0, -10.1) @TEXT("PHI1EN / latch", size=2.7, halign="start", valign="baseline");
+//   (0, -21) @TEXT("PHI1N / auxiliary", size=2.7, halign="start", valign="baseline");
+//   (0, -31.8) @TEXT("PHI2P / code out", size=2.7, halign="start", valign="baseline");
+//   (0, -42.7) @TEXT("AMP / MDAC", size=2.7, halign="start", valign="baseline");
+//   (0, -53.6) @TEXT("RESET / Cf", size=2.7, halign="start", valign="baseline");
+//   (0, -64.5) @TEXT("TA / A track", size=2.7, halign="start", valign="baseline");
+//   (0, -75.4) @TEXT("TB / B track", size=2.7, halign="start", valign="baseline");
+//   (0, -86.2) @TEXT("SAR A convert", size=2.7, halign="start", valign="baseline");
+//   (0, -97.1) @TEXT("SAR B convert", size=2.7, halign="start", valign="baseline");
+//   (0, -108) @TEXT("VALID / output", size=2.7, halign="start", valign="baseline");
+//   (0, -128) @TEXT("A captures x0 @0.99ns -> Q ready @2.09ns; B captures x1 @1.99ns -> Q @3.09ns.", size=2.7, halign="start", valign="baseline");
+//   (0, -134.4) @TEXT("Each SAR: 100ps startup + 9 x 100ps decisions + 100ps commit = 1.10ns.", size=2.7, halign="start", valign="baseline");
+//   (0, -140.8) @TEXT("FFT: D + (ROP-RON)/8 sampled together @nT+0.980ns; final CODE @nT+2.15ns.", size=2.7, halign="start", valign="baseline");
+//   (0, -147.2) @TEXT("PHI2N is the inverse of PHI2P. RESET releases at498ps and asserts at998ps.", size=2.7, halign="start", valign="baseline");
+//   (0, -153.6) @TEXT("Digital flags shown schematically; physical edges have 1ps rise/fall.", size=2.7, halign="start", valign="baseline");
+//   (0, -167.3) @TEXT("VALIDATION: Interactive.9 / VDD=1V / FSdiff=2Vpp", size=3.2, halign="start", valign="baseline");
+//   (0, -173.7) @TEXT("05: final code shifted 1.90ns to input sample time", size=3.2, halign="start", valign="baseline");
+//   (0, -180.1) @TEXT("09: actual held input; 10: final minus held (uV)", size=3.2, halign="start", valign="baseline");
+//   (0, -186.5) @TEXT("Half LSB =244.14uV; both 44ns tests pass", size=3.2, halign="start", valign="baseline");
+//   @LINE {(67.2, 0) (67.2, 0) (67.2, 4.3) (87.2, 4.3) (87.2, 0) (147.2, 0) (147.2, 4.3) (167.2, 4.3) (167.2, 0) (227.2, 0) (227.2, 4.3) (247.2, 4.3) (247.2, 0) (323.2, 0)};
+//   @LINE {(67.2, -10.9) (87.2, -10.9) (87.2, -6.6) (147.2, -6.6) (147.2, -10.9) (167.2, -10.9) (167.2, -6.6) (227.2, -6.6) (227.2, -10.9) (247.2, -10.9) (247.2, -6.6) (307.2, -6.6) (307.2, -10.9) (323.2, -10.9)};
+//   @LINE {(67.2, -21.8) (88.8, -21.8) (88.8, -17.4) (147.2, -17.4) (147.2, -21.8) (168.8, -21.8) (168.8, -17.4) (227.2, -17.4) (227.2, -21.8) (248.8, -21.8) (248.8, -17.4) (307.2, -17.4) (307.2, -21.8) (323.2, -21.8)};
+//   @LINE {(67.2, -32.6) (107.2, -32.6) (107.2, -28.3) (146, -28.3) (146, -32.6) (187.2, -32.6) (187.2, -28.3) (226, -28.3) (226, -32.6) (267.2, -32.6) (267.2, -28.3) (306, -28.3) (306, -32.6) (323.2, -32.6)};
+//   @LINE {(67.2, -43.5) (107.2, -43.5) (107.2, -39.2) (147.2, -39.2) (147.2, -43.5) (187.2, -43.5) (187.2, -39.2) (227.2, -39.2) (227.2, -43.5) (267.2, -43.5) (267.2, -39.2) (307.2, -39.2) (307.2, -43.5) (323.2, -43.5)};
+//   @LINE {(67.2, -54.4) (67.2, -54.4) (67.2, -50.1) (107, -50.1) (107, -54.4) (147, -54.4) (147, -50.1) (187, -50.1) (187, -54.4) (227, -54.4) (227, -50.1) (267, -50.1) (267, -54.4) (307, -54.4) (307, -50.1) (323.2, -50.1) (323.2, -54.4) (323.2, -54.4)};
+//   @LINE {(67.2, -65.3) (107.2, -65.3) (107.2, -61) (146.4, -61) (146.4, -65.3) (267.2, -65.3) (267.2, -61) (306.4, -61) (306.4, -65.3) (323.2, -65.3)};
+//   @LINE {(67.2, -76.2) (187.2, -76.2) (187.2, -71.8) (226.4, -71.8) (226.4, -76.2) (323.2, -76.2)};
+//   @LINE {(67.2, -87) (146.4, -87) (146.4, -82.7) (234.4, -82.7) (234.4, -87) (306.4, -87) (306.4, -82.7) (323.2, -82.7) (323.2, -87) (323.2, -87)};
+//   @LINE {(67.2, -97.9) (226.4, -97.9) (226.4, -93.6) (314.4, -93.6) (314.4, -97.9) (323.2, -97.9)};
+//   @LINE {(67.2, -108.8) (236.5, -108.8) (236.5, -104.5) (242.9, -104.5) (242.9, -108.8) (316.5, -108.8) (316.5, -104.5) (322.9, -104.5) (322.9, -108.8) (323.2, -108.8)}
+// }

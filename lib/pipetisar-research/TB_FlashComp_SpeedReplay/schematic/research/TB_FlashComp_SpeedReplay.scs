@@ -1,0 +1,369 @@
+// Generated for: spectre
+include "L4_stage1_flash_comparator.scs"
+// @RNL(type="header") {
+//   @VERSION("0.3");
+//   @USE-PACKAGE(name="rnl-std-spectre", version="0.3", path="rnl-std-spectre.rnl");
+//   @USE-PACKAGE(name="eda-symbol", version="0.1", path="eda-symbol.rnl");
+//   @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl")
+// }
+// Generated on: Nov  9 19:44:26 2026
+// Design library name: 2026_PIPETISAR_RESEARCH
+// Design cell name: TB_FlashComp_SpeedReplay
+// Design view name: schematic
+simulator lang=spectre
+global 0
+
+// Library name: tcbn28hpcplusbwp12t30p140ulvt
+// Cell name: ND2D0BWP12T30P140ULVT
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: tsmcN28
+// Cell name: trans_ulvt_mac
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash_comparator
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: TB_FlashComp_SpeedReplay
+// View name: schematic
+XDUT (D DN DP PHI1BSTN PHI1BSTP PHI1EN PHI1EP PHI1EPBST PHI2N PHI2P VB VCM \
+        VDD VINN VINP VOSN VOSP VREFN VREFP 0) L4_stage1_flash_comparator
+VOSN0 (VOSN 0) vsource dc=Vcm-Vos/2 type=dc
+VOSP0 (VOSP 0) vsource dc=Vcm+Vos/2 type=dc
+VREFN0 (VREFN 0) vsource dc=Vcm-Vref/2 type=dc
+VREFP0 (VREFP 0) vsource dc=Vcm+Vref/2 type=dc
+VCM0 (VCM 0) vsource dc=Vcm type=dc
+VDD0 (VDD 0) vsource dc=Vdd type=dc
+IBIAS (VDD VB) isource dc=Iref type=dc
+M0 (VB VCM BIAS_INT 0) nch_ulvt_mac l=30n w=4.5u multi=1 nf=9 sd=100n \
+        ad=2.375e-13 as=2.375e-13 pd=5.95u ps=5.95u nrd=0.121551 \
+        nrs=0.121551 sa=323.065n sb=323.065n sa1=155.397n sa2=296.046n \
+        sa3=543.098n sa4=306.645n sb1=155.397n sb2=296.046n sb3=543.098n \
+        spa=100n spa1=100n spa2=100n spa3=100n sap=146.533n sapb=162.286n \
+        spba=115.715n spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+M24 (BIAS_INT VB 0 0) nch_mac l=90n w=500n multi=4 nf=1 sd=100n \
+        ad=3.75e-14 as=3.75e-14 pd=1.15u ps=1.15u nrd=0.662935 \
+        nrs=0.662935 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=120.93n spba=123.531n \
+        spba1=127.44n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+VPHI1BSTN (PHI1BSTN 0) vsource type=pulse val0=0 val1=1.5*Vdd period=Tper \
+        delay=Tper rise=Tr fall=Tr width=Ttrack+20p-2*Tr
+VPHI1BSTP (PHI1BSTP 0) vsource type=pulse val0=0 val1=1.5*Vdd period=Tper \
+        delay=Tper rise=Tr fall=Tr width=Ttrack+20p-2*Tr
+VPHI1EPBST (PHI1EPBST 0) vsource type=pulse val0=0 val1=1.5*Vdd \
+        period=Tper delay=Tper rise=Tr fall=Tr width=Ttrack-2*Tr
+VPHI1EP (PHI1EP 0) vsource type=pulse val0=0 val1=Vdd period=Tper \
+        delay=Tper rise=Tr fall=Tr width=Ttrack-2*Tr
+VPHI2N (PHI2N 0) vsource type=pulse val0=Vdd val1=0 period=Tper delay=Tamp \
+        rise=Tr fall=Tr width=Tper-Tamp-20p
+VPHI2P (PHI2P 0) vsource type=pulse val0=0 val1=Vdd period=Tper delay=Tamp \
+        rise=Tr fall=Tr width=Tper-Tamp-20p
+VPHI1EN (PHI1EN 0) vsource type=pulse val0=Vdd val1=0 period=Tper \
+        delay=Tper rise=Tr fall=Tr width=Ttrack-2*Tr
+CDN (DN 0) capacitor c=Cload
+CDP (DP 0) capacitor c=Cload
+CD (D 0) capacitor c=Cload
+VINN0 (VINN 0) vsource type=pwl wave=[ 0 0.46 11.95n 0.46 12n 0.4525 \
+        23.95n 0.4525 24n 0.4505 35.95n 0.4505 36n 0.4501 47.95n 0.4501 \
+        48n 0.4499 59.95n 0.4499 60n 0.4495 71.95n 0.4495 72n 0.4475 \
+        83.95n 0.4475 84n 0.44 104n 0.44 ]
+VINP0 (VINP 0) vsource type=pwl wave=[ 0 0.44 11.95n 0.44 12n 0.4475 \
+        23.95n 0.4475 24n 0.4495 35.95n 0.4495 36n 0.4499 47.95n 0.4499 \
+        48n 0.4501 59.95n 0.4501 60n 0.4505 71.95n 0.4505 72n 0.4525 \
+        83.95n 0.4525 84n 0.46 104n 0.46 ]
+// @RNL(author="rnl-virtuoso") {
+//   #"VPHI1EN" @SET-SYMBOL $VPULSE;
+//   #"VPHI1EN" @PLACE(80, -3) => @ORIENT("R0");
+//   #"VPHI1EP" @SET-SYMBOL $VPULSE;
+//   #"VPHI1EP" @PLACE(80, 45) => @ORIENT("R0");
+//   #"VOSN0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VOSN0" @PLACE(-80, 157) => @ORIENT("R0");
+//   #"VDD0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VDD0" @PLACE(-128, -3) => @ORIENT("R0");
+//   #"XDUT" @PLACE(0, 0) => @ORIENT("R0");
+//   #"VCM0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VCM0" @PLACE(-80, -3) => @ORIENT("R0");
+//   %symbol_0 = @DEFINE-SYMBOL(box=[-0.1, -2.8, 3.8, 2.8]) {
+//     @LINE {(2, 1.5) (4, 1.5) (4, 3)};
+//     @LINE {(2, -1.5) (2, 1.5)};
+//     @LINE {(3, -1) (4, -1.5) (3, -2)};
+//     @LINE {(0, 0) (1.5, 0)};
+//     @LINE {(1.5, 1.5) (1.5, -1.5)};
+//     @LINE {(2, -1.5) (4, -1.5) (4, -3)};
+//     ? @TEXT("${name}", size=0.8, halign="start", valign="baseline", key="name") => @PLACE(5, 3.5);
+//     ? @TEXT("${model}", size=0.8, halign="end", valign="baseline", key="model") => @PLACE(3.2, 3.2);
+//     (4, -1) @PIN(terminal=4);
+//     (4, -3) @PIN(terminal=3);
+//     (4, 3) @PIN(terminal=1);
+//     (0, 0) @PIN(terminal=2)
+//   };
+//   #"M0" @SET-SYMBOL %symbol_0;
+//   #"M0" @PLACE(-32, 160) => @ORIENT("R0");
+//   #"VOSP0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VOSP0" @PLACE(-128, 157) => @ORIENT("R0");
+//   #"VPHI2P" @SET-SYMBOL $VPULSE;
+//   #"VPHI2P" @PLACE(128, -3) => @ORIENT("R0");
+//   #"CD" @SET-SYMBOL $CAPACITOR;
+//   #"CD" @PLACE(80, 157) => @ORIENT("R0");
+//   %symbol_1 = @DEFINE-SYMBOL(box=[-2, -6, 2, 0]) {
+//     @LINE {(0, -2.8) (0, -2.2)};
+//     @ARC {(1.1, -3) (0, -2) (-1.1, -3)};
+//     @ARC {(1.1, -3) (0, -4) (-1.1, -3)};
+//     @LINE {(0.3, -3.5) (-0.3, -3.5)};
+//     @LINE {(0, -2) (0, 0)};
+//     @LINE {(0, -4) (0, -6)};
+//     @LINE {(0.3, -2.5) (-0.3, -2.5)};
+//     @LINE {(-3.1, -3.3) (-2.6, -2.7) (-2.2, -3.3) (-1.8, -2.7) (-1.3, -3.3)};
+//     ? @TEXT("${name}", size=0.8, halign="start", valign="baseline", key="name") => @PLACE(1, -1);
+//     (0, -6) @PIN(terminal=2);
+//     (0, 0) @PIN(terminal=1)
+//   };
+//   #"VINP0" @SET-SYMBOL %symbol_1;
+//   #"VINP0" @PLACE(-128, 96) => @ORIENT("R0");
+//   #"CDP" @SET-SYMBOL $CAPACITOR;
+//   #"CDP" @PLACE(128, 157) => @ORIENT("R0");
+//   #"VINN0" @SET-SYMBOL %symbol_1;
+//   #"VINN0" @PLACE(-80, 96) => @ORIENT("R0");
+//   #"VPHI1BSTN" @SET-SYMBOL $VPULSE;
+//   #"VPHI1BSTN" @PLACE(128, 93) => @ORIENT("R0");
+//   #"IBIAS" @SET-SYMBOL $CURRENT_SOURCE;
+//   #"IBIAS" @PLACE(-32, 93) => @ORIENT("R0");
+//   %symbol_2 = @DEFINE-SYMBOL(box=[-0.1, -2.8, 3.8, 2.8]) {
+//     @LINE {(2, 1.5) (4, 1.5) (4, 3)};
+//     @LINE {(2, -1.5) (2, 1.5)};
+//     @LINE {(3, -1) (4, -1.5) (3, -2)};
+//     @LINE {(0, 0) (1.5, 0)};
+//     @LINE {(1.5, 1.5) (1.5, -1.5)};
+//     @LINE {(2, -1.5) (4, -1.5) (4, -3)};
+//     ? @TEXT("${name}", size=0.8, halign="start", valign="baseline", key="name") => @PLACE(5, 3.5);
+//     ? @TEXT("${model}", size=0.8, halign="end", valign="baseline", key="model") => @PLACE(3.2, 3.2);
+//     (4, -1) @PIN(terminal=4);
+//     (4, -3) @PIN(terminal=3);
+//     (4, 3) @PIN(terminal=1);
+//     (0, 0) @PIN(terminal=2)
+//   };
+//   #"M24" @SET-SYMBOL %symbol_2;
+//   #"M24" @PLACE(-32, 208) => @ORIENT("MY");
+//   #"VREFN0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VREFN0" @PLACE(-80, 45) => @ORIENT("R0");
+//   #"VREFP0" @SET-SYMBOL $VOLTAGE_SOURCE;
+//   #"VREFP0" @PLACE(-128, 45) => @ORIENT("R0");
+//   #"CDN" @SET-SYMBOL $CAPACITOR;
+//   #"CDN" @PLACE(176, 157) => @ORIENT("R0");
+//   #"VPHI1EPBST" @SET-SYMBOL $VPULSE;
+//   #"VPHI1EPBST" @PLACE(128, 45) => @ORIENT("R0");
+//   #"VPHI2N" @SET-SYMBOL $VPULSE;
+//   #"VPHI2N" @PLACE(176, -3) => @ORIENT("R0");
+//   #"VPHI1BSTP" @SET-SYMBOL $VPULSE;
+//   #"VPHI1BSTP" @PLACE(80, 93) => @ORIENT("R0");
+//   %marker_11 = $GROUND @ATTACH &"0" => @PLACE(-128, -32) => @ORIENT("R0");
+//   %p0 = (176, 146);
+//   %wire_0 = &"0" @WIRE(mode="straight") {%p0 #"CDN":2};
+//   %p1 = (128, 146);
+//   %wire_1 = &"0" @WIRE(mode="straight") {%p1 #"CDP":2};
+//   %p2 = (80, 146);
+//   %wire_2 = &"0" @WIRE(mode="straight") {%p2 #"CD":2};
+//   %p3 = (128, 82);
+//   %wire_3 = &"0" @WIRE(mode="straight") {%p3 #"VPHI1BSTN":2};
+//   %p4 = (80, 82);
+//   %wire_4 = &"0" @WIRE(mode="straight") {%p4 #"VPHI1BSTP":2};
+//   %p5 = (128, 34);
+//   %wire_5 = &"0" @WIRE(mode="straight") {%p5 #"VPHI1EPBST":2};
+//   %p6 = (80, 34);
+//   %wire_6 = &"0" @WIRE(mode="straight") {%p6 #"VPHI1EP":2};
+//   %p7 = (176, -14);
+//   %wire_7 = &"0" @WIRE(mode="straight") {%p7 #"VPHI2N":2};
+//   %p8 = (128, -14);
+//   %wire_8 = &"0" @WIRE(mode="straight") {%p8 #"VPHI2P":2};
+//   %p9 = (80, -14);
+//   %wire_9 = &"0" @WIRE(mode="straight") {%p9 #"VPHI1EN":2};
+//   %p10 = (-44, 207);
+//   %wire_10 = &"0" @WIRE(mode="straight") {%p10 #"M24":4};
+//   %p11 = (-36, 197);
+//   %wire_11 = &"0" @WIRE(mode="straight") {%p11 #"M24":3};
+//   %p12 = (-20, 159);
+//   %wire_12 = &"0" @WIRE(mode="straight") {#"M0":4 %p12};
+//   %p13 = (-80, 146);
+//   %wire_13 = &"0" @WIRE(mode="straight") {%p13 #"VOSN0":2};
+//   %p14 = (-128, 146);
+//   %wire_14 = &"0" @WIRE(mode="straight") {%p14 #"VOSP0":2};
+//   %p15 = (-80, 82);
+//   %wire_15 = &"0" @WIRE(mode="straight") {%p15 #"VINN0":2};
+//   %p16 = (-128, 82);
+//   %wire_16 = &"0" @WIRE(mode="straight") {%p16 #"VINP0":2};
+//   %p17 = (-80, 34);
+//   %wire_17 = &"0" @WIRE(mode="straight") {%p17 #"VREFN0":2};
+//   %p18 = (-128, 34);
+//   %wire_18 = &"0" @WIRE(mode="straight") {%p18 #"VREFP0":2};
+//   %p19 = (-80, -14);
+//   %wire_19 = &"0" @WIRE(mode="straight") {%p19 #"VCM0":2};
+//   %p20 = (-128, -14);
+//   %wire_20 = &"0" @WIRE(mode="straight") {%p20 #"VDD0":2};
+//   %p21 = (-136, -32);
+//   %wire_21 = &"0" @WIRE(mode="straight") {%p21 %marker_11:p};
+//   %p22 = (3, -20);
+//   %wire_22 = &"0" @WIRE(mode="straight") {%p22 #"XDUT":20};
+//   %wire_22 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(3, -16);
+//   %wire_21 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-132, -32);
+//   %wire_20 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-128, -10);
+//   %wire_19 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-80, -10);
+//   %wire_18 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-128, 38);
+//   %wire_17 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-80, 38);
+//   %wire_16 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-128, 86);
+//   %wire_15 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-80, 86);
+//   %wire_14 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-128, 150);
+//   %wire_13 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-80, 150);
+//   %wire_12 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-24, 159);
+//   %wire_11 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-36, 201);
+//   %wire_10 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(-40, 207);
+//   %wire_9 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(80, -10);
+//   %wire_8 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(128, -10);
+//   %wire_7 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(176, -10);
+//   %wire_6 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(80, 38);
+//   %wire_5 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(128, 38);
+//   %wire_4 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(80, 86);
+//   %wire_3 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(128, 86);
+//   %wire_2 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(80, 150);
+//   %wire_1 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(128, 150);
+//   %wire_0 @TEXT("0", size=0.7, halign="middle", valign="baseline") => @PLACE(176, 150);
+//   %p23 = (-128, 56);
+//   %wire_23 = &"VREFP" @WIRE(mode="straight") {#"VREFP0":1 %p23};
+//   %p24 = (-3, -20);
+//   %wire_24 = &"VREFP" @WIRE(mode="straight") {%p24 #"XDUT":19};
+//   %wire_24 @TEXT("VREFP", size=0.7, halign="middle", valign="baseline") => @PLACE(-3, -16);
+//   %wire_23 @TEXT("VREFP", size=0.7, halign="middle", valign="baseline") => @PLACE(-128, 52);
+//   %p25 = (-80, 56);
+//   %wire_25 = &"VREFN" @WIRE(mode="straight") {#"VREFN0":1 %p25};
+//   %p26 = (-1, -20);
+//   %wire_26 = &"VREFN" @WIRE(mode="straight") {%p26 #"XDUT":18};
+//   %wire_26 @TEXT("VREFN", size=0.7, halign="middle", valign="baseline") => @PLACE(-1, -16);
+//   %wire_25 @TEXT("VREFN", size=0.7, halign="middle", valign="baseline") => @PLACE(-80, 52);
+//   %p27 = (-128, 168);
+//   %wire_27 = &"VOSP" @WIRE(mode="straight") {#"VOSP0":1 %p27};
+//   %p28 = (-24, 0);
+//   %wire_28 = &"VOSP" @WIRE(mode="straight") {%p28 #"XDUT":17};
+//   %wire_28 @TEXT("VOSP", size=0.7, halign="middle", valign="baseline") => @PLACE(-20, 0);
+//   %wire_27 @TEXT("VOSP", size=0.7, halign="middle", valign="baseline") => @PLACE(-128, 164);
+//   %p29 = (-80, 168);
+//   %wire_29 = &"VOSN" @WIRE(mode="straight") {#"VOSN0":1 %p29};
+//   %p30 = (-24, -2);
+//   %wire_30 = &"VOSN" @WIRE(mode="straight") {%p30 #"XDUT":16};
+//   %wire_30 @TEXT("VOSN", size=0.7, halign="middle", valign="baseline") => @PLACE(-20, -2);
+//   %wire_29 @TEXT("VOSN", size=0.7, halign="middle", valign="baseline") => @PLACE(-80, 164);
+//   %p31 = (-128, 104);
+//   %wire_31 = &"VINP" @WIRE(mode="straight") {#"VINP0":1 %p31};
+//   %p32 = (-24, 4);
+//   %wire_32 = &"VINP" @WIRE(mode="straight") {%p32 #"XDUT":15};
+//   %wire_32 @TEXT("VINP", size=0.7, halign="middle", valign="baseline") => @PLACE(-20, 4);
+//   %wire_31 @TEXT("VINP", size=0.7, halign="middle", valign="baseline") => @PLACE(-128, 100);
+//   %p33 = (-80, 104);
+//   %wire_33 = &"VINN" @WIRE(mode="straight") {#"VINN0":1 %p33};
+//   %p34 = (-24, 2);
+//   %wire_34 = &"VINN" @WIRE(mode="straight") {%p34 #"XDUT":14};
+//   %wire_34 @TEXT("VINN", size=0.7, halign="middle", valign="baseline") => @PLACE(-20, 2);
+//   %wire_33 @TEXT("VINN", size=0.7, halign="middle", valign="baseline") => @PLACE(-80, 100);
+//   %p35 = (-32, 104);
+//   %wire_35 = &"VDD" @WIRE(mode="straight") {#"IBIAS":1 %p35};
+//   %p36 = (-128, 8);
+//   %wire_36 = &"VDD" @WIRE(mode="straight") {#"VDD0":1 %p36};
+//   %p37 = (1, -20);
+//   %wire_37 = &"VDD" @WIRE(mode="straight") {%p37 #"XDUT":13};
+//   %wire_37 @TEXT("VDD", size=0.7, halign="middle", valign="baseline") => @PLACE(1, -16);
+//   %wire_36 @TEXT("VDD", size=0.7, halign="middle", valign="baseline") => @PLACE(-128, 4);
+//   %wire_35 @TEXT("VDD", size=0.7, halign="middle", valign="baseline") => @PLACE(-32, 100);
+//   %p38 = (-40, 160);
+//   %wire_38 = &"VCM" @WIRE(mode="straight") {%p38 #"M0":2};
+//   %p39 = (-80, 8);
+//   %wire_39 = &"VCM" @WIRE(mode="straight") {#"VCM0":1 %p39};
+//   %p40 = (-6, 20);
+//   %wire_40 = &"VCM" @WIRE(mode="straight") {#"XDUT":12 %p40};
+//   %wire_40 @TEXT("VCM", size=0.7, halign="middle", valign="baseline") => @PLACE(-6, 16);
+//   %wire_39 @TEXT("VCM", size=0.7, halign="middle", valign="baseline") => @PLACE(-80, 4);
+//   %wire_38 @TEXT("VCM", size=0.7, halign="middle", valign="baseline") => @PLACE(-36, 160);
+//   %p41 = (-24, 208);
+//   %wire_41 = &"VB" @WIRE(mode="straight") {#"M24":2 %p41};
+//   %p42 = (-28, 171);
+//   %wire_42 = &"VB" @WIRE(mode="straight") {#"M0":1 %p42};
+//   %p43 = (-32, 82);
+//   %wire_43 = &"VB" @WIRE(mode="straight") {%p43 #"IBIAS":2};
+//   %p44 = (-24, -4);
+//   %wire_44 = &"VB" @WIRE(mode="straight") {%p44 #"XDUT":11};
+//   %wire_44 @TEXT("VB", size=0.7, halign="middle", valign="baseline") => @PLACE(-20, -4);
+//   %wire_43 @TEXT("VB", size=0.7, halign="middle", valign="baseline") => @PLACE(-32, 86);
+//   %wire_42 @TEXT("VB", size=0.7, halign="middle", valign="baseline") => @PLACE(-28, 167);
+//   %wire_41 @TEXT("VB", size=0.7, halign="middle", valign="baseline") => @PLACE(-28, 208);
+//   %p45 = (128, 8);
+//   %wire_45 = &"PHI2P" @WIRE(mode="straight") {#"VPHI2P":1 %p45};
+//   %p46 = (6, 20);
+//   %wire_46 = &"PHI2P" @WIRE(mode="straight") {#"XDUT":10 %p46};
+//   %wire_46 @TEXT("PHI2P", size=0.7, halign="middle", valign="baseline") => @PLACE(6, 16);
+//   %wire_45 @TEXT("PHI2P", size=0.7, halign="middle", valign="baseline") => @PLACE(128, 4);
+//   %p47 = (176, 8);
+//   %wire_47 = &"PHI2N" @WIRE(mode="straight") {#"VPHI2N":1 %p47};
+//   %p48 = (8, 20);
+//   %wire_48 = &"PHI2N" @WIRE(mode="straight") {#"XDUT":9 %p48};
+//   %wire_48 @TEXT("PHI2N", size=0.7, halign="middle", valign="baseline") => @PLACE(8, 16);
+//   %wire_47 @TEXT("PHI2N", size=0.7, halign="middle", valign="baseline") => @PLACE(176, 4);
+//   %p49 = (128, 56);
+//   %wire_49 = &"PHI1EPBST" @WIRE(mode="straight") {#"VPHI1EPBST":1 %p49};
+//   %p50 = (2, 20);
+//   %wire_50 = &"PHI1EPBST" @WIRE(mode="straight") {#"XDUT":8 %p50};
+//   %wire_50 @TEXT("PHI1EPBST", size=0.7, halign="middle", valign="baseline") => @PLACE(2, 16);
+//   %wire_49 @TEXT("PHI1EPBST", size=0.7, halign="middle", valign="baseline") => @PLACE(128, 52);
+//   %p51 = (80, 56);
+//   %wire_51 = &"PHI1EP" @WIRE(mode="straight") {#"VPHI1EP":1 %p51};
+//   %p52 = (0, 20);
+//   %wire_52 = &"PHI1EP" @WIRE(mode="straight") {#"XDUT":7 %p52};
+//   %wire_52 @TEXT("PHI1EP", size=0.7, halign="middle", valign="baseline") => @PLACE(0, 16);
+//   %wire_51 @TEXT("PHI1EP", size=0.7, halign="middle", valign="baseline") => @PLACE(80, 52);
+//   %p53 = (80, 8);
+//   %wire_53 = &"PHI1EN" @WIRE(mode="straight") {#"VPHI1EN":1 %p53};
+//   %p54 = (4, 20);
+//   %wire_54 = &"PHI1EN" @WIRE(mode="straight") {#"XDUT":6 %p54};
+//   %wire_54 @TEXT("PHI1EN", size=0.7, halign="middle", valign="baseline") => @PLACE(4, 16);
+//   %wire_53 @TEXT("PHI1EN", size=0.7, halign="middle", valign="baseline") => @PLACE(80, 4);
+//   %p55 = (80, 104);
+//   %wire_55 = &"PHI1BSTP" @WIRE(mode="straight") {#"VPHI1BSTP":1 %p55};
+//   %p56 = (-4, 20);
+//   %wire_56 = &"PHI1BSTP" @WIRE(mode="straight") {#"XDUT":5 %p56};
+//   %wire_56 @TEXT("PHI1BSTP", size=0.7, halign="middle", valign="baseline") => @PLACE(-4, 16);
+//   %wire_55 @TEXT("PHI1BSTP", size=0.7, halign="middle", valign="baseline") => @PLACE(80, 100);
+//   %p57 = (128, 104);
+//   %wire_57 = &"PHI1BSTN" @WIRE(mode="straight") {#"VPHI1BSTN":1 %p57};
+//   %p58 = (-2, 20);
+//   %wire_58 = &"PHI1BSTN" @WIRE(mode="straight") {#"XDUT":4 %p58};
+//   %wire_58 @TEXT("PHI1BSTN", size=0.7, halign="middle", valign="baseline") => @PLACE(-2, 16);
+//   %wire_57 @TEXT("PHI1BSTN", size=0.7, halign="middle", valign="baseline") => @PLACE(128, 100);
+//   %p59 = (128, 168);
+//   %wire_59 = &"DP" @WIRE(mode="straight") {#"CDP":1 %p59};
+//   %p60 = (26, 2);
+//   %wire_60 = &"DP" @WIRE(mode="straight") {#"XDUT":3 %p60};
+//   %wire_60 @TEXT("DP", size=0.7, halign="middle", valign="baseline") => @PLACE(22, 2);
+//   %wire_59 @TEXT("DP", size=0.7, halign="middle", valign="baseline") => @PLACE(128, 164);
+//   %p61 = (176, 168);
+//   %wire_61 = &"DN" @WIRE(mode="straight") {#"CDN":1 %p61};
+//   %p62 = (26, 0);
+//   %wire_62 = &"DN" @WIRE(mode="straight") {#"XDUT":2 %p62};
+//   %wire_62 @TEXT("DN", size=0.7, halign="middle", valign="baseline") => @PLACE(22, 0);
+//   %wire_61 @TEXT("DN", size=0.7, halign="middle", valign="baseline") => @PLACE(176, 164);
+//   %p63 = (80, 168);
+//   %wire_63 = &"D" @WIRE(mode="straight") {#"CD":1 %p63};
+//   %p64 = (26, -2);
+//   %wire_64 = &"D" @WIRE(mode="straight") {#"XDUT":1 %p64};
+//   %wire_64 @TEXT("D", size=0.7, halign="middle", valign="baseline") => @PLACE(22, -2);
+//   %wire_63 @TEXT("D", size=0.7, halign="middle", valign="baseline") => @PLACE(80, 164);
+//   %p65 = (-36, 219);
+//   %wire_65 = &"BIAS_INT" @WIRE(mode="straight") {#"M24":1 %p65};
+//   %p66 = (-28, 149);
+//   %wire_66 = &"BIAS_INT" @WIRE(mode="straight") {%p66 #"M0":3};
+//   %wire_66 @TEXT("BIAS\_INT", size=0.7, halign="middle", valign="baseline") => @PLACE(-28, 153);
+//   %wire_65 @TEXT("BIAS\_INT", size=0.7, halign="middle", valign="baseline") => @PLACE(-36, 215)
+// }

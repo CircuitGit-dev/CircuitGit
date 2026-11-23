@@ -1,0 +1,87 @@
+// Digital readout only:100ohm/10fF drivers; actual SAR clocks and transistor circuit unchanged.
+`include "constants.vams"
+`include "disciplines.vams"
+// Clock adapter and DIGITAL nonbinary decoder only. It never quantizes VIP/VIN.
+// Actual SAR comparator/CDAC/async logic produce RAW and EOC.
+// Commit has fixed latency; a missing EOC raises OVF and suppresses DONE.
+module RS9_IO_N06(TRACK,KIN,RAW,EOC,CLKC,VIP,VIN,CLKA,CLKAE,CLKB,CLKD,Q,KOUT,DONE,BUSY,OVF,STEP,VH,VDAC,VDD,VSS);
+ input TRACK,EOC,CLKC,VIP,VIN,VDD,VSS;
+ input [3:0] KIN; input [9:0] RAW;
+ output CLKA,CLKAE,CLKB,CLKD,DONE,BUSY,OVF,STEP,VH,VDAC;
+ output [8:0] Q; output [3:0] KOUT;
+ electrical TRACK,EOC,CLKC,VIP,VIN,VDD,VSS,CLKA,CLKAE,CLKB,CLKD,DONE,BUSY,OVF,STEP,VH,VDAC;
+ electrical [3:0] KIN,KOUT; electrical [9:0] RAW; electrical [8:0] Q;
+ parameter real tr=1p,trackwidth=490p,early=20p,startgap=20p,tbudget=1400p,tcapture=50p,vfs=2;
+ real t_early,t_start,t_reset,t_capture,t_commit,held;
+ integer ae,b,d,ready,done,busy,overflow,khold,kpub,qhold,qpub,steps;
+ analog begin
+  @(initial_step) begin
+   ae=0;b=0;d=0;ready=0;done=0;busy=0;overflow=0;khold=0;kpub=0;qhold=256;qpub=256;steps=0;held=0;
+   t_early=1;t_start=1;t_reset=1;t_capture=1;t_commit=1;
+  end
+  @(cross(V(TRACK,VSS)-V(VDD,VSS)/2,1,100f,1m)) begin
+   ae=1;b=0;d=0;ready=0;done=0;busy=0;overflow=0;steps=0;
+   t_early=$abstime+trackwidth-early;t_capture=1;t_commit=1;
+  end
+  @(timer(t_early,0,1f)) begin ae=0;t_early=1;end
+  @(cross(V(TRACK,VSS)-V(VDD,VSS)/2,-1,100f,1m)) begin
+   held=V(VIP,VIN);busy=1;overflow=(held < -vfs/2 || held >= vfs/2);
+   khold=1*((V(KIN[0],VSS)>V(VDD,VSS)/2)?1:0)+2*((V(KIN[1],VSS)>V(VDD,VSS)/2)?1:0)+4*((V(KIN[2],VSS)>V(VDD,VSS)/2)?1:0)+8*((V(KIN[3],VSS)>V(VDD,VSS)/2)?1:0);
+   t_start=$abstime+startgap;t_reset=$abstime+410p;t_commit=$abstime+tbudget;
+  end
+  @(timer(t_start,0,1f)) begin b=1;t_start=1;end
+  @(timer(t_reset,0,1f)) begin d=1;t_reset=1;end
+  // Comparator edge counts are measured offline; do not force solver breakpoints on this analog regeneration node.
+  @(cross(V(EOC,VSS)-V(VDD,VSS)/2,1,100f,1m)) if(busy) t_capture=$abstime+tcapture;
+  @(timer(t_capture,0,1f)) begin
+   qhold=1*((V(RAW[0],VSS)>V(VDD,VSS)/2)?1:0)+2*((V(RAW[1],VSS)>V(VDD,VSS)/2)?1:0)+4*((V(RAW[2],VSS)>V(VDD,VSS)/2)?1:0)+6*((V(RAW[3],VSS)>V(VDD,VSS)/2)?1:0)+12*((V(RAW[4],VSS)>V(VDD,VSS)/2)?1:0)+20*((V(RAW[5],VSS)>V(VDD,VSS)/2)?1:0)+38*((V(RAW[6],VSS)>V(VDD,VSS)/2)?1:0)+72*((V(RAW[7],VSS)>V(VDD,VSS)/2)?1:0)+140*((V(RAW[8],VSS)>V(VDD,VSS)/2)?1:0)+216*((V(RAW[9],VSS)>V(VDD,VSS)/2)?1:0);
+   ready=1;t_capture=1;
+  end
+  @(timer(t_commit,0,1f)) begin
+   if(ready) begin qpub=qhold;kpub=khold;done=1;busy=0;end
+   else begin overflow=1;busy=1;$strobe("RS9 conversion timeout at %g",$abstime);end
+   t_commit=1;
+  end
+  V(CLKA,VSS)<+V(TRACK,VSS);
+  V(CLKAE,VSS)<+V(VDD,VSS)*transition(ae,0,tr,tr);
+  V(CLKB,VSS)<+V(VDD,VSS)*transition(b,0,tr,tr);
+  V(CLKD,VSS)<+V(VDD,VSS)*transition(d,0,tr,tr);
+ I(DONE,VSS)<+(V(DONE,VSS)-(V(VDD,VSS)*transition(done,20p,tr,tr)))/100;
+ I(DONE,VSS)<+10f*ddt(V(DONE,VSS));
+ I(BUSY,VSS)<+(V(BUSY,VSS)-(V(VDD,VSS)*transition(busy,0,tr,tr)))/100;
+ I(BUSY,VSS)<+10f*ddt(V(BUSY,VSS));
+ I(OVF,VSS)<+(V(OVF,VSS)-(V(VDD,VSS)*transition(overflow,0,tr,tr)))/100;
+ I(OVF,VSS)<+10f*ddt(V(OVF,VSS));
+  V(STEP,VSS)<+0; // Plot the saved actual CLKC node directly.
+ I(VH,VSS)<+(V(VH,VSS)-(transition(held,0,tr,tr)))/100;
+ I(VH,VSS)<+10f*ddt(V(VH,VSS));
+ I(VDAC,VSS)<+(V(VDAC,VSS)-(transition(vfs*((qpub+0.5)/512.0-0.5),0,tr,tr)))/100;
+ I(VDAC,VSS)<+10f*ddt(V(VDAC,VSS));
+ I(Q[0],VSS)<+(V(Q[0],VSS)-(V(VDD,VSS)*transition((qpub>>0)&1,0,tr,tr)))/100;
+ I(Q[0],VSS)<+10f*ddt(V(Q[0],VSS));
+ I(Q[1],VSS)<+(V(Q[1],VSS)-(V(VDD,VSS)*transition((qpub>>1)&1,0,tr,tr)))/100;
+ I(Q[1],VSS)<+10f*ddt(V(Q[1],VSS));
+ I(Q[2],VSS)<+(V(Q[2],VSS)-(V(VDD,VSS)*transition((qpub>>2)&1,0,tr,tr)))/100;
+ I(Q[2],VSS)<+10f*ddt(V(Q[2],VSS));
+ I(Q[3],VSS)<+(V(Q[3],VSS)-(V(VDD,VSS)*transition((qpub>>3)&1,0,tr,tr)))/100;
+ I(Q[3],VSS)<+10f*ddt(V(Q[3],VSS));
+ I(Q[4],VSS)<+(V(Q[4],VSS)-(V(VDD,VSS)*transition((qpub>>4)&1,0,tr,tr)))/100;
+ I(Q[4],VSS)<+10f*ddt(V(Q[4],VSS));
+ I(Q[5],VSS)<+(V(Q[5],VSS)-(V(VDD,VSS)*transition((qpub>>5)&1,0,tr,tr)))/100;
+ I(Q[5],VSS)<+10f*ddt(V(Q[5],VSS));
+ I(Q[6],VSS)<+(V(Q[6],VSS)-(V(VDD,VSS)*transition((qpub>>6)&1,0,tr,tr)))/100;
+ I(Q[6],VSS)<+10f*ddt(V(Q[6],VSS));
+ I(Q[7],VSS)<+(V(Q[7],VSS)-(V(VDD,VSS)*transition((qpub>>7)&1,0,tr,tr)))/100;
+ I(Q[7],VSS)<+10f*ddt(V(Q[7],VSS));
+ I(Q[8],VSS)<+(V(Q[8],VSS)-(V(VDD,VSS)*transition((qpub>>8)&1,0,tr,tr)))/100;
+ I(Q[8],VSS)<+10f*ddt(V(Q[8],VSS));
+ I(KOUT[0],VSS)<+(V(KOUT[0],VSS)-(V(VDD,VSS)*transition((kpub>>0)&1,0,tr,tr)))/100;
+ I(KOUT[0],VSS)<+10f*ddt(V(KOUT[0],VSS));
+ I(KOUT[1],VSS)<+(V(KOUT[1],VSS)-(V(VDD,VSS)*transition((kpub>>1)&1,0,tr,tr)))/100;
+ I(KOUT[1],VSS)<+10f*ddt(V(KOUT[1],VSS));
+ I(KOUT[2],VSS)<+(V(KOUT[2],VSS)-(V(VDD,VSS)*transition((kpub>>2)&1,0,tr,tr)))/100;
+ I(KOUT[2],VSS)<+10f*ddt(V(KOUT[2],VSS));
+ I(KOUT[3],VSS)<+(V(KOUT[3],VSS)-(V(VDD,VSS)*transition((kpub>>3)&1,0,tr,tr)))/100;
+ I(KOUT[3],VSS)<+10f*ddt(V(KOUT[3],VSS));
+ end
+endmodule

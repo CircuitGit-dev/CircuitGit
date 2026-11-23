@@ -1,0 +1,840 @@
+// Generated for: spectre
+// @RNL(type="header") {
+//   @VERSION("0.3");
+//   @USE-PACKAGE(name="rnl-std-spectre", version="0.3", path="rnl-std-spectre.rnl");
+//   @USE-PACKAGE(name="eda-symbol", version="0.1", path="eda-symbol.rnl");
+//   @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl")
+// }
+// Generated on: Nov  9 19:40:42 2026
+// Design library name: 2026_PIPETISAR_RESEARCH
+// Design cell name: PIPE_TOP_CA4_RS9_N06
+// Design view name: schematic
+simulator lang=spectre
+global 0
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: Switch
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_MOM_BIT_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: tcbn28hpcplusbwp12t30p140ulvt
+// Cell name: ND2D4BWP12T30P140ULVT
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_REF_CTRL_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_OTA_Diff_Ideal
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: MDAC4_ARRAY_G8_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_Bootstrap
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_Comparator_LN
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_SR_latch_1
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_9bit_REF_Logic
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_SAR_Logic_1
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L8_9bit_CDAC_UNIT
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L7_9bit_CDAC
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L6_9bit_RSW
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L5_9bit_RSW_CDAC
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: RS9_L3_9bit_SAR_2
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_SAR9_Real_N06
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: tcbn28hpcplusbwp12t30p140ulvt
+// Cell name: ND2D0BWP12T30P140ULVT
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: tsmcN28
+// Cell name: trans_ulvt_mac
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash_comparator
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash_bootstrapper
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash_clkbooster
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash4_encoder
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L4_stage1_flash4_rdac_FS2
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L3_stage1_flash4_FS2
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: PIPE_TOP_CA4_RS9_N06
+// View name: schematic
+subckt PIPE_TOP_CA4_RS9_N06 AMP BIN_3 BIN_2 BIN_1 BIN_0 CHANNEL CODE_11 \
+        CODE_10 CODE_9 CODE_8 CODE_7 CODE_6 CODE_5 CODE_4 CODE_3 CODE_2 \
+        CODE_1 CODE_0 D_14 D_13 D_12 D_11 D_10 D_9 D_8 D_7 D_6 D_5 D_4 D_3 \
+        D_2 D_1 D_0 DA DB IB_A IB_B OVERFLOW RECON RON ROP TA TB TRACK \
+        VALID VCM VDD VINN VINP VREFN VREFP VSS
+    XRA (AMP BIN_3 BIN_2 BIN_1 BIN_0 RESET RON ROP TRACK VCM VDD VINN VINP \
+        VREFN VREFP VSS) MDAC4_ARRAY_G8_N06
+    S_AP (ROP HAP TA) Switch Rseries=50
+    S_AN (RON HAN TA) Switch Rseries=50
+    S_BP (ROP HBP TB) Switch Rseries=50
+    S_BN (RON HBN TB) Switch Rseries=50
+    XCLK (TRACK AMP RESET TA TB PHI1EN PHI1N PHI2P PHI2N VDD VSS) \
+        PIPE_Clock250_250_500 tper=Tper ttrack=Ttrack tamp=Tamp \
+        guard=Tguard tr=TrModel
+    XSARB (BUSYB DB BIN_3 BIN_2 BIN_1 BIN_0 KB_3 KB_2 KB_1 KB_0 OFB QB_8 \
+        QB_7 QB_6 QB_5 QB_4 QB_3 QB_2 QB_1 QB_0 STEPB TB VCM VDACB VDD VHB \
+        HBN HBP VREFN VREFP VSS) PIPE_SAR9_Real_N06
+    XSARA (BUSYA DA BIN_3 BIN_2 BIN_1 BIN_0 KA_3 KA_2 KA_1 KA_0 OFA QA_8 \
+        QA_7 QA_6 QA_5 QA_4 QA_3 QA_2 QA_1 QA_0 STEPA TA VCM VDACA VDD VHA \
+        HAN HAP VREFN VREFP VSS) PIPE_SAR9_Real_N06
+    XMERGE (QA_8 QA_7 QA_6 QA_5 QA_4 QA_3 QA_2 QA_1 QA_0 QB_8 QB_7 QB_6 \
+        QB_5 QB_4 QB_3 QB_2 QB_1 QB_0 KA_3 KA_2 KA_1 KA_0 KB_3 KB_2 KB_1 \
+        KB_0 DA DB OFA OFB CODE_11 CODE_10 CODE_9 CODE_8 CODE_7 CODE_6 \
+        CODE_5 CODE_4 CODE_3 CODE_2 CODE_1 CODE_0 VALID CHANNEL OVERFLOW \
+        RECON VDD VSS) RS9_Merge_N06 vfs=Vref tr=TrModel
+    CH_AP (HAP VCM) capacitor c=Cs2
+    CH_AN (HAN VCM) capacitor c=Cs2
+    CH_BP (HBP VCM) capacitor c=Cs2
+    CH_BN (HBN VCM) capacitor c=Cs2
+    C_D_14 (D_14 VSS) capacitor c=Cflash
+    C_D_13 (D_13 VSS) capacitor c=Cflash
+    C_D_12 (D_12 VSS) capacitor c=Cflash
+    C_D_11 (D_11 VSS) capacitor c=Cflash
+    C_D_10 (D_10 VSS) capacitor c=Cflash
+    C_D_9 (D_9 VSS) capacitor c=Cflash
+    C_D_8 (D_8 VSS) capacitor c=Cflash
+    C_D_7 (D_7 VSS) capacitor c=Cflash
+    C_D_6 (D_6 VSS) capacitor c=Cflash
+    C_D_5 (D_5 VSS) capacitor c=Cflash
+    C_D_4 (D_4 VSS) capacitor c=Cflash
+    C_D_3 (D_3 VSS) capacitor c=Cflash
+    C_D_2 (D_2 VSS) capacitor c=Cflash
+    C_D_1 (D_1 VSS) capacitor c=Cflash
+    C_D_0 (D_0 VSS) capacitor c=Cflash
+    C_DP_14 (DP_14 VSS) capacitor c=Cflash
+    C_DP_13 (DP_13 VSS) capacitor c=Cflash
+    C_DP_12 (DP_12 VSS) capacitor c=Cflash
+    C_DP_11 (DP_11 VSS) capacitor c=Cflash
+    C_DP_10 (DP_10 VSS) capacitor c=Cflash
+    C_DP_9 (DP_9 VSS) capacitor c=Cflash
+    C_DP_8 (DP_8 VSS) capacitor c=Cflash
+    C_DP_7 (DP_7 VSS) capacitor c=Cflash
+    C_DP_6 (DP_6 VSS) capacitor c=Cflash
+    C_DP_5 (DP_5 VSS) capacitor c=Cflash
+    C_DP_4 (DP_4 VSS) capacitor c=Cflash
+    C_DP_3 (DP_3 VSS) capacitor c=Cflash
+    C_DP_2 (DP_2 VSS) capacitor c=Cflash
+    C_DP_1 (DP_1 VSS) capacitor c=Cflash
+    C_DP_0 (DP_0 VSS) capacitor c=Cflash
+    C_DN_14 (DN_14 VSS) capacitor c=Cflash
+    C_DN_13 (DN_13 VSS) capacitor c=Cflash
+    C_DN_12 (DN_12 VSS) capacitor c=Cflash
+    C_DN_11 (DN_11 VSS) capacitor c=Cflash
+    C_DN_10 (DN_10 VSS) capacitor c=Cflash
+    C_DN_9 (DN_9 VSS) capacitor c=Cflash
+    C_DN_8 (DN_8 VSS) capacitor c=Cflash
+    C_DN_7 (DN_7 VSS) capacitor c=Cflash
+    C_DN_6 (DN_6 VSS) capacitor c=Cflash
+    C_DN_5 (DN_5 VSS) capacitor c=Cflash
+    C_DN_4 (DN_4 VSS) capacitor c=Cflash
+    C_DN_3 (DN_3 VSS) capacitor c=Cflash
+    C_DN_2 (DN_2 VSS) capacitor c=Cflash
+    C_DN_1 (DN_1 VSS) capacitor c=Cflash
+    C_DN_0 (DN_0 VSS) capacitor c=Cflash
+    C_BIN_3 (BIN_3 VSS) capacitor c=Cflash
+    C_BIN_2 (BIN_2 VSS) capacitor c=Cflash
+    C_BIN_1 (BIN_1 VSS) capacitor c=Cflash
+    C_BIN_0 (BIN_0 VSS) capacitor c=Cflash
+    CPROBE0 (VDACA VSS) capacitor c=1a
+    CPROBE1 (VDACB VSS) capacitor c=1a
+    CPROBE2 (VHA VSS) capacitor c=1a
+    CPROBE3 (VHB VSS) capacitor c=1a
+    CPROBE4 (STEPA VSS) capacitor c=1a
+    CPROBE5 (STEPB VSS) capacitor c=1a
+    CPROBE6 (BUSYA VSS) capacitor c=1a
+    CPROBE7 (BUSYB VSS) capacitor c=1a
+    XFLASH (BIN_3 BIN_2 BIN_1 BIN_0 D_14 D_13 D_12 D_11 D_10 D_9 D_8 D_7 \
+        D_6 D_5 D_4 D_3 D_2 D_1 D_0 DN_14 DN_13 DN_12 DN_11 DN_10 DN_9 \
+        DN_8 DN_7 DN_6 DN_5 DN_4 DN_3 DN_2 DN_1 DN_0 DP_14 DP_13 DP_12 \
+        DP_11 DP_10 DP_9 DP_8 DP_7 DP_6 DP_5 DP_4 DP_3 DP_2 DP_1 DP_0 IB_A \
+        IB_B PHI1EN PHI1N PHI2N PHI2P VCM VDD VINN VINP VCM VCM VCM VCM \
+        VCM VCM VCM VCM VCM VCM VCM VCM VCM VCM VCM VCM VCM VCM VCM VCM \
+        VCM VCM VCM VCM VCM VCM VCM VCM VCM VCM VREFN VREFP VSS) \
+        L3_stage1_flash4_FS2
+// @RNL(author="rnl-virtuoso") {
+//   %block_symbol = @DEFINE-SYMBOL(box=[0, -140.8, 86.4, 4.8]) {
+//     @RECTANGLE {(0, -140.8) (86.4, 4.8)};
+//     (43.2, 10.4) @TEXT("PIPE-TI-SAR  /  12b", size=4.6, halign="middle", valign="middle");
+//     ? @TEXT("${name}", size=3.8, halign="middle", valign="middle", key="name") => @PLACE(43.2, -145.9);
+//     (0, 0) @PIN(terminal="VINP");
+//     (2.2, 0) @TEXT("VINP", size=3.8, halign="start", valign="middle");
+//     (0, -16) @PIN(terminal="VINN");
+//     (2.2, -16) @TEXT("VINN", size=3.8, halign="start", valign="middle");
+//     (0, -40) @PIN(terminal="VDD");
+//     (2.2, -40) @TEXT("VDD", size=3.8, halign="start", valign="middle");
+//     (0, -48) @PIN(terminal="VSS");
+//     (2.2, -48) @TEXT("VSS", size=3.8, halign="start", valign="middle");
+//     (0, -56) @PIN(terminal="VCM");
+//     (2.2, -56) @TEXT("VCM", size=3.8, halign="start", valign="middle");
+//     (0, -64) @PIN(terminal="VREFP");
+//     (2.2, -64) @TEXT("VREFP", size=3.8, halign="start", valign="middle");
+//     (0, -72) @PIN(terminal="VREFN");
+//     (2.2, -72) @TEXT("VREFN", size=3.8, halign="start", valign="middle");
+//     (0, -88) @PIN(terminal="IB_A");
+//     (2.2, -88) @TEXT("IB\_A", size=3.8, halign="start", valign="middle");
+//     (0, -96) @PIN(terminal="IB_B");
+//     (2.2, -96) @TEXT("IB\_B", size=3.8, halign="start", valign="middle");
+//     (86.4, 0) @PIN(terminal=["CODE_11", "CODE_10", "CODE_9", "CODE_8", "CODE_7", "CODE_6", "CODE_5", "CODE_4", "CODE_3", "CODE_2", "CODE_1", "CODE_0"]);
+//     (84.2, 0) @TEXT("CODE<11:0>", size=3.8, halign="end", valign="middle");
+//     (86.4, -8) @PIN(terminal="RECON");
+//     (84.2, -8) @TEXT("RECON", size=3.8, halign="end", valign="middle");
+//     (86.4, -16) @PIN(terminal="VALID");
+//     (84.2, -16) @TEXT("VALID", size=3.8, halign="end", valign="middle");
+//     (86.4, -24) @PIN(terminal="OVERFLOW");
+//     (84.2, -24) @TEXT("OVERFLOW", size=3.8, halign="end", valign="middle");
+//     (86.4, -32) @PIN(terminal="CHANNEL");
+//     (84.2, -32) @TEXT("CHANNEL", size=3.8, halign="end", valign="middle");
+//     (86.4, -48) @PIN(terminal="ROP");
+//     (84.2, -48) @TEXT("ROP", size=3.8, halign="end", valign="middle");
+//     (86.4, -56) @PIN(terminal="RON");
+//     (84.2, -56) @TEXT("RON", size=3.8, halign="end", valign="middle");
+//     (86.4, -72) @PIN(terminal=["D_14", "D_13", "D_12", "D_11", "D_10", "D_9", "D_8", "D_7", "D_6", "D_5", "D_4", "D_3", "D_2", "D_1", "D_0"]);
+//     (84.2, -72) @TEXT("D<14:0>", size=3.8, halign="end", valign="middle");
+//     (86.4, -80) @PIN(terminal=["BIN_3", "BIN_2", "BIN_1", "BIN_0"]);
+//     (84.2, -80) @TEXT("BIN<3:0>", size=3.8, halign="end", valign="middle");
+//     (86.4, -96) @PIN(terminal="TRACK");
+//     (84.2, -96) @TEXT("TRACK", size=3.8, halign="end", valign="middle");
+//     (86.4, -104) @PIN(terminal="AMP");
+//     (84.2, -104) @TEXT("AMP", size=3.8, halign="end", valign="middle");
+//     (86.4, -112) @PIN(terminal="TA");
+//     (84.2, -112) @TEXT("TA", size=3.8, halign="end", valign="middle");
+//     (86.4, -120) @PIN(terminal="TB");
+//     (84.2, -120) @TEXT("TB", size=3.8, halign="end", valign="middle");
+//     (86.4, -128) @PIN(terminal="DA");
+//     (84.2, -128) @TEXT("DA", size=3.8, halign="end", valign="middle");
+//     (86.4, -136) @PIN(terminal="DB");
+//     (84.2, -136) @TEXT("DB", size=3.8, halign="end", valign="middle")
+//   };
+//   # @SET-SYMBOL %block_symbol;
+//   #"CH_AP" @SET-SYMBOL $CAPACITOR;
+//   #"CH_AP" @PLACE(368, 51) => @ORIENT("R180");
+//   #"CPROBE6" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE6" @PLACE(491, 8) => @ORIENT("R90");
+//   #"S_BN" @PLACE(336, -80) => @ORIENT("R0");
+//   %symbol_0 = @DEFINE-SYMBOL(box=[0, -164.8, 70.4, 4.8]) {
+//     @RECTANGLE {(0, -164.8) (70.4, 4.8)};
+//     (35.2, -76.8) @TEXT("C12 = 256 K4", size=4.2, halign="middle", valign="middle");
+//     (35.2, 10.4) @TEXT("ALIGN + MERGE", size=4.6, halign="middle", valign="middle");
+//     (35.2, -84.8) @TEXT("+ Q9 - 128", size=4.2, halign="middle", valign="middle");
+//     (35.2, -97.6) @TEXT("1 overlap bit", size=4.2, halign="middle", valign="middle");
+//     ? @TEXT("${name}", size=3.8, halign="middle", valign="middle", key="name") => @PLACE(35.2, -169.9);
+//     (70.4, -16) @PIN(terminal=46);
+//     (68.2, -16) @TEXT("RECON", size=3.8, halign="end", valign="middle");
+//     (70.4, -32) @PIN(terminal=43);
+//     (68.2, -32) @TEXT("VALID", size=3.8, halign="end", valign="middle");
+//     (70.4, -160) @PIN(terminal=48);
+//     (68.2, -160) @TEXT("VSS", size=3.8, halign="end", valign="middle");
+//     (70.4, -152) @PIN(terminal=47);
+//     (68.2, -152) @TEXT("VDD", size=3.8, halign="end", valign="middle");
+//     (70.4, -64) @PIN(terminal=45);
+//     (68.2, -64) @TEXT("OVF", size=3.8, halign="end", valign="middle");
+//     (70.4, -48) @PIN(terminal=44);
+//     (68.2, -48) @TEXT("CHANNEL", size=3.8, halign="end", valign="middle");
+//     (0, -131.2) @PIN(terminal=28);
+//     (2.2, -131.2) @TEXT("DB", size=3.8, halign="start", valign="middle");
+//     (0, -139.2) @PIN(terminal=30);
+//     (2.2, -139.2) @TEXT("OFB", size=3.8, halign="start", valign="middle");
+//     (70.4, 0) @PIN(terminal=[31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42]);
+//     (68.2, 0) @TEXT("CODE<11:0>", size=3.8, halign="end", valign="middle");
+//     (0, -123.2) @PIN(terminal=[23, 24, 25, 26]);
+//     (2.2, -123.2) @TEXT("KB<3:0>", size=3.8, halign="start", valign="middle");
+//     (0, -115.2) @PIN(terminal=[10, 11, 12, 13, 14, 15, 16, 17, 18]);
+//     (2.2, -115.2) @TEXT("QB<8:0>", size=3.8, halign="start", valign="middle");
+//     (0, -16) @PIN(terminal=27);
+//     (2.2, -16) @TEXT("DA", size=3.8, halign="start", valign="middle");
+//     (0, -24) @PIN(terminal=29);
+//     (2.2, -24) @TEXT("OFA", size=3.8, halign="start", valign="middle");
+//     (0, -8) @PIN(terminal=[19, 20, 21, 22]);
+//     (2.2, -8) @TEXT("KA<3:0>", size=3.8, halign="start", valign="middle");
+//     (0, 0) @PIN(terminal=[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+//     (2.2, 0) @TEXT("QA<8:0>", size=3.8, halign="start", valign="middle")
+//   };
+//   #"XMERGE" @SET-SYMBOL %symbol_0;
+//   #"XMERGE" @PLACE(531.2, 48) => @ORIENT("R0");
+//   #"XSARA" @PLACE(400, 48) => @ORIENT("R0");
+//   #"CPROBE2" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE2" @PLACE(491, 0) => @ORIENT("R90");
+//   #"XSARB" @PLACE(400, -67.2) => @ORIENT("R0");
+//   %bundle_0 = {#"C_D_14" #"C_D_13" #"C_D_12" #"C_D_11" #"C_D_10" #"C_D_9" #"C_D_8" #"C_D_7" #"C_D_6" #"C_D_5" #"C_D_4" #"C_D_3" #"C_D_2" #"C_D_1" #"C_D_0"} @BUNDLE;
+//   %bundle_0 @SET-SYMBOL $CAPACITOR;
+//   %bundle_0 @PLACE(48, -163) => @ORIENT("R0");
+//   %bundle_0 @TEXT("C\_D<14:0>", key="name");
+//   #"XRA" @PLACE(224, 48) => @ORIENT("R0");
+//   #"CPROBE1" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE1" @PLACE(491, -123.2) => @ORIENT("R90");
+//   #"CPROBE7" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE7" @PLACE(491, -107.2) => @ORIENT("R90");
+//   #"CH_BP" @SET-SYMBOL $CAPACITOR;
+//   #"CH_BP" @PLACE(368, -64.2) => @ORIENT("R180");
+//   #"CH_AN" @SET-SYMBOL $CAPACITOR;
+//   #"CH_AN" @PLACE(368, 32.2) => @ORIENT("R0");
+//   #"CPROBE5" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE5" @PLACE(491, -131.2) => @ORIENT("R90");
+//   #"S_AN" @PLACE(336, 35.2) => @ORIENT("R0");
+//   #"CH_BN" @SET-SYMBOL $CAPACITOR;
+//   #"CH_BN" @PLACE(368, -83) => @ORIENT("R0");
+//   %bundle_1 = {#"C_DP_14" #"C_DP_13" #"C_DP_12" #"C_DP_11" #"C_DP_10" #"C_DP_9" #"C_DP_8" #"C_DP_7" #"C_DP_6" #"C_DP_5" #"C_DP_4" #"C_DP_3" #"C_DP_2" #"C_DP_1" #"C_DP_0"} @BUNDLE;
+//   %bundle_1 @SET-SYMBOL $CAPACITOR;
+//   %bundle_1 @PLACE(83.2, -163) => @ORIENT("R0");
+//   %bundle_1 @TEXT("C\_DP<14:0>", key="name");
+//   #"CPROBE3" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE3" @PLACE(491, -115.2) => @ORIENT("R90");
+//   #"CPROBE4" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE4" @PLACE(491, -16) => @ORIENT("R90");
+//   #"XFLASH" @PLACE(48, 0) => @ORIENT("R0");
+//   #"S_BP" @PLACE(336, -67.2) => @ORIENT("R0");
+//   %symbol_1 = @DEFINE-SYMBOL(box=[0, -68.8, 70.4, 4.8]) {
+//     @RECTANGLE {(0, -68.8) (70.4, 4.8)};
+//     (35.2, 10.4) @TEXT("CLOCK PHASES", size=4.6, halign="middle", valign="middle");
+//     ? @TEXT("${name}", size=3.8, halign="middle", valign="middle", key="name") => @PLACE(35.2, -73.9);
+//     (0, 0) @PIN(terminal=10);
+//     (2.2, 0) @TEXT("VDD", size=3.8, halign="start", valign="middle");
+//     (0, -8) @PIN(terminal=11);
+//     (2.2, -8) @TEXT("VSS", size=3.8, halign="start", valign="middle");
+//     (70.4, 0) @PIN(terminal=1);
+//     (68.2, 0) @TEXT("TRACK", size=3.8, halign="end", valign="middle");
+//     (70.4, -8) @PIN(terminal=6);
+//     (68.2, -8) @TEXT("PHI1EN", size=3.8, halign="end", valign="middle");
+//     (70.4, -16) @PIN(terminal=7);
+//     (68.2, -16) @TEXT("PHI1N", size=3.8, halign="end", valign="middle");
+//     (70.4, -24) @PIN(terminal=8);
+//     (68.2, -24) @TEXT("PHI2P", size=3.8, halign="end", valign="middle");
+//     (70.4, -32) @PIN(terminal=9);
+//     (68.2, -32) @TEXT("PHI2N", size=3.8, halign="end", valign="middle");
+//     (70.4, -40) @PIN(terminal=2);
+//     (68.2, -40) @TEXT("AMP", size=3.8, halign="end", valign="middle");
+//     (70.4, -48) @PIN(terminal=3);
+//     (68.2, -48) @TEXT("RESET", size=3.8, halign="end", valign="middle");
+//     (70.4, -56) @PIN(terminal=4);
+//     (68.2, -56) @TEXT("TA", size=3.8, halign="end", valign="middle");
+//     (70.4, -64) @PIN(terminal=5);
+//     (68.2, -64) @TEXT("TB", size=3.8, halign="end", valign="middle")
+//   };
+//   #"XCLK" @SET-SYMBOL %symbol_1;
+//   #"XCLK" @PLACE(208, -112) => @ORIENT("R0");
+//   #"S_AP" @PLACE(336, 48) => @ORIENT("R0");
+//   #"CPROBE0" @SET-SYMBOL $CAPACITOR;
+//   #"CPROBE0" @PLACE(491, -8) => @ORIENT("R90");
+//   %bundle_2 = {#"C_DN_14" #"C_DN_13" #"C_DN_12" #"C_DN_11" #"C_DN_10" #"C_DN_9" #"C_DN_8" #"C_DN_7" #"C_DN_6" #"C_DN_5" #"C_DN_4" #"C_DN_3" #"C_DN_2" #"C_DN_1" #"C_DN_0"} @BUNDLE;
+//   %bundle_2 @SET-SYMBOL $CAPACITOR;
+//   %bundle_2 @PLACE(118.4, -163) => @ORIENT("R0");
+//   %bundle_2 @TEXT("C\_DN<14:0>", key="name");
+//   %bundle_3 = {#"C_BIN_3" #"C_BIN_2" #"C_BIN_1" #"C_BIN_0"} @BUNDLE;
+//   %bundle_3 @SET-SYMBOL $CAPACITOR;
+//   %bundle_3 @PLACE(153.6, -163) => @ORIENT("R0");
+//   %bundle_3 @TEXT("C\_BIN<3:0>", key="name");
+//   %input_port_symbol = @DEFINE-SYMBOL(box=[-2, -1, 0, 1]) {
+//       @LINE(fill="linecolor", linestyle="none") {(-2, -0.9) (-2, 0.9) (-0.9, 0.9) (0, 0) (-0.9, -0.9) (-2, -0.9)};
+//       (0, 0) @PIN(terminal=1, direction="right");
+//       ? @TEXT("${name}", key="name", halign="middle") => @PLACE(-1, 1.6)
+//     };
+//   %port_0 = $IO_PORT @ATTACH &"VINN" => @PLACE(-8, 35.2) => @ORIENT("R0");
+//   %port_0 @SET-SYMBOL %input_port_symbol;
+//   %port_0 @TEXT("VINN", key="name");
+//   %port_1 = $IO_PORT @ATTACH &"VINP" => @PLACE(-8, 48) => @ORIENT("R0");
+//   %port_1 @SET-SYMBOL %input_port_symbol;
+//   %port_1 @TEXT("VINP", key="name");
+//   %output_port_symbol = @DEFINE-SYMBOL(box=[0, -1, 2, 1]) {
+//       @LINE(fill="linecolor", linestyle="none") {(0, -0.9) (0, 0.9) (1.1, 0.9) (2, 0) (1.1, -0.9) (0, -0.9)};
+//       (0, 0) @PIN(terminal=1, direction="left");
+//       ? @TEXT("${name}", key="name", halign="middle") => @PLACE(1, 1.6)
+//     };
+//   %port_2 = $IO_PORT @ATTACH &"OVERFLOW" => @PLACE(627.2, -16) => @ORIENT("R0");
+//   %port_2 @SET-SYMBOL %output_port_symbol;
+//   %port_2 @TEXT("OVERFLOW", key="name");
+//   %port_3 = $IO_PORT @ATTACH &"CHANNEL" => @PLACE(627.2, 0) => @ORIENT("R0");
+//   %port_3 @SET-SYMBOL %output_port_symbol;
+//   %port_3 @TEXT("CHANNEL", key="name");
+//   %port_4 = $IO_PORT @ATTACH &"VALID" => @PLACE(627.2, 16) => @ORIENT("R0");
+//   %port_4 @SET-SYMBOL %output_port_symbol;
+//   %port_4 @TEXT("VALID", key="name");
+//   %port_5 = $IO_PORT @ATTACH &"RECON" => @PLACE(627.2, 32) => @ORIENT("R0");
+//   %port_5 @SET-SYMBOL %output_port_symbol;
+//   %port_5 @TEXT("RECON", key="name");
+//   %port_6 = $IO_PORT @ATTACH &"TRACK" => @PLACE(304, -112) => @ORIENT("R0");
+//   %port_6 @SET-SYMBOL %output_port_symbol;
+//   %port_6 @TEXT("TRACK", key="name");
+//   %port_7 = $IO_PORT @ATTACH &"AMP" => @PLACE(304, -152) => @ORIENT("R0");
+//   %port_7 @SET-SYMBOL %output_port_symbol;
+//   %port_7 @TEXT("AMP", key="name");
+//   %port_8 = $IO_PORT @ATTACH &"TA" => @PLACE(304, -168) => @ORIENT("R0");
+//   %port_8 @SET-SYMBOL %output_port_symbol;
+//   %port_8 @TEXT("TA", key="name");
+//   %port_9 = $IO_PORT @ATTACH &"TB" => @PLACE(304, -176) => @ORIENT("R0");
+//   %port_9 @SET-SYMBOL %output_port_symbol;
+//   %port_9 @TEXT("TB", key="name");
+//   %bus_port_type_10 = @DEFINE(roles=[["p", "net"], ["p1", "net"], ["p2", "net"], ["p3", "net"], ["p4", "net"], ["p5", "net"], ["p6", "net"], ["p7", "net"], ["p8", "net"], ["p9", "net"], ["p10", "net"], ["p11", "net"]]) {};
+//   %bus_port_type_10_symbol = @DEFINE-SYMBOL {(0, 0) @PIN(terminal=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])};
+//   {&"CODE_11" &"CODE_10" &"CODE_9" &"CODE_8" &"CODE_7" &"CODE_6" &"CODE_5" &"CODE_4" &"CODE_3" &"CODE_2" &"CODE_1" &"CODE_0"} @REMOVE-FROM $PORT_FILL_SET;
+//   %port_10 = %bus_port_type_10 @ATTACH &"CODE_11" &"CODE_10" &"CODE_9" &"CODE_8" &"CODE_7" &"CODE_6" &"CODE_5" &"CODE_4" &"CODE_3" &"CODE_2" &"CODE_1" &"CODE_0" => @PLACE(627.2, 48) => @ORIENT("R0");
+//   %port_10 @SET-SYMBOL %bus_port_type_10_symbol;
+//   %port_10_marker = $IO_PORT @ATTACH &"CODE_11" => @PLACE(627.2, 48) => @ORIENT("R0");
+//   %port_10_marker @SET-SYMBOL %output_port_symbol;
+//   %port_10_marker @TEXT("CODE<11:0>", key="name");
+//   %bus_port_type_11 = @DEFINE(roles=[["p", "net"], ["p1", "net"], ["p2", "net"], ["p3", "net"]]) {};
+//   %bus_port_type_11_symbol = @DEFINE-SYMBOL {(0, 0) @PIN(terminal=[1, 2, 3, 4])};
+//   {&"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0"} @REMOVE-FROM $PORT_FILL_SET;
+//   %port_11 = %bus_port_type_11 @ATTACH &"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0" => @PLACE(153.6, -147.2) => @ORIENT("R0");
+//   %port_11 @SET-SYMBOL %bus_port_type_11_symbol;
+//   %port_11_marker = $IO_PORT @ATTACH &"BIN_3" => @PLACE(153.6, -147.2) => @ORIENT("R0");
+//   %port_11_marker @SET-SYMBOL %output_port_symbol;
+//   %port_11_marker @TEXT("BIN<3:0>", key="name");
+//   %port_12 = $IO_PORT @ATTACH &"VCM" => @PLACE(8, -99.2) => @ORIENT("R0");
+//   %port_12 @SET-SYMBOL %input_port_symbol;
+//   %port_12 @TEXT("VCM", key="name");
+//   %port_13 = $IO_PORT @ATTACH &"VREFP" => @PLACE(8, -83.2) => @ORIENT("R0");
+//   %port_13 @SET-SYMBOL %input_port_symbol;
+//   %port_13 @TEXT("VREFP", key="name");
+//   %port_14 = $IO_PORT @ATTACH &"VREFN" => @PLACE(8, -91.2) => @ORIENT("R0");
+//   %port_14 @SET-SYMBOL %input_port_symbol;
+//   %port_14 @TEXT("VREFN", key="name");
+//   %port_15 = $IO_PORT @ATTACH &"IB_A" => @PLACE(160, -97.6) => @ORIENT("R0");
+//   %port_15 @SET-SYMBOL %input_port_symbol;
+//   %port_15 @TEXT("IB\_A", key="name");
+//   %port_16 = $IO_PORT @ATTACH &"IB_B" => @PLACE(160, -107.2) => @ORIENT("R0");
+//   %port_16 @SET-SYMBOL %input_port_symbol;
+//   %port_16 @TEXT("IB\_B", key="name");
+//   %bus_port_type_17 = @DEFINE(roles=[["p", "net"], ["p1", "net"], ["p2", "net"], ["p3", "net"], ["p4", "net"], ["p5", "net"], ["p6", "net"], ["p7", "net"], ["p8", "net"], ["p9", "net"], ["p10", "net"], ["p11", "net"], ["p12", "net"], ["p13", "net"], ["p14", "net"]]) {};
+//   %bus_port_type_17_symbol = @DEFINE-SYMBOL {(0, 0) @PIN(terminal=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])};
+//   {&"D_14" &"D_13" &"D_12" &"D_11" &"D_10" &"D_9" &"D_8" &"D_7" &"D_6" &"D_5" &"D_4" &"D_3" &"D_2" &"D_1" &"D_0"} @REMOVE-FROM $PORT_FILL_SET;
+//   %port_17 = %bus_port_type_17 @ATTACH &"D_14" &"D_13" &"D_12" &"D_11" &"D_10" &"D_9" &"D_8" &"D_7" &"D_6" &"D_5" &"D_4" &"D_3" &"D_2" &"D_1" &"D_0" => @PLACE(48, -147.2) => @ORIENT("R0");
+//   %port_17 @SET-SYMBOL %bus_port_type_17_symbol;
+//   %port_17_marker = $IO_PORT @ATTACH &"D_14" => @PLACE(48, -147.2) => @ORIENT("R0");
+//   %port_17_marker @SET-SYMBOL %output_port_symbol;
+//   %port_17_marker @TEXT("D<14:0>", key="name");
+//   %port_18 = $IO_PORT @ATTACH &"VSS" => @PLACE(8, -115.2) => @ORIENT("R0");
+//   %port_18 @SET-SYMBOL %input_port_symbol;
+//   %port_18 @TEXT("VSS", key="name");
+//   %port_19 = $IO_PORT @ATTACH &"VDD" => @PLACE(8, -107.2) => @ORIENT("R0");
+//   %port_19 @SET-SYMBOL %input_port_symbol;
+//   %port_19 @TEXT("VDD", key="name");
+//   %port_20 = $IO_PORT @ATTACH &"RON" => @PLACE(320, 64) => @ORIENT("R0");
+//   %port_20 @SET-SYMBOL %output_port_symbol;
+//   %port_20 @TEXT("RON", key="name");
+//   %port_21 = $IO_PORT @ATTACH &"ROP" => @PLACE(310.4, 72) => @ORIENT("R0");
+//   %port_21 @SET-SYMBOL %output_port_symbol;
+//   %port_21 @TEXT("ROP", key="name");
+//   %port_22 = $IO_PORT @ATTACH &"DB" => @PLACE(508.8, -83.2) => @ORIENT("R0");
+//   %port_22 @SET-SYMBOL %output_port_symbol;
+//   %port_22 @TEXT("DB", key="name");
+//   %port_23 = $IO_PORT @ATTACH &"DA" => @PLACE(508.8, 32) => @ORIENT("R0");
+//   %port_23 @SET-SYMBOL %output_port_symbol;
+//   %port_23 @TEXT("DA", key="name");
+//   %wire_0 = &"VHB" @WIRE(mode="straight") {#"XSARB":26 #"CPROBE3":1};
+//   %wire_0 @TEXT("VHB", size=3.2, halign="middle", valign="baseline") => @PLACE(480, -114.6);
+//   %wire_1 = &"VHA" @WIRE(mode="straight") {#"XSARA":26 #"CPROBE2":1};
+//   %wire_1 @TEXT("VHA", size=3.2, halign="middle", valign="baseline") => @PLACE(480, 0.6);
+//   %wire_2 = &"VDACB" @WIRE(mode="straight") {#"XSARB":24 #"CPROBE1":1};
+//   %wire_2 @TEXT("VDACB", size=3.2, halign="middle", valign="baseline") => @PLACE(480, -122.6);
+//   %wire_3 = &"VDACA" @WIRE(mode="straight") {#"XSARA":24 #"CPROBE0":1};
+//   %wire_3 @TEXT("VDACA", size=3.2, halign="middle", valign="baseline") => @PLACE(480, -7.4);
+//   %wire_4 = &"STEPB" @WIRE(mode="straight") {#"XSARB":21 #"CPROBE5":1};
+//   %wire_4 @TEXT("STEPB", size=3.2, halign="middle", valign="baseline") => @PLACE(480, -130.6);
+//   %wire_5 = &"STEPA" @WIRE(mode="straight") {#"XSARA":21 #"CPROBE4":1};
+//   %wire_5 @TEXT("STEPA", size=3.2, halign="middle", valign="baseline") => @PLACE(480, -15.4);
+//   %p0 = (216, -44.8);
+//   %wire_6 = &"RESET" @WIRE(mode="straight") {%p0 #"XRA":6};
+//   %p1 = (286.4, -160);
+//   %wire_7 = &"RESET" @WIRE(mode="straight") {#"XCLK":3 %p1};
+//   %wire_7 @TEXT("RESET", size=3.2, halign="start", valign="middle") => @PLACE(287.2, -160);
+//   %wire_6 @TEXT("RESET", size=3.2, halign="end", valign="middle") => @PLACE(215.2, -44.8);
+//   %p2 = (286.4, -136);
+//   %wire_8 = &"PHI2P" @WIRE(mode="straight") {#"XCLK":8 %p2};
+//   %p3 = (40, -44.8);
+//   %wire_9 = &"PHI2P" @WIRE(mode="straight") {%p3 #"XFLASH":55};
+//   %wire_9 @TEXT("PHI2P", size=3.2, halign="end", valign="middle") => @PLACE(39.2, -44.8);
+//   %wire_8 @TEXT("PHI2P", size=3.2, halign="start", valign="middle") => @PLACE(287.2, -136);
+//   %p4 = (286.4, -144);
+//   %wire_10 = &"PHI2N" @WIRE(mode="straight") {#"XCLK":9 %p4};
+//   %p5 = (40, -52.8);
+//   %wire_11 = &"PHI2N" @WIRE(mode="straight") {%p5 #"XFLASH":54};
+//   %wire_11 @TEXT("PHI2N", size=3.2, halign="end", valign="middle") => @PLACE(39.2, -52.8);
+//   %wire_10 @TEXT("PHI2N", size=3.2, halign="start", valign="middle") => @PLACE(287.2, -144);
+//   %p6 = (286.4, -128);
+//   %wire_12 = &"PHI1N" @WIRE(mode="straight") {#"XCLK":7 %p6};
+//   %p7 = (40, -36.8);
+//   %wire_13 = &"PHI1N" @WIRE(mode="straight") {%p7 #"XFLASH":53};
+//   %wire_13 @TEXT("PHI1N", size=3.2, halign="end", valign="middle") => @PLACE(39.2, -36.8);
+//   %wire_12 @TEXT("PHI1N", size=3.2, halign="start", valign="middle") => @PLACE(287.2, -128);
+//   %p8 = (286.4, -120);
+//   %wire_14 = &"PHI1EN" @WIRE(mode="straight") {#"XCLK":6 %p8};
+//   %p9 = (40, -28.8);
+//   %wire_15 = &"PHI1EN" @WIRE(mode="straight") {%p9 #"XFLASH":52};
+//   %wire_15 @TEXT("PHI1EN", size=3.2, halign="end", valign="middle") => @PLACE(39.2, -28.8);
+//   %wire_14 @TEXT("PHI1EN", size=3.2, halign="start", valign="middle") => @PLACE(287.2, -120);
+//   %wire_16 = &"OFB" @WIRE(mode="straight") {#"XSARB":11 #"XMERGE":30};
+//   %wire_16 @TEXT("OFB", size=3.2, halign="middle", valign="baseline") => @PLACE(501.6, -90.6);
+//   %wire_17 = &"OFA" @WIRE(mode="straight") {#"XSARA":11 #"XMERGE":29};
+//   %wire_17 @TEXT("OFA", size=3.2, halign="middle", valign="baseline") => @PLACE(501.6, 24.6);
+//   %wire_18 = &"HBP" @WIRE(mode="straight") {#"S_BP":2 #"CH_BP":1};
+//   %wire_19 = &"HBP" @WIRE(mode="straight") {#"CH_BP":1 #"XSARB":28};
+//   %wire_19 @TEXT("HBP", size=3.2, halign="middle", valign="baseline") => @PLACE(384, -66.6);
+//   %wire_18 @TEXT("HBP", size=3.2, halign="middle", valign="baseline") => @PLACE(356, -66.6);
+//   %wire_20 = &"HBN" @WIRE(mode="straight") {#"S_BN":2 #"CH_BN":1};
+//   %wire_21 = &"HBN" @WIRE(mode="straight") {#"CH_BN":1 #"XSARB":27};
+//   %wire_21 @TEXT("HBN", size=3.2, halign="middle", valign="baseline") => @PLACE(384, -79.4);
+//   %wire_20 @TEXT("HBN", size=3.2, halign="middle", valign="baseline") => @PLACE(356, -79.4);
+//   %wire_22 = &"HAP" @WIRE(mode="straight") {#"S_AP":2 #"CH_AP":1};
+//   %wire_23 = &"HAP" @WIRE(mode="straight") {#"CH_AP":1 #"XSARA":28};
+//   %wire_23 @TEXT("HAP", size=3.2, halign="middle", valign="baseline") => @PLACE(384, 48.6);
+//   %wire_22 @TEXT("HAP", size=3.2, halign="middle", valign="baseline") => @PLACE(356, 48.6);
+//   %wire_24 = &"HAN" @WIRE(mode="straight") {#"S_AN":2 #"CH_AN":1};
+//   %wire_25 = &"HAN" @WIRE(mode="straight") {#"CH_AN":1 #"XSARA":27};
+//   %wire_25 @TEXT("HAN", size=3.2, halign="middle", valign="baseline") => @PLACE(384, 35.8);
+//   %wire_24 @TEXT("HAN", size=3.2, halign="middle", valign="baseline") => @PLACE(356, 35.8);
+//   %wire_26 = &"BUSYB" @WIRE(mode="straight") {#"XSARB":1 #"CPROBE7":1};
+//   %wire_26 @TEXT("BUSYB", size=3.2, halign="middle", valign="baseline") => @PLACE(480, -106.6);
+//   %wire_27 = &"BUSYA" @WIRE(mode="straight") {#"XSARA":1 #"CPROBE6":1};
+//   %wire_27 @TEXT("BUSYA", size=3.2, halign="middle", valign="baseline") => @PLACE(480, 8.6);
+//   %wire_28 = {&"KB_3" &"KB_2" &"KB_1" &"KB_0"} @WIRE(mode="straight") {#"XSARB":7 #"XMERGE":23};
+//   %wire_28 @TEXT("KB<3:0>", size=3.2, halign="middle", valign="baseline") => @PLACE(501.6, -74.6);
+//   %wire_29 = {&"KA_3" &"KA_2" &"KA_1" &"KA_0"} @WIRE(mode="straight") {#"XSARA":7 #"XMERGE":19};
+//   %wire_29 @TEXT("KA<3:0>", size=3.2, halign="middle", valign="baseline") => @PLACE(501.6, 40.6);
+//   %wire_30 = {&"QB_8" &"QB_7" &"QB_6" &"QB_5" &"QB_4" &"QB_3" &"QB_2" &"QB_1" &"QB_0"} @WIRE(mode="straight") {#"XSARB":12 #"XMERGE":10};
+//   %wire_30 @TEXT("QB<8:0>", size=3.2, halign="middle", valign="baseline") => @PLACE(501.6, -66.6);
+//   %wire_31 = {&"QA_8" &"QA_7" &"QA_6" &"QA_5" &"QA_4" &"QA_3" &"QA_2" &"QA_1" &"QA_0"} @WIRE(mode="straight") {#"XSARA":12 #"XMERGE":1};
+//   %wire_31 @TEXT("QA<8:0>", size=3.2, halign="middle", valign="baseline") => @PLACE(501.6, 48.6);
+//   %p10 = (83.2, -156.5);
+//   %wire_32 = {&"DP_14" &"DP_13" &"DP_12" &"DP_11" &"DP_10" &"DP_9" &"DP_8" &"DP_7" &"DP_6" &"DP_5" &"DP_4" &"DP_3" &"DP_2" &"DP_1" &"DP_0"} @WIRE(mode="straight") {%bundle_1:1 %p10};
+//   %p11 = (126.4, -59.2);
+//   %wire_33 = {&"DP_14" &"DP_13" &"DP_12" &"DP_11" &"DP_10" &"DP_9" &"DP_8" &"DP_7" &"DP_6" &"DP_5" &"DP_4" &"DP_3" &"DP_2" &"DP_1" &"DP_0"} @WIRE(mode="straight") {#"XFLASH":35 %p11};
+//   %wire_33 @TEXT("DP<14:0>", size=3.2, halign="start", valign="middle") => @PLACE(127.2, -59.2);
+//   %wire_32 @TEXT("DP<14:0>", size=3.2, halign="middle", valign="baseline") => @PLACE(83.2, -155.7);
+//   %p12 = (118.4, -156.5);
+//   %wire_34 = {&"DN_14" &"DN_13" &"DN_12" &"DN_11" &"DN_10" &"DN_9" &"DN_8" &"DN_7" &"DN_6" &"DN_5" &"DN_4" &"DN_3" &"DN_2" &"DN_1" &"DN_0"} @WIRE(mode="straight") {%bundle_2:1 %p12};
+//   %p13 = (126.4, -67.2);
+//   %wire_35 = {&"DN_14" &"DN_13" &"DN_12" &"DN_11" &"DN_10" &"DN_9" &"DN_8" &"DN_7" &"DN_6" &"DN_5" &"DN_4" &"DN_3" &"DN_2" &"DN_1" &"DN_0"} @WIRE(mode="straight") {#"XFLASH":20 %p13};
+//   %wire_35 @TEXT("DN<14:0>", size=3.2, halign="start", valign="middle") => @PLACE(127.2, -67.2);
+//   %wire_34 @TEXT("DN<14:0>", size=3.2, halign="middle", valign="baseline") => @PLACE(118.4, -155.7);
+//   %p14 = (153.6, -169.5);
+//   %wire_36 = &"VSS" @WIRE(mode="straight") {%p14 %bundle_3:2};
+//   %wire_36 @TEXT("<*4>VSS", size=3.2, halign="middle", valign="top") => @PLACE(153.6, -170.3);
+//   %p15 = (118.4, -169.5);
+//   %wire_37 = &"VSS" @WIRE(mode="straight") {%p15 %bundle_2:2};
+//   %p16 = (83.2, -169.5);
+//   %wire_38 = &"VSS" @WIRE(mode="straight") {%p16 %bundle_1:2};
+//   %p17 = (48, -169.5);
+//   %wire_39 = &"VSS" @WIRE(mode="straight") {%p17 %bundle_0:2};
+//   %wire_39 @TEXT("<*15>VSS", size=3.2, halign="middle", valign="top") => @PLACE(48, -170.3);
+//   %wire_38 @TEXT("<*15>VSS", size=3.2, halign="middle", valign="top") => @PLACE(83.2, -170.3);
+//   %wire_37 @TEXT("<*15>VSS", size=3.2, halign="middle", valign="top") => @PLACE(118.4, -170.3);
+//   %p18 = (126.4, -86.4);
+//   %wire_40 = &"VCM" @WIRE(mode="straight") {#"XFLASH":60 %p18};
+//   %p19 = (126.4, -78.4);
+//   %wire_41 = &"VCM" @WIRE(mode="straight") {#"XFLASH":75 %p19};
+//   %wire_41 @TEXT("<*15>VCM", size=3.2, halign="start", valign="middle") => @PLACE(127.2, -78.4);
+//   %wire_40 @TEXT("<*15>VCM", size=3.2, halign="start", valign="middle") => @PLACE(127.2, -86.4);
+//   %p20 = (24, 35.2);
+//   %wire_42 = &"VINN" @WIRE(mode="straight") {%port_0:p %p20};
+//   %wire_43 = &"VINN" @WIRE(mode="straight") {%p20 #"XRA":12};
+//   %p21 = (24, -12.8);
+//   %wire_44 = &"VINN" @WIRE(mode="straight") {%p21 %p20};
+//   %wire_45 = &"VINN" @WIRE(mode="straight") {%p21 #"XFLASH":58};
+//   %wire_44 @TEXT("VINN", size=3.2, halign="middle", valign="baseline") => @PLACE(24, 11.8);
+//   %p22 = (16, 48);
+//   %wire_46 = &"VINP" @WIRE(mode="straight") {%port_1:p %p22};
+//   %wire_47 = &"VINP" @WIRE(mode="straight") {%p22 #"XRA":13};
+//   %p23 = (16, 0);
+//   %wire_48 = &"VINP" @WIRE(mode="straight") {%p23 %p22};
+//   %wire_49 = &"VINP" @WIRE(mode="straight") {%p23 #"XFLASH":59};
+//   %wire_48 @TEXT("VINP", size=3.2, halign="middle", valign="baseline") => @PLACE(16, 24.6);
+//   %wire_50 = &"OVERFLOW" @WIRE(mode="straight") {#"XMERGE":45 %port_2:p};
+//   %wire_51 = &"CHANNEL" @WIRE(mode="straight") {#"XMERGE":44 %port_3:p};
+//   %wire_52 = &"VALID" @WIRE(mode="straight") {#"XMERGE":43 %port_4:p};
+//   %wire_53 = &"RECON" @WIRE(mode="straight") {#"XMERGE":46 %port_5:p};
+//   %wire_54 = {&"CODE_11" &"CODE_10" &"CODE_9" &"CODE_8" &"CODE_7" &"CODE_6" &"CODE_5" &"CODE_4" &"CODE_3" &"CODE_2" &"CODE_1" &"CODE_0"} @WIRE(mode="straight") {#"XMERGE":31 %port_10:1};
+//   %wire_55 = &"TB" @WIRE(mode="straight") {#"XCLK":5 %port_9:p};
+//   %p24 = (340, -74.5);
+//   %wire_56 = &"TB" @WIRE(mode="straight") {#"S_BN":3 %p24};
+//   %p25 = (340, -61.7);
+//   %wire_57 = &"TB" @WIRE(mode="straight") {#"S_BP":3 %p25};
+//   %p26 = (392, -92.8);
+//   %wire_58 = &"TB" @WIRE(mode="straight") {%p26 #"XSARB":22};
+//   %wire_58 @TEXT("TB", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -92.8);
+//   %wire_57 @TEXT("TB", size=3.2, halign="middle", valign="baseline") => @PLACE(340, -60.9);
+//   %wire_56 @TEXT("TB", size=3.2, halign="middle", valign="baseline") => @PLACE(340, -73.7);
+//   %wire_59 = &"TA" @WIRE(mode="straight") {#"XCLK":4 %port_8:p};
+//   %p27 = (340, 40.7);
+//   %wire_60 = &"TA" @WIRE(mode="straight") {#"S_AN":3 %p27};
+//   %p28 = (340, 53.5);
+//   %wire_61 = &"TA" @WIRE(mode="straight") {#"S_AP":3 %p28};
+//   %p29 = (392, 22.4);
+//   %wire_62 = &"TA" @WIRE(mode="straight") {%p29 #"XSARA":22};
+//   %wire_62 @TEXT("TA", size=3.2, halign="end", valign="middle") => @PLACE(391.2, 22.4);
+//   %wire_61 @TEXT("TA", size=3.2, halign="middle", valign="baseline") => @PLACE(340, 54.3);
+//   %wire_60 @TEXT("TA", size=3.2, halign="middle", valign="baseline") => @PLACE(340, 41.5);
+//   %wire_63 = &"AMP" @WIRE(mode="straight") {#"XCLK":2 %port_7:p};
+//   %p30 = (216, -36.8);
+//   %wire_64 = &"AMP" @WIRE(mode="straight") {%p30 #"XRA":1};
+//   %wire_64 @TEXT("AMP", size=3.2, halign="end", valign="middle") => @PLACE(215.2, -36.8);
+//   %wire_65 = &"TRACK" @WIRE(mode="straight") {#"XCLK":1 %port_6:p};
+//   %p31 = (216, -28.8);
+//   %wire_66 = &"TRACK" @WIRE(mode="straight") {%p31 #"XRA":9};
+//   %wire_66 @TEXT("TRACK", size=3.2, halign="end", valign="middle") => @PLACE(215.2, -28.8);
+//   %wire_67 = {&"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0"} @WIRE(mode="straight") {%bundle_3:1 %port_11:1};
+//   %p32 = (168, -51.2);
+//   %wire_68 = {&"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0"} @WIRE(mode="straight") {#"XFLASH":1 %p32};
+//   %p33 = (168, 0);
+//   %wire_69 = {&"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0"} @WIRE(mode="straight") {%p33 #"XRA":2};
+//   %wire_70 = {&"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0"} @WIRE(mode="straight") {%p32 %p33};
+//   %p34 = (392, 14.4);
+//   %wire_71 = {&"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0"} @WIRE(mode="straight") {%p34 #"XSARA":3};
+//   %p35 = (392, -100.8);
+//   %wire_72 = {&"BIN_3" &"BIN_2" &"BIN_1" &"BIN_0"} @WIRE(mode="straight") {%p35 #"XSARB":3};
+//   %wire_72 @TEXT("BIN<3:0>", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -100.8);
+//   %wire_71 @TEXT("BIN<3:0>", size=3.2, halign="end", valign="middle") => @PLACE(391.2, 14.4);
+//   %wire_69 @TEXT("BIN<3:0>", size=3.2, halign="middle", valign="baseline") => @PLACE(196, 0.6);
+//   %wire_73 = {&"D_14" &"D_13" &"D_12" &"D_11" &"D_10" &"D_9" &"D_8" &"D_7" &"D_6" &"D_5" &"D_4" &"D_3" &"D_2" &"D_1" &"D_0"} @WIRE(mode="straight") {%bundle_0:1 %port_17:1};
+//   %p36 = (126.4, 0);
+//   %wire_74 = {&"D_14" &"D_13" &"D_12" &"D_11" &"D_10" &"D_9" &"D_8" &"D_7" &"D_6" &"D_5" &"D_4" &"D_3" &"D_2" &"D_1" &"D_0"} @WIRE(mode="straight") {#"XFLASH":5 %p36};
+//   %wire_74 @TEXT("D<14:0>", size=3.2, halign="start", valign="middle") => @PLACE(127.2, 0);
+//   %wire_75 = &"IB_B" @WIRE(mode="straight") {#"XFLASH":51 %port_16:p};
+//   %wire_76 = &"IB_A" @WIRE(mode="straight") {#"XFLASH":50 %port_15:p};
+//   %wire_77 = &"VREFN" @WIRE(mode="straight") {%port_14:p #"XFLASH":90};
+//   %p37 = (216, -20.8);
+//   %wire_78 = &"VREFN" @WIRE(mode="straight") {%p37 #"XRA":14};
+//   %p38 = (392, -6.4);
+//   %wire_79 = &"VREFN" @WIRE(mode="straight") {%p38 #"XSARA":29};
+//   %p39 = (392, -121.6);
+//   %wire_80 = &"VREFN" @WIRE(mode="straight") {%p39 #"XSARB":29};
+//   %wire_80 @TEXT("VREFN", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -121.6);
+//   %wire_79 @TEXT("VREFN", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -6.4);
+//   %wire_78 @TEXT("VREFN", size=3.2, halign="end", valign="middle") => @PLACE(215.2, -20.8);
+//   %wire_81 = &"VREFP" @WIRE(mode="straight") {%port_13:p #"XFLASH":91};
+//   %p40 = (216, -12.8);
+//   %wire_82 = &"VREFP" @WIRE(mode="straight") {%p40 #"XRA":15};
+//   %p41 = (392, 1.6);
+//   %wire_83 = &"VREFP" @WIRE(mode="straight") {%p41 #"XSARA":30};
+//   %p42 = (392, -113.6);
+//   %wire_84 = &"VREFP" @WIRE(mode="straight") {%p42 #"XSARB":30};
+//   %wire_84 @TEXT("VREFP", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -113.6);
+//   %wire_83 @TEXT("VREFP", size=3.2, halign="end", valign="middle") => @PLACE(391.2, 1.6);
+//   %wire_82 @TEXT("VREFP", size=3.2, halign="end", valign="middle") => @PLACE(215.2, -12.8);
+//   %wire_85 = &"VCM" @WIRE(mode="straight") {%port_12:p #"XFLASH":56};
+//   %p43 = (302.4, -12.8);
+//   %wire_86 = &"VCM" @WIRE(mode="straight") {#"XRA":10 %p43};
+//   %p44 = (392, -14.4);
+//   %wire_87 = &"VCM" @WIRE(mode="straight") {%p44 #"XSARA":23};
+//   %p45 = (392, -129.6);
+//   %wire_88 = &"VCM" @WIRE(mode="straight") {%p45 #"XSARB":23};
+//   %p46 = (368, -89.5);
+//   %wire_89 = &"VCM" @WIRE(mode="straight") {%p46 #"CH_BN":2};
+//   %p47 = (368, -57.7);
+//   %wire_90 = &"VCM" @WIRE(mode="straight") {#"CH_BP":2 %p47};
+//   %p48 = (368, 25.7);
+//   %wire_91 = &"VCM" @WIRE(mode="straight") {%p48 #"CH_AN":2};
+//   %p49 = (368, 57.5);
+//   %wire_92 = &"VCM" @WIRE(mode="straight") {#"CH_AP":2 %p49};
+//   %wire_92 @TEXT("VCM", size=3.2, halign="middle", valign="baseline") => @PLACE(368, 58.3);
+//   %wire_91 @TEXT("VCM", size=3.2, halign="middle", valign="top") => @PLACE(368, 24.9);
+//   %wire_90 @TEXT("VCM", size=3.2, halign="middle", valign="baseline") => @PLACE(368, -56.9);
+//   %wire_89 @TEXT("VCM", size=3.2, halign="middle", valign="top") => @PLACE(368, -90.3);
+//   %wire_88 @TEXT("VCM", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -129.6);
+//   %wire_87 @TEXT("VCM", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -14.4);
+//   %wire_86 @TEXT("VCM", size=3.2, halign="start", valign="middle") => @PLACE(303.2, -12.8);
+//   %wire_93 = &"VSS" @WIRE(mode="straight") {%port_18:p #"XFLASH":92};
+//   %p50 = (302.4, -28.8);
+//   %wire_94 = &"VSS" @WIRE(mode="straight") {#"XRA":16 %p50};
+//   %p51 = (200, -120);
+//   %wire_95 = &"VSS" @WIRE(mode="straight") {%p51 #"XCLK":11};
+//   %p52 = (392, -30.4);
+//   %wire_96 = &"VSS" @WIRE(mode="straight") {%p52 #"XSARA":31};
+//   %p53 = (392, -145.6);
+//   %wire_97 = &"VSS" @WIRE(mode="straight") {%p53 #"XSARB":31};
+//   %p54 = (609.6, -112);
+//   %wire_98 = &"VSS" @WIRE(mode="straight") {#"XMERGE":48 %p54};
+//   %p55 = (497.5, -107.2);
+//   %wire_99 = &"VSS" @WIRE(mode="straight") {#"CPROBE7":2 %p55};
+//   %p56 = (497.5, 8);
+//   %wire_100 = &"VSS" @WIRE(mode="straight") {#"CPROBE6":2 %p56};
+//   %p57 = (497.5, -131.2);
+//   %wire_101 = &"VSS" @WIRE(mode="straight") {#"CPROBE5":2 %p57};
+//   %p58 = (497.5, -16);
+//   %wire_102 = &"VSS" @WIRE(mode="straight") {#"CPROBE4":2 %p58};
+//   %p59 = (497.5, -115.2);
+//   %wire_103 = &"VSS" @WIRE(mode="straight") {#"CPROBE3":2 %p59};
+//   %p60 = (497.5, 0);
+//   %wire_104 = &"VSS" @WIRE(mode="straight") {#"CPROBE2":2 %p60};
+//   %p61 = (497.5, -123.2);
+//   %wire_105 = &"VSS" @WIRE(mode="straight") {#"CPROBE1":2 %p61};
+//   %p62 = (497.5, -8);
+//   %wire_106 = &"VSS" @WIRE(mode="straight") {#"CPROBE0":2 %p62};
+//   %wire_106 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(498.3, -8);
+//   %wire_105 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(498.3, -123.2);
+//   %wire_104 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(498.3, 0);
+//   %wire_103 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(498.3, -115.2);
+//   %wire_102 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(498.3, -16);
+//   %wire_101 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(498.3, -131.2);
+//   %wire_100 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(498.3, 8);
+//   %wire_99 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(498.3, -107.2);
+//   %wire_98 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(610.4, -112);
+//   %wire_97 @TEXT("VSS", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -145.6);
+//   %wire_96 @TEXT("VSS", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -30.4);
+//   %wire_95 @TEXT("VSS", size=3.2, halign="end", valign="middle") => @PLACE(199.2, -120);
+//   %wire_94 @TEXT("VSS", size=3.2, halign="start", valign="middle") => @PLACE(303.2, -28.8);
+//   %wire_107 = &"VDD" @WIRE(mode="straight") {%port_19:p #"XFLASH":57};
+//   %p63 = (302.4, -20.8);
+//   %wire_108 = &"VDD" @WIRE(mode="straight") {#"XRA":11 %p63};
+//   %p64 = (200, -112);
+//   %wire_109 = &"VDD" @WIRE(mode="straight") {%p64 #"XCLK":10};
+//   %p65 = (392, -22.4);
+//   %wire_110 = &"VDD" @WIRE(mode="straight") {%p65 #"XSARA":25};
+//   %p66 = (392, -137.6);
+//   %wire_111 = &"VDD" @WIRE(mode="straight") {%p66 #"XSARB":25};
+//   %p67 = (609.6, -104);
+//   %wire_112 = &"VDD" @WIRE(mode="straight") {#"XMERGE":47 %p67};
+//   %wire_112 @TEXT("VDD", size=3.2, halign="start", valign="middle") => @PLACE(610.4, -104);
+//   %wire_111 @TEXT("VDD", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -137.6);
+//   %wire_110 @TEXT("VDD", size=3.2, halign="end", valign="middle") => @PLACE(391.2, -22.4);
+//   %wire_109 @TEXT("VDD", size=3.2, halign="end", valign="middle") => @PLACE(199.2, -112);
+//   %wire_108 @TEXT("VDD", size=3.2, halign="start", valign="middle") => @PLACE(303.2, -20.8);
+//   %p68 = (320, 35.2);
+//   %wire_113 = &"RON" @WIRE(mode="straight") {#"XRA":7 %p68};
+//   %wire_114 = &"RON" @WIRE(mode="straight") {%p68 %port_20:p};
+//   %wire_115 = &"RON" @WIRE(mode="straight") {%p68 #"S_AN":1};
+//   %p69 = (320, -80);
+//   %wire_116 = &"RON" @WIRE(mode="straight") {%p69 %p68};
+//   %wire_117 = &"RON" @WIRE(mode="straight") {%p69 #"S_BN":1};
+//   %wire_116 @TEXT("RON", size=3.2, halign="middle", valign="baseline") => @PLACE(320, -21.8);
+//   %wire_113 @TEXT("RON", size=3.2, halign="middle", valign="baseline") => @PLACE(315.2, 35.8);
+//   %p70 = (310.4, 48);
+//   %wire_118 = &"ROP" @WIRE(mode="straight") {#"XRA":8 %p70};
+//   %wire_119 = &"ROP" @WIRE(mode="straight") {%p70 %port_21:p};
+//   %wire_120 = &"ROP" @WIRE(mode="straight") {%p70 #"S_AP":1};
+//   %p71 = (310.4, -67.2);
+//   %wire_121 = &"ROP" @WIRE(mode="straight") {%p71 #"S_BP":1};
+//   %wire_122 = &"ROP" @WIRE(mode="straight") {%p71 %p70};
+//   %wire_122 @TEXT("ROP", size=3.2, halign="middle", valign="baseline") => @PLACE(310.4, -9);
+//   %wire_120 @TEXT("ROP", size=3.2, halign="middle", valign="baseline") => @PLACE(315.2, 48.6);
+//   %p72 = (510, -83.2);
+//   %wire_123 = &"DB" @WIRE(mode="straight") {#"XSARB":2 %port_22:p %p72};
+//   %wire_124 = &"DB" @WIRE(mode="straight") {%p72 #"XMERGE":28};
+//   %wire_123 @TEXT("DB", size=3.2, halign="middle", valign="baseline") => @PLACE(501.6, -82.6);
+//   %p73 = (510, 32);
+//   %wire_125 = &"DA" @WIRE(mode="straight") {#"XSARA":2 %port_23:p %p73};
+//   %wire_126 = &"DA" @WIRE(mode="straight") {%p73 #"XMERGE":27};
+//   %wire_125 @TEXT("DA", size=3.2, halign="middle", valign="baseline") => @PLACE(501.6, 32.6);
+//   $JUNCTION @ATTACH %p20;
+//   $JUNCTION @ATTACH %p22;
+//   $JUNCTION @ATTACH %p68;
+//   $JUNCTION @ATTACH %p70;
+//   (48, -204.8) @TEXT("Original ideal OTA, sampling/reset Switch, rail clamp and clock models retained.", size=4, halign="start", valign="baseline");
+//   (352, -176) @TEXT("0..250ps sample | 250..500ps Flash | 500..1000ps amplify", size=4.2, halign="start", valign="baseline");
+//   (48, -136) @TEXT("Flash monitor loads", size=3.8, halign="start", valign="baseline");
+//   (48, -193.6) @TEXT("MOM capacitors and reference MOS are PDK devices; no ideal analog DAC.", size=4.2, halign="start", valign="baseline");
+//   (400, 70.4) @TEXT("Lane A / 500 MS/s", size=4.2, halign="start", valign="baseline");
+//   (400, -49.6) @TEXT("Lane B / 500 MS/s", size=4.2, halign="start", valign="baseline");
+//   (208, -79.2) @TEXT("and both SAR coarse-code inputs.", size=3.7, halign="start", valign="baseline");
+//   (208, 75.2) @TEXT("8C+4C+2C+C+Cdummy; Cf=2C", size=3.8, halign="start", valign="baseline");
+//   (208, -70.4) @TEXT("BIN drives reference selection", size=3.7, halign="start", valign="baseline");
+//   (-8, 94.4) @TEXT("1 GS/s; VDD=1V; VCM=0.5V; quantizer differential FS=2Vpp.", size=4.2, halign="start", valign="baseline");
+//   (-8, 107.2) @TEXT("PIPE-TI-SAR / MOM capacitor-array MDAC / real SAR backend", size=6.7, halign="start", valign="baseline");
+//   (-8, 49.9) @TEXT("VINP", size=2.2, halign="start", valign="baseline");
+//   (-8, 37.1) @TEXT("VINN", size=2.2, halign="start", valign="baseline");
+//   (627.2, -14.1) @TEXT("OVERFLOW", size=2.2, halign="start", valign="baseline");
+//   (627.2, 1.9) @TEXT("CHANNEL", size=2.2, halign="start", valign="baseline");
+//   (627.2, 17.9) @TEXT("VALID", size=2.2, halign="start", valign="baseline");
+//   (627.2, 33.9) @TEXT("RECON", size=2.2, halign="start", valign="baseline");
+//   (627.2, 49.9) @TEXT("CODE<11:0>", size=2.2, halign="start", valign="baseline");
+//   (304, -174.1) @TEXT("TB", size=2.2, halign="start", valign="baseline");
+//   (304, -166.1) @TEXT("TA", size=2.2, halign="start", valign="baseline");
+//   (304, -150.1) @TEXT("AMP", size=2.2, halign="start", valign="baseline");
+//   (304, -110.1) @TEXT("TRACK", size=2.2, halign="start", valign="baseline");
+//   (153.6, -145.3) @TEXT("BIN<3:0>", size=2.2, halign="start", valign="baseline");
+//   (48, -145.3) @TEXT("D<14:0>", size=2.2, halign="start", valign="baseline");
+//   (160, -105.3) @TEXT("IB\_B", size=2.2, halign="start", valign="baseline");
+//   (160, -95.7) @TEXT("IB\_A", size=2.2, halign="start", valign="baseline");
+//   (8, -89.3) @TEXT("VREFN", size=2.2, halign="start", valign="baseline");
+//   (8, -81.3) @TEXT("VREFP", size=2.2, halign="start", valign="baseline");
+//   (8, -97.3) @TEXT("VCM", size=2.2, halign="start", valign="baseline");
+//   (8, -113.3) @TEXT("VSS", size=2.2, halign="start", valign="baseline");
+//   (8, -105.3) @TEXT("VDD", size=2.2, halign="start", valign="baseline");
+//   (320, 65.9) @TEXT("RON", size=2.2, halign="start", valign="baseline");
+//   (310.4, 73.9) @TEXT("ROP", size=2.2, halign="start", valign="baseline");
+//   (508.8, -81.3) @TEXT("DB", size=2.2, halign="start", valign="baseline");
+//   (508.8, 33.9) @TEXT("DA", size=2.2, halign="start", valign="baseline")
+// }
+ends PIPE_TOP_CA4_RS9_N06

@@ -1,0 +1,8 @@
+// Explicit saved-library assembly.
+simulator lang=spectre
+include "L4_stage1_flash_comparator.scs"
+include "L4_stage1_flash_bootstrapper.scs"
+include "L4_stage1_flash_clkbooster.scs"
+include "L4_stage1_flash4_rdac.scs"
+include "L4_stage1_flash4_encoder.scs"
+include "L3_stage1_flash4.scs"

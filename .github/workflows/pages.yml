@@ -26,10 +26,15 @@ jobs:
       - name: Check source boundaries, reference math and browser-node transport
         run: |
           python -B tools/dev/check_structure.py
-          node --test tests/demo/*.test.mjs tests/remote/*.test.mjs
+          node --test tests/demo/*.test.mjs tests/remote/*.test.mjs tests/ai/*.test.mjs
           python -B tests/remote/test_node.py
           python -B tests/remote/test_pairing.py
           python -B tests/remote/test_helper.py
+          python -B tests/remote/test_development.py
+          python -B tests/library/test_build_library.py
+          python -B tools/library/test_import.py
+          node --test tests/library/*.test.mjs
+          python -B tools/workbench/test_library_projects.py
       - name: Build the static workbench
         run: python -B tools/dev/build_pages.py
       - uses: actions/configure-pages@v5

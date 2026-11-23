@@ -1,0 +1,208 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "TB_Flash_Sine_1G",
+    "view": "schematic"
+  },
+  "native_level": "@top",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [
+    "ND2D0BWP12T30P140ULVT",
+    "cfmom_2t",
+    "nch_mac",
+    "nch_ulvt_mac",
+    "pch_mac",
+    "pch_ulvt_mac",
+    "rnods",
+    "trans_ulvt_mac_pcell_0"
+  ],
+  "external_interface_stub": false,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/research/L3_stage1_flash.scs",
+      "source_sha256": "e9e606d082ff11d244450294794bb294c9b42d027c01ebb20255afe91c8662d2",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/L3_stage1_flash.scs",
+      "sha256": "e9e606d082ff11d244450294794bb294c9b42d027c01ebb20255afe91c8662d2",
+      "bytes": 29833,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/L4_stage1_flash_bootstrapper.scs",
+      "source_sha256": "ee8105ae0e09754859624e561369294e17d4fddedadb46683acda38cdb11fd51",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/L4_stage1_flash_bootstrapper.scs",
+      "sha256": "ee8105ae0e09754859624e561369294e17d4fddedadb46683acda38cdb11fd51",
+      "bytes": 29446,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/L4_stage1_flash_calibration.scs",
+      "source_sha256": "72057c166222382ce9fb0153946b5f7352a5bd6b2362bdbca3b72fac0a7c752a",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/L4_stage1_flash_calibration.scs",
+      "sha256": "72057c166222382ce9fb0153946b5f7352a5bd6b2362bdbca3b72fac0a7c752a",
+      "bytes": 13166,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/L4_stage1_flash_clkbooster.scs",
+      "source_sha256": "714bd40057a97c5997ac51adbabc3682ce43d627a5364732969e7e7a0f4caf2f",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/L4_stage1_flash_clkbooster.scs",
+      "sha256": "714bd40057a97c5997ac51adbabc3682ce43d627a5364732969e7e7a0f4caf2f",
+      "bytes": 20527,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/L4_stage1_flash_comparator.scs",
+      "source_sha256": "28a8b10627ce005171061b2c35faa93301e6a3e22a8ab2b5a301b1d7282bd941",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/L4_stage1_flash_comparator.scs",
+      "sha256": "28a8b10627ce005171061b2c35faa93301e6a3e22a8ab2b5a301b1d7282bd941",
+      "bytes": 63623,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/L4_stage1_flash_rdac.scs",
+      "source_sha256": "05d0f63627dacb243c07e67581dcc10215172b7a6458ab40378c2e91ae62fb8e",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/L4_stage1_flash_rdac.scs",
+      "sha256": "05d0f63627dacb243c07e67581dcc10215172b7a6458ab40378c2e91ae62fb8e",
+      "bytes": 14181,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/L5_stage1_flash_cal_mux.scs",
+      "source_sha256": "a3cf993ba7c205d6edce75fd05211187f7b1250c60eef8528d8bd3a1a044ac52",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/L5_stage1_flash_cal_mux.scs",
+      "sha256": "a3cf993ba7c205d6edce75fd05211187f7b1250c60eef8528d8bd3a1a044ac52",
+      "bytes": 42879,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/TB_Flash_Sine_1G.scs",
+      "source_sha256": "475e1441bdbd8c6dfbc0bd8a48b6399439a05fd07c15e71c9c330db64552447c",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/TB_Flash_Sine_1G.scs",
+      "sha256": "475e1441bdbd8c6dfbc0bd8a48b6399439a05fd07c15e71c9c330db64552447c",
+      "bytes": 18130,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/eda-symbol.rnl",
+      "source_sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/eda-symbol.rnl",
+      "sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "bytes": 94890,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-basic.rnl",
+      "source_sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-semiconductors.rnl",
+      "source_sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-spectre.rnl",
+      "source_sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/rnl-std-spectre.rnl",
+      "sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "bytes": 3128,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-L3_stage1_flash.scs",
+      "source_sha256": "a12f103486d25b8f10611509d49d9f0a9dd10be7c91ecd031beda9abc6be4c9f",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/view-L3_stage1_flash.scs",
+      "sha256": "a12f103486d25b8f10611509d49d9f0a9dd10be7c91ecd031beda9abc6be4c9f",
+      "bytes": 329,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-L4_stage1_flash_bootstrapper.scs",
+      "source_sha256": "368d13a887f50af0bff315b16ccb019eff3b353a3ff507a3ac44fd71cf47510f",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/view-L4_stage1_flash_bootstrapper.scs",
+      "sha256": "368d13a887f50af0bff315b16ccb019eff3b353a3ff507a3ac44fd71cf47510f",
+      "bytes": 102,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-L4_stage1_flash_calibration.scs",
+      "source_sha256": "2ed87938b91237268731587e21412fc1ff60ea97d48b2ff8905822dd005d5138",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/view-L4_stage1_flash_calibration.scs",
+      "sha256": "2ed87938b91237268731587e21412fc1ff60ea97d48b2ff8905822dd005d5138",
+      "bytes": 139,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-L4_stage1_flash_clkbooster.scs",
+      "source_sha256": "deda3faa87d5526846ba5960f796d12b129b7a3d516685c9b637abc4794a63f8",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/view-L4_stage1_flash_clkbooster.scs",
+      "sha256": "deda3faa87d5526846ba5960f796d12b129b7a3d516685c9b637abc4794a63f8",
+      "bytes": 100,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-L4_stage1_flash_comparator.scs",
+      "source_sha256": "4e8ce47b13218d8e80ad6154e900368e57da029584b531b7395873e3084398d5",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/view-L4_stage1_flash_comparator.scs",
+      "sha256": "4e8ce47b13218d8e80ad6154e900368e57da029584b531b7395873e3084398d5",
+      "bytes": 100,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-L4_stage1_flash_rdac.scs",
+      "source_sha256": "771e4fc0fbdf0e2894186645faec682bee7623a56775c6829c12039c40d30b0d",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/view-L4_stage1_flash_rdac.scs",
+      "sha256": "771e4fc0fbdf0e2894186645faec682bee7623a56775c6829c12039c40d30b0d",
+      "bytes": 94,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-L5_stage1_flash_cal_mux.scs",
+      "source_sha256": "6ec1f6e862f5e5871d5643e68af0e38435fd55492dd82a8e397e655373d846b8",
+      "path": "lib/pipetisar-research/TB_Flash_Sine_1G/schematic/research/view-L5_stage1_flash_cal_mux.scs",
+      "sha256": "6ec1f6e862f5e5871d5643e68af0e38435fd55492dd82a8e397e655373d846b8",
+      "bytes": 97,
+      "transformation": "none"
+    }
+  ]
+}

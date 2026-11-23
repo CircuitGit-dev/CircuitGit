@@ -9,8 +9,23 @@ class ProjectCompilationTests(unittest.TestCase):
         site=ic_sim.site_load(repo/'config/site.example.json')
         with tempfile.TemporaryDirectory() as tmp:
             tmp=pathlib.Path(tmp);seed=tmp/'seed';seed.mkdir()
-            shutil.copytree(repo/'projects',seed/'projects')
-            shutil.copytree(repo/'sim/bundles',seed/'sim/bundles')
+            # Copy only explicitly registered inputs; public builds may omit legacy sim/.
+            inputs=set()
+            for project in catalog:
+                inputs.update([project['source_path'],*project.get('read_paths',[])])
+                for config in project['configurations']:
+                    inputs.update([config['configuration_path'],config['bundle_template']])
+                    inputs.update(row['source'] for row in config.get('source_replacements',[]))
+                    template=repo/config['bundle_template'];bundle=json.loads(template.read_text())
+                    for row in bundle['files']:
+                        path=(template.parent/bundle['source_root']/row['source']).resolve()
+                        self.assertTrue(path.is_relative_to(repo))
+                        inputs.add(str(path.relative_to(repo)))
+            for relative in sorted(inputs):
+                source=repo/relative
+                self.assertFalse(source.is_symlink())
+                target=seed/relative;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copy2(source,target)
             subprocess.run(['git','init','-b','main',str(seed)],check=True,capture_output=True)
             workspace.git(seed,'add','.')
             workspace.git(seed,'-c','user.name=Project Test','-c','user.email=test@localhost','commit','-m','project fixtures')

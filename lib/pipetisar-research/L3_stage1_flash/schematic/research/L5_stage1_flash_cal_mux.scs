@@ -1,0 +1,651 @@
+// Generated for: spectre
+// @RNL(type="header") {
+//   @VERSION("0.3");
+//   @USE-PACKAGE(name="rnl-std-spectre", version="0.3", path="rnl-std-spectre.rnl");
+//   @USE-PACKAGE(name="eda-symbol", version="0.1", path="eda-symbol.rnl");
+//   @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl")
+// }
+// Generated on: Nov  9 19:39:00 2026
+// Design library name: 2026_PIPETISAR_RESEARCH
+// Design cell name: L5_stage1_flash_cal_mux
+// Design view name: schematic
+simulator lang=spectre
+global 0
+
+// Library name: tsmcN28
+// Cell name: trans_ulvt_mac
+// View name: schematic
+// End of subcircuit definition.
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: L5_stage1_flash_cal_mux
+// View name: schematic
+subckt L5_stage1_flash_cal_mux SLCT_6 SLCT_5 SLCT_4 SLCT_3 SLCT_2 SLCT_1 \
+        SLCT_0 VDD VIN_6 VIN_5 VIN_4 VIN_3 VIN_2 VIN_1 VIN_0 VOUTN VOUTP \
+        VSS
+    I0_6 (VIN_6 SLCT_6 SLCTN_6 VSS VDD VOUTP) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I0_5 (VIN_5 SLCT_5 SLCTN_5 VSS VDD VOUTP) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I0_4 (VIN_4 SLCT_4 SLCTN_4 VSS VDD VOUTP) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I0_3 (VIN_3 SLCT_3 SLCTN_3 VSS VDD VOUTP) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I0_2 (VIN_2 SLCT_2 SLCTN_2 VSS VDD VOUTP) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I0_1 (VIN_1 SLCT_1 SLCTN_1 VSS VDD VOUTP) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I0_0 (VIN_0 SLCT_0 SLCTN_0 VSS VDD VOUTP) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I5_6 (VIN_0 SLCT_6 SLCTN_6 VSS VDD VOUTN) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I5_5 (VIN_1 SLCT_5 SLCTN_5 VSS VDD VOUTN) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I5_4 (VIN_2 SLCT_4 SLCTN_4 VSS VDD VOUTN) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I5_3 (VIN_3 SLCT_3 SLCTN_3 VSS VDD VOUTN) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I5_2 (VIN_4 SLCT_2 SLCTN_2 VSS VDD VOUTN) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I5_1 (VIN_5 SLCT_1 SLCTN_1 VSS VDD VOUTN) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    I5_0 (VIN_6 SLCT_0 SLCTN_0 VSS VDD VOUTN) trans_ulvt_mac_pcell_0 \
+        p_lgb=30n p_tw=500n p_simM=1 p_f=2 p_sdgb=100n p_ad=25.0f \
+        p_as=37.5f p_pd=700n p_ps=1.3u p_nrd=431.634m p_nrs=431.634m \
+        p_sa=112.742n p_sb=112.742n p_sca=110.615 p_scb=97.9666m \
+        p_scc=15.55m p_sa1=93.6047n p_sa2=112.078n p_sa3=163.715n \
+        p_sa4=110.059n p_sb1=93.6047n p_sb2=112.078n p_sb3=163.715n \
+        p_spa=100n p_spa1=100n p_spa2=100n p_spa3=100n p_sap=104.359n \
+        p_sapb=125.813n p_spba=115.715n p_spba1=117.043n p_sa5=123.175n \
+        p_sa6=163.865n p_sodx=80n p_sodxa=80n p_sodxb=80n p_sodx1=163.755n \
+        p_sodx2=769.905n p_sody=505.00n p_dw1=-1.26612e-20 p_sa7=93.2253n \
+        p_sodx4=92.1409n p_spmt=1.11111e+15 p_spomt=0 p_spomt1=1.11111e+60 \
+        p_spmb=1.11111e+15 p_spomb=0 p_spomb1=1.11111e+60 n_lgb=30n \
+        n_tw=500n n_simM=1 n_f=2 n_sdgb=100n n_ad=25.0f n_as=37.5f \
+        n_pd=700n n_ps=1.3u n_nrd=860.312m n_nrs=860.312m n_sa=112.742n \
+        n_sb=112.742n n_sca=110.615 n_scb=97.9666m n_scc=15.55m \
+        n_sa1=93.6047n n_sa2=112.078n n_sa3=163.715n n_sa4=110.059n \
+        n_sb1=93.6047n n_sb2=112.078n n_sb3=163.715n n_spa=100n \
+        n_spa1=100n n_spa2=100n n_spa3=100n n_sap=104.359n n_sapb=125.813n \
+        n_spba=115.715n n_spba1=117.043n n_sa5=123.175n n_sa6=163.865n \
+        n_sodx=80n n_sodxa=80n n_sodxb=80n n_sodx1=163.755n \
+        n_sodx2=769.905n n_sody=505.00n n_dw1=-1.26612e-20 n_sa7=93.2253n \
+        n_sodx4=92.1409n n_spmt=1.11111e+15 n_spomt=0 n_spomt1=1.11111e+60 \
+        n_spmb=1.11111e+15 n_spomb=0 n_spomb1=1.11111e+60
+    M0_6 (SLCTN_6 SLCT_6 VDD VDD) pch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=0.777777 \
+        nrs=0.777777 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M0_5 (SLCTN_5 SLCT_5 VDD VDD) pch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=0.777777 \
+        nrs=0.777777 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M0_4 (SLCTN_4 SLCT_4 VDD VDD) pch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=0.777777 \
+        nrs=0.777777 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M0_3 (SLCTN_3 SLCT_3 VDD VDD) pch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=0.777777 \
+        nrs=0.777777 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M0_2 (SLCTN_2 SLCT_2 VDD VDD) pch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=0.777777 \
+        nrs=0.777777 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M0_1 (SLCTN_1 SLCT_1 VDD VDD) pch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=0.777777 \
+        nrs=0.777777 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M0_0 (SLCTN_0 SLCT_0 VDD VDD) pch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=0.777777 \
+        nrs=0.777777 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M1_6 (SLCTN_6 SLCT_6 VSS VSS) nch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \
+        nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M1_5 (SLCTN_5 SLCT_5 VSS VSS) nch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \
+        nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M1_4 (SLCTN_4 SLCT_4 VSS VSS) nch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \
+        nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M1_3 (SLCTN_3 SLCT_3 VSS VSS) nch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \
+        nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M1_2 (SLCTN_2 SLCT_2 VSS VSS) nch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \
+        nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M1_1 (SLCTN_1 SLCT_1 VSS VSS) nch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \
+        nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M1_0 (SLCTN_0 SLCT_0 VSS VSS) nch_mac l=30n w=250.0n multi=1 nf=1 \
+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \
+        nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \
+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \
+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \
+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+// @RNL(author="rnl-virtuoso") {
+//   %block_symbol = @DEFINE-SYMBOL(box=[0, -10, 24, 10]) {
+//     @LINE {(-2, -1) (2, -1)};
+//     @LINE {(-2, 1) (2, 1)};
+//     @LINE {(26, 1) (22, 1)};
+//     @LINE {(26, -1) (22, -1)};
+//     @LINE {(12, 4.5) (15, 4.5)};
+//     @LINE {(10, 4.5) (12, 5.5)};
+//     @LINE {(8, 1.5) (10, 1.5) (12, 2.5)};
+//     @LINE {(12, 1.5) (15, 1.5)};
+//     @LINE {(8, 4.5) (10, 4.5)};
+//     @LINE {(8, -1.5) (10, -1.5) (12, -0.5)};
+//     @RECTANGLE {(2, -8) (22, 8)};
+//     @LINE {(11, -12) (11, -8)};
+//     @LINE {(13, -12) (13, -8)};
+//     @LINE {(12, -1.5) (15, -1.5)};
+//     @LINE {(8, -4.5) (10, -4.5) (12, -3.5)};
+//     @LINE {(12, -4.5) (15, -4.5)};
+//     @LINE {(15, 4.5) (15, -4.5)};
+//     @LINE {(15, 0) (19, 0)};
+//     ? @TEXT("${name}", size=1, halign="start", valign="middle", key="name") => @PLACE(20, 9);
+//     ? @TEXT("${model}", size=1, halign="middle", valign="middle", key="model") => @PLACE(24.5, 7);
+//     (-2, 1) @PIN(terminal=["SLCT_6", "SLCT_5", "SLCT_4", "SLCT_3", "SLCT_2", "SLCT_1", "SLCT_0"]);
+//     (2.6, 1) @TEXT("SLCT<6:0>", size=1, halign="start", valign="middle");
+//     (-2, -1) @PIN(terminal=["VIN_6", "VIN_5", "VIN_4", "VIN_3", "VIN_2", "VIN_1", "VIN_0"]);
+//     (2.6, -1) @TEXT("VIN<6:0>", size=1, halign="start", valign="middle");
+//     (26, 1) @PIN(terminal="VOUTP");
+//     (21.4, 1) @TEXT("VOUTP", size=1, halign="end", valign="middle");
+//     (26, -1) @PIN(terminal="VOUTN");
+//     (21.4, -1) @TEXT("VOUTN", size=1, halign="end", valign="middle");
+//     (13, -12) @PIN(terminal="VSS");
+//     (13, -7.4) @TEXT("VSS", size=1, halign="start", valign="middle", rotate=90);
+//     (11, -12) @PIN(terminal="VDD");
+//     (11, -7.4) @TEXT("VDD", size=1, halign="start", valign="middle", rotate=90)
+//   };
+//   # @SET-SYMBOL %block_symbol;
+//   %bundle_0 = {#"I0_6" #"I0_5" #"I0_4" #"I0_3" #"I0_2" #"I0_1" #"I0_0"} @BUNDLE;
+//   %symbol_0 = @DEFINE-SYMBOL(box=[0, -2, 12, 2]) {
+//     @LINE {(0, 0) (3.5, 0)};
+//     @LINE {(3.5, 2.8) (3.5, -3.2)};
+//     @LINE {(8.5, 2.8) (8.5, -3.2)};
+//     @LINE {(12, 0) (8.5, 0)};
+//     @LINE {(3.5, 2.8) (8.5, 0)};
+//     @LINE {(3.5, -3.2) (8.5, 0)};
+//     @LINE {(8.5, 2.8) (3.5, 0)};
+//     @LINE {(3.5, 0) (8.5, -3.2)};
+//     @LINE {(6, -1.6) (6, -3.2)};
+//     @LINE {(6, 2.6) (6, 1.8)};
+//     @ARC {(6, 1.2) (6.3, 1.5) (6, 1.8)};
+//     @ARC {(6, 1.8) (5.7, 1.5) (6, 1.2)};
+//     (-0.4, 0.6) @TEXT("A", size=0.5, halign="start", valign="baseline");
+//     (11.6, 0.6) @TEXT("Y", size=0.5, halign="start", valign="baseline");
+//     (5.6, 3.6) @TEXT("CB", size=0.5, halign="start", valign="baseline");
+//     (5.6, -2.4) @TEXT("C", size=0.5, halign="start", valign="baseline");
+//     (3.6, 3.6) @TEXT("Pb", size=0.5, halign="start", valign="baseline");
+//     (3.6, -2.4) @TEXT("Gb", size=0.5, halign="start", valign="baseline");
+//     (6, 0) @TEXT("S", size=1.6, halign="middle", valign="middle");
+//     ? @TEXT("${name}", size=0.8, halign="end", valign="baseline", key="name") => @PLACE(12, 4);
+//     (0, 0) @PIN(terminal=1);
+//     (12, 0) @PIN(terminal=6);
+//     (6, 3) @PIN(terminal=3);
+//     (6, -3) @PIN(terminal=2);
+//     (4, 3) @PIN(terminal=5);
+//     (4, -3) @PIN(terminal=4)
+//   };
+//   %bundle_0 @SET-SYMBOL %symbol_0;
+//   %bundle_0 @PLACE(22, 6) => @ORIENT("R0");
+//   %bundle_0 @TEXT("I0<6:0>", key="name");
+//   %bundle_1 = {#"I5_6" #"I5_5" #"I5_4" #"I5_3" #"I5_2" #"I5_1" #"I5_0"} @BUNDLE;
+//   %bundle_1 @SET-SYMBOL %symbol_0;
+//   %bundle_1 @PLACE(21, -26) => @ORIENT("R0");
+//   %bundle_1 @TEXT("I5<6:0>", key="name");
+//   %bundle_2 = {#"M1_6" #"M1_5" #"M1_4" #"M1_3" #"M1_2" #"M1_1" #"M1_0"} @BUNDLE;
+//   %symbol_1 = @DEFINE-SYMBOL(box=[-0.1, -2.8, 3.8, 2.8]) {
+//     @LINE {(2, 1.5) (4, 1.5) (4, 3)};
+//     @LINE {(2, -1.5) (2, 1.5)};
+//     @LINE {(3, -1) (4, -1.5) (3, -2)};
+//     @LINE {(0, 0) (1.5, 0)};
+//     @LINE {(1.5, 1.5) (1.5, -1.5)};
+//     @LINE {(2, -1.5) (4, -1.5) (4, -3)};
+//     ? @TEXT("${name}", size=0.8, halign="start", valign="baseline", key="name") => @PLACE(5, 3.5);
+//     ? @TEXT("${model}", size=0.8, halign="end", valign="baseline", key="model") => @PLACE(3.2, 3.2);
+//     (4, -1) @PIN(terminal=4);
+//     (4, -3) @PIN(terminal=3);
+//     (4, 3) @PIN(terminal=1);
+//     (0, 0) @PIN(terminal=2)
+//   };
+//   %bundle_2 @SET-SYMBOL %symbol_1;
+//   %bundle_2 @PLACE(60, 24) => @ORIENT("R0");
+//   %bundle_2 @TEXT("M1<6:0>", key="name");
+//   %bundle_3 = {#"M0_6" #"M0_5" #"M0_4" #"M0_3" #"M0_2" #"M0_1" #"M0_0"} @BUNDLE;
+//   %symbol_2 = @DEFINE-SYMBOL(box=[-0.1, -2.8, 3.8, 2.8]) {
+//     @LINE {(0, 0) (0.7, 0)};
+//     @LINE {(1.5, 1.5) (1.5, -1.5)};
+//     @LINE {(2, -1.5) (4, -1.5) (4, -3)};
+//     @LINE {(2, 1.5) (4, 1.5) (4, 3)};
+//     (1.1, 0) @CIRCLE(radius=0.4);
+//     @LINE {(3.7, 2) (2.7, 1.5) (3.7, 1)};
+//     @LINE {(2, -1.5) (2, 1.5)};
+//     ? @TEXT("${name}", size=0.8, halign="start", valign="baseline", key="name") => @PLACE(4.9, 3.4);
+//     ? @TEXT("${model}", size=0.8, halign="end", valign="baseline", key="model") => @PLACE(3.3, 3.2);
+//     (4, 3) @PIN(terminal=3);
+//     (4, 1) @PIN(terminal=4);
+//     (0, 0) @PIN(terminal=2);
+//     (4, -3) @PIN(terminal=1)
+//   };
+//   %bundle_3 @SET-SYMBOL %symbol_2;
+//   %bundle_3 @PLACE(60, 40) => @ORIENT("R0");
+//   %bundle_3 @TEXT("M0<6:0>", key="name");
+//   %input_port_symbol = @DEFINE-SYMBOL(box=[-2, -1, 0, 1]) {
+//       @LINE(fill="linecolor", linestyle="none") {(-2, -0.9) (-2, 0.9) (-0.9, 0.9) (0, 0) (-0.9, -0.9) (-2, -0.9)};
+//       (0, 0) @PIN(terminal=1, direction="right");
+//       ? @TEXT("${name}", key="name", halign="middle") => @PLACE(-1, 1.6)
+//     };
+//   %bus_port_type_0 = @DEFINE(roles=[["p", "net"], ["p1", "net"], ["p2", "net"], ["p3", "net"], ["p4", "net"], ["p5", "net"], ["p6", "net"]]) {};
+//   %bus_port_type_0_symbol = @DEFINE-SYMBOL {(0, 0) @PIN(terminal=[1, 2, 3, 4, 5, 6, 7])};
+//   {&"VIN_6" &"VIN_5" &"VIN_4" &"VIN_3" &"VIN_2" &"VIN_1" &"VIN_0"} @REMOVE-FROM $PORT_FILL_SET;
+//   %port_0 = %bus_port_type_0 @ATTACH &"VIN_6" &"VIN_5" &"VIN_4" &"VIN_3" &"VIN_2" &"VIN_1" &"VIN_0" => @PLACE(11, 42) => @ORIENT("R0");
+//   %port_0 @SET-SYMBOL %bus_port_type_0_symbol;
+//   %port_0_marker = $IO_PORT @ATTACH &"VIN_6" => @PLACE(11, 42) => @ORIENT("R0");
+//   %port_0_marker @SET-SYMBOL %input_port_symbol;
+//   %port_0_marker @TEXT("VIN<6:0>", key="name");
+//   %bus_port_type_1 = @DEFINE(roles=[["p", "net"], ["p1", "net"], ["p2", "net"], ["p3", "net"], ["p4", "net"], ["p5", "net"], ["p6", "net"]]) {};
+//   %bus_port_type_1_symbol = @DEFINE-SYMBOL {(0, 0) @PIN(terminal=[1, 2, 3, 4, 5, 6, 7])};
+//   {&"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0"} @REMOVE-FROM $PORT_FILL_SET;
+//   %port_1 = %bus_port_type_1 @ATTACH &"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0" => @PLACE(11, 38) => @ORIENT("R0");
+//   %port_1 @SET-SYMBOL %bus_port_type_1_symbol;
+//   %port_1_marker = $IO_PORT @ATTACH &"SLCT_6" => @PLACE(11, 38) => @ORIENT("R0");
+//   %port_1_marker @SET-SYMBOL %input_port_symbol;
+//   %port_1_marker @TEXT("SLCT<6:0>", key="name");
+//   %output_port_symbol = @DEFINE-SYMBOL(box=[0, -1, 2, 1]) {
+//       @LINE(fill="linecolor", linestyle="none") {(0, -0.9) (0, 0.9) (1.1, 0.9) (2, 0) (1.1, -0.9) (0, -0.9)};
+//       (0, 0) @PIN(terminal=1, direction="left");
+//       ? @TEXT("${name}", key="name", halign="middle") => @PLACE(1, 1.6)
+//     };
+//   %port_2 = $IO_PORT @ATTACH &"VOUTP" => @PLACE(39, 6) => @ORIENT("R0");
+//   %port_2 @SET-SYMBOL %output_port_symbol;
+//   %port_2 @TEXT("VOUTP", key="name");
+//   %port_3 = $IO_PORT @ATTACH &"VOUTN" => @PLACE(38, -26) => @ORIENT("R0");
+//   %port_3 @SET-SYMBOL %output_port_symbol;
+//   %port_3 @TEXT("VOUTN", key="name");
+//   %port_4 = $IO_PORT @ATTACH &"VSS" => @PLACE(10, 46) => @ORIENT("R0");
+//   %port_5 = $IO_PORT @ATTACH &"VDD" => @PLACE(10, 50) => @ORIENT("R0");
+//   %wire_0 = {&"SLCTN_6" &"SLCTN_5" &"SLCTN_4" &"SLCTN_3" &"SLCTN_2" &"SLCTN_1" &"SLCTN_0"} @WIRE(mode="straight") {%bundle_2:1 %bundle_3:1};
+//   %p0 = (27, -18);
+//   %wire_1 = {&"SLCTN_6" &"SLCTN_5" &"SLCTN_4" &"SLCTN_3" &"SLCTN_2" &"SLCTN_1" &"SLCTN_0"} @WIRE(mode="straight") {%bundle_1:3 %p0};
+//   %p1 = (28, 14);
+//   %wire_2 = {&"SLCTN_6" &"SLCTN_5" &"SLCTN_4" &"SLCTN_3" &"SLCTN_2" &"SLCTN_1" &"SLCTN_0"} @WIRE(mode="straight") {%bundle_0:3 %p1};
+//   %wire_2 @TEXT("SLCTN<6:0>", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(27.3, 14);
+//   %wire_1 @TEXT("SLCTN<6:0>", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(26.3, -18);
+//   %wire_0 @TEXT("SLCTN<6:0>", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(63.3, 32);
+//   %p2 = (16, -26);
+//   %wire_3 = {&"VIN_0" &"VIN_1" &"VIN_2" &"VIN_3" &"VIN_4" &"VIN_5" &"VIN_6"} @WIRE(mode="straight") {%p2 %bundle_1:1};
+//   %wire_3 @TEXT("VIN<0:6>", size=1, halign="middle", valign="baseline") => @PLACE(18, -25.3);
+//   %p3 = (52, 32);
+//   %p4 = (56, 32);
+//   %wire_4 = {&"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0"} @WIRE(mode="straight") {%p3 %p4};
+//   %p5 = (56, 40);
+//   %wire_5 = {&"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0"} @WIRE(mode="straight") {%p4 %p5};
+//   %p6 = (56, 24);
+//   %wire_6 = {&"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0"} @WIRE(mode="straight") {%p6 %bundle_2:2};
+//   %wire_7 = {&"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0"} @WIRE(mode="straight") {%p6 %p4};
+//   %wire_8 = {&"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0"} @WIRE(mode="straight") {%p5 %bundle_3:2};
+//   %p7 = (27, -34);
+//   %wire_9 = {&"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0"} @WIRE(mode="straight") {%p7 %bundle_1:2};
+//   %p8 = (28, -2);
+//   %wire_10 = {&"SLCT_6" &"SLCT_5" &"SLCT_4" &"SLCT_3" &"SLCT_2" &"SLCT_1" &"SLCT_0"} @WIRE(mode="straight") {%p8 %bundle_0:2};
+//   %wire_9 @TEXT("SLCT<6:0>", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(26.3, -32);
+//   %wire_10 @TEXT("SLCT<6:0>", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(27.3, 0);
+//   %wire_4 @TEXT("SLCT<6:0>", size=1, halign="middle", valign="baseline") => @PLACE(52, 32.7);
+//   %p9 = (17, 6);
+//   %wire_11 = {&"VIN_0" &"VIN_1" &"VIN_2" &"VIN_3" &"VIN_4" &"VIN_5" &"VIN_6"} @WIRE(mode="straight") {%p9 %bundle_0:1};
+//   %wire_11 @TEXT("VIN<6:0>", size=1, halign="middle", valign="baseline") => @PLACE(19, 6.7);
+//   %wire_12 = &"VOUTP" @WIRE(mode="straight") {%bundle_0:6 %port_2:p};
+//   %wire_13 = &"VOUTN" @WIRE(mode="straight") {%bundle_1:6 %port_3:p};
+//   %p10 = (65, 21);
+//   %wire_14 = &"VSS" @WIRE(mode="straight") {%bundle_2:3 %p10};
+//   %p11 = (65, 23);
+//   %wire_15 = &"VSS" @WIRE(mode="straight") {%p10 %p11};
+//   %wire_16 = &"VSS" @WIRE(mode="straight") {%bundle_2:4 %p11};
+//   %p12 = (64, 16);
+//   %wire_17 = &"VSS" @WIRE(mode="straight") {%p12 %bundle_2:3};
+//   %p13 = (25, -34);
+//   %wire_18 = &"VSS" @WIRE(mode="straight") {%p13 %bundle_1:4};
+//   %p14 = (26, -2);
+//   %wire_19 = &"VSS" @WIRE(mode="straight") {%p14 %bundle_0:4};
+//   %wire_18 @TEXT("VSS", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(24.3, -32);
+//   %wire_19 @TEXT("VSS", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(25.3, 0);
+//   %wire_17 @TEXT("VSS", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(63.3, 18);
+//   %p15 = (65, 41);
+//   %wire_20 = &"VDD" @WIRE(mode="straight") {%bundle_3:4 %p15};
+//   %p16 = (65, 43);
+//   %wire_21 = &"VDD" @WIRE(mode="straight") {%p15 %p16};
+//   %wire_22 = &"VDD" @WIRE(mode="straight") {%bundle_3:3 %p16};
+//   %p17 = (25, -18);
+//   %wire_23 = &"VDD" @WIRE(mode="straight") {%bundle_1:5 %p17};
+//   %p18 = (26, 14);
+//   %wire_24 = &"VDD" @WIRE(mode="straight") {%bundle_0:5 %p18};
+//   %p19 = (64, 48);
+//   %wire_25 = &"VDD" @WIRE(mode="straight") {%bundle_3:3 %p19};
+//   %wire_24 @TEXT("VDD", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(25.3, 12);
+//   %wire_23 @TEXT("VDD", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(24.3, -20);
+//   %wire_25 @TEXT("VDD", size=1, halign="middle", valign="baseline", rotate=90) => @PLACE(63.3, 46);
+//   $JUNCTION @ATTACH %p4
+// }
+ends L5_stage1_flash_cal_mux

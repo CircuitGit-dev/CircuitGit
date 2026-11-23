@@ -1,6 +1,6 @@
 # Connect the online workbench to Codex
 
-普通用户：启动本机连接助手 → 点击网页的 **连接本机 Codex** → 在本机弹窗确认授权 → 打开工程对话。无需理解地址和访问码。若尚未登录，由 Codex 返回官方登录页面；网页不接收账号密码或 OpenAI token。当前画布仍是 RC 示例，AI 操作的工程以助手返回的身份为准。
+普通用户：启动本机连接助手 → 打开 AI 的 **齿轮设置** → **连接本机 Codex** → 在本机弹窗确认授权 → 打开工程对话。无需理解地址和访问码。若尚未登录，由 Codex 返回官方登录页面；网页不接收账号密码或 OpenAI token。画布是公开电路预览，AI 操作的工程以助手返回的身份为准。
 
 The [CircuitGit website](https://joshuazeng713.github.io/CircuitGit/) can connect to a **single-owner node** on your computer or your own server. The website keeps the lightweight UI; the node runs the existing Codex app-server adapter and accesses its configured circuit gateway. This is not a shared public AI hosting service.
 
@@ -8,7 +8,7 @@ The [CircuitGit website](https://joshuazeng713.github.io/CircuitGit/) can connec
 
 1. Install Codex, Python 3.10+ and Git. Download and unpack CircuitGit, or use an existing clone.
 2. On macOS, double-click **Start CircuitGit.command** in the repository root. This opens a launcher window; keep it running. If macOS requests permission to open the downloaded script, review it and use the system's normal Open action. This is a source launcher, not a signed standalone installer, and it does not install dependencies automatically.
-3. In the website AI panel, click **连接本机 Codex**. In the local popup, check the requesting website and click **允许并连接**.
+3. In the website AI panel, open the **settings gear** and click **连接本机 Codex**. In the local popup, check the requesting website and click **允许并连接**.
 4. The helper checks Codex through `account/read`. Existing login/provider settings stay in place. When Codex explicitly reports that sign-in is required, click **在官方页面登录 ChatGPT**. The URL comes from `account/login/start`; Codex owns the local callback. Wait for its correlated completion receipt.
 5. Select the actual engineering project and open chat. One bundled RC engineering example is prepared by default, independently of the sample canvas.
 
@@ -45,17 +45,27 @@ python3 -B tools/workbench/remote_node.py \
 
 This prints the node address and the path to an owner-only `browser-access.key` file. The file contains a random node access code. Keep it private; it authorizes access to this node's projects and AI sessions. Starting the node does not start a model turn, submit a simulation, or change global Codex settings. `--codex-bin /absolute/path/to/codex` selects a specific installed executable.
 
-For a previously configured AI client, use `--config /absolute/client.local.json`. The node copies its runtime settings in memory and stores its own sessions under that client's `state_dir/browser-node`; it does not modify the client configuration or reuse its conversation registry. `--state-dir /absolute/dedicated/path` overrides this location. Always choose an exclusive state directory. The node retains manual circuit approvals and does not expose developer/full-access mode.
+For a previously configured AI client, use `--config /absolute/client.local.json`. The node copies its runtime settings in memory and stores its own sessions under that client's `state_dir/browser-node`; it does not modify the client configuration or reuse its conversation registry. `--state-dir /absolute/dedicated/path` overrides this location. Always choose an exclusive state directory. Manual server access-code connections retain manual circuit approvals and cannot enable developer/full-access mode. The local companion has a separate owner-confirmed settings flow described below.
 
 ## Connect in the browser
 
-1. Open **高级：连接自己的服务器** in the AI panel.
+1. Open the AI settings gear and **高级：连接自己的服务器**.
 2. Enter the node URL and its access code. The access code is a CircuitGit credential, not an OpenAI API Key.
 3. Authorize this browser's access and click **授权并连接**.
 4. Select a project returned by the node and click **打开对话**.
 5. Use the existing model selector, thinking controls, image input, multi-session manager and approval UI. Check the connection from the AI panel if login or model access is unavailable.
 
-The AI's project, source commit and saved source hash come from the node. **The RC schematic and analytical waveform demo remain separate from that remote project**; the website does not pretend its sample is your real circuit. Circuit changes and simulation requests go through the existing reviewed workflow.
+The AI's project, source commit and saved source hash come from the node. **Public library schematics and the RC analytical waveform demo remain separate from that node project**. Circuit changes and simulation requests go through the existing reviewed workflow. Once connected, the account, project identity, refresh and disconnect controls live under **连接与工程** inside the same settings gear.
+
+## Models, reasoning and local development settings
+
+The gear shows the models and reasoning levels reported by the connected runtime. Choose a model, thinking strength and operation permission before sending the next message; those selections travel with that turn. A running, uncertain or paused old task keeps its original settings and receipts. For a stopped conversation, **新建对话并配置** opens an independent conversation so settings can be changed without resending the interrupted request.
+
+For application development through the local companion, use **配置本机开发权限…** in the gear. A local confirmation window shows the requesting website, a suggested CircuitGit checkout, and **手动批准 / 完全访问**. Enable development, choose the directory and access level, then save. Returning to the webpage refreshes its capability; select the developer permission for the intended new task. This flow does not require editing a JSON configuration or changing global Codex settings.
+
+Full development access permits native file and command tools without per-command approval; the chosen directory is the starting workspace, not a filesystem sandbox. Ordinary circuit modification, simulation and archive tools keep their existing review workflow. No message or old task starts when settings are saved. An active or unresolved developer task prevents changes to its configuration until that task is resolved.
+
+Development authorization belongs to the explicitly confirmed local browser connection. Saved settings only prefill a later confirmation form. Reconnecting or restarting the helper requires confirming that connection again; a remote server access code cannot inherit local developer authority. The helper rejects restored developer task execution under a new connection rather than guessing consent or replaying work.
 
 Credentials remain in the current page's memory, not URLs, cookies or browser storage. Reloading the page requires reconnecting. Disconnecting closes browser polling. The existing adapter pauses an active AI turn after its browser heartbeat has been absent for 20 seconds; this does not cancel an already submitted simulation or automatically approve/replay an operation. Inspect the original session receipt after reconnecting, especially if a send had an uncertain outcome.
 

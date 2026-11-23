@@ -1,0 +1,117 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "L4_stage1_flash_comparator",
+    "view": "schematic"
+  },
+  "native_level": "L4_stage1_flash_comparator",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [
+    "ND2D0BWP12T30P140ULVT",
+    "cfmom_2t",
+    "nch_mac",
+    "nch_ulvt_mac",
+    "pch_ulvt_mac"
+  ],
+  "external_interface_stub": true,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/L4_stage1_flash_comparator.scs",
+      "source_sha256": "4a8a8443e67064b6ab2ab15052a81f9fb0fad377608298d31014387af6019838",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/L4_stage1_flash_comparator.scs",
+      "sha256": "4a8a8443e67064b6ab2ab15052a81f9fb0fad377608298d31014387af6019838",
+      "bytes": 63103,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/eda-symbol.rnl",
+      "source_sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/eda-symbol.rnl",
+      "sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a",
+      "bytes": 94890,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-basic.rnl",
+      "source_sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-semiconductors.rnl",
+      "source_sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/rnl-std-spectre.rnl",
+      "source_sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/rnl-std-spectre.rnl",
+      "sha256": "020810840b9e6b81b875d1578e89f308000b8dbbd528e915b0e9cb7ae9c4e738",
+      "bytes": 3128,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/trans_ulvt_mac.scs",
+      "source_sha256": "9d9c6feb277b327b2af723b5591b8b28ee6a4d4045bc236125d21ddc0cd13bda",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/trans_ulvt_mac.scs",
+      "sha256": "b113fa38e104b3fce4694138a15734eec3de404c144fda09e7a0c7d66cf395c8",
+      "bytes": 252,
+      "transformation": "external-interface-only; implementation omitted"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-L4_stage1_flash_comparator.scs",
+      "source_sha256": "14421369a38d44b2b654f11b0f4f225c5b7c40506a845ce58e099f431ab8a706",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/view-L4_stage1_flash_comparator.scs",
+      "sha256": "14421369a38d44b2b654f11b0f4f225c5b7c40506a845ce58e099f431ab8a706",
+      "bytes": 156,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/view-trans_ulvt_mac_pcell_0.scs",
+      "source_sha256": "a1960746746fbc4570b44b8aeb16d4ae8838c4da6d6a6614cb6aac8718884aed",
+      "path": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/view-trans_ulvt_mac_pcell_0.scs",
+      "sha256": "a1960746746fbc4570b44b8aeb16d4ae8838c4da6d6a6614cb6aac8718884aed",
+      "bytes": 115,
+      "transformation": "none"
+    }
+  ]
+}

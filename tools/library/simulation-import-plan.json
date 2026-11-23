@@ -1,0 +1,184 @@
+{
+  "schema": "circuitgit.simulation-import-plan.v1",
+  "candidates": [
+    {
+      "source": "real-sar/PIPE_LOW",
+      "destination": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW",
+      "cell": "pipetisar-real/TB_PIPE_RS9_N06",
+      "test": "PIPE_LOW",
+      "kind": "sanitized-template",
+      "files": {
+        "bundle.json": {
+          "sha256": "b7249439c37f1a31d0f893980dea2c98827810426aa6f0a80b9355478cea7c96",
+          "bytes": 4660
+        },
+        "configuration.json": {
+          "sha256": "354d8d5e4b4bc870a8c1527728ca85fc1931939f0d3ea79b2c9bd6522a7ed8b9",
+          "bytes": 864
+        },
+        "provenance.json": {
+          "sha256": "f0bf034af598c02b604f5210c2ba468f6f197cda26124f730476c3877b1d7436",
+          "bytes": 1497
+        },
+        "netlist/TB_PIPE_RS9_N06_save.scs": {
+          "sha256": "f965514ef926456f9ad705aef109a8e47abe7348daf9b8da1b3d91ac8bf35c2b",
+          "bytes": 2279
+        },
+        "netlist/input.scs": {
+          "sha256": "c6278404b7a482a155441f83af12d45e60451ff5348817d6be791c7c620d1b55",
+          "bytes": 2536
+        },
+        "netlist/models/PIPE_Clock250_250_500.va": {
+          "sha256": "5bc5a1ded6cd039a717eca1dcfb573efc884732ab80da06f286e166a329c71c5",
+          "bytes": 1762
+        },
+        "netlist/models/PIPE_RailClamp.va": {
+          "sha256": "1abaf750089bbfcc11669cb2c086e3c2e7548cf2c839f0e966df9b87f2237d78",
+          "bytes": 1098
+        },
+        "netlist/models/PIPE_ThermDAC4_FS2.va": {
+          "sha256": "aab27d9968cde2bde0a5fe0f8ca98a3c2f33d479720ace621fb20394c13aede1",
+          "bytes": 2046
+        },
+        "netlist/models/RS9_IO_N06.va": {
+          "sha256": "530f6b301f6ee8bb4e63cd3ba77784b32b2f8dc25fe352b292bb10a572959e93",
+          "bytes": 5089
+        },
+        "netlist/models/RS9_Merge_N06.va": {
+          "sha256": "c6f6e78e8116c3d4acfbfe8caf1baff30a2db741317bf10690aa161569b2f768",
+          "bytes": 4258
+        },
+        "netlist/numerical_options.scs": {
+          "sha256": "e7418e95af71be1425064a7efb64357d192b8eca2bf27b98e76ca3825fb95707",
+          "bytes": 136
+        },
+        "netlist/project.scs": {
+          "sha256": "79057c5663690718c54004896eb155d1d176f1826ff4e45a66f108ce83c1d4c8",
+          "bytes": 118221
+        }
+      }
+    },
+    {
+      "source": "real-sar/PIPE_NYQUIST",
+      "destination": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST",
+      "cell": "pipetisar-real/TB_PIPE_RS9_N06",
+      "test": "PIPE_NYQUIST",
+      "kind": "sanitized-template",
+      "files": {
+        "bundle.json": {
+          "sha256": "2a2c199554982a6e71d52f1d29f4a3356c9c349933ca3270e19be9c6d2282169",
+          "bytes": 4669
+        },
+        "configuration.json": {
+          "sha256": "9494c02928790c9e0eb8d35d0a4e86ffa19576f1dd7692d3a1293da592e1fa56",
+          "bytes": 868
+        },
+        "provenance.json": {
+          "sha256": "cc6cf292aea931a7a58f27406c98d44d4385f760ee70b50e5307fa371462c54c",
+          "bytes": 1501
+        },
+        "netlist/TB_PIPE_RS9_N06_save.scs": {
+          "sha256": "f965514ef926456f9ad705aef109a8e47abe7348daf9b8da1b3d91ac8bf35c2b",
+          "bytes": 2279
+        },
+        "netlist/input.scs": {
+          "sha256": "922aa84ae10703762ea371d64977cd05b3610d4157f38793ae643378e9b68231",
+          "bytes": 2537
+        },
+        "netlist/models/PIPE_Clock250_250_500.va": {
+          "sha256": "5bc5a1ded6cd039a717eca1dcfb573efc884732ab80da06f286e166a329c71c5",
+          "bytes": 1762
+        },
+        "netlist/models/PIPE_RailClamp.va": {
+          "sha256": "1abaf750089bbfcc11669cb2c086e3c2e7548cf2c839f0e966df9b87f2237d78",
+          "bytes": 1098
+        },
+        "netlist/models/PIPE_ThermDAC4_FS2.va": {
+          "sha256": "aab27d9968cde2bde0a5fe0f8ca98a3c2f33d479720ace621fb20394c13aede1",
+          "bytes": 2046
+        },
+        "netlist/models/RS9_IO_N06.va": {
+          "sha256": "530f6b301f6ee8bb4e63cd3ba77784b32b2f8dc25fe352b292bb10a572959e93",
+          "bytes": 5089
+        },
+        "netlist/models/RS9_Merge_N06.va": {
+          "sha256": "c6f6e78e8116c3d4acfbfe8caf1baff30a2db741317bf10690aa161569b2f768",
+          "bytes": 4258
+        },
+        "netlist/numerical_options.scs": {
+          "sha256": "e7418e95af71be1425064a7efb64357d192b8eca2bf27b98e76ca3825fb95707",
+          "bytes": 136
+        },
+        "netlist/project.scs": {
+          "sha256": "79057c5663690718c54004896eb155d1d176f1826ff4e45a66f108ce83c1d4c8",
+          "bytes": 118221
+        }
+      }
+    },
+    {
+      "source": "mdac/TB_MDAC_CA4_N06/MDAC_CODES",
+      "destination": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES",
+      "cell": "pipetisar-research/TB_MDAC_CA4_N06",
+      "test": "MDAC_CODES",
+      "kind": "configuration-audit",
+      "files": {
+        "configuration.json": {
+          "sha256": "32bfab5007a329e67b162d89a8ef470fdffb81b7d50354075c8d4fd2a2c73f42",
+          "bytes": 986
+        },
+        "audit.json": {
+          "sha256": "5453571e5bb0893fc8b60bdc92c82f8d0ebd025a0da56f34a6bf5acb50e7274d",
+          "bytes": 1747
+        }
+      }
+    },
+    {
+      "source": "mdac/TB_PIPE_CA4_RS9_N06/PIPE_LOW",
+      "destination": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW",
+      "cell": "pipetisar-research/TB_PIPE_CA4_RS9_N06",
+      "test": "PIPE_LOW",
+      "kind": "configuration-audit",
+      "files": {
+        "configuration.json": {
+          "sha256": "354d8d5e4b4bc870a8c1527728ca85fc1931939f0d3ea79b2c9bd6522a7ed8b9",
+          "bytes": 864
+        },
+        "audit.json": {
+          "sha256": "00396f1c48cf67f843700d93d426dfd1eccde8fd6f8da92e63bee73ed1c2663d",
+          "bytes": 1933
+        }
+      }
+    },
+    {
+      "source": "mdac/TB_PIPE_CA4_RS9_N06/PIPE_NYQUIST",
+      "destination": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST",
+      "cell": "pipetisar-research/TB_PIPE_CA4_RS9_N06",
+      "test": "PIPE_NYQUIST",
+      "kind": "configuration-audit",
+      "files": {
+        "configuration.json": {
+          "sha256": "9494c02928790c9e0eb8d35d0a4e86ffa19576f1dd7692d3a1293da592e1fa56",
+          "bytes": 868
+        },
+        "audit.json": {
+          "sha256": "e230de26b68f93d57f98c1549da0f961d8015a489cef1c81477ae11aa44ed2ad",
+          "bytes": 1942
+        }
+      }
+    }
+  ],
+  "documents": [
+    {
+      "path": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/README.md",
+      "text": "# Historical simulation input candidates — inactive\n\nThese files describe historical inputs; this public cell remains `project_id: null`. No simulation was executed during migration. Original input hashes identify historical evidence; redacted templates have different bytes and have not been replayed. They are not automatically bound to the native viewer snapshot.\n\nTwo real-SAR templates retain the project Verilog-A sources, saved-signal list and analysis/solver configuration. PDK and standard-cell implementations are externalized as four pinned aliases: `PDK_MAIN`, `PDK_TRANS_ULVT_PCELL`, `STDCELL_SVT_LVT`, `ULVT_ND2D0`. The empty interface in the schematic view is not a simulation model and must never be substituted for these dependencies. `reviewed_for_distribution: false` remains the bundle gate: publishing this sanitized reference does not approve runtime distribution or execution. Complete authorized model bindings and a separate replay review are still required.\n\n- `PIPE_LOW`: `PIPE_LOW/configuration.json` and `PIPE_LOW/provenance.json`.\n- `PIPE_NYQUIST`: `PIPE_NYQUIST/configuration.json` and `PIPE_NYQUIST/provenance.json`.\n\nUse the original history and source hashes in each audit when preparing a future complete replay; preserve external model licenses and site settings outside this public library. No old performance result is newly verified here.\n"
+    },
+    {
+      "path": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/README.md",
+      "text": "# Historical simulation input candidates — inactive\n\nThese files describe historical inputs; this public cell remains `project_id: null`. No simulation was executed during migration. Original input hashes identify historical evidence; redacted templates have different bytes and have not been replayed. They are not automatically bound to the native viewer snapshot.\n\nOnly configuration and input audit records are supplied. The unsanitized electrical deck is excluded because vendor implementations and/or the complete matching Verilog-A revision remain unresolved. A configuration file by itself is not an executable bundle.\n\n- `MDAC_CODES`: `MDAC_CODES/configuration.json` and `MDAC_CODES/audit.json`.\n\nUse the original history and source hashes in each audit when preparing a future complete replay; preserve external model licenses and site settings outside this public library. No old performance result is newly verified here.\n"
+    },
+    {
+      "path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/README.md",
+      "text": "# Historical simulation input candidates — inactive\n\nThese files describe historical inputs; this public cell remains `project_id: null`. No simulation was executed during migration. Original input hashes identify historical evidence; redacted templates have different bytes and have not been replayed. They are not automatically bound to the native viewer snapshot.\n\nOnly configuration and input audit records are supplied. The unsanitized electrical deck is excluded because vendor implementations and/or the complete matching Verilog-A revision remain unresolved. A configuration file by itself is not an executable bundle.\n\n- `PIPE_LOW`: `PIPE_LOW/configuration.json` and `PIPE_LOW/audit.json`.\n- `PIPE_NYQUIST`: `PIPE_NYQUIST/configuration.json` and `PIPE_NYQUIST/audit.json`.\n\nUse the original history and source hashes in each audit when preparing a future complete replay; preserve external model licenses and site settings outside this public library. No old performance result is newly verified here.\n"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+@RNL(type="header") { @VERSION("0.3"); @PACKAGE(name="virtuoso/2026_PIPETISAR_RESEARCH/PIPE_SAR9_Timed", version="0.1") }
+@RNL {
+$"2026_PIPETISAR_RESEARCH/PIPE_SAR9_Timed" = @DEFINE-SYMBOL(box=[0, -30.4, 41.6, 2.4]) {
+  @RECTANGLE {(0, -30.4) (41.6, 2.4)};
+  (20.8, 6.7) @TEXT("SAR 9b", size=3.2, halign="middle", valign="middle");
+  ? @TEXT("${name}", size=1.9, halign="middle", valign="middle", key="name") => @PLACE(20.8, -34.4);
+  (41.6, -28) @PIN(terminal="STEP");
+  (40, -28) @TEXT("STEP", size=2.6, halign="end", valign="middle");
+  (41.6, -24) @PIN(terminal="VDAC");
+  (40, -24) @TEXT("VDAC", size=2.6, halign="end", valign="middle");
+  (41.6, -20) @PIN(terminal="VH");
+  (40, -20) @TEXT("VH", size=2.6, halign="end", valign="middle");
+  (41.6, -16) @PIN(terminal="BUSY");
+  (40, -16) @TEXT("BUSY", size=2.6, halign="end", valign="middle");
+  (41.6, -12) @PIN(terminal="OVF");
+  (40, -12) @TEXT("OVF", size=2.6, halign="end", valign="middle");
+  (41.6, -8) @PIN(terminal="DONE");
+  (40, -8) @TEXT("DONE", size=2.6, halign="end", valign="middle");
+  (0, -20) @PIN(terminal="VSS");
+  (1.6, -20) @TEXT("VSS", size=2.6, halign="start", valign="middle");
+  (41.6, 0) @PIN(terminal=["Q<8>", "Q<7>", "Q<6>", "Q<5>", "Q<4>", "Q<3>", "Q<2>", "Q<1>", "Q<0>"]);
+  (40, 0) @TEXT("Q<8:0>", size=2.6, halign="end", valign="middle");
+  (41.6, -4) @PIN(terminal=["KOUT<3>", "KOUT<2>", "KOUT<1>", "KOUT<0>"]);
+  (40, -4) @TEXT("KOUT<3:0>", size=2.6, halign="end", valign="middle");
+  (0, -16) @PIN(terminal="VDD");
+  (1.6, -16) @TEXT("VDD", size=2.6, halign="start", valign="middle");
+  (0, -12) @PIN(terminal=["KIN<3>", "KIN<2>", "KIN<1>", "KIN<0>"]);
+  (1.6, -12) @TEXT("KIN<3:0>", size=2.6, halign="start", valign="middle");
+  (0, -8) @PIN(terminal="TRACK");
+  (1.6, -8) @TEXT("TRACK", size=2.6, halign="start", valign="middle");
+  (0, -4) @PIN(terminal="VIN");
+  (1.6, -4) @TEXT("VIN", size=2.6, halign="start", valign="middle");
+  (0, 0) @PIN(terminal="VIP");
+  (1.6, 0) @TEXT("VIP", size=2.6, halign="start", valign="middle")
+};
+}

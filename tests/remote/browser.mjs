@@ -18,6 +18,7 @@ try {
   await page.goto(url);await page.waitForFunction(()=>document.body.dataset.studioState==='ready');
   assert.equal(nodeRequests.length,0,'No discovery before explicit connect');
   assert.equal(await page.locator('[name=endpoint]').isVisible(),false,'Advanced credentials are hidden by default');
+  await page.getByRole('button',{name:'AI连接设置',exact:true}).click();
   if(pairingMode){
     let wait=page.waitForEvent('popup');await page.getByRole('button',{name:'连接本机 Codex',exact:true}).click();let popup=await wait;
     await popup.getByRole('button',{name:'取消',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.cg-node-status')?.textContent.includes('取消'));
@@ -42,7 +43,7 @@ try {
   await page.getByRole('button',{name:'打开对话',exact:true}).click();
   await page.waitForSelector('.cg-node-chat .ic-ai-form');
   await page.waitForFunction(()=>{const s=document.querySelector('.cg-node-chat .ic-ai-model');return s&&s.options.length>1;});
-  assert((await page.locator('.cg-context-label').innerText()).includes('当前原理图与波形仍是公开示例'));
+  assert((await page.locator('.cg-context-label').innerText()).includes('画布是公开电路预览，与此节点工程独立'));
   const defaultValue=await page.locator('.cg-node-chat .ic-ai-model option').first().innerText();
   let inference='not_requested';
   if(process.env.NODE_SEND==='1') {
@@ -72,6 +73,9 @@ try {
   assert(code.length>=43);assert(nodeRequests.every(r=>!r.url.includes(code)));
   const storage=await page.evaluate(()=>JSON.stringify({local:Object.entries(localStorage),session:Object.entries(sessionStorage)}));assert(!storage.includes(code));
   await page.screenshot({path:out+'/connected.png',fullPage:true});
+  const settings=page.locator('.ic-ai-session-panel:not([hidden]) .ic-ai-settings');
+  if(!await settings.isVisible())await page.locator('.ic-ai-session-panel:not([hidden])').getByRole('button',{name:'AI设置',exact:true}).click();
+  if(!await page.locator('.cg-node-connection-settings').evaluate(node=>node.open))await page.locator('.cg-node-connection-settings > summary').click();
   await page.getByRole('button',{name:'断开',exact:true}).click();await page.waitForSelector('.cg-node-welcome:not([hidden])');
   const requests=nodeRequests.length;await page.waitForTimeout(1800);assert.equal(nodeRequests.length,requests,'Disconnect stops polling');
   assert.equal(await page.locator('.cg-node-chat .ic-ai-form').count(),0);assert.deepEqual(errors,[]);

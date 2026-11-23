@@ -1,0 +1,378 @@
+{
+  "schema": "circuitgit.adc-inventory.v1",
+  "observed_on": "2026-11-23",
+  "scope": "Pinned native seed and bounded local LLM_for_IC docs, named outputs/adc tasks, newer ADC report and ADC.zip inventory; no live server inspection.",
+  "native_seed_entries": 97,
+  "published_adc_entries": 96,
+  "distinct_source_cell_views": 74,
+  "catalog_entries_including_rc": 97,
+  "adc_runtime_projects_registered": 0,
+  "new_simulations": 0,
+  "libraries": [
+    {
+      "id": "pipetisar-real",
+      "entries": 22,
+      "schematics": 22,
+      "symbols_only": 0
+    },
+    {
+      "id": "pipetisar-research",
+      "entries": 64,
+      "schematics": 54,
+      "symbols_only": 10
+    },
+    {
+      "id": "pipesar-original",
+      "entries": 10,
+      "schematics": 10,
+      "symbols_only": 0
+    }
+  ],
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "variants": [
+    {
+      "id": "pipetisar-ideal-and-switch",
+      "name": "1 GS/s ideal/relay-switch PIPE-TI-SAR",
+      "status": "native_snapshot_partial",
+      "published_cells": [
+        "pipetisar-research/PIPE_TOP_F4_TI2_S9",
+        "pipetisar-research/TB_PIPE_TOP_1G"
+      ],
+      "note": "Historical ideal/switch variants appear in the research snapshot. Saved geometry is not a claim that every historical run or later live edit is included.",
+      "source_evidence": [
+        {
+          "source": "docs/pipetisar-validation-20261020.md",
+          "sha256": "6f621e5fd28cd7b4adf251bacbe726badfd11e94ae4cf31f52a0fd6b4a60ebaa",
+          "bytes": 6744,
+          "published": false
+        },
+        {
+          "source": "docs/pipetisar-switch-spectrum-20261021.md",
+          "sha256": "27601f5fb526e455406660e05022bb219d0086e066f63a6dad1b8e60507e0c1a",
+          "bytes": 10795,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "pipetisar-real-sar-oct23",
+      "name": "Earlier actual-SAR integration",
+      "status": "native_snapshot_partial",
+      "published_cells": [
+        "pipetisar-research/PIPE_TOP_F4_TI2_RS9",
+        "pipetisar-research/TB_PIPE_RS9_1G"
+      ],
+      "note": "Earlier topology is kept distinct from the November real-SAR version; no simulation archive is published by this import.",
+      "source_evidence": [
+        {
+          "source": "docs/pipetisar-real-sar-20261023.md",
+          "sha256": "2a0c4d653f968acd275d2f2f26b9ab5ecb00b37ee9ce74c2669dec29762de36f",
+          "bytes": 17577,
+          "published": false
+        },
+        {
+          "source": "docs/pipetisar-sar-fft-results-20261023.md",
+          "sha256": "3c2011ce46ffbdf2109fd4b2d0ee35b8c8d4ed6dd4c76957b49f9eb59926dcdb",
+          "bytes": 4715,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "pipetisar-real-sar-nov06",
+      "name": "1 GS/s real-SAR integration, November 6",
+      "status": "native_snapshot_partial",
+      "published_cells": [
+        "pipetisar-real/TB_PIPE_RS9_N06",
+        "pipetisar-real/PIPE_TOP_F4_RS9_N06"
+      ],
+      "note": "22 canonical native views overlap source identities in the 64-entry research library. Ideal OTA and other behavioral dependencies remain; short historical functional results are not signoff.",
+      "source_evidence": [
+        {
+          "source": "docs/pipetisar-real-sar-20261106.md",
+          "sha256": "77d263b5d8f36d7bbc1abf7326fc4a4e1af2d0417ef8891f0fc6a320fe386006",
+          "bytes": 8923,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "pipetisar-cap-array-nov06",
+      "name": "Capacitor-array MDAC candidate, November 6",
+      "status": "native_snapshot_partial",
+      "published_cells": [
+        "pipetisar-research/MDAC4_ARRAY_G8_N06",
+        "pipetisar-research/TB_MDAC_CA4_N06",
+        "pipetisar-research/TB_PIPE_CA4_RS9_N06"
+      ],
+      "note": "Native candidate schematics are included. The historical unit-MDAC result does not establish full-ADC precision; the documented LOW test failed its predefined two-LSB functional bound.",
+      "source_evidence": [
+        {
+          "source": "docs/pipetisar-mdac-array-20261106.md",
+          "sha256": "6362ec38245f582007e66d7845fb27649c35406fa7999cf702f63f11f23c4206",
+          "bytes": 9521,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "flash-and-buffer-research",
+      "name": "Flash, buffer and amplifier research testbenches",
+      "status": "native_snapshot_partial",
+      "published_cells": [
+        "pipetisar-research/TB_Flash4_Codes_1G",
+        "pipetisar-research/TB_FlashComp_NoiseReplay",
+        "pipetisar-research/Buffer_Main",
+        "pipetisar-research/Amplifier_Main"
+      ],
+      "note": "Research exports cover the saved cells; replay-labelled testbench names alone do not supply replay configuration or measured data.",
+      "source_evidence": [
+        {
+          "source": "docs/flash4-research-20261020.md",
+          "sha256": "971ce85041e282aa8256a6f0658e6b41f8fd9f327a30727fa5be4cdb02cedd52",
+          "bytes": 14651,
+          "published": false
+        },
+        {
+          "source": "docs/flash-research-simulation-20261019.md",
+          "sha256": "8d5325e382fe63e7db9c65bb0e8737af051eac50da8374378be372d36171d505",
+          "bytes": 11363,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "tha-10g-oct27",
+      "name": "4x4 10 GS/s THA",
+      "status": "native_geometry_not_exported",
+      "published_cells": [],
+      "note": "Local OA/readbacks, netlists and behavioral models exist, but there is no reviewed RNL export in this seed. Historical 10 GS/s baseline is superseded by the separate 12 GS/s task.",
+      "source_evidence": [
+        {
+          "source": "docs/tha-4x4-10g-20261027.md",
+          "sha256": "0af0641a6f2e68a57e1f66b525d41e5c55d70f3a38eaa1f915e0b213f02875eb",
+          "bytes": 6649,
+          "published": false
+        },
+        {
+          "source": "docs/tha-4x4-10g-results-20261027.md",
+          "sha256": "29129b692d95bba73e93e3c9d8bc64217ef4a990e5e0d9a0beb151818e9107a7",
+          "bytes": 8092,
+          "published": false
+        },
+        {
+          "source": "outputs/adc/tha_4x4_10g_20261027/task_state.json",
+          "sha256": "91c15e229b161b0fff8735f619e5a68a48cf2731243b09a7bd12410f5255e50a",
+          "bytes": 2125,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "tha-12g-oct27",
+      "name": "4x4 12 GS/s THA, compact schematic",
+      "status": "native_geometry_not_exported",
+      "published_cells": [],
+      "note": "Library 2026_PIPETISAR_RESEARCH2 retains THA_4X4_10G / TB_THA_4X4_10G names at 12 GS/s. OA/readbacks and behavioral deck exist; no native geometry import or registered replay is supplied here.",
+      "source_evidence": [
+        {
+          "source": "docs/tha-12g-compact-20261027.md",
+          "sha256": "74863594f409602a441b9bb1fa1bc82fffeaae0b407c6066583800b1d74ee554",
+          "bytes": 5294,
+          "published": false
+        },
+        {
+          "source": "outputs/adc/tha_12g_compact_20261027/task_state.json",
+          "sha256": "f86234295a3eebab3b420091a9a9e25b106e1df48ceb2b05366913a4a99af5e9",
+          "bytes": 1692,
+          "published": false
+        },
+        {
+          "source": "outputs/adc/tha_12g_compact_20261027/netlists/simulated_THA_LOW.scs",
+          "sha256": "3f9e95cc39e7efddb02c153b649a2390971659feb1ed4248144e0931aec3db91",
+          "bytes": 11548,
+          "published": false
+        },
+        {
+          "source": "outputs/adc/tha_12g_compact_20261027/backup/THA_BUF_DIFF_VA/veriloga/veriloga.va",
+          "sha256": "97b937fd80be412e10a3bb8a742c39dde38c16ee9b6bdc29cd249c17b3d22106",
+          "bytes": 1270,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "tha-user-tb-oct29",
+      "name": "User revised THA coherent-sampling testbench",
+      "status": "later_user_state_not_exported",
+      "published_cells": [],
+      "note": "User Fs/cycle/N edits postdate the October 27 decks. Importing those older decks would not reconstruct the current user testbench; no new simulation is claimed.",
+      "source_evidence": [
+        {
+          "source": "docs/tha-user-tb-convention-20261029.md",
+          "sha256": "50f6e0feb0a324d0bfdcd54c101fb114cfd81ccbb4ee54f9edb5d3c6253650f6",
+          "bytes": 6844,
+          "published": false
+        },
+        {
+          "source": "outputs/adc/tha_user_update_20261029/THA_BUF_DIFF_VA.va",
+          "sha256": "97b937fd80be412e10a3bb8a742c39dde38c16ee9b6bdc29cd249c17b3d22106",
+          "bytes": 1270,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "tha-reconstruction-oct29",
+      "name": "THA voltage-sequence FFT reconstruction",
+      "status": "analysis_only",
+      "published_cells": [],
+      "note": "Reconstruction concerns behavioral held-voltage samples, not quantized ADC output codes. It is not a separate ADC schematic or a new simulation.",
+      "source_evidence": [
+        {
+          "source": "docs/tha-interleave-fft-20261029.md",
+          "sha256": "c310b75df4136d39da621557497e9ec5bb54e5cb4cf73cdb21095a1a8a129a83",
+          "bytes": 5198,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "pipeline-4g12b-nov20",
+      "name": "2024_Pipeline_Copy 3/4 GS/s Pipeline-SAR variants",
+      "status": "report_only_no_pinned_native_export",
+      "published_cells": [],
+      "note": "Local November 20 report names TB_ADC_core and TB_ADC_core_ideal_amp plus comparator-reset and bandwidth/gain variants. Bounded local search found report/figures, not a pinned native schematic closure or complete replay archive. Private report paths and unverified performance generalizations are not copied.",
+      "source_evidence": [
+        {
+          "source": "outputs/ADC_4G12B_Design_and_Simulation_Report.html",
+          "sha256": "3daa851324f985049ee1e3888c69f63a22bcda367b8a68f6412ad80a972bbef6",
+          "bytes": 3650007,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "floating-sf-nov12",
+      "name": "Floating source-follower research",
+      "status": "research_notes_only",
+      "published_cells": [],
+      "note": "Local report and research notes are not an exported ADC library, layout or executable design bundle.",
+      "source_evidence": [
+        {
+          "source": "outputs/floating_sf_power_20261112.html",
+          "sha256": "e2f40d925da2361fadf9a4008fe864c4b80f4305c5f65df5a11990c943855a2d",
+          "bytes": 68593,
+          "published": false
+        }
+      ]
+    },
+    {
+      "id": "matlab-adc-archive",
+      "name": "ADC analysis/calibration utilities",
+      "status": "analysis_archive_not_circuit",
+      "published_cells": [],
+      "note": "Archive has 83 members containing MATLAB analysis/calibration versions and an inner ZIP, not OA/schematic/layout data. Utility authorship/dependencies were not reviewed for redistribution, so the archive is not published.",
+      "source_evidence": [
+        {
+          "source": "ADC.zip",
+          "sha256": "1be81dba427f00def9d3503a16774f8f1839846285f18cfe804a19fa266aa595",
+          "bytes": 91015,
+          "published": false
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "item": "trans_ulvt_mac_pcell_0 standalone cell",
+      "reason": "PDK implementation excluded; no standalone catalog entry."
+    },
+    {
+      "item": "trans_ulvt_mac.scs original implementation",
+      "reason": "Replaced in four canonical closures by an explicitly empty viewer-only six-terminal interface. Two internal MOS instance definitions are removed; source/output hashes are recorded."
+    },
+    {
+      "item": "PDK/model cards, technology libraries and standard-cell implementations",
+      "reason": "External dependencies, not redistributable circuit example content."
+    },
+    {
+      "item": "OA binaries/backups, layout GDS/OASIS, DRC/LVS/PEX and ADE/Maestro state",
+      "reason": "Not imported by the reviewed text-geometry snapshot plan; complete native archive/export still required."
+    },
+    {
+      "item": "Raw source metadata/receipts, local machine paths, configuration, credentials and licenses",
+      "reason": "Private runtime state is not public provenance. Public provenance is newly generated with relative identifiers and hashes."
+    },
+    {
+      "item": "PSF, simulator caches, raw results and performance report HTML/images",
+      "reason": "No complete audited source/configuration/results replay bundle is published by this import."
+    },
+    {
+      "item": "Behavioral implementations missing from symbol views",
+      "reason": "All10 native symbol entries provide icons only. The separate inactive real-SAR templates supply5 matching-name project VA files; PIPE_IdealSwitch, PIPE_Merge12, PIPE_SAR9_Timed, PIPE_ThermDAC4 and RS9_Interface behavior is not supplied by this release."
+    }
+  ],
+  "simulation_candidates": [
+    {
+      "cell": "pipetisar-real/TB_PIPE_RS9_N06",
+      "test": "PIPE_LOW",
+      "kind": "sanitized-template",
+      "directory": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW",
+      "active": false
+    },
+    {
+      "cell": "pipetisar-real/TB_PIPE_RS9_N06",
+      "test": "PIPE_NYQUIST",
+      "kind": "sanitized-template",
+      "directory": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST",
+      "active": false
+    },
+    {
+      "cell": "pipetisar-research/TB_MDAC_CA4_N06",
+      "test": "MDAC_CODES",
+      "kind": "configuration-audit",
+      "directory": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES",
+      "active": false
+    },
+    {
+      "cell": "pipetisar-research/TB_PIPE_CA4_RS9_N06",
+      "test": "PIPE_LOW",
+      "kind": "configuration-audit",
+      "directory": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW",
+      "active": false
+    },
+    {
+      "cell": "pipetisar-research/TB_PIPE_CA4_RS9_N06",
+      "test": "PIPE_NYQUIST",
+      "kind": "configuration-audit",
+      "directory": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST",
+      "active": false
+    }
+  ],
+  "next_exports": [
+    "Current RESEARCH2 THA geometry plus updated user testbench state",
+    "2024_Pipeline_Copy current, baseline and ideal-amplifier variants with explicit source/version binding",
+    "User-owned OA/layout archive with PDK dependencies externalized and restoration/DRC/LVS/PEX evidence",
+    "Separately audited electrical replay configurations and matching result provenance"
+  ]
+}

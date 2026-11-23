@@ -1,0 +1,7 @@
+// Explicit saved-library assembly.
+simulator lang=spectre
+include "Switch.scs"
+include "MDAC4_MOM_BIT_N06.scs"
+include "MDAC4_REF_CTRL_N06.scs"
+include "PIPE_OTA_Diff_Ideal.scs"
+include "MDAC4_ARRAY_G8_N06.scs"

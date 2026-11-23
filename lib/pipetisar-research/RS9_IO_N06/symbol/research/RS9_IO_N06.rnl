@@ -1,0 +1,50 @@
+@RNL(type="header") { @VERSION("0.3"); @PACKAGE(name="virtuoso/2026_PIPETISAR_RESEARCH/RS9_IO_N06", version="0.1") }
+@RNL {
+$"2026_PIPETISAR_RESEARCH/RS9_IO_N06" = @DEFINE-SYMBOL(box=[0, -131.2, 83.2, 4.8]) {
+  @RECTANGLE {(0, -131.2) (83.2, 4.8)};
+  (41.6, 10.4) @TEXT("CLOCK + DECODE", size=4.6, halign="middle", valign="middle");
+  ? @TEXT("${name}", size=3.8, halign="middle", valign="middle", key="name") => @PLACE(41.6, -136.3);
+  (0, 0) @PIN(terminal=["RAW<9>", "RAW<8>", "RAW<7>", "RAW<6>", "RAW<5>", "RAW<4>", "RAW<3>", "RAW<2>", "RAW<1>", "RAW<0>"]);
+  (2.2, 0) @TEXT("RAW<9:0>", size=3.8, halign="start", valign="middle");
+  (0, -8) @PIN(terminal="EOC");
+  (2.2, -8) @TEXT("EOC", size=3.8, halign="start", valign="middle");
+  (0, -16) @PIN(terminal="CLKC");
+  (2.2, -16) @TEXT("CLKC", size=3.8, halign="start", valign="middle");
+  (0, -32) @PIN(terminal="CLKA");
+  (2.2, -32) @TEXT("CLKA", size=3.8, halign="start", valign="middle");
+  (0, -40) @PIN(terminal="CLKAE");
+  (2.2, -40) @TEXT("CLKAE", size=3.8, halign="start", valign="middle");
+  (0, -48) @PIN(terminal="CLKB");
+  (2.2, -48) @TEXT("CLKB", size=3.8, halign="start", valign="middle");
+  (0, -56) @PIN(terminal="CLKD");
+  (2.2, -56) @TEXT("CLKD", size=3.8, halign="start", valign="middle");
+  (0, -70.4) @PIN(terminal="TRACK");
+  (2.2, -70.4) @TEXT("TRACK", size=3.8, halign="start", valign="middle");
+  (0, -78.4) @PIN(terminal=["KIN<3>", "KIN<2>", "KIN<1>", "KIN<0>"]);
+  (2.2, -78.4) @TEXT("KIN<3:0>", size=3.8, halign="start", valign="middle");
+  (0, -94.4) @PIN(terminal="VIP");
+  (2.2, -94.4) @TEXT("VIP", size=3.8, halign="start", valign="middle");
+  (0, -102.4) @PIN(terminal="VIN");
+  (2.2, -102.4) @TEXT("VIN", size=3.8, halign="start", valign="middle");
+  (0, -118.4) @PIN(terminal="VDD");
+  (2.2, -118.4) @TEXT("VDD", size=3.8, halign="start", valign="middle");
+  (0, -126.4) @PIN(terminal="VSS");
+  (2.2, -126.4) @TEXT("VSS", size=3.8, halign="start", valign="middle");
+  (83.2, 0) @PIN(terminal=["Q<8>", "Q<7>", "Q<6>", "Q<5>", "Q<4>", "Q<3>", "Q<2>", "Q<1>", "Q<0>"]);
+  (81, 0) @TEXT("Q<8:0>", size=3.8, halign="end", valign="middle");
+  (83.2, -8) @PIN(terminal=["KOUT<3>", "KOUT<2>", "KOUT<1>", "KOUT<0>"]);
+  (81, -8) @TEXT("KOUT<3:0>", size=3.8, halign="end", valign="middle");
+  (83.2, -16) @PIN(terminal="DONE");
+  (81, -16) @TEXT("DONE", size=3.8, halign="end", valign="middle");
+  (83.2, -24) @PIN(terminal="OVF");
+  (81, -24) @TEXT("OVF", size=3.8, halign="end", valign="middle");
+  (83.2, -48) @PIN(terminal="BUSY");
+  (81, -48) @TEXT("BUSY", size=3.8, halign="end", valign="middle");
+  (83.2, -64) @PIN(terminal="VH");
+  (81, -64) @TEXT("VH", size=3.8, halign="end", valign="middle");
+  (83.2, -72) @PIN(terminal="VDAC");
+  (81, -72) @TEXT("VDAC", size=3.8, halign="end", valign="middle");
+  (83.2, -80) @PIN(terminal="STEP");
+  (81, -80) @TEXT("STEP", size=3.8, halign="end", valign="middle")
+};
+}

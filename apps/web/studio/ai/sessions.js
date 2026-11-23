@@ -216,6 +216,6 @@ export function mountSessions(host,{createPanel}={}) {
     if(editDialog){editDialog.close();editDialog.remove();editDialog=null;}
     for(const record of records.values())record.panel.destroy();records.clear();root.remove();slot.setBadge(null);mounted.delete(slot.element);
   }
-  controller=Object.freeze({show,hide,toggle,openManager,openDetails(){if(!destroyed){show();records.get(activeId)?.panel.openDetails();}},getState(){return Object.freeze({...idle(),...records.get(activeId)?.panel.getState()});},destroy});
+  controller=Object.freeze({show,hide,toggle,openManager,openCreate(){editName('create');},openDetails(){if(!destroyed){show();records.get(activeId)?.panel.openDetails();}},getState(){return Object.freeze({...idle(),...records.get(activeId)?.panel.getState()});},destroy});
   mounted.set(slot.element,{host,controller});publish();void load();return controller;
 }

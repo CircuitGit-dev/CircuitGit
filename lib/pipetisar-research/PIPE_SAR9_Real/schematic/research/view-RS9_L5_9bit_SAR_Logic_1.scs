@@ -1,0 +1,5 @@
+// Explicit saved-library assembly.
+simulator lang=spectre
+include "RS9_L6_SR_latch_1.scs"
+include "RS9_L6_9bit_REF_Logic.scs"
+include "RS9_L5_9bit_SAR_Logic_1.scs"

@@ -1,0 +1,165 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPETISAR_RESEARCH",
+    "cell": "MDAC4_ARRAY_G8_N06",
+    "view": "schematic"
+  },
+  "native_level": "MDAC4_ARRAY_G8_N06",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [
+    "ND2D4BWP12T30P140ULVT",
+    "PIPE_RailClamp",
+    "cfmom_2t",
+    "nch_hvt_mac",
+    "pch_hvt_mac"
+  ],
+  "external_interface_stub": false,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/research/MDAC4_ARRAY_G8_N06.scs",
+      "source_sha256": "e388e968f69cfeb1228c4a2ee39822c99041dc9f2a87057d06ecec3af0bcddef",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/MDAC4_ARRAY_G8_N06.scs",
+      "sha256": "e388e968f69cfeb1228c4a2ee39822c99041dc9f2a87057d06ecec3af0bcddef",
+      "bytes": 36045,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/MDAC4_MOM_BIT_N06.scs",
+      "source_sha256": "fc30502bf014ea7c841a3a07f85c4e2f84e0d76131adc10be0e6f06954c372b4",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/MDAC4_MOM_BIT_N06.scs",
+      "sha256": "fc30502bf014ea7c841a3a07f85c4e2f84e0d76131adc10be0e6f06954c372b4",
+      "bytes": 16822,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/MDAC4_REF_CTRL_N06.scs",
+      "source_sha256": "869526c2c81a2fcd9fa7fd483a29daaa516b556db5cdeb8e8e07d87d8dc554db",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/MDAC4_REF_CTRL_N06.scs",
+      "sha256": "869526c2c81a2fcd9fa7fd483a29daaa516b556db5cdeb8e8e07d87d8dc554db",
+      "bytes": 16728,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/PIPE_OTA_Diff_Ideal.scs",
+      "source_sha256": "3638533cbe7c7ba5bb8bc3ca74300fa8c8d18ea7f282e3622948eefe0f4fb237",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/PIPE_OTA_Diff_Ideal.scs",
+      "sha256": "3638533cbe7c7ba5bb8bc3ca74300fa8c8d18ea7f282e3622948eefe0f4fb237",
+      "bytes": 8983,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/Switch.scs",
+      "source_sha256": "079af4020024caca33a18b0058e1153b3adc4e8e618216fb5591e07b4f633d99",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/Switch.scs",
+      "sha256": "079af4020024caca33a18b0058e1153b3adc4e8e618216fb5591e07b4f633d99",
+      "bytes": 2902,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/eda-symbol.rnl",
+      "source_sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/eda-symbol.rnl",
+      "sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "bytes": 94890,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-basic.rnl",
+      "source_sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-semiconductors.rnl",
+      "source_sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/rnl-std-spectre.rnl",
+      "source_sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/rnl-std-spectre.rnl",
+      "sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "bytes": 3128,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-MDAC4_ARRAY_G8_N06.scs",
+      "source_sha256": "a39a21d3111fcb089ef36d2674fbe0c181a46a0570441e8798b55825083b6c60",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/view-MDAC4_ARRAY_G8_N06.scs",
+      "sha256": "a39a21d3111fcb089ef36d2674fbe0c181a46a0570441e8798b55825083b6c60",
+      "bytes": 212,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-MDAC4_MOM_BIT_N06.scs",
+      "source_sha256": "9930e7b482f3a6b1e04b1bf4ef87781c4981d1791c2335012cf055e16e4cc0b0",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/view-MDAC4_MOM_BIT_N06.scs",
+      "sha256": "9930e7b482f3a6b1e04b1bf4ef87781c4981d1791c2335012cf055e16e4cc0b0",
+      "bytes": 112,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-MDAC4_REF_CTRL_N06.scs",
+      "source_sha256": "e315685fe04e4114f8a72fc5b4056ab8266774da4b9f3370693aceda2011711b",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/view-MDAC4_REF_CTRL_N06.scs",
+      "sha256": "e315685fe04e4114f8a72fc5b4056ab8266774da4b9f3370693aceda2011711b",
+      "bytes": 92,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-PIPE_OTA_Diff_Ideal.scs",
+      "source_sha256": "9b0e5fa339887c2fc7fa392531cc4525b4f046381082ea0ae1dced90648ea4f3",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/view-PIPE_OTA_Diff_Ideal.scs",
+      "sha256": "9b0e5fa339887c2fc7fa392531cc4525b4f046381082ea0ae1dced90648ea4f3",
+      "bytes": 93,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/research/view-Switch.scs",
+      "source_sha256": "4e372250f8ead5c058e85ac9ed0f7c064264be198814bd0f171c4f1b56eb1347",
+      "path": "lib/pipetisar-research/MDAC4_ARRAY_G8_N06/schematic/research/view-Switch.scs",
+      "sha256": "4e372250f8ead5c058e85ac9ed0f7c064264be198814bd0f171c4f1b56eb1347",
+      "bytes": 80,
+      "transformation": "none"
+    }
+  ]
+}

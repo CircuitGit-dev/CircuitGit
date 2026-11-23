@@ -1,0 +1,5 @@
+// Explicit saved-library assembly.
+simulator lang=spectre
+include "PIPE_OTA_Diff_Ideal.scs"
+include "Switch.scs"
+include "PIPE_MDAC4_G8_SC.scs"

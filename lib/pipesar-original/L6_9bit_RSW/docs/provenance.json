@@ -1,0 +1,98 @@
+{
+  "schema": "circuitgit.adc-import.v1",
+  "source_manifest": "projects/real-sar-20261106/native/manifest.json",
+  "source_manifest_sha256": "a656f648c79bf42f74afbe4ce36f8528a1380088cf250022dc9f89b2767756c9",
+  "source_cell": {
+    "library": "2026_PIPESAR",
+    "cell": "L6_9bit_RSW",
+    "view": "schematic"
+  },
+  "native_level": "L6_9bit_RSW",
+  "geometry": "native positions, wires and user symbols preserved",
+  "export_fidelity": "partial",
+  "source_export_losses": [
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Dynamic cdsParam/cdsTerm symbol labels omitted by the native exporter",
+      "count": 135
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Ignored instruments recovered as native non-electrical figures; native pin positions use visual dots; dynamic parameter labels remain omitted",
+      "count": 4
+    },
+    {
+      "severity": "partial",
+      "blocking": true,
+      "reason": "Symbol physical-pin multiplicity and exact font/style fidelity not fully verified",
+      "count": null
+    }
+  ],
+  "viewer_only": true,
+  "simulation_replay": "not packaged or verified",
+  "external_master_references": [
+    "nch_lvt_mac",
+    "pch_lvt_mac"
+  ],
+  "external_interface_stub": false,
+  "files": [
+    {
+      "source": "projects/real-sar-20261106/native/original-sar/L6_9bit_RSW.scs",
+      "source_sha256": "1f281fe0784bc5d6153b390b125e3a421e5702a7da84f50a23d69deb3175a90a",
+      "path": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/L6_9bit_RSW.scs",
+      "sha256": "1f281fe0784bc5d6153b390b125e3a421e5702a7da84f50a23d69deb3175a90a",
+      "bytes": 44750,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/original-sar/eda-style.rnl",
+      "source_sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "path": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d",
+      "bytes": 3395,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/original-sar/eda-symbol.rnl",
+      "source_sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "path": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/eda-symbol.rnl",
+      "sha256": "a93c41e36cac463ac3c822e71bad94661103d6f6e4cdb79febd6408312e43b64",
+      "bytes": 94890,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/original-sar/rnl-std-basic.rnl",
+      "source_sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "path": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-basic.rnl",
+      "sha256": "99f4de07b4a9ca01a6c06bd49c5d7c0979573f59ced09a68e2ef6bfc7648151a",
+      "bytes": 23143,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/original-sar/rnl-std-semiconductors.rnl",
+      "source_sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "path": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-semiconductors.rnl",
+      "sha256": "e147b9ceac01971e9e561a78bf496b2445c59c2f37e02be10bd1a0b817594e93",
+      "bytes": 16581,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/original-sar/rnl-std-spectre.rnl",
+      "source_sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "path": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/rnl-std-spectre.rnl",
+      "sha256": "636a49217e6745b6e0e650c8ea93b8c5938bf820bf23f770d63c7936c8e24b47",
+      "bytes": 3128,
+      "transformation": "none"
+    },
+    {
+      "source": "projects/real-sar-20261106/native/original-sar/view-L6_9bit_RSW.scs",
+      "source_sha256": "7c41c94c7c9ed9ae868f759125b9d16db9b1c7147e3b1abd419d9e51a554c19c",
+      "path": "lib/pipesar-original/L6_9bit_RSW/schematic/original-sar/view-L6_9bit_RSW.scs",
+      "sha256": "7c41c94c7c9ed9ae868f759125b9d16db9b1c7147e3b1abd419d9e51a554c19c",
+      "bytes": 85,
+      "transformation": "none"
+    }
+  ]
+}

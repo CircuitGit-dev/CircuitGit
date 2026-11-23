@@ -1,0 +1,5 @@
+// VIEWER-ONLY external interface. PDK implementation deliberately omitted.
+// This empty declaration has no electrical behavior and must not be simulated.
+simulator lang=spectre
+subckt trans_ulvt_mac_pcell_0 A C CB Gb Pb Y
+ends trans_ulvt_mac_pcell_0

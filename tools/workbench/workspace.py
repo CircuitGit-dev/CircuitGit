@@ -60,14 +60,37 @@ def version_git(root,*args,deadline=None,limit=VERSION_OUTPUT_LIMIT,check=True):
 
 def version_public_path(path):
     """An explicit project file allowlist is required in addition to these exclusions."""
-    safe_relative(path)
-    if str(PurePosixPath(path))!=path or not path.startswith('projects/') or len(path.encode())>512 or any(ord(c)<32 or ord(c)==127 for c in path):
+    project_path(path)
+    if len(path.encode())>512:
         raise ValueError('invalid version-control project file')
     private=re.compile(r'(?i)(?:^|[._-])(?:pdks?|credentials?|secrets?|licenses?|private|tokens?|auth|id_rsa|id_ed25519)(?:$|[._-])')
     return not any(private.search(part) or '.local.' in part.lower() for part in PurePosixPath(path).parts) and not path.lower().endswith(('.pem','.key','.p12','.pfx'))
 def safe_relative(path):
-    if not isinstance(path,str) or not path or '\\' in path or '\x00' in path or path.startswith('/') or any(x in ['.','..','.git'] or x.startswith('.') for x in PurePosixPath(path).parts):raise ValueError('path is outside allowed project files')
+    if not isinstance(path,str) or not path or '\\' in path or ':' in path or len(path)>1024 or any(ord(c)<32 or ord(c)==127 for c in path) or any(not x or x.startswith('.') for x in path.split('/')):raise ValueError('path is outside allowed project files')
     return path
+def project_path(path):
+    """Validate an exact file identifier, never normalize or infer a cell's file list."""
+    safe_relative(path)
+    parts=path.split('/')
+    if not (parts[0]=='projects' and len(parts)>=3 or parts[0]=='lib' and len(parts)>=4):
+        raise ValueError('registered project files must be under projects/ or lib/<library>/<cell>/')
+    return path
+
+def project_metadata(project):
+    result={}
+    for field in ('library_id','cell_id'):
+        if field not in project:continue
+        value=project[field]
+        if not isinstance(value,str) or not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}',value):
+            raise ValueError('invalid project '+field)
+        result[field]=value
+    source=project_path(project['source_path'])
+    if source.startswith('lib/'):
+        parts=source.split('/')
+        if any(result.get(field,parts[index])!=parts[index] for field,index in (('library_id',1),('cell_id',2))):
+            raise ValueError('library/cell metadata does not match explicit source_path')
+    return result
+
 def git(root,*args,input=None,check=True):
     p=subprocess.run(['git','-c','core.hooksPath=/dev/null','-c','core.fsmonitor=false','-C',str(root),*args],input=input,capture_output=True)
     if check and p.returncode:raise ValueError(p.stderr.decode(errors='replace')[-1500:])
@@ -106,14 +129,15 @@ class Workspace:
                 git(self.root,'remote','set-url','origin','https://github.com/'+self.repo+'.git');git(self.root,'checkout','-b',self.branch)
             if git(self.root,'remote','get-url','origin').stdout.decode().strip()!='https://github.com/'+self.repo+'.git':raise ValueError('runtime origin does not match pinned repository')
         self.projects={p['id']:p for p in cfg['projects']};self.allowed=set()
+        if len(self.projects)!=len(cfg['projects']):raise ValueError('duplicate project id')
         for p in self.projects.values():
-            for k in ['source_path']:self.allowed.add(safe_relative(p[k]))
+            project_metadata(p)
+            for k in ['source_path']:self.allowed.add(project_path(p[k]))
             for c in p['configurations']:
-                self.allowed.add(safe_relative(c['configuration_path']))
+                self.allowed.add(project_path(c['configuration_path']))
                 safe_relative(c['bundle_template'])
-                for replacement in c.get('source_replacements',[]):self.allowed.add(safe_relative(replacement['source']));core.relpath(replacement['destination'])
-            for path in p.get('read_paths',[]):self.allowed.add(safe_relative(path))
-        if any(not p.startswith('projects/') for p in self.allowed):raise ValueError('editable/read project files must be under projects/')
+                for replacement in c.get('source_replacements',[]):self.allowed.add(project_path(replacement['source']));core.relpath(replacement['destination'])
+            for path in p.get('read_paths',[]):self.allowed.add(project_path(path))
     def head(self):return git(self.root,'rev-parse','HEAD').stdout.decode().strip()
     def clean(self):return not git(self.root,'status','--porcelain').stdout
     def require_base(self,base):
@@ -132,13 +156,13 @@ class Workspace:
         if len(raw)>2*1024*1024:raise ValueError('file too large')
         return {'path':path,'content':raw.decode(),'sha256':core.sha(raw),'base_commit':self.head(),'editable':not any(path in p.get('read_paths',[]) for p in self.projects.values())}
     def describe(self):
-        projects=[{'id':p['id'],'name':p.get('name',p['id']),'source_path':p['source_path'],'configurations':[{'id':c['id'],'name':c.get('name',c['id']),'path':c['configuration_path']} for c in p['configurations']]} for p in self.projects.values()]
+        projects=[{'id':p['id'],'name':p.get('name',p['id']),**project_metadata(p),'source_path':p['source_path'],'configurations':[{'id':c['id'],'name':c.get('name',c['id']),'path':c['configuration_path']} for c in p['configurations']]} for p in self.projects.values()]
         tracking=git(self.root,'rev-parse','--abbrev-ref','--symbolic-full-name','@{u}',check=False).stdout.decode().strip() or 'origin/'+self.base_branch
         return {'repo':self.repo,'branch':self.branch,'tracking_branch':tracking,'source_commit':self.head(),'clean':self.clean(),'dirty':not self.clean(),'projects':projects,'active_project':projects[0]['id'] if projects else None,'capabilities':{'git':True,'runner':True,'publish':True,'viewer':False}}
     def tree(self,project_id):
         if project_id not in self.projects:raise FileNotFoundError('unknown project')
-        p=self.projects[project_id];paths={p['source_path'],*[c['configuration_path'] for c in p['configurations']],*p.get('read_paths',[])}
-        return {'files':[{'path':x,'kind':'file','editable':x not in p.get('read_paths',[])} for x in sorted(paths)],'base_commit':self.head()}
+        p=self.projects[project_id];paths={p['source_path'],*[c['configuration_path'] for c in p['configurations']],*p.get('read_paths',[]),*[r['source'] for c in p['configurations'] for r in c.get('source_replacements',[])]}
+        return {'files':[{'path':x,'kind':'file','editable':not any(x in project.get('read_paths',[]) for project in self.projects.values())} for x in sorted(paths)],'base_commit':self.head()}
     def _version_paths(self,project_id,scope='all'):
         if scope not in ('all','design'):raise ValueError('invalid version-control scope')
         if not isinstance(project_id,str) or project_id not in self.projects:raise FileNotFoundError('unknown project')
@@ -540,11 +564,11 @@ class Workspace:
     def materialize(self,pid,configuration,commit):
         with locked(self.runtime/'workspace.lock'):
             self.require_base(commit);p,c=self.select(pid,configuration);b,files,sources=self.compile_inputs(p,c,commit)
-            compiler_hash=core.sha(Path(__file__).read_bytes()+Path(configuration_schema.__file__).read_bytes());key=core.sha(json.dumps([commit,pid,configuration,sources,compiler_hash],sort_keys=True).encode());dest=self.frozen/key
+            compiler_hash=core.sha(Path(__file__).read_bytes()+Path(configuration_schema.__file__).read_bytes());key=core.sha(json.dumps([commit,pid,configuration,sources,compiler_hash,project_metadata(p)],sort_keys=True).encode());dest=self.frozen/key
             if not dest.exists():
                 temp=self.frozen/(key+'.'+uuid.uuid4().hex);temp.mkdir()
                 for name,raw in files.items():f=temp/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_bytes(raw)
-                atomic(temp/'bundle.json',b);data={'source_commit':commit,'project_id':pid,'configuration':configuration,'source_sha256':sources,'compiler_sha256':compiler_hash,'bundle_sha256':filehash(temp/'bundle.json')}
+                atomic(temp/'bundle.json',b);data={'source_commit':commit,'project_id':pid,**project_metadata(p),'configuration':configuration,'source_sha256':sources,'compiler_sha256':compiler_hash,'bundle_sha256':filehash(temp/'bundle.json')}
                 signature=hmac.new(self.key,json.dumps(data,sort_keys=True).encode(),hashlib.sha256).hexdigest();atomic(temp/'materialization.json',{'data':data,'signature':signature});temp.rename(dest)
             # Validate closure and pins from actual new hashes; never modify archived templates.
             core.prepare(dest/'bundle.json',self.site);return dest/'bundle.json'

@@ -1,0 +1,3 @@
+// Explicit saved-library assembly.
+simulator lang=spectre
+include "L4_stage1_flash_comparator.scs"

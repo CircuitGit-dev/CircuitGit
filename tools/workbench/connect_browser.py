@@ -18,6 +18,7 @@ from icwb.host import AiRoutes
 from icwb.service import Service
 from remote_node import Server, Handler, Node, node_config, node_identity
 from browser_login import LocalLogin
+from browser_development import LocalDevelopment
 
 PUBLIC_URL = 'https://joshuazeng713.github.io/CircuitGit/'
 
@@ -86,7 +87,9 @@ def main():
             except BlockingIOError:raise RuntimeError('已有服务使用此 AI 会话目录，未启动重复实例。')
             routes = AiRoutes(Service(config))
             node = Node(routes, token, ['https://joshuazeng713.github.io', *args.allow_origin], identity, 'http://127.0.0.1:8767', '本机 Codex')
-            node.login = LocalLogin(config);browser.node = node
+            node.login = LocalLogin(config)
+            node.development = LocalDevelopment(state / 'owner-settings', routes, node.pairing, node.url, workspace_hint=ROOT)
+            browser.node = node
             print('CircuitGit 连接助手已启动。请保持此窗口运行，在网页点击“连接本机 Codex”并确认授权。', flush=True)
             print('不会自动登录、发送模型消息或运行仿真。关闭此窗口可停止助手。', flush=True)
             if not args.no_browser:webbrowser.open(PUBLIC_URL)

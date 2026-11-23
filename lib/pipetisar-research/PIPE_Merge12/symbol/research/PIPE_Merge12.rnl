@@ -1,0 +1,38 @@
+@RNL(type="header") { @VERSION("0.3"); @PACKAGE(name="virtuoso/2026_PIPETISAR_RESEARCH/PIPE_Merge12", version="0.1") }
+@RNL {
+$"2026_PIPETISAR_RESEARCH/PIPE_Merge12" = @DEFINE-SYMBOL(box=[0, -38.4, 48, 2.4]) {
+  @RECTANGLE {(0, -38.4) (48, 2.4)};
+  (24, 6.7) @TEXT("ALIGN + MERGE", size=3.2, halign="middle", valign="middle");
+  ? @TEXT("${name}", size=1.9, halign="middle", valign="middle", key="name") => @PLACE(24, -42.4);
+  (48, -16) @PIN(terminal="OVF");
+  (46.4, -16) @TEXT("OVF", size=2.6, halign="end", valign="middle");
+  (48, -12) @PIN(terminal="CHANNEL");
+  (46.4, -12) @TEXT("CHANNEL", size=2.6, halign="end", valign="middle");
+  (48, -8) @PIN(terminal="VALID");
+  (46.4, -8) @TEXT("VALID", size=2.6, halign="end", valign="middle");
+  (48, -4) @PIN(terminal="RECON");
+  (46.4, -4) @TEXT("RECON", size=2.6, halign="end", valign="middle");
+  (0, -28) @PIN(terminal="OFB");
+  (1.6, -28) @TEXT("OFB", size=2.6, halign="start", valign="middle");
+  (0, -32) @PIN(terminal="VDD");
+  (1.6, -32) @TEXT("VDD", size=2.6, halign="start", valign="middle");
+  (0, -36) @PIN(terminal="VSS");
+  (1.6, -36) @TEXT("VSS", size=2.6, halign="start", valign="middle");
+  (48, 0) @PIN(terminal=["CODE<11>", "CODE<10>", "CODE<9>", "CODE<8>", "CODE<7>", "CODE<6>", "CODE<5>", "CODE<4>", "CODE<3>", "CODE<2>", "CODE<1>", "CODE<0>"]);
+  (46.4, 0) @TEXT("CODE<11:0>", size=2.6, halign="end", valign="middle");
+  (0, -24) @PIN(terminal="DB");
+  (1.6, -24) @TEXT("DB", size=2.6, halign="start", valign="middle");
+  (0, -20) @PIN(terminal=["KB<3>", "KB<2>", "KB<1>", "KB<0>"]);
+  (1.6, -20) @TEXT("KB<3:0>", size=2.6, halign="start", valign="middle");
+  (0, -16) @PIN(terminal=["QB<8>", "QB<7>", "QB<6>", "QB<5>", "QB<4>", "QB<3>", "QB<2>", "QB<1>", "QB<0>"]);
+  (1.6, -16) @TEXT("QB<8:0>", size=2.6, halign="start", valign="middle");
+  (0, -8) @PIN(terminal="DA");
+  (1.6, -8) @TEXT("DA", size=2.6, halign="start", valign="middle");
+  (0, -12) @PIN(terminal="OFA");
+  (1.6, -12) @TEXT("OFA", size=2.6, halign="start", valign="middle");
+  (0, -4) @PIN(terminal=["KA<3>", "KA<2>", "KA<1>", "KA<0>"]);
+  (1.6, -4) @TEXT("KA<3:0>", size=2.6, halign="start", valign="middle");
+  (0, 0) @PIN(terminal=["QA<8>", "QA<7>", "QA<6>", "QA<5>", "QA<4>", "QA<3>", "QA<2>", "QA<1>", "QA<0>"]);
+  (1.6, 0) @TEXT("QA<8:0>", size=2.6, halign="start", valign="middle")
+};
+}

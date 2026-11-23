@@ -1,0 +1,22 @@
+// 1V reference span -> 2Vpp differential full-scale; VP/VN symmetric about VCM.
+`include "constants.vams"
+`include "disciplines.vams"
+module PIPE_ThermDAC4_FS2(D,VP,VN,K,VCM,VREFP,VREFN,VDD,VSS);
+ input [14:0] D; output VP,VN; output [3:0] K;
+ input VCM,VREFP,VREFN,VDD,VSS;
+ electrical [14:0] D; electrical [3:0] K; electrical VP,VN,VCM,VREFP,VREFN,VDD,VSS;
+ parameter real tr=1p;
+ integer code;
+ analog begin
+// Update only on resolved comparator-output crossings, outside Newton iterations.
+@(initial_step or cross(V(D[0],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[1],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[2],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[3],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[4],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[5],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[6],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[7],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[8],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[9],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[10],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[11],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[12],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[13],VSS)-V(VDD,VSS)/2,0,1f,1u) or cross(V(D[14],VSS)-V(VDD,VSS)/2,0,1f,1u)) begin
+ code=((V(D[0],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[1],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[2],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[3],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[4],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[5],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[6],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[7],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[8],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[9],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[10],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[11],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[12],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[13],VSS)>V(VDD,VSS)/2)?1:0)+((V(D[14],VSS)>V(VDD,VSS)/2)?1:0);
+end
+ V(VP,VCM)<+V(VREFP,VREFN)/16*transition(code-7.5,0,tr,tr);
+ V(VN,VCM)<+-V(VREFP,VREFN)/16*transition(code-7.5,0,tr,tr);
+ V(K[0],VSS)<+V(VDD,VSS)*transition((code>>0)&1,0,tr,tr);
+ V(K[1],VSS)<+V(VDD,VSS)*transition((code>>1)&1,0,tr,tr);
+ V(K[2],VSS)<+V(VDD,VSS)*transition((code>>2)&1,0,tr,tr);
+ V(K[3],VSS)<+V(VDD,VSS)*transition((code>>3)&1,0,tr,tr);
+ end
+endmodule

@@ -1,0 +1,26 @@
+@RNL(type="header") { @VERSION("0.3"); @PACKAGE(name="virtuoso/2026_PIPETISAR_RESEARCH/PIPE_ThermDAC4_FS2", version="0.1") }
+@RNL {
+$"2026_PIPETISAR_RESEARCH/PIPE_ThermDAC4_FS2" = @DEFINE-SYMBOL(box=[0, -56, 57.6, 4.8]) {
+  @RECTANGLE {(0, -56) (57.6, 4.8)};
+  (28.8, 10.4) @TEXT("COARSE DAC", size=4.6, halign="middle", valign="middle");
+  ? @TEXT("${name}", size=3.8, halign="middle", valign="middle", key="name") => @PLACE(28.8, -61.1);
+  (0, -8) @PIN(terminal="VREFP");
+  (2.2, -8) @TEXT("VREFP", size=3.8, halign="start", valign="middle");
+  (0, -16) @PIN(terminal="VREFN");
+  (2.2, -16) @TEXT("VREFN", size=3.8, halign="start", valign="middle");
+  (0, -24) @PIN(terminal="VCM");
+  (2.2, -24) @TEXT("VCM", size=3.8, halign="start", valign="middle");
+  (0, -32) @PIN(terminal="VDD");
+  (2.2, -32) @TEXT("VDD", size=3.8, halign="start", valign="middle");
+  (0, -40) @PIN(terminal="VSS");
+  (2.2, -40) @TEXT("VSS", size=3.8, halign="start", valign="middle");
+  (57.6, 0) @PIN(terminal="VP");
+  (55.4, 0) @TEXT("VP", size=3.8, halign="end", valign="middle");
+  (57.6, -12.8) @PIN(terminal="VN");
+  (55.4, -12.8) @TEXT("VN", size=3.8, halign="end", valign="middle");
+  (57.6, -51.2) @PIN(terminal=["K<3>", "K<2>", "K<1>", "K<0>"]);
+  (55.4, -51.2) @TEXT("K<3:0>", size=3.8, halign="end", valign="middle");
+  (0, 0) @PIN(terminal=["D<14>", "D<13>", "D<12>", "D<11>", "D<10>", "D<9>", "D<8>", "D<7>", "D<6>", "D<5>", "D<4>", "D<3>", "D<2>", "D<1>", "D<0>"]);
+  (2.2, 0) @TEXT("D<14:0>", size=3.8, halign="start", valign="middle")
+};
+}

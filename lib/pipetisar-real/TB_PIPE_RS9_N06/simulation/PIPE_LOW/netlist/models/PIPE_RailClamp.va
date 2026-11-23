@@ -1,0 +1,29 @@
+`include "constants.vams"
+`include "disciplines.vams"
+// Shunt rail limiter, inside the actual SC feedback loop.
+// No buffer: preserves the OTA, feedback capacitors and external load.
+// Zero current throughout the linear region. The 1mV inward margin keeps
+// the simulated output inside the supply rails with finite clamp conductance.
+// This is an ideal rail constraint, not a transistor saturation/recovery model.
+module PIPE_RailClamp(P,N,VDD,VSS);
+ inout P,N,VDD,VSS;
+ electrical P,N,VDD,VSS;
+ parameter real gclamp=1e4 from (0:inf);
+ parameter real margin=1m from (0:inf);
+ parameter real knee=100u from (0:inf);
+ parameter integer enable=1 from [0:1];
+ analog function real positive;
+  input x,eps; real x,eps;
+  begin
+   if(x<=0) positive=0;
+   else if(x<eps) positive=x*x/(2*eps);
+   else positive=x-eps/2;
+  end
+ endfunction
+ analog begin
+  I(P,VDD)<+enable*gclamp*positive(V(P,VDD)+margin,knee);
+  I(N,VDD)<+enable*gclamp*positive(V(N,VDD)+margin,knee);
+  I(VSS,P)<+enable*gclamp*positive(V(VSS,P)+margin,knee);
+  I(VSS,N)<+enable*gclamp*positive(V(VSS,N)+margin,knee);
+ end
+endmodule

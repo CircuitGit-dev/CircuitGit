@@ -1,0 +1,37 @@
+{
+  "source": "sim/bundles/real-sar-20261106/PIPE_LOW/bundle.json",
+  "source_sha256": "1d4098fb5371005fbe5a598fe6c1de67f3fb08c83d58f67e09b71531ec75ff48",
+  "history": "Interactive.0",
+  "original_input_sha256": "6cd973d1370903fcbb71f61d375fea99eb9fa1ae407bc9aae02bcb9af8593cc3",
+  "original_design_sha256": "fc934c8efe0683b41acbae5c8e235a081dba4259403366a46f80dd715b81d347",
+  "published_bytes_are_original": false,
+  "changes": [
+    {
+      "file": "netlist/project.scs",
+      "before_sha256": "12d9cfed2933bb2e4627e01e64662fadf58b8bf33ac38cd4a12e926ae37c89eb",
+      "after_sha256": "79057c5663690718c54004896eb155d1d176f1826ff4e45a66f108ce83c1d4c8",
+      "action": "replace PDK trans_ulvt_mac_pcell_0 implementation with external alias",
+      "external_body_sha256": "e8d98b0603b4989ca6f8550737993b26f7abe83030bd3c957f1d522bf682922c"
+    }
+  ],
+  "removed_metadata": [
+    "historical_reference containing local and remote absolute paths"
+  ],
+  "validation": {
+    "file_hashes": true,
+    "relative_include_closure": true,
+    "external_aliases": [
+      "PDK_MAIN",
+      "PDK_TRANS_ULVT_PCELL",
+      "STDCELL_SVT_LVT",
+      "ULVT_ND2D0"
+    ],
+    "private_path_scan": true,
+    "vendor_definition_scan": true,
+    "local_compiler_scan": true,
+    "explicit_save_signals": 125,
+    "simulation_executed": false
+  },
+  "registration": "not active; external model files unavailable; distribution/replay review remains false",
+  "suggested_cell": "lib/pipetisar-real/TB_PIPE_RS9_N06"
+}

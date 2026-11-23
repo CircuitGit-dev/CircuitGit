@@ -1,0 +1,1162 @@
+{
+  "schema": "circuitgit.library.v1",
+  "id": "pipetisar-real",
+  "name": "PIPE–TI–SAR real SAR snapshot",
+  "description": "Native read-only snapshot of the 1 GS/s pipeline plus time-interleaved SAR project.",
+  "cells": [
+    {
+      "id": "TB_PIPE_RS9_N06",
+      "name": "TB_PIPE_RS9_N06",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "testbench",
+      "directory": "lib/pipetisar-real/TB_PIPE_RS9_N06",
+      "readme": "lib/pipetisar-real/TB_PIPE_RS9_N06/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/TB_PIPE_RS9_N06.scs",
+          "level": "@top",
+          "files": [
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/L3_stage1_flash4_FS2.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/L4_stage1_flash4_encoder.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/L4_stage1_flash4_rdac_FS2.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/L4_stage1_flash_bootstrapper.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/L4_stage1_flash_clkbooster.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/L4_stage1_flash_comparator.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/PIPE_MDAC4_G8_SC.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/PIPE_OTA_Diff_Ideal.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/PIPE_SAR9_Real_N06.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/PIPE_TOP_F4_RS9_N06.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L3_9bit_SAR_2.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/Switch.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/TB_PIPE_RS9_N06.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/eda-style.rnl",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/trans_ulvt_mac.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-L3_stage1_flash4_FS2.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-L4_stage1_flash4_encoder.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-L4_stage1_flash4_rdac_FS2.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-L4_stage1_flash_bootstrapper.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-L4_stage1_flash_clkbooster.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-L4_stage1_flash_comparator.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-PIPE_MDAC4_G8_SC.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-PIPE_OTA_Diff_Ideal.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-PIPE_SAR9_Real_N06.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-PIPE_TOP_F4_RS9_N06.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L3_9bit_SAR_2.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-Switch.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/schematic/view-trans_ulvt_mac_pcell_0.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/TB_PIPE_RS9_N06/README.md",
+          "files": [
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/README.md",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        },
+        {
+          "id": "simulation",
+          "label": "Historical inputs — models incomplete",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/README.md",
+          "files": [
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/README.md",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/bundle.json",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/configuration.json",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/provenance.json",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/TB_PIPE_RS9_N06_save.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/input.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/PIPE_Clock250_250_500.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/PIPE_RailClamp.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/PIPE_ThermDAC4_FS2.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/RS9_IO_N06.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/models/RS9_Merge_N06.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/numerical_options.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/netlist/project.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/bundle.json",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/configuration.json",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/provenance.json",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/TB_PIPE_RS9_N06_save.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/input.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/PIPE_Clock250_250_500.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/PIPE_RailClamp.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/PIPE_ThermDAC4_FS2.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/RS9_IO_N06.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/models/RS9_Merge_N06.va",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/numerical_options.scs",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/project.scs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L3_stage1_flash4_FS2",
+      "name": "L3_stage1_flash4_FS2",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/L3_stage1_flash4_FS2",
+      "readme": "lib/pipetisar-real/L3_stage1_flash4_FS2/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/view-L3_stage1_flash4_FS2.scs",
+          "level": "L3_stage1_flash4_FS2",
+          "files": [
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/L3_stage1_flash4_FS2.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/L4_stage1_flash4_encoder.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/L4_stage1_flash4_rdac_FS2.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/L4_stage1_flash_bootstrapper.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/L4_stage1_flash_clkbooster.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/L4_stage1_flash_comparator.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/eda-style.rnl",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/trans_ulvt_mac.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/view-L3_stage1_flash4_FS2.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/view-L4_stage1_flash4_encoder.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/view-L4_stage1_flash4_rdac_FS2.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/view-L4_stage1_flash_bootstrapper.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/view-L4_stage1_flash_clkbooster.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/view-L4_stage1_flash_comparator.scs",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/schematic/view-trans_ulvt_mac_pcell_0.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/L3_stage1_flash4_FS2/README.md",
+          "files": [
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/README.md",
+            "lib/pipetisar-real/L3_stage1_flash4_FS2/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L4_stage1_flash4_encoder",
+      "name": "L4_stage1_flash4_encoder",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/L4_stage1_flash4_encoder",
+      "readme": "lib/pipetisar-real/L4_stage1_flash4_encoder/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/view-L4_stage1_flash4_encoder.scs",
+          "level": "L4_stage1_flash4_encoder",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/L4_stage1_flash4_encoder.scs",
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/eda-style.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/schematic/view-L4_stage1_flash4_encoder.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/L4_stage1_flash4_encoder/README.md",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/README.md",
+            "lib/pipetisar-real/L4_stage1_flash4_encoder/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L4_stage1_flash4_rdac_FS2",
+      "name": "L4_stage1_flash4_rdac_FS2",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2",
+      "readme": "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/view-L4_stage1_flash4_rdac_FS2.scs",
+          "level": "L4_stage1_flash4_rdac_FS2",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/L4_stage1_flash4_rdac_FS2.scs",
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/eda-style.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/schematic/view-L4_stage1_flash4_rdac_FS2.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/README.md",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/README.md",
+            "lib/pipetisar-real/L4_stage1_flash4_rdac_FS2/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L4_stage1_flash_bootstrapper",
+      "name": "L4_stage1_flash_bootstrapper",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/L4_stage1_flash_bootstrapper",
+      "readme": "lib/pipetisar-real/L4_stage1_flash_bootstrapper/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/view-L4_stage1_flash_bootstrapper.scs",
+          "level": "L4_stage1_flash_bootstrapper",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/L4_stage1_flash_bootstrapper.scs",
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/eda-style.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/schematic/view-L4_stage1_flash_bootstrapper.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/L4_stage1_flash_bootstrapper/README.md",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/README.md",
+            "lib/pipetisar-real/L4_stage1_flash_bootstrapper/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L4_stage1_flash_clkbooster",
+      "name": "L4_stage1_flash_clkbooster",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/L4_stage1_flash_clkbooster",
+      "readme": "lib/pipetisar-real/L4_stage1_flash_clkbooster/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/view-L4_stage1_flash_clkbooster.scs",
+          "level": "L4_stage1_flash_clkbooster",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/L4_stage1_flash_clkbooster.scs",
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/eda-style.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/schematic/view-L4_stage1_flash_clkbooster.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/L4_stage1_flash_clkbooster/README.md",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/README.md",
+            "lib/pipetisar-real/L4_stage1_flash_clkbooster/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L4_stage1_flash_comparator",
+      "name": "L4_stage1_flash_comparator",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/L4_stage1_flash_comparator",
+      "readme": "lib/pipetisar-real/L4_stage1_flash_comparator/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/view-L4_stage1_flash_comparator.scs",
+          "level": "L4_stage1_flash_comparator",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/L4_stage1_flash_comparator.scs",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/eda-style.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/trans_ulvt_mac.scs",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/view-L4_stage1_flash_comparator.scs",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/schematic/view-trans_ulvt_mac_pcell_0.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/L4_stage1_flash_comparator/README.md",
+          "files": [
+            "lib/pipetisar-real/L4_stage1_flash_comparator/README.md",
+            "lib/pipetisar-real/L4_stage1_flash_comparator/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PIPE_MDAC4_G8_SC",
+      "name": "PIPE_MDAC4_G8_SC",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/PIPE_MDAC4_G8_SC",
+      "readme": "lib/pipetisar-real/PIPE_MDAC4_G8_SC/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/view-PIPE_MDAC4_G8_SC.scs",
+          "level": "PIPE_MDAC4_G8_SC",
+          "files": [
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/PIPE_MDAC4_G8_SC.scs",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/PIPE_OTA_Diff_Ideal.scs",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/Switch.scs",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/eda-style.rnl",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/view-PIPE_MDAC4_G8_SC.scs",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/view-PIPE_OTA_Diff_Ideal.scs",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/schematic/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/PIPE_MDAC4_G8_SC/README.md",
+          "files": [
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/README.md",
+            "lib/pipetisar-real/PIPE_MDAC4_G8_SC/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PIPE_OTA_Diff_Ideal",
+      "name": "PIPE_OTA_Diff_Ideal",
+      "description": "Preserved native schematic using simulator primitives; no replay configuration supplied.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/PIPE_OTA_Diff_Ideal",
+      "readme": "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/README.md",
+      "project_id": null,
+      "requires_external_models": false,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/view-PIPE_OTA_Diff_Ideal.scs",
+          "level": "PIPE_OTA_Diff_Ideal",
+          "files": [
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/PIPE_OTA_Diff_Ideal.scs",
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/eda-style.rnl",
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/schematic/view-PIPE_OTA_Diff_Ideal.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/README.md",
+          "files": [
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/README.md",
+            "lib/pipetisar-real/PIPE_OTA_Diff_Ideal/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PIPE_SAR9_Real_N06",
+      "name": "PIPE_SAR9_Real_N06",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/PIPE_SAR9_Real_N06",
+      "readme": "lib/pipetisar-real/PIPE_SAR9_Real_N06/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-PIPE_SAR9_Real_N06.scs",
+          "level": "PIPE_SAR9_Real_N06",
+          "files": [
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/PIPE_SAR9_Real_N06.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L3_9bit_SAR_2.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/eda-style.rnl",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-PIPE_SAR9_Real_N06.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L3_9bit_SAR_2.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/PIPE_SAR9_Real_N06/README.md",
+          "files": [
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/README.md",
+            "lib/pipetisar-real/PIPE_SAR9_Real_N06/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PIPE_TOP_F4_RS9_N06",
+      "name": "PIPE_TOP_F4_RS9_N06",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06",
+      "readme": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_TOP_F4_RS9_N06.scs",
+          "level": "PIPE_TOP_F4_RS9_N06",
+          "files": [
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L3_stage1_flash4_FS2.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash4_encoder.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash4_rdac_FS2.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash_bootstrapper.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash_clkbooster.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/L4_stage1_flash_comparator.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_MDAC4_G8_SC.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_OTA_Diff_Ideal.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_SAR9_Real_N06.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/PIPE_TOP_F4_RS9_N06.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L3_9bit_SAR_2.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/Switch.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/eda-style.rnl",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/trans_ulvt_mac.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L3_stage1_flash4_FS2.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash4_encoder.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash4_rdac_FS2.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash_bootstrapper.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash_clkbooster.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-L4_stage1_flash_comparator.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_MDAC4_G8_SC.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_OTA_Diff_Ideal.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_SAR9_Real_N06.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-PIPE_TOP_F4_RS9_N06.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L3_9bit_SAR_2.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-Switch.scs",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/schematic/view-trans_ulvt_mac_pcell_0.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/README.md",
+          "files": [
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/README.md",
+            "lib/pipetisar-real/PIPE_TOP_F4_RS9_N06/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L3_9bit_SAR_2",
+      "name": "RS9_L3_9bit_SAR_2",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L3_9bit_SAR_2",
+      "readme": "lib/pipetisar-real/RS9_L3_9bit_SAR_2/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L3_9bit_SAR_2.scs",
+          "level": "RS9_L3_9bit_SAR_2",
+          "files": [
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L3_9bit_SAR_2.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L3_9bit_SAR_2.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L3_9bit_SAR_2/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/README.md",
+            "lib/pipetisar-real/RS9_L3_9bit_SAR_2/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L5_9bit_Bootstrap",
+      "name": "RS9_L5_9bit_Bootstrap",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L5_9bit_Bootstrap",
+      "readme": "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/view-RS9_L5_9bit_Bootstrap.scs",
+          "level": "RS9_L5_9bit_Bootstrap",
+          "files": [
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/RS9_L5_9bit_Bootstrap.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/view-RS9_L5_9bit_Bootstrap.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/README.md",
+            "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L5_9bit_Comparator_LN",
+      "name": "RS9_L5_9bit_Comparator_LN",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN",
+      "readme": "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/view-RS9_L5_9bit_Comparator_LN.scs",
+          "level": "RS9_L5_9bit_Comparator_LN",
+          "files": [
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/RS9_L5_9bit_Comparator_LN.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/schematic/view-RS9_L5_9bit_Comparator_LN.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/README.md",
+            "lib/pipetisar-real/RS9_L5_9bit_Comparator_LN/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L5_9bit_RSW_CDAC",
+      "name": "RS9_L5_9bit_RSW_CDAC",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC",
+      "readme": "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/view-RS9_L5_9bit_RSW_CDAC.scs",
+          "level": "RS9_L5_9bit_RSW_CDAC",
+          "files": [
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/view-RS9_L5_9bit_RSW_CDAC.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/view-RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/view-RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/README.md",
+            "lib/pipetisar-real/RS9_L5_9bit_RSW_CDAC/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L5_9bit_SAR_Logic_1",
+      "name": "RS9_L5_9bit_SAR_Logic_1",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1",
+      "readme": "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/view-RS9_L5_9bit_SAR_Logic_1.scs",
+          "level": "RS9_L5_9bit_SAR_Logic_1",
+          "files": [
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/view-RS9_L5_9bit_SAR_Logic_1.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/view-RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/schematic/view-RS9_L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/README.md",
+            "lib/pipetisar-real/RS9_L5_9bit_SAR_Logic_1/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L6_9bit_REF_Logic",
+      "name": "RS9_L6_9bit_REF_Logic",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L6_9bit_REF_Logic",
+      "readme": "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/view-RS9_L6_9bit_REF_Logic.scs",
+          "level": "RS9_L6_9bit_REF_Logic",
+          "files": [
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/RS9_L6_9bit_REF_Logic.scs",
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/schematic/view-RS9_L6_9bit_REF_Logic.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/README.md",
+            "lib/pipetisar-real/RS9_L6_9bit_REF_Logic/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L6_9bit_RSW",
+      "name": "RS9_L6_9bit_RSW",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L6_9bit_RSW",
+      "readme": "lib/pipetisar-real/RS9_L6_9bit_RSW/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/view-RS9_L6_9bit_RSW.scs",
+          "level": "RS9_L6_9bit_RSW",
+          "files": [
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/RS9_L6_9bit_RSW.scs",
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/schematic/view-RS9_L6_9bit_RSW.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L6_9bit_RSW/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/README.md",
+            "lib/pipetisar-real/RS9_L6_9bit_RSW/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L6_SR_latch_1",
+      "name": "RS9_L6_SR_latch_1",
+      "description": "Preserved native schematic; external device models are not included.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L6_SR_latch_1",
+      "readme": "lib/pipetisar-real/RS9_L6_SR_latch_1/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/view-RS9_L6_SR_latch_1.scs",
+          "level": "RS9_L6_SR_latch_1",
+          "files": [
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/RS9_L6_SR_latch_1.scs",
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/schematic/view-RS9_L6_SR_latch_1.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L6_SR_latch_1/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/README.md",
+            "lib/pipetisar-real/RS9_L6_SR_latch_1/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L7_9bit_CDAC",
+      "name": "RS9_L7_9bit_CDAC",
+      "description": "Preserved native schematic using simulator primitives; no replay configuration supplied.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L7_9bit_CDAC",
+      "readme": "lib/pipetisar-real/RS9_L7_9bit_CDAC/README.md",
+      "project_id": null,
+      "requires_external_models": false,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/view-RS9_L7_9bit_CDAC.scs",
+          "level": "RS9_L7_9bit_CDAC",
+          "files": [
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/view-RS9_L7_9bit_CDAC.scs",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L7_9bit_CDAC/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/README.md",
+            "lib/pipetisar-real/RS9_L7_9bit_CDAC/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RS9_L8_9bit_CDAC_UNIT",
+      "name": "RS9_L8_9bit_CDAC_UNIT",
+      "description": "Preserved native schematic using simulator primitives; no replay configuration supplied.",
+      "kind": "circuit",
+      "directory": "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT",
+      "readme": "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/README.md",
+      "project_id": null,
+      "requires_external_models": false,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs",
+          "level": "RS9_L8_9bit_CDAC_UNIT",
+          "files": [
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/RS9_L8_9bit_CDAC_UNIT.scs",
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/eda-style.rnl",
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/schematic/view-RS9_L8_9bit_CDAC_UNIT.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/README.md",
+          "files": [
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/README.md",
+            "lib/pipetisar-real/RS9_L8_9bit_CDAC_UNIT/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Switch",
+      "name": "Switch",
+      "description": "Preserved native schematic using simulator primitives; no replay configuration supplied.",
+      "kind": "primitive",
+      "directory": "lib/pipetisar-real/Switch",
+      "readme": "lib/pipetisar-real/Switch/README.md",
+      "project_id": null,
+      "requires_external_models": false,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "Native schematic",
+          "kind": "rnl",
+          "entry": "lib/pipetisar-real/Switch/schematic/view-Switch.scs",
+          "level": "Switch",
+          "files": [
+            "lib/pipetisar-real/Switch/schematic/Switch.scs",
+            "lib/pipetisar-real/Switch/schematic/eda-style.rnl",
+            "lib/pipetisar-real/Switch/schematic/eda-symbol.rnl",
+            "lib/pipetisar-real/Switch/schematic/rnl-std-basic.rnl",
+            "lib/pipetisar-real/Switch/schematic/rnl-std-semiconductors.rnl",
+            "lib/pipetisar-real/Switch/schematic/rnl-std-spectre.rnl",
+            "lib/pipetisar-real/Switch/schematic/view-Switch.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "Evidence and dependencies",
+          "kind": "markdown",
+          "entry": "lib/pipetisar-real/Switch/README.md",
+          "files": [
+            "lib/pipetisar-real/Switch/README.md",
+            "lib/pipetisar-real/Switch/docs/provenance.json",
+            "lib/README.md",
+            "lib/INVENTORY.md",
+            "lib/inventory.json",
+            "lib/THIRD_PARTY_NOTICES.md",
+            "lib/licenses/CC0-1.0.txt",
+            "lib/validation/native-render.json"
+          ]
+        }
+      ]
+    }
+  ]
+}

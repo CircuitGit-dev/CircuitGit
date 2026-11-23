@@ -1,0 +1,135 @@
+// Generated for: spectre
+// @RNL(type="header") {
+//   @VERSION("0.3");
+//   @USE-PACKAGE(name="rnl-std-spectre", version="0.3", path="rnl-std-spectre.rnl");
+//   @USE-PACKAGE(name="eda-symbol", version="0.1", path="eda-symbol.rnl");
+//   @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl")
+// }
+// Generated on: Nov  9 19:36:43 2026
+// Design library name: 2026_PIPETISAR_RESEARCH
+// Design cell name: Amplifier_Main
+// Design view name: schematic
+simulator lang=spectre
+global 0
+
+// Library name: 2026_PIPETISAR_RESEARCH
+// Cell name: Amplifier_Main
+// View name: schematic
+subckt Amplifier_Main VDD VINN VINP VOUTN VOUTP VSS
+    R1 (VDD VOUTP) resistor r=450
+    R0 (VDD VOUTN) resistor r=450
+    M1 (VOUTP VINN VSS VSS) nch_ulvt_mac l=30n w=4u multi=1 nf=8 sd=100n \
+        ad=2e-13 as=2.25e-13 pd=4.8u ps=5.9u nrd=0.135370 nrs=0.135370 \
+        sa=295.835n sb=295.835n sa1=149.315n sa2=274.565n sa3=507.343n \
+        sa4=281.096n sb1=149.315n sb2=274.565n sb3=507.343n spa=100n \
+        spa1=100n spa2=100n spa3=100n sap=142.36n sapb=158.808n \
+        spba=115.715n spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+    M0 (VOUTN VINP VSS VSS) nch_ulvt_mac l=30n w=4u multi=1 nf=8 sd=100n \
+        ad=2e-13 as=2.25e-13 pd=4.8u ps=5.9u nrd=0.135370 nrs=0.135370 \
+        sa=295.835n sb=295.835n sa1=149.315n sa2=274.565n sa3=507.343n \
+        sa4=281.096n sb1=149.315n sb2=274.565n sb3=507.343n spa=100n \
+        spa1=100n spa2=100n spa3=100n sap=142.36n sapb=158.808n \
+        spba=115.715n spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \
+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60
+// @RNL(author="rnl-virtuoso") {
+//   %block_symbol = @DEFINE-SYMBOL(box=[4, -8, 16, 5]) {
+//     @LINE {(0, 1) (4, 1)};
+//     @LINE {(0, -3) (4, -3)};
+//     @LINE {(17, -3) (13, -3)};
+//     @LINE {(17, 1) (13, 1)};
+//     @LINE {(10, 6) (10, 2)};
+//     @LINE {(10, -9) (10, -5)};
+//     @LINE {(4, 5) (4, -8) (16, -1) (4, 5)};
+//     ? @TEXT("${name}", size=1, halign="start", valign="middle", key="name") => @PLACE(11, 3);
+//     ? @TEXT("${model}", size=1, halign="middle", valign="middle", key="model") => @PLACE(10, -0.5);
+//     (0, 1) @PIN(terminal="VINP");
+//     (0.6, 2) @TEXT("VINP", size=1, halign="start", valign="middle");
+//     (0, -3) @PIN(terminal="VINN");
+//     (0.6, -4) @TEXT("VINN", size=1, halign="start", valign="middle");
+//     (17, -3) @PIN(terminal="VOUTP");
+//     (17.4, -4) @TEXT("VOUTP", size=1, halign="end", valign="middle");
+//     (17, 1) @PIN(terminal="VOUTN");
+//     (17.4, 2) @TEXT("VOUTN", size=1, halign="end", valign="middle");
+//     (10, 6) @PIN(terminal="VDD");
+//     (9, 5.4) @TEXT("VDD", size=1, halign="end", valign="middle", rotate=90);
+//     (10, -9) @PIN(terminal="VSS");
+//     (9, -8.4) @TEXT("VSS", size=1, halign="start", valign="middle", rotate=90)
+//   };
+//   # @SET-SYMBOL %block_symbol;
+//   %symbol_0 = @DEFINE-SYMBOL(box=[-0.1, -2.8, 3.8, 2.8]) {
+//     @LINE {(2, 1.5) (4, 1.5) (4, 3)};
+//     @LINE {(2, -1.5) (2, 1.5)};
+//     @LINE {(3, -1) (4, -1.5) (3, -2)};
+//     @LINE {(0, 0) (1.5, 0)};
+//     @LINE {(1.5, 1.5) (1.5, -1.5)};
+//     @LINE {(2, -1.5) (4, -1.5) (4, -3)};
+//     ? @TEXT("${name}", size=0.8, halign="start", valign="baseline", key="name") => @PLACE(5, 3.5);
+//     ? @TEXT("${model}", size=0.8, halign="end", valign="baseline", key="model") => @PLACE(3.2, 3.2);
+//     (4, -1) @PIN(terminal=4);
+//     (4, -3) @PIN(terminal=3);
+//     (4, 3) @PIN(terminal=1);
+//     (0, 0) @PIN(terminal=2)
+//   };
+//   #"M1" @SET-SYMBOL %symbol_0;
+//   #"M1" @PLACE(14, -7) => @ORIENT("MY");
+//   #"M0" @SET-SYMBOL %symbol_0;
+//   #"M0" @PLACE(-13, -7) => @ORIENT("R0");
+//   #"R0" @SET-SYMBOL $RESISTOR;
+//   #"R0" @PLACE(-9, 6) => @ORIENT("R0");
+//   #"R1" @SET-SYMBOL $RESISTOR;
+//   #"R1" @PLACE(10, 6) => @ORIENT("MY");
+//   %input_port_symbol = @DEFINE-SYMBOL(box=[-2, -1, 0, 1]) {
+//       @LINE(fill="linecolor", linestyle="none") {(-2, -0.9) (-2, 0.9) (-0.9, 0.9) (0, 0) (-0.9, -0.9) (-2, -0.9)};
+//       (0, 0) @PIN(terminal=1, direction="right");
+//       ? @TEXT("${name}", key="name", halign="middle") => @PLACE(-1, 1.6)
+//     };
+//   %port_0 = $IO_PORT @ATTACH &"VINP" => @PLACE(-26, 8) => @ORIENT("R0");
+//   %port_0 @SET-SYMBOL %input_port_symbol;
+//   %port_0 @TEXT("VINP", key="name");
+//   %port_1 = $IO_PORT @ATTACH &"VINN" => @PLACE(-26, 5) => @ORIENT("R0");
+//   %port_1 @SET-SYMBOL %input_port_symbol;
+//   %port_1 @TEXT("VINN", key="name");
+//   %output_port_symbol = @DEFINE-SYMBOL(box=[0, -1, 2, 1]) {
+//       @LINE(fill="linecolor", linestyle="none") {(0, -0.9) (0, 0.9) (1.1, 0.9) (2, 0) (1.1, -0.9) (0, -0.9)};
+//       (0, 0) @PIN(terminal=1, direction="left");
+//       ? @TEXT("${name}", key="name", halign="middle") => @PLACE(1, 1.6)
+//     };
+//   %port_2 = $IO_PORT @ATTACH &"VOUTN" => @PLACE(-28, 2) => @ORIENT("R0");
+//   %port_2 @SET-SYMBOL %output_port_symbol;
+//   %port_2 @TEXT("VOUTN", key="name");
+//   %port_3 = $IO_PORT @ATTACH &"VOUTP" => @PLACE(-28, -1) => @ORIENT("R0");
+//   %port_3 @SET-SYMBOL %output_port_symbol;
+//   %port_3 @TEXT("VOUTP", key="name");
+//   %port_4 = $IO_PORT @ATTACH &"VDD" => @PLACE(-27, -4) => @ORIENT("R0");
+//   %port_5 = $IO_PORT @ATTACH &"VSS" => @PLACE(-27, -7) => @ORIENT("R0");
+//   %p0 = (6, -8);
+//   %wire_0 = &"VSS" @WIRE(mode="straight") {#"M1":4 %p0};
+//   %p1 = (10, -14);
+//   %wire_1 = &"VSS" @WIRE(mode="straight") {%p1 #"M1":3};
+//   %p2 = (-5, -8);
+//   %wire_2 = &"VSS" @WIRE(mode="straight") {#"M0":4 %p2};
+//   %p3 = (-9, -14);
+//   %wire_3 = &"VSS" @WIRE(mode="straight") {%p3 #"M0":3};
+//   %wire_3 @TEXT("VSS", size=1, halign="end", valign="baseline", rotate=90) => @PLACE(-9.7, -10.2);
+//   %wire_2 @TEXT("VSS", size=1, halign="start", valign="baseline") => @PLACE(-8.8, -7.3);
+//   %wire_1 @TEXT("VSS", size=1, halign="end", valign="top", rotate=90) => @PLACE(10.7, -10.2);
+//   %wire_0 @TEXT("VSS", size=1, halign="end", valign="baseline") => @PLACE(9.8, -7.3);
+//   %wire_4 = &"VOUTP" @WIRE(mode="straight") {#"M1":1 #"R1":2};
+//   %wire_4 @TEXT("VOUTP", size=1, halign="start", valign="top", rotate=90) => @PLACE(10.7, -3.8);
+//   %wire_5 = &"VOUTN" @WIRE(mode="straight") {#"M0":1 #"R0":2};
+//   %wire_5 @TEXT("VOUTN", size=1, halign="start", valign="baseline", rotate=90) => @PLACE(-9.7, -3.8);
+//   %p4 = (-17, -7);
+//   %wire_6 = &"VINP" @WIRE(mode="straight") {%p4 #"M0":2};
+//   %wire_6 @TEXT("VINP", size=1, halign="end", valign="baseline") => @PLACE(-13.2, -6.3);
+//   %p5 = (18, -7);
+//   %wire_7 = &"VINN" @WIRE(mode="straight") {%p5 #"M1":2};
+//   %wire_7 @TEXT("VINN", size=1, halign="start", valign="baseline") => @PLACE(14.2, -6.3);
+//   %p6 = (10, 13);
+//   %wire_8 = &"VDD" @WIRE(mode="straight") {#"R1":1 %p6};
+//   %p7 = (-9, 13);
+//   %wire_9 = &"VDD" @WIRE(mode="straight") {#"R0":1 %p7};
+//   %wire_9 @TEXT("VDD", size=1, halign="start", valign="baseline", rotate=90) => @PLACE(-9.7, 9.4);
+//   %wire_8 @TEXT("VDD", size=1, halign="start", valign="top", rotate=90) => @PLACE(10.7, 9.4)
+// }
+ends Amplifier_Main

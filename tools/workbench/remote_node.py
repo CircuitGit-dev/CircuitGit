@@ -24,7 +24,7 @@ MAX_BODY = 16 * 1024 * 1024
 GET_ROUTES = {'catalog', 'context', 'history', 'events', 'models', 'sessions',
               'image', 'development', 'discovery', 'connection', 'auth/status'}
 POST_ROUTES = {'sessions', 'sessions/rename', 'sessions/delete', 'connect',
-               'resume', 'turn', 'approval', 'interrupt', 'doctor', 'auth/login'}
+               'resume', 'turn', 'approval', 'interrupt', 'doctor', 'auth/login', 'development/settings-request'}
 
 def node_config(config_path=None, gateway_url='http://127.0.0.1:8766', state_dir=None, codex_bin=None):
     config = load_config(config_path) if config_path else {'gateway_url': gateway_url}
@@ -91,6 +91,7 @@ class Node:
         self.url = self.public_origin + self.prefix
         self.pairing = Pairing()
         self.login = None
+        self.development = None
 
     def info(self):
         return {'schema': 'circuitgit.remote-node.v1', 'node_id': self.node_id,
@@ -98,6 +99,7 @@ class Node:
                 'auth': 'bearer', 'account_source': 'operator-configured Codex runtime',
                 'capabilities': {'chat': True, 'projects': True, 'approvals': True,
                                  'developer': False, 'hosted_subscription_oauth': False,
+                                 'local_developer_settings': self.development is not None,
                                  'local_login': self.login is not None and self.public_origin.startswith('http://127.0.0.1:') and not self.prefix},
                 'automatic_model_start': False}
 
@@ -129,8 +131,19 @@ class Handler(BaseHTTPRequestHandler):
         expected = '127.0.0.1:' + str(self.server.server_port)
         if self.headers.get('Host') != expected or self.node.url != 'http://' + expected:
             raise PermissionError('Pairing is available only on the local connector')
-        if write and self.headers.get('Origin') != 'http://' + expected:
+        if write and (self.headers.get('Origin') != 'http://' + expected
+                      or self.headers.get('Sec-Fetch-Site') in ('cross-site', 'same-site')):
             raise PermissionError('Confirm on the local connection page')
+
+    def browser_identity(self):
+        header = self.headers.get('Authorization', '')
+        return (header[7:] if header.startswith('Bearer ') else ''), self.headers.get('Origin', '')
+
+    def developer_guard(self):
+        self.local_guard()
+        if self.node.development is None:
+            raise PermissionError('Local developer settings are not enabled on this connector')
+        return self.node.development
 
     def login_guard(self):
         self.local_guard()
@@ -158,7 +171,18 @@ class Handler(BaseHTTPRequestHandler):
         target, state = query['origin'][0], query['state'][0]
         rid, csrf = self.node.pairing.create(target, state)
         nonce = secrets.token_urlsafe(24)
-        raw = confirmation_html(target, state, rid, csrf, self.node.url, nonce).encode()
+        self.send_page(confirmation_html(target, state, rid, csrf, self.node.url, nonce), nonce)
+
+    def development_page(self):
+        settings = self.developer_guard()
+        path, query = self.route()
+        if path != '/development/settings' or set(query) != {'request'}:
+            raise ValueError('An explicit local settings request is required')
+        nonce = secrets.token_urlsafe(24)
+        self.send_page(settings.form(query['request'][0], nonce), nonce)
+
+    def send_page(self, html, nonce):
+        raw = html.encode()
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.send_header('Content-Length', str(len(raw)))
@@ -241,6 +265,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if urlsplit(self.path).path == '/connect':
                 self.connect_page(); return
+            if urlsplit(self.path).path == '/development/settings':
+                self.development_page(); return
             self.guard()
             path, qs = self.route()
             if path == '/node/info' and not qs:
@@ -251,9 +277,18 @@ class Handler(BaseHTTPRequestHandler):
                     if qs: raise ValueError('Login status does not accept query fields')
                     data = self.node.login.status()
                 elif path == '/api/ai/development':
-                    data = {'available': False, 'reason': 'Remote browser nodes retain manual circuit approvals'}
+                    if set(qs) - {'session_id'}:
+                        raise ValueError('Unexpected development availability query')
+                    if self.node.development:
+                        self.local_guard()
+                        data = self.node.development.capability(*self.browser_identity(), session_id=qs.get('session_id', [None])[0])
+                    else:
+                        data = {'available': False, 'workspace': None, 'access': 'manual', 'can_configure': False,
+                                'reason': 'local_owner_settings_unavailable'}
                 else:
                     data = self.node.routes.get(path, qs)
+                    if path == '/api/ai/models' and self.node.development and isinstance(data, dict) and 'development' in data:
+                        data = {**data, 'development': self.node.development.capability(*self.browser_identity(), session_id=qs.get('session_id', ['default'])[0])}
             else:
                 raise ValueError('Unknown node read route')
             self.send(200, {'ok': True, 'data': data})
@@ -262,6 +297,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
+            if self.path == '/development/settings/confirm':
+                self.local_guard(True)
+                settings = self.developer_guard()
+                data = settings.confirm(self.body(8192))
+                self.send(200, {'ok': True, 'data': data}); return
             if self.path == '/connect/confirm':
                 self.local_guard(True)
                 body = self.body(4096)
@@ -274,13 +314,22 @@ class Handler(BaseHTTPRequestHandler):
             if qs or not path.startswith('/api/ai/') or path[8:] not in POST_ROUTES:
                 raise ValueError('Unknown node write route')
             body = self.body()
+            if path == '/api/ai/development/settings-request':
+                settings = self.developer_guard()
+                if body: raise ValueError('Settings requests do not accept workspace or permission overrides')
+                data = settings.request(*self.browser_identity())
+                self.send(200, {'ok': True, 'data': data}); return
             if path == '/api/ai/auth/login':
                 self.login_guard()
                 if body: raise ValueError('Login does not accept credentials or provider overrides')
                 self.send(200, {'ok': True, 'data': self.node.login.start()}); return
-            if path == '/api/ai/turn' and body.get('permission_mode') == 'developer':
-                raise PermissionError('Developer mode is not exposed by this browser node')
-            data = self.node.routes.post(path, body)
+            if self.node.development:
+                self.local_guard()
+                data = self.node.development.dispatch(path, body, *self.browser_identity())
+            else:
+                if path == '/api/ai/turn' and body.get('permission_mode') == 'developer':
+                    raise PermissionError('Developer mode requires locally confirmed owner settings')
+                data = self.node.routes.post(path, body)
             self.send(200, {'ok': True, 'data': data})
         except Exception as error:
             self.fail(error)

@@ -16,11 +16,13 @@ The GitHub Pages demo runs entirely in your browser. Drag panel tabs, float and 
 
 The demo waveforms are explicitly labeled **analytical RC references**, calculated in the browser. Opening the website does not contact your local machine or start an AI model or Spectre job.
 
+Open **Libraries / 电路库** to browse library → cell → view. The published ADC snapshots preserve the exported Virtuoso component positions, wires and symbols. Their documentation identifies missing device models and replay inputs; browsing a snapshot does not register it as a runnable project. Selecting an ADC view clears the RC reference waveforms. See the [circuit library guide](docs/circuit-libraries.md) and [library catalog](lib/README.md).
+
 For real AI conversations, choose **连接本机 Codex** in the AI panel and approve the local connection window. The connector checks Codex's existing login and reports the account/plan only when Codex supplies it. If Codex requires sign-in, a separate button opens the official login URL returned by Codex. No address or access code is needed in this flow.
 
 Start the local helper once per computer session: on macOS, double-click **Start CircuitGit.command** in the downloaded repository (requires Python 3.10+, Git and Codex). The helper stays on your computer while you use the lightweight website. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md).
 
-The RC canvas remains a demo while AI reads the selected node project. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Real circuit changes and simulations retain the existing human-review workflow.
+The public library canvas and AI's selected node project have separate identities. Connection, account, project and model controls are grouped in the chat's **settings gear**. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Real circuit changes and simulations retain the existing human-review workflow.
 
 ![CircuitGit workbench](docs/assets/workbench.png)
 
@@ -66,12 +68,13 @@ modules/        shared schematic, simulation, waveform and workspace logic
 contracts/      public tool and context contracts
 tools/          local gateway, runners, exporters, builds and checks
 projects/       redistributable circuit examples (RC)
+lib/            indexed circuit libraries: cells, native views and provenance
 config/         portable configuration examples; local overrides are ignored
 docs/           architecture, usage, branding and third-party provenance
 tests/          unit, browser and integration tests
 ```
 
-Application source was extracted from the working IC on GitHub project. Private native circuit archives, site-specific configuration, PDK/model dependencies, runtime conversations, and historical simulation archives are not included in this public repository. Some retained integration tests and engineering notes describe that earlier checkout; see [release scope](docs/public-release.md).
+Application source was extracted from the working IC on GitHub project. Reviewed, user-authored ADC exports are now published under `lib/` with source hashes and dependency notes. Site-specific configuration, PDK/model implementations, runtime conversations, and unreviewed historical simulation archives remain excluded. Some retained integration tests and engineering notes describe the earlier checkout; see [release scope](docs/public-release.md).
 
 ## Development
 

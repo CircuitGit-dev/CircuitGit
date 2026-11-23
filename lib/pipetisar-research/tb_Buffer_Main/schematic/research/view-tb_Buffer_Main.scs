@@ -1,0 +1,4 @@
+// Explicit saved-library assembly.
+simulator lang=spectre
+include "Buffer_Main.scs"
+include "tb_Buffer_Main.scs"

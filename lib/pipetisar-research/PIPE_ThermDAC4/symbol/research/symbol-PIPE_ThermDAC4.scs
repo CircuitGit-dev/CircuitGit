@@ -1,0 +1,5 @@
+// Saved native symbol, rendered as a non-electrical figure.
+simulator lang=spectre
+// @RNL(type="header") { @VERSION("0.3"); @USE-PACKAGE(name="virtuoso/2026_PIPETISAR_RESEARCH/PIPE_ThermDAC4", version="0.1", path="PIPE_ThermDAC4.rnl"); @USE-PACKAGE(name="eda-style", version="0.1", path="eda-style.rnl") }
+// @RNL { %symbol = $FIGURE @ATTACH (0, 0) => @SET-SYMBOL $"2026_PIPETISAR_RESEARCH/PIPE_ThermDAC4"; %symbol @TEXT("PIPE_ThermDAC4", key="name") }
+// 
