@@ -121,6 +121,8 @@ class OnboardingHTTPTests(unittest.TestCase):
         self.assertEqual(info['data']['connection_id'], expected)
         self.assertEqual(info['data']['node_id'], expected)
         self.assertTrue(health['data']['capabilities']['simulation_onboarding'])
+        self.assertTrue(health['data']['capabilities']['simulation_onboarding_native_entry'])
+        self.assertTrue(info['data']['capabilities']['simulation_onboarding_native_entry'])
         self.assertFalse(health['data']['capabilities']['git'])
         self.assertFalse(health['data']['capabilities']['publish'])
         self.assertFalse(info['data']['capabilities']['chat'])
@@ -156,6 +158,93 @@ class OnboardingHTTPTests(unittest.TestCase):
         self.assertEqual(first['source_sha256'], second['source_sha256'])
         self.assertFalse(self.app.workspace.root.exists())
         self.ssh.assert_not_called()
+
+    def test_native_entry_header_records_provenance_on_both_servers(self):
+        for endpoint in ('gateway','node'):
+            with self.subTest(endpoint=endpoint):
+                code,data,_,_=self.request(endpoint,PREFIX+'netlist',method='POST',
+                    data={'file_name':'agent.scs','text':SOURCE},headers={'X-IC-Onboarding-Entry':'native_agent'})
+                self.assertEqual(code,200,data)
+                state=data['data']
+                self.assertEqual(state['input_provenance'][0]['origin'],'native_agent')
+                with patch.object(self.app.onboarding,'read',return_value=state) as read:
+                    code,data,_,_=self.request(endpoint,PREFIX+'session?'+urlencode({'intake_id':state['intake_id']}),
+                        headers={'X-IC-Onboarding-Entry':'native_agent'})
+                    self.assertEqual(code,200,data)
+                    read.assert_called_once_with('session',{'intake_id':state['intake_id']},origin='native_agent')
+
+    def test_unknown_or_duplicate_entry_header_never_reaches_runtime(self):
+        for endpoint in ('gateway','node'):
+            for headers in ({'X-IC-Onboarding-Entry':'interactive_client'},
+                            {'X-IC-Onboarding-Entry':''},
+                            {'X-IC-Onboarding-Entry':'administrator'},
+                            {'X-IC-Onboarding-Entry':'native_agent','x-ic-onboarding-entry':'native_agent'}):
+                with self.subTest(endpoint=endpoint,headers=headers), \
+                        patch.object(self.app.onboarding,'read') as read, \
+                        patch.object(self.app.onboarding,'write') as write:
+                    code,data,_,_=self.request(endpoint,PREFIX+'ssh-hosts',headers=headers)
+                    self.assertEqual(code,400,data)
+                    code,data,_,_=self.request(endpoint,PREFIX+'netlist',method='POST',
+                        data={'file_name':'agent.scs','text':SOURCE},headers=headers)
+                    self.assertEqual(code,400,data)
+                    read.assert_not_called();write.assert_not_called()
+
+    def test_native_entry_metadata_does_not_grant_origin_token_or_pairing_authority(self):
+        checks=[('gateway',{'X-Workbench-Token':None}),('gateway',{'Origin':None}),
+                ('gateway',{'Origin':'https://untrusted.invalid'}),
+                ('node',{'Authorization':'Bearer '+self.node.token}),
+                ('node',{'Authorization':None}),('node',{'Origin':None})]
+        for endpoint,headers in checks:
+            with self.subTest(endpoint=endpoint,headers=headers),patch.object(self.app.onboarding,'write') as write:
+                code,data,_,_=self.request(endpoint,PREFIX+'netlist',method='POST',
+                    data={'file_name':'agent.scs','text':SOURCE},
+                    headers={**headers,'X-IC-Onboarding-Entry':'native_agent'})
+                self.assertEqual(code,403,data)
+                write.assert_not_called()
+
+    def test_regular_chat_node_keeps_its_identity_and_advertises_the_intake_store(self):
+        from types import SimpleNamespace
+        self.node.node_id='existing-chat-node'
+        self.node.routes=SimpleNamespace(get=lambda path,qs:{'models':['synthetic']})
+        code,data,_,_=self.request('node','/node/info')
+        self.assertEqual(code,200,data)
+        self.assertEqual(data['data']['node_id'],'existing-chat-node')
+        self.assertEqual(data['data']['connection_id'],self.app.onboarding.connection_id)
+        self.assertTrue(data['data']['capabilities']['chat'])
+        code,data,_,_=self.request('node','/api/ai/models')
+        self.assertEqual(code,200,data)
+        self.assertEqual(data['data'],{'models':['synthetic']})
+        state=self.netlist('node')
+        self.assertEqual(state['connection_id'],self.app.onboarding.connection_id)
+
+    def test_existing_gateway_proxy_uses_both_http_boundaries_and_preserves_entry_origin(self):
+        from icwb.service import Gateway
+        self.node.onboarding=remote_node.GatewayOnboarding(Gateway(self.gateway_origin))
+        code,info,_,_=self.request('node','/node/info')
+        self.assertEqual(code,200,info)
+        self.assertEqual(info['data']['connection_id'],self.app.onboarding.connection_id)
+        for origin in ('interactive_client','native_agent'):
+            with self.subTest(origin=origin):
+                headers={} if origin=='interactive_client' else {'X-IC-Onboarding-Entry':'native_agent'}
+                code,data,_,_=self.request('node',PREFIX+'netlist',method='POST',
+                    data={'file_name':'fresh.scs','text':SOURCE},headers=headers)
+                self.assertEqual(code,200,data)
+                state=data['data']
+                self.assertEqual(state['input_provenance'][0]['origin'],origin)
+                code,data,_,_=self.request('node',PREFIX+'session?'+urlencode({'intake_id':state['intake_id']}),headers=headers)
+                self.assertEqual(code,200,data)
+                self.assertEqual(data['data'],state)
+
+    def test_existing_gateway_proxy_rejects_changed_connection_before_sending_a_mutation(self):
+        from icwb.service import Gateway
+        proxy=remote_node.GatewayOnboarding(Gateway(self.gateway_origin));proxy.refresh()
+        self.node.onboarding=proxy
+        self.app.onboarding.connection_id='f'*32
+        with patch.object(self.app.onboarding,'write') as write:
+            code,data,_,_=self.request('node',PREFIX+'netlist',method='POST',
+                data={'file_name':'fresh.scs','text':SOURCE})
+            self.assertEqual(code,409,data)
+            write.assert_not_called()
 
     def test_read_routes_reject_duplicate_blank_unknown_and_malformed_query_fields(self):
         state = self.netlist()
@@ -248,7 +337,7 @@ class OnboardingHTTPTests(unittest.TestCase):
                     data={'intake_id': INTAKE, 'revision': 1, 'plan_id': 'c'*64})
                 self.assertIn(code, (500, 503), data)
                 self.assertFalse(data['ok'])
-                write.assert_called_once_with('run', {'intake_id': INTAKE, 'revision': 1, 'plan_id': 'c'*64})
+                write.assert_called_once_with('run', {'intake_id': INTAKE, 'revision': 1, 'plan_id': 'c'*64},origin='interactive_client')
         self.ssh.assert_not_called()
 
     def test_three_waveform_routes_dispatch_only_the_supported_operation_and_query(self):

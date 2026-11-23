@@ -10,7 +10,7 @@ import secrets
 import stat
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlsplit, urlencode
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'apps/codex'))
@@ -31,6 +31,67 @@ SIMULATION_ROUTE = '/api/simulation/execute'
 ONBOARDING_PREFIX = '/api/simulation/onboarding/'
 ONBOARDING_READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window'}
 ONBOARDING_WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect'}
+
+def onboarding_entry_origin(headers):
+    # This header is provenance only. The bearer/pairing guards run first.
+    values=headers.get_all('X-IC-Onboarding-Entry',[])
+    if not values:return 'interactive_client'
+    if values!=['native_agent']:raise ValueError('Unknown onboarding entry metadata')
+    return 'native_agent'
+
+
+class GatewayOnboarding:
+    """Finite helper adapter to the configured loopback gateway, without retries."""
+    def __init__(self,gateway):
+        self.gateway=gateway
+        self.enabled=False
+        self.connection_id=None
+
+    def refresh(self):
+        # Metadata reads must not remove otherwise available chat when an older
+        # or temporarily unavailable gateway has no onboarding capability.
+        try:
+            health=self.gateway.request('/api/health')
+            capabilities=health.get('capabilities',{})
+            identity=health.get('connection_id')
+            enabled=(health.get('api_version')=='1' and health.get('mode')=='live'
+                and isinstance(capabilities,dict) and capabilities.get('simulation_onboarding') is True
+                and capabilities.get('simulation_onboarding_api_version')=='1'
+                and capabilities.get('simulation_onboarding_native_entry') is True
+                and isinstance(identity,str) and re.fullmatch(r'[a-f0-9]{32}',identity) is not None)
+        except (Failure,OSError,ValueError,TypeError,AttributeError):
+            enabled=False;identity=None
+        self.enabled=enabled
+        self.connection_id=identity if enabled else None
+
+    def _request(self,operation,args,*,write,origin):
+        allowed=ONBOARDING_WRITES if write else ONBOARDING_READS
+        if operation not in allowed or not isinstance(args,dict):
+            raise ValueError('Unknown bounded onboarding operation')
+        if origin not in ('interactive_client','native_agent'):
+            raise ValueError('Unknown onboarding entry metadata')
+        if not self.enabled or not self.connection_id:
+            raise PermissionError('Onboarding is unavailable on this connection')
+        path=ONBOARDING_PREFIX+operation
+        if not write and args:path+='?'+urlencode(args)
+        timeout=320 if operation=='run' else 300 if operation in ('probe','discover-pdk','prepare') else 45 if operation=='inspect' else 20
+        data=self.gateway.request(path,args if write else None,
+            onboarding_entry='native_agent' if origin=='native_agent' else None,
+            onboarding_connection_id=self.connection_id,route_timeout=timeout)
+        if not isinstance(data,dict):
+            raise Failure('onboarding_response_mismatch','Onboarding response must be an object; do not replay mutations',75)
+        if 'intake_id' in args and data.get('intake_id')!=args['intake_id']:
+            raise Failure('onboarding_response_mismatch','Onboarding response belongs to another intake; do not replay mutations',75)
+        if operation in ('netlist','session','probe','discover-pdk','prepare','run','inspect'):
+            if data.get('schema')!='ic.onboarding.session.v1' or data.get('connection_id')!=self.connection_id:
+                raise Failure('onboarding_response_mismatch','Onboarding response belongs to another connection; do not replay mutations',75)
+        return data
+
+    def read(self,operation,args,*,origin='interactive_client'):
+        return self._request(operation,args,write=False,origin=origin)
+
+    def write(self,operation,args,*,origin='interactive_client'):
+        return self._request(operation,args,write=True,origin=origin)
 
 def node_config(config_path=None, gateway_url='http://127.0.0.1:8766', state_dir=None, codex_bin=None):
     config = load_config(config_path) if config_path else {'gateway_url': gateway_url}
@@ -103,17 +164,20 @@ class Node:
         self.onboarding = None
 
     def info(self):
+        if isinstance(self.onboarding,GatewayOnboarding):self.onboarding.refresh()
+        onboarding_enabled=self.onboarding is not None and self.onboarding.enabled
         return {'schema': 'circuitgit.remote-node.v1', 'node_id': self.node_id,
                 'name': self.label, 'single_owner': True,
                 'auth': 'bearer', 'account_source': 'operator-configured Codex runtime' if self.routes is not None else 'isolated simulation onboarding',
-                'connection_id': self.node_id,
+                'connection_id': self.onboarding.connection_id if onboarding_enabled else self.node_id,
                 'capabilities': {'chat': self.routes is not None, 'projects': self.routes is not None, 'approvals': self.routes is not None,
                                  'developer': False, 'hosted_subscription_oauth': False,
                                  'local_developer_settings': self.development is not None,
                                  'library_workflow': self.library is not None,
                                  'simulation_workflow': self.simulation is not None,
-                                 'simulation_onboarding': self.onboarding is not None,
-                                 'simulation_onboarding_api_version': '1' if self.onboarding is not None else None,
+                                 'simulation_onboarding': onboarding_enabled,
+                                 'simulation_onboarding_api_version': '1' if onboarding_enabled else None,
+                                 'simulation_onboarding_native_entry': onboarding_enabled,
                                  'local_login': self.login is not None and self.public_origin.startswith('http://127.0.0.1:') and not self.prefix},
                 'automatic_model_start': False,
                 'library_activity': self.library.activity() if self.library else {'running_actions': 0}}
@@ -308,7 +372,7 @@ class Handler(BaseHTTPRequestHandler):
                 data = self.node.info()
             elif path.startswith(ONBOARDING_PREFIX) and path[len(ONBOARDING_PREFIX):] in ONBOARDING_READS:
                 if self.node.onboarding is None:raise PermissionError('Onboarding is unavailable on this connection')
-                data=self.node.onboarding.read(path[len(ONBOARDING_PREFIX):],{k:v[0] for k,v in qs.items()})
+                data=self.node.onboarding.read(path[len(ONBOARDING_PREFIX):],{k:v[0] for k,v in qs.items()},origin=onboarding_entry_origin(self.headers))
             elif path.startswith('/api/ai/') and path[8:] in GET_ROUTES:
                 if self.node.routes is None:raise PermissionError('This connection has no chat or login service')
                 if path == '/api/ai/auth/status':
@@ -359,7 +423,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not self.node.pairing.accepts(token,browser_origin):raise PermissionError('Onboarding requires the confirmed local browser connection')
                 if self.node.onboarding is None:raise PermissionError('Onboarding is unavailable on this connection')
                 if qs:raise ValueError('Onboarding writes have no query fields')
-                data=self.node.onboarding.write(path[len(ONBOARDING_PREFIX):],self.body(2*1024*1024))
+                entry_origin=onboarding_entry_origin(self.headers)
+                data=self.node.onboarding.write(path[len(ONBOARDING_PREFIX):],self.body(2*1024*1024),origin=entry_origin)
                 self.send(200,{'ok':True,'data':data});return
             if path == SIMULATION_ROUTE:
                 token, browser_origin = self.browser_identity()
@@ -440,6 +505,7 @@ def main():
         try:
             node = Node(routes, token, args.allow_origin, node_id,
                         args.public_url or 'http://127.0.0.1:' + str(args.port), args.name)
+            node.onboarding = GatewayOnboarding(routes.service.gateway)
             node.login = LocalLogin(config)
             server = Server(('127.0.0.1', args.port), Handler)
             server.node = node

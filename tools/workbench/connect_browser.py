@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'apps/codex'))
 from icwb.host import AiRoutes
 from icwb.service import Service
-from remote_node import Server, Handler, Node, node_config, node_identity
+from remote_node import Server, Handler, Node, GatewayOnboarding, node_config, node_identity
 from browser_login import LocalLogin
 from browser_development import LocalDevelopment
 from browser_library import LocalLibrary
@@ -112,16 +112,19 @@ def main():
         # Reserve the known pairing port first. Never replace another process.
         try:browser = Server(('127.0.0.1', args.port), Handler)
         except OSError:raise RuntimeError('本机连接端口已被占用。请检查已有连接助手，未停止任何现有程序。')
-        gateway = routes = node = remote_lock = None
+        gateway = routes = node = remote_lock = app = None
+        gateway_started = False
+        thread = None
         cfg = None
         try:
             gateway_url = args.gateway_url
             if not gateway_url:
                 cfg = library_runtime_configuration(configuration(state), ROOT, state)
                 import server as engineering
+                cfg = engineering.default_onboarding_configuration(cfg)
                 app = engineering.Application(cfg, ROOT / 'apps/web')
                 gateway = engineering.Server(('127.0.0.1', 0), engineering.Handler);gateway.app = app
-                thread = threading.Thread(target=gateway.serve_forever, daemon=True);thread.start()
+                thread = threading.Thread(target=gateway.serve_forever, daemon=True);thread.start();gateway_started = True
                 if getattr(app, 'simulation', None) is not None:
                     app.simulation.resume()
                 gateway_url = 'http://127.0.0.1:' + str(gateway.server_port)
@@ -135,6 +138,10 @@ def main():
             except BlockingIOError:raise RuntimeError('已有服务使用此 AI 会话目录，未启动重复实例。')
             routes = AiRoutes(Service(config))
             node = Node(routes, token, ['https://joshuazeng713.github.io', *args.allow_origin], identity, 'http://127.0.0.1:'+str(browser.server_port), '本机 Codex')
+            if gateway:
+                node.onboarding = gateway.app.onboarding
+            else:
+                node.onboarding = GatewayOnboarding(routes.service.gateway)
             node.login = LocalLogin(config)
             if config.get('simulation_direct', {}).get('enabled') and callable(getattr(routes.service, 'execute_simulation', None)):
                 node.simulation = routes.service.execute_simulation
@@ -158,9 +165,14 @@ def main():
             if node and node.login:node.login.close()
             if routes:routes.close()
             if gateway:
-                if getattr(gateway.app, 'simulation', None) is not None:
-                    gateway.app.simulation.close()
-                gateway.shutdown();gateway.server_close();gateway.app.pool.shutdown(wait=False)
+                if gateway_started:
+                    gateway.shutdown();thread.join(timeout=5)
+                gateway.server_close()
+            if app:
+                app.onboarding.close()
+                if getattr(app, 'simulation', None) is not None:
+                    app.simulation.close()
+                app.pool.shutdown(wait=False)
             if remote_lock:remote_lock.close()
 
 
