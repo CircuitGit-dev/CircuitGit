@@ -32,7 +32,7 @@ export function scopedOnboardingWaveformAPI(scope,provider,{isCurrent=()=>true}=
   };
   const read=async(name,run,args)=>{checkRun(run);const result=await provider[name](run,...args);checkRun(run);return binding(result);};
   return Object.freeze({
-    jobs:async()=>{checkRun(scope.run_id);return {jobs:[{...scope,state:'collected'}]};},
+    jobs:async()=>{checkRun(scope.run_id);return {jobs:[{...scope}]};},
     async catalog(run,options){
       const data=await read('catalog',run,[options]);
       need(Array.isArray(data.signals)&&data.signals.length<=4096&&hash(data.csv_sha256),'波形信号目录不完整。');
@@ -83,7 +83,8 @@ export async function openOnboardingWaveforms(host,{intake,job}){
     selectRun:async run=>{need(run===scope.run_id&&isCurrent(),'请选择当前独立实验的原始任务。');},
     plot:{attach(value){controller=value;value.setPlotMode('none');return()=>{if(controller===value)controller=null;value.destroy();};}}};
   const mounted=module.mount(scopedHost,{api:cached});
-  const unsubscribe=bridge.subscribe?.(()=>{if(!disposed&&!isCurrent())host.notify('波形连接已断开或切换；保留已显示曲线，后续读取已停止。',{kind:'warning'});});
+  let disconnectedNotice=false;
+  const unsubscribe=bridge.subscribe?.(()=>{if(!disposed&&!disconnectedNotice&&!isCurrent()){disconnectedNotice=true;host.notify('波形连接已断开或切换；保留已显示曲线，后续读取已停止。',{kind:'warning'});}});
   const handle={controller:mounted.controller,scope,destroy(){if(disposed)return;disposed=true;unsubscribe?.();mounted.destroy();if(active.get(host)===handle)active.delete(host);}};
   active.set(host,handle);host.slots.waveforms.setVisible(true);mounted.controller.openWindow();
   // The first view offers the real saved signal list; it never substitutes RC
