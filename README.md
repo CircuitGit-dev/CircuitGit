@@ -24,9 +24,9 @@ Open **Libraries / 电路库** to browse library → cell → view. The publishe
 
 For real AI conversations, choose **连接本机 Codex** in the AI panel and approve the local connection window. The connector checks Codex's existing login and reports the account/plan only when Codex supplies it. If Codex requires sign-in, a separate button opens the official login URL returned by Codex. No address or access code is needed in this flow.
 
-Start the local helper once per computer session: on macOS, double-click **Start CircuitGit.command** in the downloaded repository (requires Python 3.10+, Git and Codex). The helper stays on your computer while you use the lightweight website. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md).
+Start the local helper once per computer session: on macOS, double-click **Start CircuitGit.command** in the downloaded repository (requires Python 3.11+, Git and Codex). On first use, the launcher installs the repository-pinned SpiceOwl dependency into a project-local Python environment; it does not change your global Python packages. The helper stays on your computer while you use the lightweight website. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md).
 
-The public library canvas and AI's selected node project have separate identities. Connection, account, project and model controls are grouped in the chat's **settings gear**. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Existing circuit and manual simulation requests retain their human-review workflow; the optional standalone runtime requires a separately installed connection grant.
+Connection, account, project and model controls are grouped in the chat's **settings gear**. Choose **当前网表** to share the imported source and simulation intake with AI; results refresh that exact intake in the Simulation panel. Other selected node projects retain their own identities. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Existing circuit and manual simulation requests retain their human-review workflow; the optional standalone runtime requires a separately installed connection grant.
 
 ![CircuitGit workbench](docs/assets/workbench.png)
 
@@ -43,7 +43,7 @@ The public library canvas and AI's selected node project have separate identitie
 
 ## Run locally
 
-Requires Python **3.10+** and Git. The basic web/gateway build uses Python's standard library; Node **22+** is used for JavaScript tests. The optional SDK MCP adapter has its own dependency file.
+Requires Python **3.11+** and Git. The basic web/gateway build uses Python's standard library; Node **22+** is used for JavaScript tests. Simulation onboarding uses the exact SpiceOwl commit recorded in the integration lock. The optional SDK MCP adapter has its own dependency file.
 
 ```bash
 git clone https://github.com/joshuazeng713/CircuitGit.git

@@ -6,8 +6,8 @@ The [CircuitGit website](https://joshuazeng713.github.io/CircuitGit/) can connec
 
 ## Recommended: local connection without an address or code
 
-1. Install Codex, Python 3.10+ and Git. Download and unpack CircuitGit, or use an existing clone.
-2. On macOS, double-click **Start CircuitGit.command** in the repository root. This opens a launcher window; keep it running. If macOS requests permission to open the downloaded script, review it and use the system's normal Open action. This is a source launcher, not a signed standalone installer, and it does not install dependencies automatically.
+1. Install Codex, Python 3.11+ and Git. Download and unpack CircuitGit, or use an existing clone. The launcher prepares the exact pinned simulation dependency in a project-local environment on first use; global Python packages are unchanged.
+2. On macOS, double-click **Start CircuitGit.command** in the repository root. This opens a launcher window; keep it running. If macOS requests permission to open the downloaded script, review it and use the system's normal Open action. This source launcher prepares its pinned Python package locally; Python itself, Git and Codex must already be installed.
 3. In the website AI panel, open the **settings gear** and click **连接本机 Codex**. In the local popup, check the requesting website and click **允许并连接**.
 4. The helper checks Codex through `account/read`. Existing login/provider settings stay in place. When Codex explicitly reports that sign-in is required, click **在官方页面登录 ChatGPT**. The URL comes from `account/login/start`; Codex owns the local callback. Wait for its correlated completion receipt.
 5. Select the actual engineering project or **当前网表** and open chat. For a new circuit, open its library view and use the inline **连接服务器 & 自动匹配 PDK** panel to import the current netlist. The same authorized helper serves AI and the isolated simulation intake; no special onboarding port or extra launcher is required.
@@ -26,7 +26,7 @@ Pairing expires after three minutes, requires a one-time confirmation, and produ
 
 ## Advanced: manual node setup
 
-On a computer or server you control, clone CircuitGit and prepare Python 3.10+, Git, Codex and your engineering configuration. Sign into Codex there using a supported authentication method. An existing login or provider configuration stays on that node; do not paste OpenAI credentials into the website.
+On a computer or server you control, clone CircuitGit and prepare Python 3.11+, Git, Codex and your engineering configuration. Sign into Codex there using a supported authentication method. An existing login or provider configuration stays on that node; do not paste OpenAI credentials into the website.
 
 Start the engineering gateway:
 
