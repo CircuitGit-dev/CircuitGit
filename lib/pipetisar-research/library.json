@@ -3903,7 +3903,7 @@
           "label": "Evidence and dependencies"
         },
         {
-          "entry": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/README.md",
+          "entry": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/RUNNING.md",
           "files": [
             "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/audit.json",
             "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/bundle.json",
@@ -3917,6 +3917,7 @@
             "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/provenance.json",
             "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/run-configuration.json",
             "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/README.md",
+            "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/RUNNING.md",
             "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/source-bindings.json"
           ],
           "id": "simulation",
@@ -4240,7 +4241,7 @@
           "label": "Evidence and dependencies"
         },
         {
-          "entry": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/README.md",
+          "entry": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/RUNNING.md",
           "files": [
             "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/audit.json",
             "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/bundle.json",
@@ -4269,6 +4270,7 @@
             "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/provenance.json",
             "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/run-configuration.json",
             "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/README.md",
+            "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/RUNNING.md",
             "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/source-bindings.json"
           ],
           "id": "simulation",

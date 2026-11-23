@@ -30,7 +30,7 @@ Original exports are under `outputs/adc/mdac_array_20261106/results/<testbench>/
 
 Both PIPE exports use design hash `5cc3b9e0ed571e5013b178e6073ad79c54a6f81ff77dcea4a66b22c2cb079cd3`. The MDAC design hash is `ba1f933c85e0565d98fbb206017551bd3162be8c8a2a1be085a3e40eae309b54`. Each configuration's `provenance.json` records these identities, unchanged audit/configuration hashes, local dependency hashes and removed external block hashes.
 
-The transformation extracts MDAC's inline design into `project.scs`, changes PIPE's separate design include to that filename, replaces licensed inline definitions with external aliases and replaces absolute include paths with local files or external aliases. Parameters and transient analysis values come from the original inputs. The runtime uses `run-configuration.json`, which differs from the preserved historical `configuration.json` only in its description. Existing `audit.json`, historical configurations, native sources and prior provenance remain unchanged.
+The transformation extracts MDAC's inline design into `project.scs`, changes PIPE's separate design include to that filename, replaces licensed inline definitions with external aliases and replaces absolute include paths with local files or external aliases. Parameters and transient analysis values come from the original inputs. The runtime uses `run-configuration.json`, which differs from the preserved historical `configuration.json` only in its description. Existing `audit.json`, historical configurations, native sources, prior provenance and the hash-pinned `simulation/README.md` migration notes remain unchanged. The library simulation view opens the new `simulation/RUNNING.md` for current registration instructions.
 
 Each configuration includes `bundle.json`, `run-configuration.json`, `provenance.json`, the input/design template, saved-signal and numerical-options includes, and local project Verilog-A files. The two binding files bring the reproducible generated inventory to 33 files. Bundles enumerate their files and expected hashes; actual compilation records the selected canonical sources and compiled hashes separately.
 
@@ -58,6 +58,7 @@ Run from the repository root with the original export checkout supplied explicit
 python3 -B tools/library/prepare_research_simulation.py --seed-root /path/to/original-export-checkout
 python3 -B tools/library/prepare_research_simulation.py --seed-root /path/to/original-export-checkout --check
 python3 -B tests/library/test_research_simulation.py
+python3 -B tools/library/test_import.py
 python3 -B tools/workbench/test_projects.py
 python3 -B tools/dev/build.py all
 python3 -B tools/dev/check_structure.py
