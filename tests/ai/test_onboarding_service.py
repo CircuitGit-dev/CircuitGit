@@ -283,7 +283,7 @@ class NativeGatewayTests(unittest.TestCase):
                 data=health if self.path=='/api/health' else {'fixture':'no execution'}
                 return Mock(status=200,read=Mock(return_value=canonical({'ok':True,'data':data}).encode()))
             def close(self):pass
-        with patch('ic_gateway.service.http.client.HTTPConnection',Connection):
+        with patch('ic_gateway.service.http.client.HTTPConnection',Connection),patch('ic_gateway.service.time.monotonic',return_value=1000):
             gateway=Gateway('http://127.0.0.1:18884')
             result=gateway.request('/api/simulation/onboarding/netlist',{'file_name':'f','text':'fixture'},
                 onboarding_entry='native_agent',onboarding_connection_id=CONNECTION,route_timeout=300)
@@ -307,7 +307,7 @@ class NativeGatewayTests(unittest.TestCase):
                 return Mock(status=200,read=Mock(return_value=canonical({'ok':True,'data':data}).encode()))
             def close(self):pass
         gateway=Gateway('http://127.0.0.1:18884')
-        with patch('ic_gateway.service.http.client.HTTPConnection',Connection):
+        with patch('ic_gateway.service.http.client.HTTPConnection',Connection),patch('ic_gateway.service.time.monotonic',return_value=1000):
             result=gateway.request('/api/simulation/onboarding/session?intake_id='+INTAKE,
                 onboarding_connection_id=CONNECTION,route_timeout=320)
             self.assertEqual(result,{'fixture':'interactive'})

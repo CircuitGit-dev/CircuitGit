@@ -394,8 +394,8 @@ class OnboardingRuntime:
             raise ValueError('Use the explicit probe identities and optional search hints')
         if 'refresh' in args and type(args['refresh']) is not bool:raise ValueError('refresh must be an explicit boolean')
         previous=self._load(args['intake_id']);ids=args['probe_ids']
-        if not isinstance(ids,list) or not 1<=len(ids)<=8 or any(not isinstance(x,str) for x in ids) or len(set(ids))!=len(ids):
-            raise ValueError('Select one to eight exact probe IDs')
+        if not isinstance(ids,list) or not 1<=len(ids)<=2 or any(not isinstance(x,str) for x in ids) or len(set(ids))!=len(ids):
+            raise ValueError('Full-library discovery accepts one or two exact probe IDs per batch')
         selected=[p for p in previous.get('probes',[]) if p['probe_id'] in ids]
         if len(selected)!=len(ids):raise ValueError('Probe does not belong to the current intake revision')
         hints=args.get('search_paths')

@@ -699,7 +699,7 @@
     },
     {
       "name": "ic_onboarding_discover_pdk",
-      "description": "Discover bounded model/include metadata for this intake’s exact probe IDs. Reuse the full-library device index for different required-device sets. Prefer returned search_directory_ids to narrow an incomplete scan. Optional library_selection must use the exact previous LUT observation and entry choice; it queries that saved library without rescanning. Candidate evidence does not select or qualify a process. No solver execution.",
+      "description": "Discover bounded model/include metadata for one or two exact probe IDs in a single concurrent batch. Each full-library scan has a 240-second remote limit and a 270-second transport limit; allow the 300-second gateway request to finish before reconciling its result. Select a smaller explicit host batch if more hosts were probed. Reuse the full-library device index for different required-device sets. Prefer returned search_directory_ids to narrow an incomplete scan. Optional library_selection must use the exact previous LUT observation and entry choice; it queries that saved library without rescanning. Candidate evidence does not select or qualify a process. No solver execution.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -719,7 +719,7 @@
               "pattern": "^probe_[a-f0-9]{32}$"
             },
             "minItems": 1,
-            "maxItems": 8,
+            "maxItems": 2,
             "uniqueItems": true
           },
           "search_paths": {

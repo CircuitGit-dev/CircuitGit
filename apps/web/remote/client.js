@@ -12,12 +12,13 @@ export const ONBOARDING_OPERATIONS=Object.freeze({
 });
 const ONBOARDING_PREFIX='/simulation/onboarding';
 // These budgets cover the finite synchronous backend work, never a solver run.
-// Probe/discovery: at most eight explicit hosts, two workers; each remote hop
-// is 35s (plus an optional 35s setup probe) or 60s. Prepare includes four local
+// Probe: at most eight explicit hosts, two workers, 35s plus an optional 35s
+// setup probe. Full PDK discovery is one explicit batch of at most two hosts:
+// 240s remote / 270s transport / 300s gateway, with 10s browser margin. Prepare includes four local
 // Git calls capped at 20s and a 60s audit. Run reserves after two host checks
 // (30s doctor + 30s version/10s resources) and one 30s selected-host preflight.
 const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,getSession:20000,
-  probeVerilogaHeaders:70000,probeHost:290000,discoverPdk:250000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000,
+  probeVerilogaHeaders:70000,probeHost:290000,discoverPdk:310000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000,
   saveAgentTestbench:20000,getAgentTestbench:20000,prepareAgentTestbench:150000,analyzeExperiment:120000});
 const boundedHostCount=rows=>Array.isArray(rows)&&rows.length>=1&&rows.length<=8?rows.length:8;
 export function onboardingRequestTimeout(name,input={},session=null){
@@ -26,15 +27,20 @@ export function onboardingRequestTimeout(name,input={},session=null){
     const activated=!!Object.keys(input.overrides?.setup_source_ids||{}).length;
     return Math.ceil(boundedHostCount(input.ssh_targets)/2)*(activated?70000:35000)+10000;
   }
-  if(name==='discoverPdk')return Math.ceil(boundedHostCount(input.probe_ids)/2)*60000+10000;
+  if(name==='discoverPdk'){
+    const probes=input?.probe_ids;
+    if(!Array.isArray(probes)||!probes.length||probes.length>2||new Set(probes).size!==probes.length||probes.some(value=>typeof value!=='string'||!value||value.length>512))throw Error('完整 PDK 发现每批需明确选择 1–2 个不同的当前主机观察；请分批匹配。');
+    return ONBOARDING_TIMEOUT_LIMITS.discoverPdk;
+  }
   if(name==='runPrepared')return Math.ceil(boundedHostCount(session?.execution_scope?.candidate_host_ids)/2)*70000+40000;
   return ONBOARDING_TIMEOUT_LIMITS[name];
 }
 function onboardingTransportTimeout(path,method,body,requested){
   const operation=Object.entries(ONBOARDING_OPERATIONS).find(([,row])=>ONBOARDING_PREFIX+row.path===path.split('?')[0]&&row.method===method)?.[0];
   const maximum=operation?ONBOARDING_TIMEOUT_LIMITS[operation]:20000;
-  const value=requested??(operation?onboardingRequestTimeout(operation,body):maximum);
-  if(!Number.isInteger(value)||value<1||value>maximum)throw Error('Onboarding request timeout exceeds its finite route budget');
+  // Validate the explicit batch even when a caller supplies a timeout override.
+  const automatic=operation?onboardingRequestTimeout(operation,body):maximum,value=requested??automatic;
+  if(!Number.isInteger(value)||value<(operation==='discoverPdk'?300000:1)||value>maximum)throw Error('Onboarding request timeout exceeds its finite route budget');
   return value;
 }
 export function isOnboardingRequest(path,method){

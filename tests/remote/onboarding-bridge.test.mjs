@@ -267,7 +267,8 @@ test('both bridge transports receive the same finite operation budgets',async()=
     }});
     await f.bridge.connect(gateway?{}:{port:18885});await f.bridge.inspectNetlist({file_name:'fixture.scs',text:'// fixture'});
     await f.bridge.probeHost({intake_id:intake,revision:0,ssh_targets:['one'],overrides:{setup_source_ids:{one:'observed-source'}}});assert.equal(f.calls.at(-1).timeout,80000);
-    await f.bridge.discoverPdk({intake_id:intake,revision:1,probe_ids:['one','two','three']});assert.equal(f.calls.at(-1).timeout,130000);
+    const before=f.calls.length;await assert.rejects(f.bridge.discoverPdk({intake_id:intake,revision:1,probe_ids:['one','two','three']}),/1–2/);assert.equal(f.calls.length,before);
+    await f.bridge.discoverPdk({intake_id:intake,revision:1,probe_ids:['one','two']});assert.equal(f.calls.at(-1).timeout,310000);
     await f.bridge.prepareExperiment({intake_id:intake,revision:2});assert.equal(f.calls.at(-1).timeout,150000);
     await f.bridge.runPrepared({intake_id:intake,revision:3,plan_id:plan});assert.equal(f.calls.at(-1).timeout,320000);
     await f.bridge.inspectExperiment({intake_id:intake,job_id:'j'});assert.equal(f.calls.at(-1).timeout,45000);

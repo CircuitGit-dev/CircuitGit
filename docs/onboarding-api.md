@@ -229,6 +229,24 @@ submission. No lookup grants permission to resend an unknown run.
 `discover-pdk` may reuse a matching private host-bound LUT observation and rebind
 it to the new source. A full-library observation indexes individual devices and
 serves different required-model combinations from the same server/root identity.
+One discovery request accepts one or two explicit probe IDs, processed concurrently.
+Each remote full-library scan has a 240-second deadline and its SSH transport a
+270-second deadline. Gateway/helper requests share a 300-second monotonic budget
+across their internal health read, operation and response; the browser allows
+310 seconds. This is one bounded batch, not an eight-host queue under the
+same deadline. Host probing still accepts up to eight hosts; choose one or two
+observed probes explicitly for each discovery. Larger discovery batches are rejected
+before the intake revision changes or any remote work starts. A timeout retains
+the failed observation and does not automatically retry or identify the slow phase.
+The native Service also reads connection health before that request; its configured
+timeout is 30 seconds by default and may be at most 120 seconds. The local plugin
+installer uses a 480-second tool deadline for new installations, covering that
+initial read and the 300-second discovery request. Existing plugin upgrades
+preserve the operator's timeout policy; an older 180-second host setting can still
+end the MCP call early. Update that plugin-specific host deadline before using full
+discovery through that host, or use the browser/CLI path with the same intake.
+After a host timeout, read the intake first; an interrupted client is not proof that
+the original remote operation stopped.
 Only its private remote transport and storage use a separate 16 MiB bound;
 source-bound queries and public sessions retain the 2 MiB HTTP envelope. Older
 filtered receipts retain their exact model scope. A multi-entry combination stays

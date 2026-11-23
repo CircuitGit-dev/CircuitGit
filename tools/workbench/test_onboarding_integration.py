@@ -230,7 +230,7 @@ class OnboardingDiscoveryIntegrationTests(_IntakeFixture):
         self.assertEqual(result['state'], 'models_discovered')
         self.assertEqual(result['revision'], state['revision'] + 1)
         self.discovery_call.assert_called_once_with(HOST, self.cfg['onboarding']['ssh_config'],
-            self.capture, state['source']['requirements'], None, None)
+            self.capture, state['source']['requirements'], None, None, full_library=True)
         self.assertFalse(result['discovery']['selection_made'])
         self.assertFalse(result['discovery']['simulation_started'])
         self.assertTrue(result['discovery']['candidates'])
