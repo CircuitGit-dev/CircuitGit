@@ -56,7 +56,7 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(config['approval_policy'],'on-request')
         self.assertNotIn('ic-workbench',config['mcp_servers'])
         policy=config['plugins'][PLUGIN]['mcp_servers']['ic-workbench']
-        self.assertEqual(policy,{'disabled_tools':['ic_sim_submit'],'tool_timeout_sec':360})
+        self.assertEqual(policy,{'disabled_tools':['ic_sim_submit'],'tool_timeout_sec':480})
 
     def test_unrelated_setting_changes_are_rejected(self):
         after=BEFORE.replace(b'on-request',b'never')+ADDED

@@ -79,6 +79,64 @@ class Gateway:
         self.origin = 'http://127.0.0.1:' + str(parsed.port)
         self.port, self.timeout = parsed.port, timeout
 
+    def _bounded_exchange(self, path, raw, headers, *, deadline, limit):
+        """One onboarding exchange inside its original monotonic budget; no retry."""
+        conn = response = None
+        dispatched = False
+
+        def remaining():
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise Failure('transport_unknown' if dispatched else 'onboarding_deadline_exceeded',
+                    'Gateway request deadline exhausted; no automatic retry.', 75,
+                    {'request_dispatched': dispatched})
+            if conn is not None:
+                conn.timeout = left
+                sock = getattr(conn, 'sock', None)
+                if sock is None and response is not None:
+                    sock = getattr(getattr(getattr(response, 'fp', None), 'raw', None), '_sock', None)
+                if sock is not None:sock.settimeout(left)
+            return left
+
+        try:
+            conn = http.client.HTTPConnection('127.0.0.1', self.port, timeout=remaining())
+            remaining()
+            dispatched = True
+            conn.request('POST' if raw is not None else 'GET', path, body=raw, headers=headers)
+            remaining()
+            response = conn.getresponse()
+            remaining()
+            # HTTPResponse.read1 makes at most one buffered/socket read so a
+            # slowly arriving body cannot reset the whole route's budget.
+            read1 = getattr(type(response), 'read1', None)
+            if read1 is None:
+                data = response.read(limit + 1)
+            else:
+                data = bytearray()
+                while len(data) <= limit:
+                    remaining()
+                    chunk = read1(response, min(65536, limit + 1 - len(data)))
+                    if not chunk:break
+                    data.extend(chunk)
+            remaining()
+            check(len(data) <= limit, 'Gateway response exceeds its size limit', 'transport_unknown', 75)
+            parsed = json.loads(data)
+            remaining()
+            if response.status >= 400 or not parsed.get('ok'):
+                error = parsed.get('error', {})
+                raise Failure(error.get('code', 'gateway_error'), error.get('message', 'Gateway rejected request'),
+                              3 if response.status == 409 else 4 if response.status == 403 else 2,
+                              {'http_status': response.status})
+            return parsed['data']
+        except Failure:
+            raise
+        except (OSError, http.client.HTTPException, ValueError, KeyError) as error:
+            raise Failure('transport_unknown', 'Gateway response unavailable; do not replay mutations', 75,
+                          {'kind': type(error).__name__, 'request_dispatched': dispatched}) from error
+        finally:
+            if response is not None and callable(getattr(response, 'close', None)):response.close()
+            if conn is not None:conn.close()
+
     def request(self, path, body=None, *, caller_id=None, authority_key_file=None,
                 onboarding_entry=None, onboarding_connection_id=None, route_timeout=None, human_review_key_file=None):
         check(path.startswith('/api/'), 'Only gateway API paths are supported')
@@ -89,6 +147,7 @@ class Gateway:
             check(caller_id is None and path.startswith('/api/simulation/onboarding/'),
                   'Invalid onboarding transport identity')
             hexvalue(onboarding_connection_id,32,'onboarding connection')
+        deadline = time.monotonic() + route_timeout if onboarding and route_timeout is not None else None
         headers = {'Origin': self.origin, 'Content-Type': 'application/json'}
         if caller_id is not None:
             check(caller_id in ('paired-helper','native-agent','spiceowl-local'), 'Unknown simulation caller')
@@ -101,7 +160,18 @@ class Gateway:
             headers['X-IC-Onboarding-Entry'] = 'native_agent'
         if body is not None or onboarding:
             # Process-scoped CSRF value is never persisted or returned to AI.
-            health = self.request('/api/health')
+            if deadline is None:
+                health = self.request('/api/health')
+            else:
+                try:
+                    health = self._bounded_exchange('/api/health', None,
+                        {'Origin': self.origin, 'Content-Type': 'application/json'},
+                        deadline=min(deadline, time.monotonic() + self.timeout), limit=32*1024*1024)
+                except Failure as error:
+                    # A failed read-only health check never dispatches the
+                    # requested onboarding operation, regardless of its cause.
+                    error.details = {**error.details, 'request_dispatched': False}
+                    raise
             check(isinstance(health,dict) and health.get('api_version') == '1' and health.get('mode') == 'live', 'Unsupported gateway')
             if onboarding:
                 capabilities=health.get('capabilities',{})
@@ -124,6 +194,8 @@ class Gateway:
                 headers['X-IC-Simulation-Authorization'] = sign(load_key(authority_key_file),caller_id,'POST' if body is not None else 'GET',path,raw or b'')
             except (ImportError, OSError, ValueError, TypeError):
                 raise Failure('simulation_authority_unavailable','Install the pinned SpiceOwl package and configure the private simulation authority key.',4) from None
+        if deadline is not None:
+            return self._bounded_exchange(path, raw, headers, deadline=deadline, limit=2*1024*1024)
         conn = http.client.HTTPConnection('127.0.0.1', self.port, timeout=route_timeout or self.timeout)
         try:
             conn.request('POST' if body is not None else 'GET', path, body=raw, headers=headers)

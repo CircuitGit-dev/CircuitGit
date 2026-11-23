@@ -69,9 +69,10 @@ def migrated_config(before_bytes,after_bytes,upgrade=False):
         if count!=1:raise RuntimeError('Direct MCP table could not be isolated safely; retain it for inspection')
         expected['mcp_servers'].pop('ic-workbench')
     policy={k:v for k,v in (old or {}).items() if k not in ('command','args','cwd','env','enabled')}
-    # Full PDK discovery has a 300s gateway request plus its health check.
+    # Full PDK discovery has a 300s gateway request and an initial health
+    # read whose operator-configured deadline can be as high as 120s.
     # This affects this plugin only; existing upgrade policy is preserved above.
-    policy['tool_timeout_sec']=360
+    policy['tool_timeout_sec']=480
     plugin_cfg.setdefault('mcp_servers',{})['ic-workbench']=policy
     expected.setdefault('marketplaces',{})[NAME]=market_cfg
     expected.setdefault('plugins',{})[PLUGIN]=plugin_cfg
