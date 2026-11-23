@@ -25,7 +25,7 @@ export function mountRemoteNode(host) {
     async readSelection(){throw Error('网页示例的原理图选择未绑定到远程工程。请让 AI 从当前节点读取工程源码。');}};
   function message(text,error=false){status.textContent=text;status.dataset.error=String(error);}
   function drop(){++epoch;client?.close();client=null;ai?.destroy();ai=null;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
-  function disconnect(){drop();busy=false;form.hidden=false;form.querySelector('button').disabled=false;connected.hidden=true;projects.disabled=false;projects.title='';$('[data-action=open-project]').disabled=false;$('[data-action=open-project]').textContent='打开对话';projects.replaceChildren(new Option('选择节点上的项目',''));form.elements.accessCode.value='';message('已断开网页连接。远端任务状态以节点回执为准，未自动重发或批准。');}
+  function disconnect(){drop();busy=false;form.hidden=false;form.querySelector('button').disabled=false;connected.hidden=true;projects.disabled=false;projects.title='';$('[data-action=open-project]').disabled=false;$('[data-action=open-project]').textContent='打开对话';projects.replaceChildren(new Option('选择节点上的项目',''));form.elements.accessCode.value='';message('已断开。失去心跳的 AI 回合会由节点暂停；已提交的仿真不会因此取消。未自动重发或批准。');}
   $('[data-action=disconnect]').onclick=disconnect;
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy||destroyed||!form.reportValidity())return;

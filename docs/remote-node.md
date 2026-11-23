@@ -37,7 +37,7 @@ For a previously configured AI client, use `--config /absolute/client.local.json
 
 The AI's project, source commit and saved source hash come from the node. **The RC schematic and analytical waveform demo remain separate from that remote project**; the website does not pretend its sample is your real circuit. Circuit changes and simulation requests go through the existing reviewed workflow.
 
-Credentials remain in the current page's memory, not URLs, cookies or browser storage. Reloading the page requires reconnecting. Disconnecting closes the browser transport; it does not approve, replay or silently cancel remote work. Inspect the original session after reconnecting if a send had an uncertain outcome.
+Credentials remain in the current page's memory, not URLs, cookies or browser storage. Reloading the page requires reconnecting. Disconnecting closes browser polling. The existing adapter pauses an active AI turn after its browser heartbeat has been absent for 20 seconds; this does not cancel an already submitted simulation or automatically approve/replay an operation. Inspect the original session receipt after reconnecting, especially if a send had an uncertain outcome.
 
 One connection binds one project. To change the project or refresh its saved source identity, disconnect and reconnect. Existing conversations stay on the node. An expired/revoked node authorization closes browser polling and requires reconnection; a model service failure leaves the affected conversation paused, with the original receipt available for inspection.
 
