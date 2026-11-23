@@ -29,9 +29,11 @@ const $=id=>document.getElementById(id);
 export async function mountStudio({ui:providedUI}={}){
   if(window.ICRNLStudio)return window.ICRNLStudio;
   const ui=providedUI||await createLayout(),api=new Gateway();
+  const healthReady=api.health().catch(error=>({error}));
   const state={mode:'connecting',project:null,active:null,file:null,files:[],baseline:'',dirty:false,jobs:[],job:null,projectLoadState:'idle',nativeFiles:[]};
   let text='',contextSelection=null,nativePayload=null,nativeState=null,nativeModel=null,nativeEntry=null,manifest=null;
   let epoch=0,entryEpoch=0,runEpoch=0,editEpoch=0,nativeLoading=false,nativeError='',nativeQueue=Promise.resolve(),sourceDialog=null,plotController=null,lazyPlot=null,addonsReady=Promise.resolve(),plotMode='none',pendingPreview=null;
+  let legacyWaveformMount=null,onboardingWaveformMount=null,waveformSwitch=0;
   const contextOwner=createWorkbenchContext(()=>({state,text,selection:contextSelection,nativeState,nativePayload,nativeFiles:state.nativeFiles,historicalSnapshotVisible:!!nativeState?.stale&&$('studio-history').checked}));
   Object.defineProperty(window,'ICWorkbenchContext',{value:contextOwner.api,writable:false,configurable:false});
   const refreshContext=()=>contextOwner.update();
@@ -39,7 +41,7 @@ export async function mountStudio({ui:providedUI}={}){
   function safeAction(fn){try{const result=fn();if(result?.catch)result.catch(error=>notify(error.message,{kind:'error'}));return result;}catch(error){notify(error.message,{kind:'error'});}}
   function register(item){if(!/^[a-z][\w.-]+$/.test(item.id))throw Error('Invalid command id');return registerStudioCommand({...item,run:()=>safeAction(item.run)});}
   const controls=()=>{
-    $('studio-project').disabled=state.dirty||!state.project;
+    $('studio-project').disabled=state.dirty||!state.project?.projects?.length;
     $('studio-entry').disabled=!$('studio-entry').options.length;
     $('studio-run').disabled=!state.jobs.length;
     $('studio-identity').textContent=state.mode==='live'?`${state.project?.branch||''} · ${(state.project?.source_commit||'').slice(0,8)}`:state.mode;
@@ -74,6 +76,14 @@ export async function mountStudio({ui:providedUI}={}){
     invalidateProject(id);const generation=epoch;
     try{
       const project=await api.project();if(generation!==epoch)return;
+      if(!Array.isArray(project.projects))throw Error('工程目录响应缺少项目列表。');
+      if(!project.projects.length){
+        state.project=project;state.active=null;state.projectLoadState='ready';
+        $('studio-project').replaceChildren(new Option('导入网表后开始',''));
+        $('studio-project').disabled=true;
+        clearDrawing('尚未导入电路；可从仿真菜单配置新的网表与环境。');
+        publishNative();controls();return;
+      }
       state.project=project;state.active=project.projects.find(p=>projectId(p)===id)||project.projects.find(p=>projectId(p)===project.active_project)||project.projects[0];
       $('studio-project').replaceChildren(...project.projects.map(p=>new Option(p.name||projectId(p),projectId(p))));$('studio-project').value=projectId(state.active);
       refreshContext();
@@ -124,13 +134,50 @@ export async function mountStudio({ui:providedUI}={}){
     }catch(error){if(revision!==entryEpoch||generation!==epoch)return;nativeLoading=false;nativeError=error.message;nativeState=null;manifest=null;state.nativeFiles=[];contextSelection=null;publishNative();throw error;}
   }
   async function refreshRuns(){const generation=epoch;const result=await api.jobs();if(generation!==epoch)return;state.jobs=Array.isArray(result)?result:result.jobs||[];$('studio-run').replaceChildren(new Option('未选择运行',''),...state.jobs.map(j=>new Option(`${j.configuration||j.configuration_id||j.project_id||''} · ${runId(j)}`,runId(j))));$('studio-run').value=runId(state.job)||'';$('studio-run').disabled=!state.jobs.length;refreshContext();}
-  async function selectRun(id){const generation=epoch,revision=++runEpoch;state.job=null;refreshContext();if(!id){$('studio-run').value='';return;}let job=state.jobs.find(j=>runId(j)===id);if(!job){await refreshRuns();job=state.jobs.find(j=>runId(j)===id);}if(generation!==epoch||revision!==runEpoch)return;if(!job)throw Error('运行不在已登记列表中。');const associated=job.associated_project_id||job.project_id;if(associated!==projectId(state.active))throw Error('该运行不属于当前项目。');state.job=job;$('studio-run').value=runId(job);refreshContext();}
+  async function selectRun(id){
+    const generation=epoch,revision=++runEpoch,request=++waveformSwitch;
+    const current=()=>generation===epoch&&revision===runEpoch&&request===waveformSwitch;
+    if(onboardingWaveformMount&&await restoreProjectWaveforms(request)===false)return;
+    if(!current())return;
+    state.job=null;refreshContext();if(!id){$('studio-run').value='';return;}
+    let job=state.jobs.find(j=>runId(j)===id);
+    if(!job){await refreshRuns();job=state.jobs.find(j=>runId(j)===id);}
+    if(!current())return;if(!job)throw Error('运行不在已登记列表中。');
+    const associated=job.associated_project_id||job.project_id;if(associated!==projectId(state.active))throw Error('该运行不属于当前项目。');
+    state.job=job;$('studio-run').value=runId(job);refreshContext();
+  }
 
   function setPlotMode(mode){if(!['none','voltage','current'].includes(mode))throw Error('Unknown plot mode');plotMode=mode;document.body.dataset.studioPlot=mode;$('studio-plot-state').hidden=mode==='none';$('studio-plot-state').textContent=mode==='voltage'?'Plot · 电压 · Esc退出':mode==='current'?'Plot · 电流 · Esc退出':'';plotController?.setPlotMode(mode);$('studio-message').dataset.plot=mode;if(mode!=='none')notify(mode==='voltage'?'电压探针：在原图选择节点；Esc 退出。':'电流探针：选择器件，再明确端口；Esc 退出。');}
-  function openPlot(){if(!plotController&&ui.slots.waveforms){ui.slots.waveforms.setVisible(true);void addonsReady.then(()=>lazyPlot?.ensure()).then(()=>{if(!plotController)throw Error('波形组件尚未加载');plotController.openWindow();if(plotMode!=='none')plotController.onSelection(contextOwner.api.getContext());}).catch(error=>notify(error.message,{kind:'error'}));return {opened:true,pending:true};}if(!plotController){notify('Plot 组件尚未安装。',{kind:'warning'});return {opened:false,reason:'Plot component unavailable'};}const result=plotController.openWindow();if(!result?.opened)notify(result?.reason||'浏览器阻止了波形窗口；请允许弹窗后重试。',{kind:'warning'});return result;}
+  function openPlot(){if(onboardingWaveformMount)return onboardingWaveformMount.controller.openWindow();if(!plotController&&ui.slots.waveforms){ui.slots.waveforms.setVisible(true);void addonsReady.then(()=>lazyPlot?.ensure()).then(()=>{if(!plotController)throw Error('波形组件尚未加载');plotController.openWindow();if(plotMode!=='none')plotController.onSelection(contextOwner.api.getContext());}).catch(error=>notify(error.message,{kind:'error'}));return {opened:true,pending:true};}if(!plotController){notify('Plot 组件尚未安装。',{kind:'warning'});return {opened:false,reason:'Plot component unavailable'};}const result=plotController.openWindow();if(!result?.opened)notify(result?.reason||'浏览器阻止了波形窗口；请允许弹窗后重试。',{kind:'warning'});return result;}
   const plot=Object.freeze({attach(controller){if(plotController)throw Error('Only one Plot controller may attach');plotController=controller;controller.setPlotMode(plotMode);return ()=>{if(plotController===controller){setPlotMode('none');plotController=null;controller.destroy?.();}};},setMode:setPlotMode,getMode:()=>plotMode,openWindow:openPlot});
   const onboarding=createOnboardingBridge({gateway:api,win:window});
-  const host=Object.freeze({version:1,context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,getOnboardingSource:()=>snapshotOnboardingSource(doc,{hasBuffer,fileText}),getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
+  async function openOnboardingWaveforms(payload){
+    const request=++waveformSwitch,sourceEpoch=epoch;
+    const current=()=>request===waveformSwitch&&sourceEpoch===epoch;
+    const module=await import('../remote/onboarding-waveforms.js');
+    const scopedHost={...host,async prepareOnboardingWaveformSlot(){
+      await addonsReady;await lazyPlot?.ensure();
+      if(!current())throw Error('窗口或电路已变化；未替换波形。');
+      setPlotMode('none');legacyWaveformMount?.destroy();legacyWaveformMount=null;
+      onboardingWaveformMount?.destroy();onboardingWaveformMount=null;
+    }};
+    const next=await module.openOnboardingWaveforms(scopedHost,payload);
+    if(!current()){next.destroy();throw Error('窗口或电路已变化；请重新选择原运行。');}
+    onboardingWaveformMount=next;return next;
+  }
+  async function restoreProjectWaveforms(request=++waveformSwitch){
+    await addonsReady;await lazyPlot?.ensure();
+    if(request!==waveformSwitch)return false;
+    onboardingWaveformMount?.destroy();onboardingWaveformMount=null;
+    if(!legacyWaveformMount){
+      const module=await import('./dockview/waveforms.js');
+      if(request!==waveformSwitch)return false;
+      legacyWaveformMount=module.mount(host);
+    }
+    ui.slots.waveforms.setVisible(true);return true;
+  }
+  const host=Object.freeze({version:1,context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,
+    ...(ui.slots.waveforms?{openOnboardingWaveforms}:{}),getOnboardingSource:()=>snapshotOnboardingSource(doc,{hasBuffer,fileText}),getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
   window.addEventListener('pagehide',()=>onboarding.disconnect(),{once:true});
   Object.defineProperty(window,'ICRNLStudio',{value:host,writable:false});
   register({id:'project.choose',menu:'project',label:'选择项目…',run:()=>$('studio-project').focus()});
@@ -143,7 +190,8 @@ export async function mountStudio({ui:providedUI}={}){
   register({id:'window.simulation',menu:'window',label:'Simulation 面板',run:ui.slots.simulation.toggle,checked:ui.slots.simulation.isVisible});
   register({id:'window.plot',menu:'window',label:'波形窗口：打开 / 聚焦',run:openPlot});
   register({id:'window.reset',menu:'window',label:'恢复默认布局',run:()=>{if(ui.resetLayout){ui.resetLayout();return;}document.body.style.removeProperty('--studio-right-width');document.body.style.removeProperty('--studio-ai-height');$('studio-sim-split').removeAttribute('aria-valuenow');$('studio-ai-split').removeAttribute('aria-valuenow');setSidebarWidth(300);ui.slots.simulation.setVisible(true);ui.slots.ai.setVisible(true);notify('已恢复默认面板尺寸并显示仿真与 AI。');}});
-  for(const [mode,label] of [['voltage','电压探针'],['current','电流探针']])register({id:'plot.'+mode,menu:'plot',label,run:()=>{const result=openPlot();setPlotMode(mode);if(!result.opened)notify(result.reason||'波形窗口未打开；探针模式已启用，待选信号会保留。',{kind:'warning'});},checked:()=>plotMode===mode});
+  for(const [mode,label] of [['voltage','电压探针'],['current','电流探针']])register({id:'plot.'+mode,menu:'plot',label,run:async()=>{if(ui.slots.waveforms&&await restoreProjectWaveforms()===false)return;const result=openPlot();setPlotMode(mode);if(!result.opened)notify(result.reason||'波形窗口未打开；探针模式已启用，待选信号会保留。',{kind:'warning'});},checked:()=>plotMode===mode});
+  if(ui.slots.waveforms)register({id:'plot.project',menu:'plot',label:'返回项目波形',run:restoreProjectWaveforms});
   register({id:'plot.exit',menu:'plot',label:'退出探针 (Esc)',run:()=>setPlotMode('none'),enabled:()=>plotMode!=='none'});
   register({id:'plot.open',menu:'plot',label:'打开波形窗口',run:openPlot});
   $('studio-source-button').onclick=()=>safeAction(()=>openCanonicalEditor());
@@ -221,7 +269,17 @@ export async function mountStudio({ui:providedUI}={}){
       if(url.origin!==location.origin||!url.pathname.startsWith(new URL('./',import.meta.url).pathname))throw Error('Addon outside Studio');
       const kind=relative.includes('/simulation/')?'simulation':relative.includes('/ai/')?'ai':relative.includes('/versions/')?'versions':relative.includes('/plot/')&&ui.slots.waveforms?'waveforms':null;
       const placeholders=[];
-      const mount=()=>import(url.href).then(module=>{for(const remove of placeholders.splice(0))remove();return module.mount(host);});
+      const mount=async()=>{
+        if((kind==='ai'||relative==='./connection.js')&&(await healthReady).capabilities?.chat===false){
+          if(kind==='ai'){
+            const message=document.createElement('p');message.setAttribute('role','status');
+            message.textContent='当前服务仅提供仿真功能，未启用 AI 对话。';ui.slots.ai.element.replaceChildren(message);
+          }
+          return {unavailable:true};
+        }
+        const module=await import(url.href);for(const remove of placeholders.splice(0))remove();
+        const value=await module.mount(host);if(kind==='waveforms')legacyWaveformMount=value;return value;
+      };
       const onError=error=>{
         notify('扩展加载失败 '+relative+' · '+error.message,{kind:'warning'});
         if(kind){const root=ui.slots[kind].element,message=document.createElement('p'),retry=document.createElement('button');message.textContent='面板加载失败：'+error.message;retry.textContent='重试';retry.onclick=()=>void loader.retry().catch(()=>{});root.replaceChildren(message,retry);}
@@ -230,13 +288,13 @@ export async function mountStudio({ui:providedUI}={}){
       if(kind){loader=whenVisible(ui.slots[kind],mount,{onError});
         // Commands must remain discoverable even when a panel was closed in the saved layout.
         const actions=kind==='waveforms'?[['plot.run','plot','打开已有运行 (O)'],['plot.signals','plot','添加信号 (L)'],['plot.measurements','plot','波形测量 (M)'],['plot.shortcuts','plot','波形快捷键 (?)']]:kind==='versions'?[['git.versions','git','版本管理…'],['window.versions','window','版本管理']]:kind==='ai'?[['ai.toggle','window','AI：显示 / 隐藏对话'],['ai.show','window','AI：聚焦对话输入'],['ai.inspect','window','AI执行详情'],['ai.manage','window','AI：对话管理器…']]:kind==='simulation'?[['simulation.environment','simulation','连接仿真环境…']]:[];
-        for(const [id,menu,label] of actions)placeholders.push(register({id,menu,label,run:async()=>{ui.slots[kind].setVisible(true);await loader.ensure();if(!['window.versions','ai.toggle'].includes(id))command(id);}}));
+        for(const [id,menu,label] of actions)placeholders.push(register({id,menu,label,run:async()=>{ui.slots[kind].setVisible(true);const value=await loader.ensure();if(!value?.unavailable&&!['window.versions','ai.toggle'].includes(id))command(id);}}));
         if(kind==='waveforms')lazyPlot=loader;
       }else void mount().catch(onError);
     }));
   }
   setSidebarWidth(300);setPane('hierarchy');
   controls();addonsReady=mountAddons();void addonsReady.catch(error=>notify(error.message,{kind:'warning'}));
-  try{const health=await api.health();if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';await loadProject();notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();notify(error.message,{kind:'error'});}
+  try{const health=await healthReady;if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';await loadProject();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();notify(error.message,{kind:'error'});}
   return host;
 }
