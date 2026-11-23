@@ -14,7 +14,7 @@ export async function mountDockview(ui){
   const area=document.createElement('div');area.id='studio-dockview';area.setAttribute('aria-label','可排列工作台');app.before(area);
   const nodes={schematic:app,...Object.fromEntries(Object.entries(ui.slots).map(([id,slot])=>[id,slot.element]))};
   nodes.waveforms.classList.add('studio-waveforms-content');
-  const roots={};
+  const roots={},mounts={};
   for(const [id,node] of Object.entries(nodes)){const root=document.createElement('section');root.className='studio-panel studio-panel-'+id;root.dataset.studioPanel=id;root.hidden=true;root.inert=true;root.setAttribute('aria-label',TITLES[id]);root.append(node);parking.append(root);roots[id]=root;}
   let restoring=false,saveTimer,saveFailed=false;const homes=new Map(),floatPositions=new Map(),dragHomes=new Map();
   let resizeFrame=null,schematicSize='';
@@ -23,15 +23,23 @@ export async function mountDockview(ui){
     const key=app.clientWidth+':'+app.clientHeight;if(key===schematicSize||!app.clientWidth||!app.clientHeight)return;
     schematicSize=key;window.dispatchEvent(new Event('resize'));
   });};
-  function visibility(id,shown){if(roots[id].hidden===!shown)return;roots[id].hidden=!shown;roots[id].inert=!shown;ui.slots[id]?.visibilityChanged?.(shown);if(id==='schematic')resize();}
+  function visibility(id,shown){
+    const root=roots[id],target=shown?mounts[id]:parking;
+    // Keep inactive content connected: RNL still resolves controls by document-wide IDs.
+    // Dockview may detach an inactive tab's container during a restore or tab switch.
+    if(target&&root.parentElement!==target)target.append(root);
+    if(root.hidden===!shown)return;
+    root.hidden=!shown;root.inert=!shown;ui.slots[id]?.visibilityChanged?.(shown);if(id==='schematic')resize();
+  }
+
   const api=createDockview(area,{
     theme:themeLight,defaultRenderer:'always',singleTabMode:'default',floatingGroupBounds:'boundedWithinViewport',
     createComponent({id}){
       if(!roots[id])throw Error('Unknown Studio panel');
-      const element=document.createElement('div');element.className='studio-panel-mount';element.append(roots[id]);visibility(id,true);
+      const element=document.createElement('div');element.className='studio-panel-mount';mounts[id]=element;visibility(id,true);
       let subscription;
-      return {element,init(params){subscription=params.api.onDidVisibilityChange(event=>visibility(id,event.isVisible));},layout(){if(id==='schematic')resize();},
-        dispose(){subscription?.dispose();visibility(id,false);parking.append(roots[id]);}};
+      return {element,init(params){subscription=params.api.onDidVisibilityChange(event=>visibility(id,event.isVisible));visibility(id,params.api.isVisible);},layout(){if(id==='schematic')resize();},
+        dispose(){subscription?.dispose();visibility(id,false);if(mounts[id]===element)delete mounts[id];}};
     },
     createRightHeaderActionComponent(group){
       const element=document.createElement('div');element.className='studio-panel-actions';

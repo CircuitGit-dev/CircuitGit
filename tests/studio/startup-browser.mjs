@@ -14,7 +14,7 @@ const browser=await chromium.launch({headless:true,channel:'chrome'}),report={ch
 let releaseRenderer,releaseOptional;
 const rendererGate=new Promise(r=>releaseRenderer=r),optionalGate=new Promise(r=>releaseOptional=r);
 try{
-  const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
+  const context=await browser.newContext({viewport:{width:1440,height:1000},locale:'zh-CN'}),page=await context.newPage();
   page.on('pageerror',e=>report.errors.push(e.message));page.on('request',r=>{const path=new URL(r.url()).pathname;report.requests.push(path);if(path.includes('/api/'))report.api.push(path);});
   await page.addInitScript(()=>{window.startupFrames=[];const observe=()=>{if(document.querySelector('#sidebar')&&getComputedStyle(document.getElementById('app')).visibility==='visible'&&!window.ICStudioDock&&!document.body.classList.contains('starting'))startupFrames.push('viewer-before-host');if(document.body?.dataset.workbenchState!=='ready')requestAnimationFrame(observe);};requestAnimationFrame(observe);});
   await page.route('**/studio/schematic.js',async route=>{await rendererGate;await route.continue();});
@@ -43,6 +43,34 @@ try{
   await page.evaluate(()=>window.viewer.command('git.history'));await page.waitForFunction(()=>!!document.querySelector('.cg-cell-versions'));
   report.checks.push('probe and history commands reopen lazy panels; AI becomes available on demand');
   await page.evaluate(()=>ICStudioDock.reset());await page.waitForTimeout(250);
+  // A restored inactive tab may have a detached Dockview container. Its owned DOM
+  // must stay connected while startup and asynchronous callbacks resolve controls.
+  await page.evaluate(()=>{const api=ICStudioDock.api;api.getPanel('simulation').api.moveTo({group:api.getPanel('ai').group,position:'center'});api.getPanel('ai').api.setActive();});
+  await page.waitForTimeout(250);await page.reload();await page.waitForFunction(()=>document.body.dataset.workbenchState==='ready');
+  assert.equal(await page.evaluate(()=>ICStudioDock.api.getPanel('simulation').api.isVisible),false);
+  assert.equal(await page.evaluate(()=>document.getElementById('demo-update')?.isConnected),true);
+  await page.evaluate(()=>ICStudioDock.open('simulation'));await page.locator('#demo-r').fill('2400');await page.locator('#demo-update').click();
+  await page.waitForFunction(()=>document.getElementById('demo-basis').textContent.includes('τ = 2.4 ns'));
+  report.checks.push('inactive simulation tab restores without missing onclick controls; editing still rebuilds the circuit');
+  await page.evaluate(()=>{ICStudioDock.reset();const api=ICStudioDock.api;api.getPanel('schematic').api.moveTo({group:api.getPanel('waveforms').group,position:'center'});api.getPanel('waveforms').api.setActive();});
+  await page.waitForTimeout(250);await page.reload();await page.waitForFunction(()=>document.body.dataset.workbenchState==='ready');
+  assert.equal(await page.evaluate(()=>ICStudioDock.api.getPanel('schematic').api.isVisible),false);
+  assert.equal(await page.evaluate(()=>window.viewer.doc.path),'/circuitgit-demo.scs');
+  await page.evaluate(()=>ICStudioDock.open('schematic'));await page.locator('#canvas>svg').waitFor();
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('#app').length),1);
+  report.checks.push('inactive schematic retains its DOM identity and opens normally after startup');
+  // Slow imports can finish while their tab becomes inactive. They must mount once,
+  // remain reachable and reappear inside the correct panel rather than below the grid.
+  await page.evaluate(()=>ICStudioDock.reset());await page.waitForTimeout(250);
+  let releaseDelayedAI;const delayedAI=new Promise(resolve=>releaseDelayedAI=resolve);
+  await page.route('**/remote/panel.js',async route=>{await delayedAI;await route.continue();});
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.body.dataset.workbenchState==='ready');
+  await page.evaluate(()=>{const api=ICStudioDock.api;api.getPanel('ai').api.moveTo({group:api.getPanel('simulation').group,position:'center'});api.getPanel('simulation').api.setActive();});
+  releaseDelayedAI();await page.locator('.cg-node-welcome').waitFor({state:'attached'});
+  await page.evaluate(()=>ICStudioDock.open('ai'));await page.locator('.studio-panel-ai .cg-remote').waitFor();
+  assert.equal(await page.locator('.cg-remote').count(),1);
+  report.checks.push('AI import completing behind another tab stays inside its own panel and reopens once');
+  await page.unroute('**/remote/panel.js');await page.evaluate(()=>ICStudioDock.reset());await page.waitForTimeout(250);
   // A saved old URL goes straight to the host, retaining demo/query/hash intent.
   report.requests=[];
   await page.goto(prefix+'vendor/rnl-viewer/index.html?studio=1&layout=dockview&demo=1#kept');await page.waitForFunction(()=>document.body.dataset.workbenchState==='ready');

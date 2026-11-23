@@ -42,7 +42,10 @@ function dialog(title,content) {
 export async function mountStudio({ui:providedUI}={}) {
   const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url);document.head.append(css);
   const ui=providedUI||await createLayout();document.body.classList.add('circuitgit-demo');document.title='CircuitGit · Interactive demo';
-  const $=id=>document.getElementById(id),brand=document.querySelector('.studio-brand');
+  // Dockview can temporarily detach inactive tab containers. Resolve owned controls
+  // within their panel roots, including while restoring a saved layout.
+  const $=id=>document.getElementById(id)||Object.values(ui.slots).map(slot=>slot.element?.querySelector('#'+id)).find(Boolean);
+  const brand=document.querySelector('.studio-brand');
   brand.replaceChildren();const image=document.createElement('img');image.src=new URL('../branding/circuitgit.svg',import.meta.url);image.alt='';brand.append(image,document.createTextNode('CircuitGit'));
   $('studio-project').replaceChildren(new Option('RC · 公开示例','rc-demo'));$('studio-project').disabled=true;
   $('studio-entry').replaceChildren(new Option('手工固定布局 · RNL','rc'));$('studio-entry').disabled=true;
