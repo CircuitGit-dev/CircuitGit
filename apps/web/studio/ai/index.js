@@ -43,6 +43,8 @@ export function mount(host) {
   function createPanel(container,{sessionId,onStateChange=()=>{}}){
     const root=container.ownerDocument.createElement('div');root.className='ic-ai-studio';root.setAttribute('aria-label','电路 AI 对话');container.append(root);
     const panel=mountAI(root,{presentation:'clean',sessionId,contextAdapter:host.context,
+      prepareContext:host.prepareAiContext||(host.onboardingSync?(fallback=>host.onboardingSync.contextFor({fallback,refresh:true})):null),
+      onToolResult:host.onboardingSync?(result=>host.onboardingSync.handleToolResult(result)):null,
       settingsContent:host.aiSettings?.element,onConfigureDevelopment:host.aiSettings?.configureDevelopment,onNewSession:()=>wrapper?.openCreate(),
       getRequest:suffix=>host.gateway.request('/ai'+suffix),
       postRequest:(suffix,body)=>host.gateway.request('/ai'+suffix,{method:'POST',body}),onStateChange});
