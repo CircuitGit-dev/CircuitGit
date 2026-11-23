@@ -32,3 +32,11 @@
 .ic-env .ic-sim-section-head{flex-wrap:wrap;gap:6px}
 .ic-env-connection{padding:8px 10px;border:1px solid #e1e7ed;border-radius:4px}
 .ic-env .ic-sim-field input,.ic-env .ic-sim-field textarea,.ic-env .ic-sim-field select{min-width:0;max-width:100%}
+.ic-env-directories{display:flex;flex-wrap:wrap;gap:6px;border:0;padding:0;margin:10px 0}
+.ic-env-directories legend{font-size:10px;color:#687583;margin-bottom:6px}
+.ic-env-directory{display:flex;align-items:flex-start;gap:5px;max-width:100%;padding:6px 8px;border:1px solid #dfe5eb;border-radius:4px;font-size:11px;cursor:pointer}
+.ic-env-directory:has(input:checked){background:#f4f8fc;border-color:#739abe}
+.ic-env-directory input{flex-shrink:0}
+.ic-env-directory span{min-width:0;overflow-wrap:anywhere}
+.ic-env-directory strong,.ic-env-directory small{display:block;font-weight:400}
+.ic-env-directory small{font-size:9px;color:#687583;margin-top:3px}
