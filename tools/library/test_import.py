@@ -15,11 +15,18 @@ class NativeImportTests(unittest.TestCase):
 
     def test_public_views_match_pinned_files_except_declared_interface(self):
         changed, count = 0, 0
+        runtime = {p['id']: p for p in json.loads((imp.ROOT / 'config/workbench.projects.json').read_text())}
         for lib in self.plan['libraries']:
             m = json.loads((imp.ROOT / 'lib' / lib['id'] / 'library.json').read_text())
             for cell in m['cells']:
                 count += 1
-                self.assertIsNone(cell['project_id'])
+                if cell['project_id'] is not None:
+                    self.assertIn(cell['project_id'], runtime)
+                    registered = runtime[cell['project_id']]
+                    self.assertEqual((registered['library_id'], registered['cell_id']), (lib['id'], cell['id']))
+                    self.assertTrue(registered['configurations'])
+                    for configuration in registered['configurations']:
+                        self.assertTrue((imp.ROOT / configuration['canonical_bindings_path']).is_file())
                 p = json.loads((imp.ROOT / cell['directory'] / 'docs/provenance.json').read_text())
                 view = next(v for v in cell['views'] if v['kind'] == 'rnl')
                 self.assertEqual(view['level'], p['native_level'])

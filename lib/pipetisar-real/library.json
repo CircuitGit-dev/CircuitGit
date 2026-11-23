@@ -300,7 +300,7 @@
           "label": "Evidence and dependencies"
         },
         {
-          "entry": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/README.md",
+          "entry": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/workflow.md",
           "files": [
             "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/bundle.json",
             "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/configuration.json",
@@ -327,7 +327,8 @@
             "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/netlist/project.scs",
             "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/provenance.json",
             "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/README.md",
-            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/source-bindings.json"
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/source-bindings.json",
+            "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/workflow.md"
           ],
           "id": "simulation",
           "kind": "markdown",
