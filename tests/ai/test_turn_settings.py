@@ -141,7 +141,8 @@ class TurnSettingsTests(unittest.TestCase):
             self.assertEqual(failure.exception.code, 'model_catalog_unavailable'); self.assertEqual(session.turns, {})
 
     def test_read_only_blocks_every_write_and_remote_status_before_service(self):
-        operations = ['diff', 'validate', 'sim_plan', 'sim_preflight', 'sim_submit', 'sim_collect', 'sim_archive', 'apply', 'approve', 'unknown']
+        operations = ['diff', 'validate', 'sim_plan', 'sim_preflight', 'sim_submit', 'sim_collect', 'sim_archive', 'apply', 'approve', 'unknown',
+                      'onboarding_netlist', 'onboarding_probe', 'onboarding_discover_pdk', 'onboarding_prepare', 'onboarding_run', 'onboarding_inspect']
         cases = [(op, {}) for op in operations] + [('sim_status', {'run_id': 'run-1'}), ('sim_status', {'run_id': None})]
         for index, (op, arguments) in enumerate(cases):
             session = self.ai('denied-' + str(index))
@@ -157,9 +158,17 @@ class TurnSettingsTests(unittest.TestCase):
 
     def test_read_only_allows_only_read_allowlist_and_local_job_list(self):
         session = self.ai(); session.turn('inspect', context(), 'allow-read-key', permission_mode='read_only')
+        intake = 'intake_' + 'b' * 32
+        session.turns['allow-read-key']['onboarding_binding'] = {'schema': 'ic.onboarding.context.v1',
+            'connection_id': 'a' * 32, 'intake_id': intake, 'revision': 1,
+            'source_sha256': context()['file']['persistedSha256']}
         for op in sorted(READ_ONLY) + ['sim_status']:
-            self.calls.clear(); self.tool(session, op)
-            self.assertEqual(self.calls, [(op, {})]); self.assertEqual(session.state, 'running')
+            arguments = {'intake_id': intake} if op.startswith('onboarding_') and op != 'onboarding_ssh_hosts' else {}
+            if op == 'onboarding_submission': arguments['plan_id'] = 'plan-fixture'
+            if op.startswith('onboarding_waveforms_'): arguments['job_id'] = 'job-fixture'
+            if op == 'onboarding_waveforms_window': arguments['signal_ids'] = ['out']
+            self.calls.clear(); self.tool(session, op, arguments)
+            self.assertEqual(self.calls, [(op, arguments)]); self.assertEqual(session.state, 'running')
 
     def test_permission_denial_stays_suspended_after_model_failure_and_restart(self):
         session = self.ai(); session.turn('inspect', context(), 'deny-persist-key', permission_mode='read_only')
