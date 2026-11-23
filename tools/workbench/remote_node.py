@@ -186,7 +186,8 @@ class Handler(BaseHTTPRequestHandler):
         target, state = query['origin'][0], query['state'][0]
         rid, csrf = self.node.pairing.create(target, state)
         nonce = secrets.token_urlsafe(24)
-        self.send_page(confirmation_html(target, state, rid, csrf, self.node.url, nonce), nonce)
+        self.send_page(confirmation_html(target, state, rid, csrf, self.node.url, nonce,
+            mode='simulation-only' if self.node.routes is None else 'codex'), nonce)
 
     def development_page(self):
         settings = self.developer_guard()
