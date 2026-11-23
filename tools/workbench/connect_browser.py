@@ -23,7 +23,7 @@ from browser_development import LocalDevelopment
 from browser_library import LocalLibrary
 from library_workflow import LibraryWorkflow
 
-PUBLIC_URL = 'https://joshuazeng713.github.io/CircuitGit/'
+PUBLIC_URL = 'https://circuitgit-dev.github.io/CircuitGit/'
 
 
 def library_configuration(root, state):
@@ -139,7 +139,7 @@ def main():
             try:fcntl.flock(remote_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:raise RuntimeError('已有服务使用此 AI 会话目录，未启动重复实例。')
             routes = AiRoutes(Service(config))
-            node = Node(routes, token, ['https://joshuazeng713.github.io', *args.allow_origin], identity, 'http://127.0.0.1:'+str(browser.server_port), '本机 Codex')
+            node = Node(routes, token, ['https://circuitgit-dev.github.io', *args.allow_origin], identity, 'http://127.0.0.1:'+str(browser.server_port), '本机 Codex')
             if gateway:
                 node.onboarding = gateway.app.onboarding
             else:

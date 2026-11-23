@@ -47,4 +47,4 @@ python3 -B tools/workbench/launch.py --config config/workbench.local.json
 
 启动器构建当前网页资源。修改后应检查源代码导入、生成资源及受影响组件；运行中的 AI 回合和审批回执需要在后端重启前保留。
 
-2026-11-10 的首轮 Studio、私有 SAR 运行身份、原生图形覆盖及验收记录属于历史导入。完整当时说明保留在[固定 Git 版本](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/docs/rnl-studio.md)。其中的私有 runtime 路径、端口及运行号不是新克隆的默认配置。现有历史 provenance/hash 保持原样。
+2026-11-10 的首轮 Studio、私有 SAR 运行身份、原生图形覆盖及验收记录属于历史导入。完整当时说明保留在[固定 Git 版本](https://github.com/CircuitGit-dev/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/docs/rnl-studio.md)。其中的私有 runtime 路径、端口及运行号不是新克隆的默认配置。现有历史 provenance/hash 保持原样。

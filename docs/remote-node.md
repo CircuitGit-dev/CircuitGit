@@ -2,7 +2,7 @@
 
 普通用户：启动本机连接助手 → 打开 AI 的 **齿轮设置** → **连接本机 Codex** → 在本机弹窗确认授权 → 打开工程对话。无需理解地址和访问码。若尚未登录，由 Codex 返回官方登录页面；网页不接收账号密码或 OpenAI token。画布是公开电路预览，AI 操作的工程以助手返回的身份为准。
 
-The [CircuitGit website](https://joshuazeng713.github.io/CircuitGit/) can connect to a **single-owner node** on your computer or your own server. The website keeps the lightweight UI; the node runs the existing Codex app-server adapter and accesses its configured circuit gateway. This is not a shared public AI hosting service.
+The [CircuitGit website](https://circuitgit-dev.github.io/CircuitGit/) can connect to a **single-owner node** on your computer or your own server. The website keeps the lightweight UI; the node runs the existing Codex app-server adapter and accesses its configured circuit gateway. This is not a shared public AI hosting service.
 
 ## Recommended: local connection without an address or code
 
@@ -39,7 +39,7 @@ Then start the separate browser node:
 ```bash
 python3 -B tools/workbench/remote_node.py \
   --gateway-url http://127.0.0.1:8766 \
-  --allow-origin https://joshuazeng713.github.io \
+  --allow-origin https://circuitgit-dev.github.io \
   --port 8767
 ```
 
@@ -90,7 +90,7 @@ Start the node with its public address:
 ```bash
 python3 -B tools/workbench/remote_node.py \
   --gateway-url http://127.0.0.1:8766 \
-  --allow-origin https://joshuazeng713.github.io \
+  --allow-origin https://circuitgit-dev.github.io \
   --public-url https://node.example.com \
   --port 8767
 ```

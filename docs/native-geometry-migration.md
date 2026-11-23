@@ -12,10 +12,10 @@
 
 旧的 OA capture/restore、Cadence batch netlist export、rnl-virtuoso 导出启动器和 SI 示例已从当前应用删除。需要研究当时的具体实现时，可查阅固定 Git 源码：
 
-- [OA capture](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/snapshot_oa.py) 与 [OA restore](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/restore_oa.py)。
-- [Cadence batch netlist export](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/netlist_export.py)。
-- [原生几何导出启动器](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/native_geometry/native_export.py) 与 [当时的局部补丁](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/native_geometry/rnl-virtuoso-local-fixes.patch)。
-- [完整历史迁移步骤与覆盖说明](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/docs/native-geometry-migration.md)。
+- [OA capture](https://github.com/CircuitGit-dev/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/snapshot_oa.py) 与 [OA restore](https://github.com/CircuitGit-dev/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/restore_oa.py)。
+- [Cadence batch netlist export](https://github.com/CircuitGit-dev/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/netlist_export.py)。
+- [原生几何导出启动器](https://github.com/CircuitGit-dev/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/native_geometry/native_export.py) 与 [当时的局部补丁](https://github.com/CircuitGit-dev/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/tools/native_geometry/rnl-virtuoso-local-fixes.patch)。
+- [完整历史迁移步骤与覆盖说明](https://github.com/CircuitGit-dev/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/docs/native-geometry-migration.md)。
 
 `tools/native_geometry/exporter-patch-manifest.json` 和 `exporter-LICENSE` 仍保留历史 hash 与许可记录；它们不表示当前应用会重新构建或调用该导出器。`config/native-export.example.json` 也只是历史导入配置示例。
 

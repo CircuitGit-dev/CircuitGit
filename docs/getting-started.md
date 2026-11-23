@@ -2,7 +2,7 @@
 
 ## Hosted demo
 
-Open **https://joshuazeng713.github.io/CircuitGit/**. The static entry loads the existing RNL Viewer, Dockview layout, and shared waveform panel with a public RC reference adapter. Assets are addressed relative to the project path, including the module worker and WASM file.
+Open **https://circuitgit-dev.github.io/CircuitGit/**. The static entry loads the existing RNL Viewer, Dockview layout, and shared waveform panel with a public RC reference adapter. Assets are addressed relative to the project path, including the module worker and WASM file.
 
 Drag tabs to rearrange panels. Use ↗ to float a panel and ↙ to return it. The Window menu restores closed panels or the default layout. In Plot, select a voltage probe and click `in`/`out`, or select a current probe and click `R0`. In the waveform panel use F to fit, Z to select a zoom region, A/B for cursors, M for measurements, and ? for shortcuts.
 

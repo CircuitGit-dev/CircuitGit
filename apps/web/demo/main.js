@@ -20,7 +20,7 @@ import {createOnboardingSync} from '../remote/onboarding-sync.js';
 import {confirmLeave} from '../vendor/rnl-viewer/editor.js';
 import {enterRoot} from '../vendor/rnl-viewer/subcircuits.js';
 
-const REPO='https://github.com/joshuazeng713/CircuitGit';
+const REPO='https://github.com/CircuitGit-dev/CircuitGit';
 const RUN='rc-analytic-reference';
 const PATH='/circuitgit-demo.scs';
 const signals=[

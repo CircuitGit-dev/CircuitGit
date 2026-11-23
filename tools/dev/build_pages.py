@@ -26,7 +26,7 @@ def main():
     output=subprocess.check_output(['git','log','-8','--format=%H%x09%s'],cwd=ROOT,text=True)
     for line in output.splitlines():
         sha,subject=line.split('\t',1);commits.append({'sha':sha,'subject':subject})
-    (OUTPUT / 'demo/release.json').write_text(json.dumps({'repository':'joshuazeng713/CircuitGit','commits':commits},indent=2)+'\n')
+    (OUTPUT / 'demo/release.json').write_text(json.dumps({'repository':'CircuitGit-dev/CircuitGit','commits':commits},indent=2)+'\n')
     library = publish_library(ROOT, OUTPUT)
     published_library_files = {item['path'] for item in library['files']}
     history = publish_library_history(ROOT, OUTPUT)
