@@ -36,7 +36,7 @@ def compile_selection(folder,state,args,saved):
     source_id='projects/'+state['intake_id']+'/input.scs'
     source_file=folder/'source.scs'
     if source_file.is_symlink() or not source_file.is_file():raise ValueError('Original intake source must remain a regular file')
-    compiled=build_intake_recipe(source_file.read_text(),state['source']['requirements'],models,
+    compiled=build_intake_recipe(source_file.read_bytes(),state['source']['requirements'],models,
         args['sections'],args['intent'],args.get('model_contracts'),source_id=source_id,
         candidate_sections=candidate['section_candidates'])
     missing.extend(compiled['missing'])

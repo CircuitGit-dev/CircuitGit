@@ -338,6 +338,33 @@ class OnboardingPreparedIntegrationTests(_IntakeFixture):
         self.assertNotIn(str(self.root), json.dumps(prepared))
         self.assertNotIn(SECRET, json.dumps(prepared))
 
+    def test_persisted_crlf_source_keeps_original_bytes_through_real_preparation(self):
+        source = SOURCE.replace('\n', '\r\n')
+        original = source.encode('utf-8')
+        imported = self.new_source(source)
+        folder = self.runtime._folder(imported['intake_id'])
+        self.assertEqual((folder / 'source.scs').read_bytes(), original)
+        discovered = self.discover(self.probe(imported))
+        prepared = self.prepare(discovered)
+        self.assertEqual(prepared['state'], 'prepared', prepared.get('prepared'))
+        mapping = prepared['source_mapping']
+        self.assertEqual(mapping['original_source_sha256'], hashlib.sha256(original).hexdigest())
+        self.assertEqual(prepared['source_sha256'], imported['source_sha256'])
+        expected, cursor = bytearray(), 0
+        for insertion in mapping['wrapper']['insertions']:
+            offset = insertion['original_byte_offset']
+            expected += original[cursor:offset]
+            expected += insertion['text'].encode('utf-8')
+            cursor = offset
+        expected += original[cursor:]
+        child = self.child_for(prepared)
+        compiled = (child.workspace.root / mapping['source_id']).read_bytes()
+        self.assertEqual(compiled, bytes(expected))
+        self.assertEqual(hashlib.sha256(compiled).hexdigest(), mapping['compiled_source_sha256'])
+        self.assertEqual((folder / 'source.scs').read_bytes(), original)
+        self.ssh.assert_not_called()
+        self.doctor.assert_not_called()
+
     def test_other_discovery_or_tampered_original_source_cannot_prepare_a_child(self):
         state = self.discover()
         with patch('onboarding_prepare.create_child_config') as create:
