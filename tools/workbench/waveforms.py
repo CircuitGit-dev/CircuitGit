@@ -109,7 +109,8 @@ class WaveformService:
     def _load(self, rid):
         record = self._record(rid)
         root = self.runner.path(rid)
-        meta = json.loads(bounded_file(root/'waveforms.json', 16*1024*1024))
+        metadata_bytes=bounded_file(root/'waveforms.json', 16*1024*1024)
+        meta = json.loads(metadata_bytes)
         if meta.get('run_id') != rid or meta.get('source_commit') != record.get('source_commit'):
             raise WaveformError('identity_mismatch', 'CSV metadata and run source disagree', 409)
         raw = bounded_file(root/'waveforms.csv')
@@ -149,8 +150,18 @@ class WaveformService:
             rows.append(values)
         if not rows or len(rows) != meta.get('csv_samples'):
             raise WaveformError('csv_schema', 'CSV row count disagrees with export receipt', 422)
-        index = json.loads(bounded_file(root/'archive-files.json', 8*1024*1024))
-        if not any(i.get('path', '').endswith('/waveforms.csv') and i.get('sha256') == csv_hash for i in index):
+        inventory_bytes = bounded_file(root/'archive-files.json', 8*1024*1024)
+        index = json.loads(inventory_bytes)
+        if meta.get('producer') == 'spiceowl.psf-ascii':
+            # Local PSF derivations retain the native archive; never invent a
+            # remote archive member for the locally generated display CSV.
+            expected = {'producer':'spiceowl.psf-ascii','run_id':rid,'source_commit':record.get('source_commit'),
+                        'native_archive_sha256':(record.get('collection') or {}).get('sha256'),'csv_sha256':csv_hash,
+                        'metadata_sha256':digest(metadata_bytes),'inventory_sha256':digest(inventory_bytes)}
+            if (record.get('local_derivation') != expected or meta.get('native_archive_sha256') != expected['native_archive_sha256']
+                    or not isinstance(expected['native_archive_sha256'],str) or not re.fullmatch('[a-f0-9]{64}',expected['native_archive_sha256'])):
+                raise WaveformError('hash_mismatch','Local waveform derivation is not bound to this native archive',409)
+        elif not any(i.get('path', '').endswith('/waveforms.csv') and i.get('sha256') == csv_hash for i in index):
             raise WaveformError('hash_mismatch', 'CSV absent from immutable archive inventory', 409)
         raw_members = sorted(({'path':i['path'],'sha256':i['sha256'],'bytes':i['bytes']} for i in index if i['path'].startswith('./psf/')), key=lambda i:i['path'])
         plan = record.get('plan', {})
@@ -164,12 +175,12 @@ class WaveformService:
             'raw_signature': object_hash(raw_members), 'raw_signature_basis': 'sorted archive inventory of ./psf/ members',
             'csv_sha256': csv_hash,
         }
-        basis = 'OCEAN_resampled_CSV' if 'interpolated wth step=' in header[0] else 'OCEAN_exported_CSV'
+        basis = 'local_PSF_ASCII_derivation' if meta.get('producer')=='spiceowl.psf-ascii' else ('OCEAN_resampled_CSV' if 'interpolated wth step=' in header[0] else 'OCEAN_exported_CSV')
         signals = [{'id':signal_id(rid, 'tran', w['name']), 'psf_name':w['name'], 'label':w['name'],
                     'analysis':'tran', 'quantity':'voltage' if w['unit']=='V' else 'current',
                     'unit':w['unit'], 'polarity':None, 'status':'available', 'sample_count':len(rows),
                     'domain':[rows[0][0],rows[-1][0]], 'x_unit':'s', 'data_basis':basis,
-                    'name_evidence':'exact name in same-run OCEAN export receipt and matching CSV header'} for w in waves]
+                    'name_evidence':('exact name in same-run native PSF ASCII and hash-bound local CSV' if meta.get('producer')=='spiceowl.psf-ascii' else 'exact name in same-run OCEAN export receipt and matching CSV header')} for w in waves]
         return record, identity, signals, rows, basis
 
     def _derived(self, rid, identity):

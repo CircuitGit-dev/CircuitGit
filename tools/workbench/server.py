@@ -11,6 +11,7 @@ from publisher import Publisher
 from waveforms import WaveformService, WaveformError, dispatch as waveform_dispatch
 from geometry import Geometry,InvalidGeometry
 from supervision import Supervision, execution_target
+from simulation_runtime import SimulationRuntime
 
 class Application:
     def __init__(self,cfg,web_root):
@@ -34,6 +35,7 @@ class Application:
             from icwb.service import Service,load_config
             self.ai=AiRoutes(Service(load_config(cfg['ai_client_config'])))
         self.token=secrets.token_urlsafe(32);self.pool=concurrent.futures.ThreadPoolExecutor(max_workers=2);self.operations={};self.mutex=threading.Lock()
+        self.simulation=SimulationRuntime(self)
     def publication_view(self,r):
         p=r.get('publication')
         return {**p,'status':'published','verification_status':'complete'} if p and p.get('status')=='complete' else p
@@ -51,10 +53,11 @@ class Application:
             p=self.runner.path(rid)/name
             if p.exists():artifacts.append({'name':name,'bytes':p.stat().st_size,'url':'/api/jobs/'+rid+'/artifacts/'+name,'sha256':c['sha256'] if name=='full-results.tar.gz' and c else None})
         summary=c.get('summary',{}) if c else {}
-        wavefile=self.runner.path(rid)/'waveforms.json';waves=json.loads(wavefile.read_text()).get('waveforms',[]) if wavefile.exists() else []
+        wavefile=self.runner.path(rid)/'waveforms.json';wave_data=json.loads(wavefile.read_text()) if wavefile.exists() else {};waves=wave_data.get('waveforms',[])
+        waveform_status=('local PSF ASCII derivation from this run native archive' if wave_data.get('producer')=='spiceowl.psf-ascii' else 'actual OCEAN export from this run PSFXL') if waves else r.get('postprocess_error','native results retained; supported waveform export not yet complete')
         metrics=list(r.get('scientific_metrics',[]))
         if r.get('simulator_exit_code') is not None:metrics.append({'name':'simulator_exit_code','value':r['simulator_exit_code'],'unit':'code','scope':'execution'})
-        return {'job_id':rid,'state':'collected' if c else 'not_collected','collection':{k:v for k,v in c.items() if k!='archive'} if c else None,'metrics':metrics,'summary':summary,'waveforms':waves,'waveform_status':'actual OCEAN export from this run PSFXL' if waves else r.get('postprocess_error','native PSFXL retained; export not yet complete'),'artifacts':artifacts,'publication':self.publication_view(r)}
+        return {'job_id':rid,'state':'collected' if c else 'not_collected','collection':{k:v for k,v in c.items() if k!='archive'} if c else None,'metrics':metrics,'summary':summary,'waveforms':waves,'waveform_status':waveform_status,'artifacts':artifacts,'publication':self.publication_view(r)}
     def collect_with_postprocess(self,rid):
         r=self.runner.status(rid)
         if r.get('remote_state')=='simulator_complete_pending_measurements':
@@ -131,6 +134,9 @@ class Handler(BaseHTTPRequestHandler):
                 'capabilities':{'git':True,'runner':True,'publish':True,'supervision':True,'submission_lookup':True,'viewer':(self.app.web/'viewer-adapter/index.js').exists()}})
             if path=='/api/project':
                 data=self.app.workspace.describe();data['capabilities']['viewer']=(self.app.web/'viewer-adapter/index.js').exists();return self.response(data)
+            if path=='/api/simulation/runtime':
+                if set(qs)!={'project_id'} or len(qs['project_id'])!=1:raise ValueError('One explicit project_id is required')
+                return self.response(self.app.simulation.snapshot(get('project_id'),self.app.simulation.caller(self.headers,'GET',self.path)))
             if path=='/api/supervision':
                 query=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=2,errors='strict')
                 if set(query)!={'project_id'} or len(query['project_id'])!=1 or not query['project_id'][0]:raise ValueError('One explicit project_id is required')
@@ -203,7 +209,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             self.guard(True);length=int(self.headers.get('Content-Length','0'))
             if length<0 or length>2*1024*1024:raise ValueError('request body too large')
-            b=json.loads(self.rfile.read(length));path=urlsplit(self.path).path
+            raw_body=self.rfile.read(length);b=json.loads(raw_body);path=urlsplit(self.path).path
             if not isinstance(b,dict):raise ValueError('JSON object required')
             if path.startswith('/api/ai/'):
                 if self.app.ai is None:raise FileNotFoundError('AI adapter is not configured')
@@ -219,9 +225,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(self.app.ai.start_commit_summary(verified))
             if path=='/api/changes/preview':return self.response(self.app.workspace.preview(b['base_commit'],b['changes']))
             if path=='/api/changes/commit':return self.response(self.app.workspace.commit(b['base_commit'],b['changes'],b.get('message','Update circuit configuration'),bool(b.get('push',False))))
+            if path=='/api/simulation/resources/scan':
+                if set(b)!={'project_id'}:raise ValueError('Only project_id is accepted')
+                return self.response(self.app.simulation.scan(b['project_id'],self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
+            if path=='/api/simulation/control':
+                if set(b)-{'operation','arguments','idempotency_key'} or not {'operation','arguments'}.issubset(b):raise ValueError('Invalid finite simulation command')
+                return self.response(self.app.simulation.control(b['operation'],b['arguments'],b.get('idempotency_key'),self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
             if path in ['/api/plan','/api/preflight','/api/jobs']:
                 bundle=self.app.identity(b)
                 if path=='/api/plan':
+                    if self.app.resource_pool:
+                        return self.response(self.app.resource_pool.preview(bundle,{k:b[k] for k in ('project_id','configuration','source_commit')}))
                     plan=self.app.runner.plan(bundle,b['source_commit']);return self.response({**plan,'project_id':b['project_id'],'configuration':b['configuration'],'source_commit':b['source_commit'],'state':'planned','inputs':plan['provenance']['files'],'settings':plan.get('configuration',{}),'execution_mode':'resource_pool' if self.app.resource_pool else 'fixed_site','resource_selection_required':self.app.resource_pool is not None})
                 identity={k:b[k] for k in ('project_id','configuration','source_commit')}
                 if path=='/api/preflight':
@@ -252,9 +266,10 @@ def main():
     def stop_server(signum, frame):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, stop_server)
+    app.simulation.resume()
     try:server.serve_forever()
     except KeyboardInterrupt:pass
     finally:
-        server.server_close();app.pool.shutdown(wait=False)
+        server.server_close();app.simulation.close();app.pool.shutdown(wait=False)
         if app.ai is not None:app.ai.close()
 if __name__=='__main__':main()

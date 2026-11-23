@@ -1,10 +1,10 @@
 # Resource-aware simulation submission
 
-The optional SpiceOwl adapter selects from an explicit server pool before the existing CircuitGit Runner submits a simulation. With no `spiceowl_pool_file`, the gateway retains fixed-site operation. The local simulation controller and IC Service carry the frozen plan through their existing confirmation/review flow. This does not automatically enable the full submission panel on GitHub Pages or update an already-running helper.
+The optional SpiceOwl adapter selects from an explicit server pool before the existing CircuitGit Runner submits a simulation. With no `spiceowl_pool_file`, the gateway retains fixed-site operation. The local simulation controller and IC Service carry the frozen plan through their existing confirmation/review flow. An explicitly configured [standalone runtime](standalone-simulation-runtime.md) also supports direct calls under the operator's installed grant. This does not automatically enable the full submission panel on GitHub Pages or update an already-running helper.
 
 ## One submission, six steps
 
-1. **Plan locally.** Compile/materialize the selected project, source commit and configuration. `/api/plan` returns `resource_selection_required: true` for pool mode. This step performs no remote scan. Inputs must be clean, tracked and approved for distribution, or covered by the existing signed materialization proof.
+1. **Preview locally.** Compile/materialize the selected project, source commit and configuration. `/api/plan` returns `state: needs_remote_preflight` and `resource_selection_required: true` for pool mode. This previews the materialized configuration without a remote scan or default-site model substitution; only the selected host's later preflight creates an executable plan. Inputs must be clean, tracked and approved for distribution, or covered by the existing signed materialization proof.
 2. **Scan and preflight.** Explicit `/api/preflight` scans the configured 1–32 registered hosts through the external SpiceOwl API. Check CPU activity, 1/5-minute load, available memory, home disk space, host/user identity and Spectre version. Select an eligible candidate and run the normal site preflight. A simulator version check does not check out a license.
 3. **Freeze the target.** The gateway signs the chosen site, resource observations, bundle digest/path, project/source/configuration identity and preflight result using its existing private signing key. The returned `execution_plan_id` is the SHA-256 of that complete record. The browser and IC Service include the same target in the existing human review. No new approval endpoint or ledger is introduced.
 4. **Reserve and recheck.** Submit with the existing idempotency key and that exact plan ID. The gateway resolves the signed record without selecting again. Runner records the native run ID, frozen site and context, then scans only the selected host before any staging. It rejects changed host/profile/version or inadequate current resources.
@@ -13,7 +13,7 @@ The optional SpiceOwl adapter selects from an explicit server pool before the ex
 
 The default policy retains 20% CPU and memory headroom after the request, rejects CPU busy above 80%, requires resource observations no older than 120 seconds, and checks at least 1 GiB free on the home filesystem. Ranking maximizes remaining bottleneck slack, then memory slack, then freshness. Home free space does not establish free space or quota in another run filesystem.
 
-There is no resource reservation or operating-system memory limit in this adapter. Memory is the operator's planning estimate. Multiple gateways can observe the same free capacity. Distributed scheduling, Slurm/LSF admission, unattended monitoring, OOM recovery and automatic numerical-option repairs remain separate work.
+There is no resource reservation or operating-system memory limit in this adapter. Memory is the operator's planning estimate. Multiple gateways can observe the same free capacity. The optional standalone runtime provides persistent status monitoring with reconnect backoff; distributed scheduling, Slurm/LSF admission, automatic OOM recovery and numerical-option repairs remain separate work.
 
 ## Private operator configuration
 
