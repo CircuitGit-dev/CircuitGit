@@ -177,7 +177,11 @@ def main():
 
 
 if __name__ == '__main__':
-    try:main()
+    try:
+        if any(flag in sys.argv[1:] for flag in ('--help','-h')):main()
+        else:
+            from bootstrap_python import run_entrypoint
+            raise SystemExit(run_entrypoint(__file__,main))
     except Exception as error:
         print('连接助手未启动：' + str(error), file=sys.stderr)
         sys.exit(1)
