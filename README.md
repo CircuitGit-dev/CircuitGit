@@ -6,6 +6,8 @@
 
 CircuitGit brings schematics, text netlists, simulation configurations, waveforms, and circuit revision history into one workbench. AI agents can use the same engineering tools through MCP; Git records reviewable source and configuration changes.
 
+The optional [SpiceOwl simulation runtime](docs/standalone-simulation-runtime.md) selects an eligible registered server, runs standalone Spectre through the existing Runner, monitors disconnections, and derives supported waveforms from collected native results. CLI, local web and native-agent operations share an explicit operator grant. Install the paired pinned packages to use this path; the public static demo does not execute remote simulations.
+
 The interface builds on [Rich Netlist](https://github.com/rich-netlist/rnl), with movable, closable Dockview panels for schematics, simulation, waveforms, AI, and version history.
 
 ## Try it
@@ -22,7 +24,7 @@ For real AI conversations, choose **连接本机 Codex** in the AI panel and app
 
 Start the local helper once per computer session: on macOS, double-click **Start CircuitGit.command** in the downloaded repository (requires Python 3.10+, Git and Codex). The helper stays on your computer while you use the lightweight website. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md).
 
-The public library canvas and AI's selected node project have separate identities. Connection, account, project and model controls are grouped in the chat's **settings gear**. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Real circuit changes and simulations retain the existing human-review workflow.
+The public library canvas and AI's selected node project have separate identities. Connection, account, project and model controls are grouped in the chat's **settings gear**. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Existing circuit and manual simulation requests retain their human-review workflow; the optional standalone runtime requires a separately installed connection grant.
 
 ![CircuitGit workbench](docs/assets/workbench.png)
 

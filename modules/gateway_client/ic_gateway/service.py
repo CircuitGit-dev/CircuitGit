@@ -78,9 +78,12 @@ class Gateway:
         self.origin = 'http://127.0.0.1:' + str(parsed.port)
         self.port, self.timeout = parsed.port, timeout
 
-    def request(self, path, body=None):
+    def request(self, path, body=None, *, caller_id=None, authority_key_file=None):
         check(path.startswith('/api/'), 'Only gateway API paths are supported')
         headers = {'Origin': self.origin, 'Content-Type': 'application/json'}
+        if caller_id is not None:
+            check(caller_id in ('paired-helper','native-agent','spiceowl-local'), 'Unknown simulation caller')
+            headers['X-IC-Simulation-Caller'] = caller_id
         if body is not None:
             # Process-scoped CSRF value is never persisted or returned to AI.
             health = self.request('/api/health')
@@ -88,6 +91,12 @@ class Gateway:
             headers['X-Workbench-Token'] = health['mutation_token']
         raw = canonical(body).encode() if body is not None else None
         check(raw is None or len(raw) <= 2 * 1024 * 1024, 'Gateway request exceeds 2 MiB')
+        if caller_id is not None:
+            try:
+                from spiceowl.integrations.authority import load_key, sign
+                headers['X-IC-Simulation-Authorization'] = sign(load_key(authority_key_file),caller_id,'POST' if body is not None else 'GET',path,raw or b'')
+            except (ImportError, OSError, ValueError, TypeError):
+                raise Failure('simulation_authority_unavailable','Install the pinned SpiceOwl package and configure the private simulation authority key.',4) from None
         conn = http.client.HTTPConnection('127.0.0.1', self.port, timeout=self.timeout)
         try:
             conn.request('POST' if body is not None else 'GET', path, body=raw, headers=headers)
@@ -285,11 +294,65 @@ class Service:
             atom(path, r)
             return self.public_receipt(r)
 
+    def execute_simulation(self, operation, arguments, idempotency_key=None, *, caller_id='paired-helper'):
+        """Trusted adapter entry. Caller identity comes from the connection, not tool arguments."""
+        scope = self.config.get('simulation_direct') or {}
+        check('sim_execute' not in self.disabled and ('sim_'+operation) not in self.disabled,'Simulation operation disabled by installed policy','forbidden',4)
+        check(scope.get('enabled') is True and caller_id in scope.get('callers', [])
+              and operation in scope.get('operations', []) and isinstance(arguments, dict)
+              and arguments.get('project_id') in scope.get('projects', []),
+              'Simulation operation is outside the installed connection grant', 'forbidden', 4)
+        expected = {'project_id'} if operation in ('runtime','resources_scan') else set(IDENTITY) | ({'run_id'} if operation in ('status','collect','watch','unwatch') else set())
+        check(operation in ('runtime','resources_scan','submit','status','collect','watch','unwatch') and set(arguments) == expected,
+              'Exact finite simulation identity is required')
+        for key in ('project_id','configuration','run_id'):
+            if key in arguments: identifier(arguments[key])
+        if 'source_commit' in arguments: hexvalue(arguments['source_commit'],40,'source commit')
+        body = {'operation': operation, 'arguments': arguments}
+        if operation not in ('submit','collect'):
+            return self.gateway.request('/api/simulation/control', body, caller_id=caller_id, authority_key_file=scope.get('authority_key_file'))
+        check(isinstance(idempotency_key,str) and 8 <= len(idempotency_key) <= 160 and idempotency_key.isprintable(), 'A stable simulation action key is required')
+        body['idempotency_key'] = idempotency_key
+        request_id = digest([self.gateway.origin,idempotency_key])
+        fingerprint = digest(['direct_simulation',caller_id,body])
+        with self.lock():
+            path = self.state/'requests'/(request_id+'.json')
+            if path.exists():
+                old = json.loads(path.read_text())
+                check(old['fingerprint'] == fingerprint,'Key already belongs to a different or manually reviewed request','conflict',3)
+                return self.public_receipt(old)
+            for earlier in (self.state/'requests').glob('*.json'):
+                prior = json.loads(earlier.read_text())
+                compared = {k:v for k,v in prior.get('arguments',{}).items() if k!='idempotency_key'}
+                if prior.get('gateway')==self.gateway.origin and prior.get('operation') in ('direct_simulation_'+operation,'sim_'+operation) and compared==arguments and prior.get('state') in ('pending_approval','dispatching','authorized_dispatching','uncertain'):
+                    raise Failure('unresolved_prior_request','Reconcile the original request before preparing another action',75,{'request_id':prior['request_id']})
+            record = {'schema':'ic.workbench.request.v1','request_id':request_id,'fingerprint':fingerprint,
+                      'gateway':self.gateway.origin,'operation':'direct_simulation_'+operation,
+                      'arguments':{**arguments,'idempotency_key':idempotency_key},'body':body,
+                      'route':'/api/simulation/control','state':'authorized_dispatching','caller_id':caller_id,
+                      'authorization_basis':'installed_connection_grant','created_at':time.time(),'automatic_retry':False}
+            atom(path,record)
+            try:
+                result = self.gateway.request('/api/simulation/control',body,caller_id=caller_id,authority_key_file=scope.get('authority_key_file'))
+                record.update(state='accepted',result=result,resolved_at=time.time())
+            except Failure as error:
+                record.update(state='uncertain' if error.exit_code==75 or error.details.get('http_status',0)>=500 else 'rejected',error=error.record(),resolved_at=time.time())
+            atom(path,record)
+            return self.public_receipt(record)
+
     def call(self, op, arguments):
         check(op in SCHEMAS, 'Unknown operation')
         validate(SCHEMAS[op], arguments)
         check(op not in self.disabled, 'Operation disabled by installed policy', 'forbidden', 4)
         a = arguments
+        if op == 'sim_runtime':
+            direct=self.config.get('simulation_direct') or {}
+            granted=direct.get('enabled') and 'native-agent' in direct.get('callers',[]) and a['project_id'] in direct.get('projects',[])
+            result=self.gateway.request('/api/simulation/runtime?' + urlencode({'project_id': a['project_id']}), **({'caller_id':'native-agent','authority_key_file':direct.get('authority_key_file')} if granted else {}))
+            if not granted:
+                result={**result,'capabilities':{name:False for name in ('scan','monitor','direct_submit','direct_collect')}}
+            return result
+        if op == 'sim_execute': return self.execute_simulation(a['operation'],a['arguments'],a.get('idempotency_key'),caller_id='native-agent')
         if op == 'projects': return self.gateway.request('/api/project')
         if op == 'read': return self.read(a)
         if op in ('diff', 'validate'): return self.review(a)

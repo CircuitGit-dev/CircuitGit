@@ -35,12 +35,12 @@ export function updateConfiguration(text, path, value) {
   return JSON.stringify(data,null,2)+'\n';
 }
 
-export function createController(host, changed=()=>{}) {
+export function createController(host, changed=()=>{}, directOptions={}) {
   if(host?.version!==1||!host.gateway||!host.context)throw Error('需要 RNL Studio host v1。');
   const api=host.gateway;
   let epoch=0, disposed=false, currentKey=null, loadingPromise=Promise.resolve(), uncertainSubmission=false, uncertainSave=false;
   const drafts=new Map(),acknowledgedDrafts=new Map();
-  const state={projectId:null,sourceCommit:null,configurationId:null,configurations:[],descriptor:null,draftText:'',preview:null,plan:null,preflight:null,busy:null,error:null,suspended:false,contextBlocked:true,runs:[],lastReceipt:null,submitAttempt:null,pushAfterSave:false,saveReceipt:null,saveAttempt:null,commitMessage:null};
+  const state={projectId:null,sourceCommit:null,configurationId:null,configurations:[],descriptor:null,draftText:'',preview:null,plan:null,preflight:null,busy:null,error:null,suspended:false,contextBlocked:true,runs:[],lastReceipt:null,submitAttempt:null,directPending:null,directLookup:null,directStorageError:null,pushAfterSave:false,saveReceipt:null,saveAttempt:null,commitMessage:null};
   const emit=()=>{if(!disposed)changed(state);};
   const receipts=createReceiptActions(host,{changed:emit,blocked:()=>!!state.busy||state.suspended||state.contextBlocked});
   const messageDraft=host.createCommitMessage?.({onChange:s=>{state.commitMessage=s;emit();}})||null;
@@ -63,6 +63,57 @@ export function createController(host, changed=()=>{}) {
     if(preflight&&!state.preflight)throw Error('请先显式执行当前计划的远端预检。');
   }
   function inputs(){return {project_id:state.projectId,configuration:state.configurationId,source_commit:state.sourceCommit};}
+  const directPrefix='circuitgit.simulation.pending.v1:';
+  const validId=value=>typeof value==='string'&&/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}$/.test(value);
+  function directStore(){
+    const storage=directOptions.storage??globalThis.sessionStorage;
+    if(!storage||typeof storage.getItem!=='function'||typeof storage.setItem!=='function')throw Error('无法保存原提交键，直接提交已暂停。');
+    return storage;
+  }
+  function directGateway(){
+    const url=new URL(api.base||'/api',globalThis.location?.href);
+    if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.search||url.hash)throw Error('无法确认直接提交的网关身份。');
+    return url.origin+url.pathname.replace(/\/$/,'');
+  }
+  function directKey(args=inputs()){return directPrefix+JSON.stringify([directGateway(),args.project_id,args.configuration,args.source_commit]);}
+  function directRead(args=inputs()){
+    const raw=directStore().getItem(directKey(args));if(raw===null)return null;
+    if(raw.length>4096)throw Error('原提交记录过大；请保留记录并核对。');
+    const row=JSON.parse(raw);
+    if(!row||Object.keys(row).sort().join(',')!=='arguments,created_at,gateway,idempotency_key,schema'
+      ||row.schema!=='ic.simulation.pending.v1'||row.gateway!==directGateway()
+      ||!row.arguments||Object.keys(row.arguments).sort().join(',')!=='configuration,project_id,source_commit'
+      ||!validId(row.arguments.project_id)||!validId(row.arguments.configuration)||!/^[a-f0-9]{40}$/.test(row.arguments.source_commit)
+      ||Object.keys(args).some(key=>row.arguments[key]!==args[key])
+      ||typeof row.idempotency_key!=='string'||!/^[a-f0-9-]{36}$/.test(row.idempotency_key)
+      ||typeof row.created_at!=='string'||!Number.isFinite(Date.parse(row.created_at)))throw Error('原提交记录身份不符；请保留记录并核对。');
+    return row;
+  }
+  function restoreDirect(){
+    state.directPending=null;state.directStorageError=null;state.directLookup=null;
+    if(state.submitAttempt?.operation==='submit')state.submitAttempt=null;
+    try{
+      state.directPending=directRead();
+      if(state.directPending)state.submitAttempt={operation:'submit',arguments:{...state.directPending.arguments},idempotency_key:state.directPending.idempotency_key};
+    }catch(error){state.directStorageError=error.message||'无法读取原提交记录。';}
+  }
+  function saveDirect(row){
+    const storage=directStore(),key=directKey(row.arguments);
+    let count=0;for(let i=0;i<storage.length;i++)if(storage.key(i)?.startsWith(directPrefix))count++;
+    if(count>=64)throw Error('待核对提交已达 64 条；请先核对原记录。');
+    const raw=JSON.stringify(row);storage.setItem(key,raw);
+    if(storage.getItem(key)!==raw)throw Error('原提交键未确认保存，直接提交已暂停。');
+  }
+  function clearDirect(row){
+    const old=directRead(row.arguments);
+    if(!old||old.idempotency_key!==row.idempotency_key)throw Error('原提交记录已改变；请核对原键。');
+    directStore().removeItem(directKey(row.arguments));
+  }
+  function validateDirectRun(run,args){
+    if(!run||typeof run!=='object'||!validId(run.run_id)||!/^[A-Za-z0-9_-]{1,180}$/.test(run.run_id)
+      ||run.project_id!==args.project_id||run.configuration!==args.configuration||run.source_commit!==args.source_commit
+      ||run.job_id!==undefined&&run.job_id!==run.run_id)throw Error('提交回执任务身份不符；请查询原幂等键。');
+  }
   function configurationChange(){return {base_commit:state.sourceCommit,changes:[{path:state.descriptor.configuration_path,sha256:state.descriptor.configuration_sha256,content:state.draftText}]};}
   async function action(name, fn) {
     const key=snapshotKey();state.busy=name;state.error=null;emit();
@@ -76,7 +127,7 @@ export function createController(host, changed=()=>{}) {
     rememberDraft();
     const ticket=++epoch;
     messageDraft?.reset();
-    state.configurationId=id;state.descriptor=null;state.draftText='';state.busy='读取配置';state.error=null;state.suspended=uncertainSubmission||uncertainSave;invalidate();emit();
+    state.configurationId=id;state.descriptor=null;state.draftText='';state.busy='读取配置';state.error=null;state.suspended=uncertainSubmission||uncertainSave;restoreDirect();invalidate();emit();
     const query=new URLSearchParams(inputs());
     try {
       const descriptor=await api.request('/configuration?'+query);
@@ -144,9 +195,44 @@ export function createController(host, changed=()=>{}) {
         }catch(error){if(uncertainSave)state.saveAttempt={...identity,status:'unknown',error:error.message};throw error;}
       });
     },
-    async plan(){guard({committed:true});return action('生成计划',async current=>{const result=await api.plan(inputs());if(!current())return;if(result.source_commit!==state.sourceCommit||result.project_id!==state.projectId||result.configuration!==state.configurationId)throw Error('计划身份不一致。');checkEffective(result.settings?.effective);if(result.blockers?.length)throw Error('计划阻塞：'+result.blockers.join(', '));state.plan=result;state.preflight=null;if(!uncertainSubmission)state.submitAttempt=null;return result;});},
+    async plan(){guard({committed:true});return action('生成计划',async current=>{const result=await api.plan(inputs());if(!current())return;if(result.source_commit!==state.sourceCommit||result.project_id!==state.projectId||result.configuration!==state.configurationId)throw Error('计划身份不一致。');checkEffective(result.settings?.effective);if(result.blockers?.length)throw Error('计划阻塞：'+result.blockers.join(', '));state.plan=result;state.preflight=null;if(!uncertainSubmission&&!state.directPending)state.submitAttempt=null;return result;});},
     async preflight(){guard({committed:true,plan:true});return action('远端预检',async current=>{const result=await api.preflight(inputs());if(!current())return;if(result.plan?.provenance?.source_commit!==state.sourceCommit)throw Error('预检版本与计划不一致。');checkEffective(result.plan?.configuration?.effective);state.preflight=result;return result;});},
     async submit(confirmed){guard({committed:true,plan:true,preflight:true});if(confirmed!==true)throw Error('请明确确认启动新的仿真任务。');if(state.submitAttempt||uncertainSubmission)throw Error('该提交已发出；请先核对任务列表，不能重复提交。');const body={...inputs(),idempotency_key:crypto.randomUUID()};if(state.plan.resource_selection_required===true){const planId=state.preflight.execution_plan_id;if(typeof planId!=='string'||planId.length!==64||!/^[a-f0-9]{64}$/.test(planId)||state.preflight.execution_target?.plan_id!==planId)throw Error('资源预检缺少已固定的执行计划；请重新预检。');body.execution_plan_id=planId;}state.submitAttempt=body;return action('提交新仿真',async current=>{uncertainSubmission=true;const receipt=await api.submit(body);if(!receipt?.run_id&&!receipt?.job_id)throw Error('提交结果不明确；保留幂等键，停止后续提交。');uncertainSubmission=false;if(!current())return;state.lastReceipt=receipt;state.preflight=null;await host.refresh({runs:true});await host.selectRun(receipt.run_id||receipt.job_id);state.runs=[...(host.getRuns()||[])];return receipt;});},
+    directSubmissionBlocked(){return !!state.submitAttempt||uncertainSubmission||!!state.directPending||!!state.directStorageError;},
+    async runDirect(){
+      guard({committed:true});if(state.submitAttempt||uncertainSubmission)throw Error('该提交已有记录，请先核对原任务。');
+      restoreDirect();if(state.directStorageError)throw Error(state.directStorageError);if(state.directPending)throw Error('原提交结果未知，请先查询原幂等键。');
+      const body={operation:'submit',arguments:inputs(),idempotency_key:crypto.randomUUID()};
+      const row={schema:'ic.simulation.pending.v1',gateway:directGateway(),arguments:{...body.arguments},idempotency_key:body.idempotency_key,created_at:new Date().toISOString()};
+      try{saveDirect(row);}catch(error){state.directStorageError=error.message;emit();throw error;}state.directPending=row;state.submitAttempt=body;
+      return action('资源检查与提交',async current=>{
+        const receipt=await api.request('/simulation/control',{method:'POST',body});validateDirectRun(receipt,row.arguments);
+        clearDirect(row);if(!current())return receipt;state.directPending=null;state.lastReceipt=receipt;
+        await host.refresh({runs:true});if(!current())return receipt;await host.selectRun(receipt.run_id);state.runs=[...(host.getRuns()||[])];return receipt;
+      });
+    },
+    async lookupDirect(){
+      if(disposed||state.busy||receipts.busy||state.contextBlocked||!state.descriptor||!state.directPending)throw Error('没有可查询的原提交记录。');
+      const row=structuredClone(state.directPending);
+      return action('只读核对原提交',async current=>{
+        const result=await api.request('/submissions/'+encodeURIComponent(row.idempotency_key),{method:'GET'});
+        if(!result||result.schema!=='ic.submission.lookup.v1'||result.submission_key!==row.idempotency_key
+          ||typeof result.found!=='boolean'||typeof result.read_at!=='string'||!Number.isFinite(Date.parse(result.read_at)))throw Error('原提交查询回执身份不符。');
+        if(result.found){
+          validateDirectRun(result.run,row.arguments);
+          if(result.run_id!==result.run.run_id||result.run.original_project_id!==row.arguments.project_id)throw Error('原提交查询任务身份不符。');
+          clearDirect(row);
+        }else if(result.run_id!==null||result.run!==null)throw Error('原提交查询回执不一致。');
+        if(!current())return result;
+        state.directLookup={found:result.found,run_id:result.run_id,read_at:result.read_at};
+        if(result.found){
+          state.directPending=null;state.suspended=uncertainSubmission||uncertainSave;state.lastReceipt=result.run;
+          await host.refresh({runs:true});if(!current())return result;await host.selectRun(result.run_id);state.runs=[...(host.getRuns()||[])];
+        }
+        return result;
+      });
+    },
+    async collectDirect(runId){guard();const run=(host.getRuns()||[]).find(row=>(row.run_id||row.job_id)===runId);if(!run||run.project_id!==state.projectId)throw Error('请选择当前项目的明确任务。');return action('收集原任务',async current=>{const args={project_id:run.project_id,source_commit:run.source_commit,configuration:run.configuration||run.configuration_id,run_id:runId};const result=await api.request('/simulation/control',{method:'POST',body:{operation:'collect',arguments:args,idempotency_key:'collect-'+runId}});if(!current())return result;state.lastReceipt=result;await host.refresh({runs:true});return result;});},
     async refreshRuns(){await host.refresh({runs:true});state.runs=[...(host.getRuns()||[])];emit();},
     async observeRun(id){const row=host.getRuns().find(r=>(r.run_id||r.job_id)===id);if(!row||['archived','collected'].includes(row.state)||['published','complete'].includes(row.publication?.status))throw Error('已归档任务不执行远端状态刷新。');return action('观察远端任务',async()=>{await api.job(id);await host.refresh({runs:true});state.runs=[...(host.getRuns()||[])];});},
     async selectRun(id){await host.selectRun(id);},

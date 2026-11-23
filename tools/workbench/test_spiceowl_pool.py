@@ -78,6 +78,18 @@ class ResourcePoolTests(unittest.TestCase):
         self.factory.assert_not_called()
         self.assertFalse((self.root / 'runtime').exists())
 
+    def test_default_site_missing_model_aliases_never_blocks_selected_site_preflight(self):
+        self.runner.plan.side_effect = AssertionError('No default-site preparation in pool mode')
+        pool = self.pool()
+        preview = pool.preview(self.bundle, self.identity)
+        self.assertEqual(preview['state'], 'needs_remote_preflight')
+        self.assertNotIn('provenance', preview)
+        self.backend.select.assert_not_called()
+        result = pool.prepare(self.runner, self.bundle, self.identity)
+        self.assertIn('execution_plan_id', result)
+        self.runner.plan.assert_not_called()
+        self.runner.preflight.assert_called_once_with(self.bundle, 'a'*40, site=self.site)
+
     def test_prepare_and_resolve_preserve_frozen_site_and_key_ownership(self):
         pool, result = self.prepared()
         plan_id = result['execution_plan_id']
@@ -260,7 +272,7 @@ class ResourcePoolTests(unittest.TestCase):
         self.runner.preflight.assert_not_called()
 
     def test_thread_budget_is_checked_before_any_remote_scan(self):
-        self.runner.plan.return_value['simulator']['args'] = ['-64', '+aps', '+mt=32']
+        self.bundle.write_text(json.dumps({'simulator': {'args': ['-64', '+aps', '+mt=32']}}))
         with self.assertRaisesRegex(ValueError, 'cpu_count'):
             self.pool().prepare(self.runner, self.bundle, self.identity)
         self.backend.select.assert_not_called()
