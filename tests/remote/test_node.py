@@ -1,0 +1,89 @@
+"""Real HTTP boundary tests with a synthetic AI route owner; no model invocation."""
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
+import threading
+import unittest
+import urllib.error
+import urllib.request
+
+ROOT = Path(__file__).resolve().parents[2]
+spec = importlib.util.spec_from_file_location('remote_node', ROOT / 'tools/workbench/remote_node.py')
+node = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(node)
+TOKEN = 'x' * 43
+ORIGIN = 'https://example.github.io'
+
+class Routes:
+    def __init__(self): self.calls = []
+    def get(self, path, query): self.calls.append((path, query));return {'synthetic': True}
+    def post(self, path, body): self.calls.append((path, body));return {'accepted': True}
+
+class Tests(unittest.TestCase):
+    def setUp(self):
+        self.routes = Routes()
+        self.server = node.Server(('127.0.0.1', 0), node.Handler)
+        self.base = 'http://127.0.0.1:' + str(self.server.server_port)
+        self.server.node = node.Node(self.routes, TOKEN, [ORIGIN], 'fixture-node', self.base + '/prefix')
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True);self.thread.start()
+    def tearDown(self):
+        self.server.shutdown();self.server.server_close();self.thread.join()
+    def call(self, path='/node/info', method='GET', body=None, headers=None):
+        h = {'Origin': ORIGIN, 'Authorization': 'Bearer ' + TOKEN}
+        if body is not None: h['Content-Type'] = 'application/json'
+        h.update(headers or {})
+        request = urllib.request.Request(self.base + '/prefix' + path, method=method, headers=h,
+                                        data=None if body is None else json.dumps(body).encode())
+        try: response = urllib.request.urlopen(request, timeout=3)
+        except urllib.error.HTTPError as e: response = e
+        with response:
+            data = response.read();return response.status, dict(response.headers), json.loads(data) if data else None
+    def test_metadata_requires_origin_host_and_bearer(self):
+        status, headers, data = self.call()
+        self.assertEqual(status, 200);self.assertEqual(data['data']['schema'], 'circuitgit.remote-node.v1')
+        self.assertNotIn(TOKEN, json.dumps(data));self.assertEqual(headers['Access-Control-Allow-Origin'], ORIGIN)
+        for h in [{'Authorization': ''}, {'Authorization': 'Bearer wrong'}, {'Origin': 'https://evil.example'}, {'Host': 'evil.example'}]:
+            self.assertEqual(self.call(headers=h)[0], 403)
+        self.assertEqual(self.routes.calls, [])
+    def test_preflight_is_exact_and_has_no_ai_side_effects(self):
+        status, headers, _ = self.call('/api/ai/turn', 'OPTIONS', headers={'Authorization': '', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization,content-type', 'Access-Control-Request-Private-Network': 'true'})
+        self.assertEqual(status, 204);self.assertEqual(headers['Access-Control-Allow-Private-Network'], 'true')
+        self.assertNotIn('Access-Control-Allow-Credentials', headers);self.assertEqual(self.routes.calls, [])
+        self.assertEqual(self.call('/api/ai/turn', 'OPTIONS', headers={'Origin':'https://evil.example','Access-Control-Request-Method':'POST'})[0], 403)
+    def test_only_ai_routes_and_explicit_approvals_are_forwarded(self):
+        self.assertEqual(self.call('/api/jobs', 'POST', {})[0], 400)
+        self.assertEqual(self.call('/api/ai/turn', 'POST', {'permission_mode':'developer'})[0], 403)
+        self.assertEqual(self.routes.calls, [])
+        body={'session_id':'one','approval_id':'frozen','decision':'deny'}
+        self.assertEqual(self.call('/api/ai/approval', 'POST', body)[0], 200)
+        self.assertEqual(self.routes.calls, [('/api/ai/approval',body)])
+    def test_context_and_session_identity_reach_the_owner_unchanged(self):
+        self.assertEqual(self.call('/api/ai/context?project_id=rc&session_id=one')[0], 200)
+        self.assertEqual(self.routes.calls, [('/api/ai/context',{'project_id':['rc'],'session_id':['one']})])
+        self.assertEqual(self.call('/api/ai/context?project_id=rc&project_id=other')[0], 400)
+        self.assertEqual(len(self.routes.calls), 1)
+    def test_code_is_stable_owner_only_and_never_a_public_oauth_claim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state=Path(directory);a,identity,key=node.node_identity(state);b,other,_=node.node_identity(state)
+            self.assertEqual(a,b);self.assertEqual(identity,other);self.assertEqual(key.stat().st_mode&0o777,0o600)
+            key.chmod(0o644)
+            with self.assertRaises(ValueError):node.node_identity(state)
+        self.assertFalse(self.server.node.info()['capabilities']['hosted_subscription_oauth'])
+    def test_unencrypted_remote_urls_and_wildcards_are_rejected(self):
+        for url in ['http://server.example','https://*.example','https://example.com/path','https://u:p@example.com']:
+            with self.assertRaises(ValueError):node.origin(url)
+    def test_existing_client_config_gets_separate_browser_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'client.local.json'
+            existing={'gateway_url':'http://127.0.0.1:8766','state_dir':str(Path(directory)/'host'),
+                      'development_workspace':directory,'development_access':'full'}
+            path.write_text(json.dumps(existing))
+            config=node.node_config(path)
+            self.assertEqual(config['state_dir'],str((Path(directory)/'host/browser-node').resolve()))
+            self.assertNotIn('development_access',config)
+            self.assertNotIn('development_workspace',config)
+            self.assertEqual(json.loads(path.read_text()),existing)
+            self.assertEqual(node.node_config(path,state_dir=Path(directory)/'isolated')['state_dir'],str((Path(directory)/'isolated').resolve()))
+
+if __name__ == '__main__':unittest.main()

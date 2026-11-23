@@ -9,6 +9,7 @@ import {registerStudioCommand} from '../vendor/rnl-viewer/commands.js';
 import {setBackground} from '../vendor/rnl-viewer/background.js';
 import {sha256} from '../core.js';
 import {reference,referenceWindow} from './reference.js';
+import {mountRemoteNode} from '../remote/panel.js';
 
 const REPO='https://github.com/joshuazeng713/CircuitGit';
 const RUN='rc-analytic-reference';
@@ -30,7 +31,7 @@ function dialog(title,content) {
   d.append(h,content,close);document.body.append(d);d.addEventListener('cancel',()=>d.remove(),{once:true});d.showModal();return d;
 }
 
-/** Static, explicit demo host. No backend, model, SSH, credentials or simulation submission. */
+/** Static RC demo. A separate AI node connection starts only after explicit user authorization. */
 export async function mountStudio() {
   const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url);document.head.append(css);
   const ui=await createLayout();document.body.classList.add('circuitgit-demo');document.title='CircuitGit · Interactive demo';
@@ -104,12 +105,11 @@ export async function mountStudio() {
     }finally{$('demo-update').disabled=false;}}
   $('demo-update').onclick=()=>rebuild().catch(e=>ui.notify(e.message,{kind:'error'}));$('demo-export').onclick=()=>{try{exportConfiguration();}catch(e){ui.notify(e.message,{kind:'error'});}};$('demo-guide').onclick=showGuide;
   function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=source;dialog('RC 示例网表 · 含固定 RNL 布局',area);}
-  function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p>本页直接运行 RNL Viewer、Dockview 和共享波形组件，可拖动、关闭、浮动及放回面板。</p><p>Plot → 电压探针，点击 in 或 out；电流探针可查看 R0 端口 1。波形支持滚轮、拖动、F 适配，M 查看测量。</p><p>GitHub Pages 演示没有 AI 或 Cadence 后端。完整功能请在自己的电脑启动网关，再配置自己的 AI agent 与授权 Cadence 服务器。</p><pre>git clone ${REPO}.git
+  function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p>本页直接运行 RNL Viewer、Dockview 和共享波形组件，可拖动、关闭、浮动及放回面板。</p><p>Plot → 电压探针，点击 in 或 out；电流探针可查看 R0 端口 1。波形支持滚轮、拖动、F 适配，M 查看测量。</p><p>AI 面板可授权连接自己的本机或 HTTPS 服务器节点，使用该节点已配置的 Codex。输入节点地址与访问码、选择实际工程后即可对话。原理图与波形仍是公开 RC 示例；AI 操作的工程以节点身份为准。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">首次配置 Codex 运行节点 ↗</a></p><p>需要完整本地工程界面时，可启动自己的网关并配置授权 Cadence 环境：</p><pre>git clone ${REPO}.git
 cd CircuitGit
 python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/getting-started.md" target="_blank" rel="noopener">安装与连接说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
-  const ai=section(ui.slots.ai.element,`<small>BRING YOUR OWN AGENT</small><h2>连接你的 AI</h2><p>本页不连接模型，也不读取本机订阅。启动本地版后，可通过网页对话或 MCP 使用自己的 agent。</p><textarea class="demo-prompt" aria-label="可复制的示例提示词">检查这个 RC 电路，将时间常数调整到 2 ns，预览网表和仿真配置的改动，等待我确认后再提交仿真。</textarea><div class="demo-actions"><button id="demo-copy-prompt">复制提示词</button><button id="demo-ai-guide">配置连接</button></div><p><a href="${REPO}/blob/main/docs/agent-connections.md" target="_blank" rel="noopener">MCP 与 AI 连接说明 ↗</a></p>`);
-  $('demo-copy-prompt').onclick=async()=>{try{await navigator.clipboard.writeText(ai.querySelector('textarea').value);ui.notify('已复制提示词。');}catch{ai.querySelector('textarea').select();ui.notify('请按 Ctrl/Cmd+C 复制选中的提示词。');}};$('demo-ai-guide').onclick=showGuide;
+  mountRemoteNode(host);
   const versions=section(ui.slots.versions.element,`<small>PROJECT HISTORY</small><h2>公开版本</h2><p>这里显示本站部署时的仓库提交记录。本地版可按电路筛选、审阅差异和恢复版本。</p><div id="demo-history"></div><p><a href="${REPO}/commits/main/" target="_blank" rel="noopener">在 GitHub 查看最新提交 ↗</a></p>`);
   try{const r=await fetch(new URL('./release.json',import.meta.url));if(r.ok){const release=await r.json();for(const c of release.commits||[]){const row=document.createElement('div');row.className='demo-step';const link=document.createElement('a');link.href=REPO+'/commit/'+encodeURIComponent(c.sha);link.target='_blank';link.rel='noopener';link.textContent=c.sha.slice(0,7)+' · '+c.subject;row.append(link);$('demo-history').append(row);}}}catch{$('demo-history').textContent='本地预览；发布记录见 GitHub。';}
   setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});

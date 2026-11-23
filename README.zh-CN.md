@@ -4,7 +4,7 @@
 
 **AI 原生电路设计，让每一次电路修改都能在 GitHub 上追踪。**
 
-**[打开网页演示 ↗](https://joshuazeng713.github.io/CircuitGit/)** · [安装与连接](docs/getting-started.md) · [English](README.md)
+**[打开网页工作台 ↗](https://joshuazeng713.github.io/CircuitGit/)** · [连接 Codex 节点](docs/remote-node.md) · [安装与连接](docs/getting-started.md) · [English](README.md)
 
 CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管理放进同一个工作台。界面在 Rich Netlist Viewer 上扩展，通过 Dockview 将原理图、仿真、波形、AI 和版本管理窗口自由排列、浮动和关闭。
 
@@ -12,7 +12,7 @@ CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管
 - **保留原理图布局**：导入包含位置、方向和走线的几何数据，避免只靠网表自动排版。
 - **可复现的仿真流程**：配置 → 审阅 → 计划与预检查 → Spectre 提交 → 收集结果 → GitHub 归档。
 - **交互波形**：已保存的电压与端口电流、节点探针、游标，以及缩放/平移时的抽样绘制。
-- **AI 工具接口**：通过 MCP 提供项目读取、受控修改、仿真和结果访问，也保留本地网页 AI 对话入口。
+- **AI 工具接口**：通过 MCP 提供项目读取、受控修改、仿真和结果访问；在线网页也能授权连接自己的 Codex 运行节点。
 
 ![CircuitGit workbench](docs/assets/workbench.png)
 
@@ -20,7 +20,11 @@ CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管
 
 打开 [GitHub Pages 演示](https://joshuazeng713.github.io/CircuitGit/) 后，可拖动窗口、查看固定布局的 RC 原理图，在 Plot 菜单选择探针，再点击节点或 R0；波形支持滚轮缩放、拖动平移和游标。仿真面板可调整参数并导出网表与 JSON 配置。
 
-**示例波形是浏览器计算的 RC 解析参考，不是 Spectre 运行结果。** GitHub Pages 不运行 AI 后端或 Cadence，也不会自动访问本机账号。完整功能需要运行本地工作台，并连接自己的 AI agent 与授权 Cadence 环境。
+**示例波形是浏览器计算的 RC 解析参考，不是 Spectre 运行结果。** 打开网页不会自动探测本机、启动模型或提交仿真。
+
+AI 面板可输入自己的**节点地址与访问码**，授权后选择实际工程，即可使用节点上的 Codex 对话、模型选择、思考强度、图片和多会话功能。节点可部署在本机，也可放在自己的 HTTPS 服务器上；首次配置完成后，日常使用只需打开网页。访问码仅保存在当前页面内存中，刷新后需重新连接。[节点配置说明](docs/remote-node.md)
+
+这一版的 AI 绑定节点上的实际工程，原理图和波形画布仍显示公开 RC 示例。它使用节点已有的 Codex 登录与模型权限，尚不提供面向所有访客的订阅 OAuth，也不会导入桌面窗口。电路修改和仿真仍经过人工审批。
 
 ## 本地运行
 

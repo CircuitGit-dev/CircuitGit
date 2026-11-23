@@ -2,6 +2,8 @@
 
 现有网页聊天走 `/api/ai/* → Codex app-server → dynamicTools → Service → IC gateway`。已有 Codex 插件走 stdio MCP，直接复用同一 Service。只读 Dockview 预览中的 AI 是明确标注的界面 fixture，没有模型连接。
 
+GitHub Pages 在线入口现已增加**单用户运行节点**连接：`在线网页 → HTTPS 节点 /api/ai/* → 同一 Codex app-server adapter → IC gateway`。用户填写节点 URL 和节点访问码并明确授权后，才读取工程及会话；没有自动本机探测或订阅 OAuth。节点可以运行在自己的服务器上，凭据留在节点，网页访问码仅驻留内存。该入口不开放开发者模式，保留电路人工审批。详见 [在线节点配置](remote-node.md)。
+
 真实网页入口为已配置 AI adapter 的网关上的 `/studio/dockview/index.html`，例如本机 `http://127.0.0.1:8766/studio/dockview/index.html`。从当前 checkout 启动：`python3 tools/workbench/launch.py --config /absolute/workbench.local.json --port 8766`。更新已有服务前先检查运行回合和待审批请求；同一 runtime 只能有一个网关进程。`tests/studio/dockview-browser.mjs --serve` 是只读测试预览，拒绝 POST，不能用于聊天。
 
 网页回合保留用户问题和精确工程身份，只附带有限的几何摘要，避免完整渲染载荷超过 app-server 输入上限。源码版本、哈希、未保存修改、模型提供方及手动审批检查仍然执行。摘要不能作为节点映射或几何一致性证明；详细源码需通过工具读取。失败会保留结构化方法和错误码及原回执，网页不自动重新提交请求。

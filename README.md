@@ -2,7 +2,7 @@
 
 <h1 align="center">CircuitGit</h1>
 <p align="center"><strong>AI-native circuit design, versioned on GitHub.</strong></p>
-<p align="center"><a href="https://joshuazeng713.github.io/CircuitGit/"><strong>Open interactive demo ↗</strong></a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/agent-connections.md">Connect an agent</a> · <a href="README.zh-CN.md">中文介绍</a></p>
+<p align="center"><a href="https://joshuazeng713.github.io/CircuitGit/"><strong>Open workbench ↗</strong></a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
 
 CircuitGit brings schematics, text netlists, simulation configurations, waveforms, and circuit revision history into one workbench. AI agents can use the same engineering tools through MCP; Git records reviewable source and configuration changes.
 
@@ -14,7 +14,11 @@ The interface builds on [Rich Netlist](https://github.com/rich-netlist/rnl), wit
 
 The GitHub Pages demo runs entirely in your browser. Drag panel tabs, float and return windows, inspect a fixed-layout RC schematic, select voltage/current probes, pan and zoom waveforms, and export a simulation configuration with its netlist.
 
-The demo waveforms are explicitly labeled **analytical RC references**, calculated in the browser. The hosted demo does not run Spectre, connect to an AI provider, access a subscription, or contact your local machine. Real simulations and AI tools are available through the local application and your configured services.
+The demo waveforms are explicitly labeled **analytical RC references**, calculated in the browser. Opening the website does not contact your local machine or start an AI model or Spectre job.
+
+For real AI conversations, use the AI panel to explicitly connect to **your own Codex node** with its URL and node access code, then select a project. The node can run on your computer or a self-hosted HTTPS server. It uses the node's existing Codex login and model configuration; the public frontend stores no access code. After one-time node setup, daily chat works from the lightweight website. See [browser-node setup](docs/remote-node.md).
+
+The RC canvas remains a demo while AI reads the selected node project. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Real circuit changes and simulations retain the existing human-review workflow.
 
 ![CircuitGit workbench](docs/assets/workbench.png)
 
@@ -26,7 +30,7 @@ The demo waveforms are explicitly labeled **analytical RC references**, calculat
 | Simulation workflow | Versioned configuration → reviewed changes → plan/preflight → Spectre submission → result collection → GitHub archive |
 | Waveform analysis | Saved transient voltage/current signals, exact probe mappings, cursors, smooth pan/zoom, and display decimation |
 | Circuit version control | Design-scoped diffs and history, reviewable commits, and restoration as a new change |
-| AI integration | MCP tools and interactive resources, optional web chat, model/settings controls, and local agent adapters |
+| AI integration | MCP tools and interactive resources; web chat through an explicitly authorized owner node, with models, settings, images and sessions |
 | Workspace | Rearrangeable, closable, floating panels with layout persistence |
 
 ## Run locally
@@ -73,6 +77,8 @@ Application source was extracted from the working IC on GitHub project. Private 
 python3 -B tools/dev/build.py all
 python3 -B tools/dev/check_structure.py
 node --test tests/demo/*.test.mjs tests/context/*.test.mjs tests/waveforms/*.test.mjs
+node --test tests/remote/*.test.mjs
+python3 -B tests/remote/test_node.py
 ```
 
 Edit source under `apps/` and `modules/`; `web/`, `site/`, and `dist/` are generated. Pushing `main` rebuilds and deploys the Pages demo using [GitHub Actions](.github/workflows/pages.yml).

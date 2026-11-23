@@ -23,10 +23,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check source boundaries and reference math
+      - name: Check source boundaries, reference math and browser-node transport
         run: |
           python -B tools/dev/check_structure.py
-          node --test tests/demo/*.test.mjs
+          node --test tests/demo/*.test.mjs tests/remote/*.test.mjs
+          python -B tests/remote/test_node.py
       - name: Build the static workbench
         run: python -B tools/dev/build_pages.py
       - uses: actions/configure-pages@v5
