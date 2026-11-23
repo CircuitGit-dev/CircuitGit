@@ -27,8 +27,6 @@ body.starting > #app, body.starting > .menubar, body.starting > .statusbar { vis
 <link id="viewer-fonts" rel="preload" as="style" href="fonts/fonts.css">
 </head>
 <body class="starting">
-<script src="inline-startup-1.js"></script>
-<script src="inline-startup-2.js"></script>
 <div id="startup" class="startup" role="status" aria-label="Loading RNL Viewer">
   <strong>RNL Viewer</strong>
   <small id="startup-version"></small>
@@ -201,8 +199,6 @@ body.starting > #app, body.starting > .menubar, body.starting > .statusbar { vis
 </nav>
 <div id="hover-tip" class="hover-tip" role="tooltip" hidden></div>
 <div id="pick-list" class="pick-list" role="listbox" tabindex="-1" aria-label="Objects at this point" hidden></div>
-<script type="module" src="startup.js"></script>
-<script type="module" src="main.js"></script>
-<script type="module" src="ic-selection-bridge.js"></script>
+<script type="module" src="../../studio/viewer-entry.js"></script>
 </body>
 </html>

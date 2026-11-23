@@ -247,8 +247,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 14486,
-      "sha256": "344f19d48e9942fdf0f1fb376331c7b09396f8f9bf4500e17b6573f3b6027a60"
+      "bytes": 14309,
+      "sha256": "392a8a153d815c250264845eb0856be8156565aed3d020284aca80b05d03405f"
     },
     {
       "path": "inline-startup-1.js",

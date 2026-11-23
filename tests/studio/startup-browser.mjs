@@ -44,9 +44,11 @@ try{
   report.checks.push('probe and history commands reopen lazy panels; AI becomes available on demand');
   await page.evaluate(()=>ICStudioDock.reset());await page.waitForTimeout(250);
   // A saved old URL goes straight to the host, retaining demo/query/hash intent.
+  report.requests=[];
   await page.goto(prefix+'vendor/rnl-viewer/index.html?studio=1&layout=dockview&demo=1#kept');await page.waitForFunction(()=>document.body.dataset.workbenchState==='ready');
   assert(new URL(page.url()).pathname.endsWith('/studio/index.html'));assert.equal(new URL(page.url()).hash,'#kept');
-  report.checks.push('old viewer Studio bookmarks retain query/hash and use the independent host');
+  assert(!report.requests.some(p=>/\/vendor\/rnl-viewer\/(main|startup|preload)\.js$/.test(p)));
+  report.checks.push('old viewer Studio bookmarks retain query/hash without preloading the standalone renderer startup');
   await page.screenshot({path:output+'/workbench-ready.png'});
   const popupReady=page.waitForEvent('popup');
   await page.evaluate(()=>window.viewer.command('new-window'));

@@ -29,7 +29,8 @@ let html=readFileSync(index,'utf8').replace(/<script>([\s\S]*?)<\/script>/g,(_,b
   const file=`inline-startup-${++inline}.js`;writeFileSync(join(out,file),body);return `<script src="${file}"></script>`;
 });
 html=html.replace('<title>RNL Viewer</title>', '<title>RNL Viewer</title>\n<script src="../../studio/route.js"></script>');
-writeFileSync(index,html.replace('</body>','<script type="module" src="ic-selection-bridge.js"></script>\n</body>'));
+html=html.replace(/<script src="inline-startup-[12]\.js"><\/script>\s*/g,'').replace(/<script type="module" src="(?:startup|main)\.js"><\/script>\s*/g,'');
+writeFileSync(index,html.replace('</body>','<script type="module" src="../../studio/viewer-entry.js"></script>\n</body>'));
 // Resources resolve against the renderer, even when CircuitGit owns the document URL.
 const webShell=join(out,'shells/web.js');
 writeFileSync(webShell,readFileSync(webShell,'utf8').replace('new URL("libraries/", location.href)','new URL("../libraries/", import.meta.url)').replace('new URL(config.ok ? (await config.json()).url : DEFAULT_CATALOG, location.href)','new URL(config.ok ? (await config.json()).url : DEFAULT_CATALOG, new URL("../", import.meta.url))'));
