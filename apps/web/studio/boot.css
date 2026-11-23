@@ -1,0 +1,9 @@
+/* The host is visible before the schematic's module graph or circuit are ready. */
+.workbench-loading,.workbench-loading-label{color:#718096;font:13px/1.5 system-ui;padding:12px;}
+body.workbench-entry #app[aria-busy=true]{display:flex;align-items:center;justify-content:center;}
+body.workbench-entry #app.workbench-component-loading > *{display:none!important;}
+body.workbench-entry #app.workbench-component-loading::after{content:"正在初始化原理图…";color:#718096;font:13px/1.5 system-ui;}
+body.workbench-entry #loading{position:absolute;inset:0;z-index:4;background:var(--panel,#fff);border:0;border-radius:0;box-shadow:none;transform:none;max-width:none;}
+body.workbench-entry main.drawing{position:relative;}
+body.workbench-entry .statusbar:empty{min-height:24px;}
+.workbench-panel-error{padding:12px;color:#9f342d;white-space:pre-wrap;}

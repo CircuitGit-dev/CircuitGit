@@ -1,22 +1,21 @@
 import {createDockview,themeLight} from '../../vendor/dockview/dockview.js';
 import {remainingLayout,homeRelations,boundedFloat} from './homes.js';
+import {stylesheet} from '../styles.js';
 
 const TITLES={schematic:'原理图',simulation:'仿真',waveforms:'波形',ai:'AI',versions:'版本管理'};
 const KEY='ic-studio.dockview.v1';
 
 /** The application owns component lifetime; Dockview owns only their placement. */
 export async function mountDockview(ui){
-  const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url);
-  await new Promise((resolve,reject)=>{css.onload=resolve;css.onerror=()=>reject(Error('Dockview 样式加载失败'));document.head.append(css);});
+  await stylesheet('./dockview/style.css');
   document.body.classList.add('ic-dockview');document.title='CircuitGit';
-  const app=document.getElementById('app'),workspace=document.getElementById('studio-workspace');
+  const app=document.getElementById('app');
   const parking=document.createElement('div');parking.hidden=true;parking.id='studio-parked';document.body.append(parking);
-  const area=document.createElement('div');area.id='studio-dockview';area.setAttribute('aria-label','可排列工作台');workspace.before(area);
-  const wave=document.createElement('div');wave.id='studio-waveforms-content';wave.className='studio-waveforms-content';
-  const nodes={schematic:app,simulation:ui.slots.simulation.element,ai:ui.slots.ai.element,waveforms:wave,versions:ui.slots.versions.element};
+  const area=document.createElement('div');area.id='studio-dockview';area.setAttribute('aria-label','可排列工作台');app.before(area);
+  const nodes={schematic:app,...Object.fromEntries(Object.entries(ui.slots).map(([id,slot])=>[id,slot.element]))};
+  nodes.waveforms.classList.add('studio-waveforms-content');
   const roots={};
-  for(const [id,node] of Object.entries(nodes)){const root=document.createElement('section');root.className='studio-panel studio-panel-'+id;root.dataset.studioPanel=id;root.setAttribute('aria-label',TITLES[id]);root.append(node);parking.append(root);roots[id]=root;}
-  document.getElementById('studio-versions-dialog').remove();workspace.remove();document.getElementById('studio-ai').remove();document.getElementById('studio-ai-split').remove();
+  for(const [id,node] of Object.entries(nodes)){const root=document.createElement('section');root.className='studio-panel studio-panel-'+id;root.dataset.studioPanel=id;root.hidden=true;root.inert=true;root.setAttribute('aria-label',TITLES[id]);root.append(node);parking.append(root);roots[id]=root;}
   let restoring=false,saveTimer,saveFailed=false;const homes=new Map(),floatPositions=new Map(),dragHomes=new Map();
   let resizeFrame=null,schematicSize='';
   const resize=()=>{if(resizeFrame!==null)return;resizeFrame=requestAnimationFrame(()=>{resizeFrame=null;
@@ -24,7 +23,7 @@ export async function mountDockview(ui){
     const key=app.clientWidth+':'+app.clientHeight;if(key===schematicSize||!app.clientWidth||!app.clientHeight)return;
     schematicSize=key;window.dispatchEvent(new Event('resize'));
   });};
-  function visibility(id,shown){if(roots[id].hidden===!shown)return;roots[id].hidden=!shown;roots[id].inert=!shown;if(id==='schematic')resize();}
+  function visibility(id,shown){if(roots[id].hidden===!shown)return;roots[id].hidden=!shown;roots[id].inert=!shown;ui.slots[id]?.visibilityChanged?.(shown);if(id==='schematic')resize();}
   const api=createDockview(area,{
     theme:themeLight,defaultRenderer:'always',singleTabMode:'default',floatingGroupBounds:'boundedWithinViewport',
     createComponent({id}){
@@ -110,6 +109,7 @@ export async function mountDockview(ui){
   try{const raw=localStorage.getItem(KEY);if(raw){const stored=JSON.parse(raw);if(stored.schema!==KEY||!stored.layout||Object.keys(stored.layout.panels||{}).some(id=>!TITLES[id]))throw Error('未知布局格式');for(const [id,home] of Object.entries(stored.homes||{}))if(TITLES[id]&&home?.before&&Array.isArray(home.ids)&&Array.isArray(home.relations))homes.set(id,home);for(const [id,position] of Object.entries(stored.floatPositions||{}))if(TITLES[id])floatPositions.set(id,position);restoring=true;api.fromJSON(stored.layout);restoring=false;restored=true;}}
   catch(error){restoring=false;ui.notify('保存的布局不可用，已恢复默认布局：'+error.message,{kind:'warning'});}
   if(!restored)resetLayout();
+  for(const id of Object.keys(roots))visibility(id,!!api.getPanel(id)?.api.isVisible);
   window.addEventListener('beforeunload',()=>{clearTimeout(saveTimer);try{localStorage.setItem(KEY,JSON.stringify(storedLayout()));}catch{}});
   // Read-only handle for integration checks and controlled Window actions.
   Object.defineProperty(window,'ICStudioDock',{value:Object.freeze({api,open,reset:resetLayout}),writable:false});

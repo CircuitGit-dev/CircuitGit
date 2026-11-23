@@ -34,6 +34,11 @@ export function viewerChannel(opener = false) {
 export async function openWebWindow(serialize) {
   const token = crypto.randomUUID();
   const url = new URL(location.href);
+  // A detached schematic owns its own document/session, not a second Studio project load.
+  if (document.body.classList.contains('workbench-entry')) {
+    url.pathname = new URL('./index.html', import.meta.url).pathname;
+    for (const key of ['studio', 'demo', 'layout']) url.searchParams.delete(key);
+  }
   url.searchParams.delete("url");
   url.searchParams.delete("embed");
   url.searchParams.delete("origin");

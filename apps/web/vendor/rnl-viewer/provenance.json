@@ -21,8 +21,8 @@
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
-      "bytes": 739,
-      "sha256": "03de8a8d7901d35dd809cbf69375fd33632b0ef433920a1db51cebf70fcaf6a7"
+      "bytes": 1113,
+      "sha256": "e60602c7c5528984ff32349715ad2fb26dc61aa84185f45357fbdc45ab2177fe"
     },
     {
       "path": "about.json",
@@ -247,8 +247,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 14440,
-      "sha256": "15cea41cceee6749ba9a1fe41b96500c15da30bb0a64f3d22db3fd95c9c7293b"
+      "bytes": 14486,
+      "sha256": "344f19d48e9942fdf0f1fb376331c7b09396f8f9bf4500e17b6573f3b6027a60"
     },
     {
       "path": "inline-startup-1.js",
@@ -562,8 +562,8 @@
     },
     {
       "path": "shells/web.js",
-      "bytes": 49657,
-      "sha256": "801ebd9bc54d01edfe3cb43518a9574f6527a11567b11e65337d63df20b00df5"
+      "bytes": 49680,
+      "sha256": "a2b13cf1495e173add183157522bc677de1714bd585956fab2bc0674aed1fab2"
     },
     {
       "path": "solve-settings.js",
@@ -677,8 +677,8 @@
     },
     {
       "path": "window-session.js",
-      "bytes": 3837,
-      "sha256": "598aa9e0e9f1e9abb98d492cb0e8aa9947bc405ce100955a2798ed8fad0bff15"
+      "bytes": 4145,
+      "sha256": "b0886ee5658264504dbb6eaba1afca20081d70d99d9b8683a5bf668f17aa6af5"
     },
     {
       "path": "zip.js",

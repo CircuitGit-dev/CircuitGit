@@ -15,6 +15,7 @@ import {clearDrawing,fit} from '../vendor/rnl-viewer/drawing.js';
 import {clearSource} from '../vendor/rnl-viewer/text.js';
 import {renderHierarchy} from '../vendor/rnl-viewer/hierarchy.js';
 import {createLayout} from './layout.js';
+import {whenVisible} from './lazy-slot.js';
 import {createCommitMessage} from '../../../modules/workspace/commit-message.js';
 
 const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
@@ -23,12 +24,12 @@ const projectId=p=>p?.project_id||p?.id;
 const runId=j=>j?.run_id||j?.job_id||j?.id;
 const $=id=>document.getElementById(id);
 
-export async function mountStudio(){
+export async function mountStudio({ui:providedUI}={}){
   if(window.ICRNLStudio)return window.ICRNLStudio;
-  const ui=await createLayout(),api=new Gateway();
+  const ui=providedUI||await createLayout(),api=new Gateway();
   const state={mode:'connecting',project:null,active:null,file:null,files:[],baseline:'',dirty:false,jobs:[],job:null,projectLoadState:'idle',nativeFiles:[]};
   let text='',contextSelection=null,nativePayload=null,nativeState=null,nativeModel=null,nativeEntry=null,manifest=null;
-  let epoch=0,entryEpoch=0,runEpoch=0,editEpoch=0,nativeLoading=false,nativeError='',nativeQueue=Promise.resolve(),sourceDialog=null,plotController=null,plotMode='none',pendingPreview=null;
+  let epoch=0,entryEpoch=0,runEpoch=0,editEpoch=0,nativeLoading=false,nativeError='',nativeQueue=Promise.resolve(),sourceDialog=null,plotController=null,lazyPlot=null,addonsReady=Promise.resolve(),plotMode='none',pendingPreview=null;
   const contextOwner=createWorkbenchContext(()=>({state,text,selection:contextSelection,nativeState,nativePayload,nativeFiles:state.nativeFiles,historicalSnapshotVisible:!!nativeState?.stale&&$('studio-history').checked}));
   Object.defineProperty(window,'ICWorkbenchContext',{value:contextOwner.api,writable:false,configurable:false});
   const refreshContext=()=>contextOwner.update();
@@ -36,7 +37,9 @@ export async function mountStudio(){
   function safeAction(fn){try{const result=fn();if(result?.catch)result.catch(error=>notify(error.message,{kind:'error'}));return result;}catch(error){notify(error.message,{kind:'error'});}}
   function register(item){if(!/^[a-z][\w.-]+$/.test(item.id))throw Error('Invalid command id');return registerStudioCommand({...item,run:()=>safeAction(item.run)});}
   const controls=()=>{
-    $('studio-project').disabled=state.dirty;
+    $('studio-project').disabled=state.dirty||!state.project;
+    $('studio-entry').disabled=!$('studio-entry').options.length;
+    $('studio-run').disabled=!state.jobs.length;
     $('studio-identity').textContent=state.mode==='live'?`${state.project?.branch||''} · ${(state.project?.source_commit||'').slice(0,8)}`:state.mode;
     $('studio-source-button').disabled=!state.file;
     document.body.dataset.studioState=state.projectLoadState;
@@ -72,8 +75,10 @@ export async function mountStudio(){
       state.project=project;state.active=project.projects.find(p=>projectId(p)===id)||project.projects.find(p=>projectId(p)===project.active_project)||project.projects[0];
       $('studio-project').replaceChildren(...project.projects.map(p=>new Option(p.name||projectId(p),projectId(p))));$('studio-project').value=projectId(state.active);
       refreshContext();
-      const tree=await api.files(projectId(state.active));if(generation!==epoch)return;state.files=Array.isArray(tree)?tree:tree.files||tree.entries||[];
-      await refreshRuns();if(generation!==epoch)return;
+      void Promise.allSettled([
+        api.files(projectId(state.active)).then(tree=>{if(generation===epoch)state.files=Array.isArray(tree)?tree:tree.files||tree.entries||[];}),
+        refreshRuns(),
+      ]).then(results=>{if(generation===epoch)for(const result of results)if(result.status==='rejected')notify('项目附加数据读取失败：'+result.reason.message,{kind:'warning'});});
       const source=state.active.source_path||state.active.canonical_source;await loadCanonical(source,generation);if(generation!==epoch)return;
       controls();
     }catch(error){if(generation!==epoch)return;state.projectLoadState='error';controls();publishNative();throw error;}
@@ -116,11 +121,11 @@ export async function mountStudio(){
     await nativeQueue;
     }catch(error){if(revision!==entryEpoch||generation!==epoch)return;nativeLoading=false;nativeError=error.message;nativeState=null;manifest=null;state.nativeFiles=[];contextSelection=null;publishNative();throw error;}
   }
-  async function refreshRuns(){const generation=epoch;const result=await api.jobs();if(generation!==epoch)return;state.jobs=Array.isArray(result)?result:result.jobs||[];$('studio-run').replaceChildren(new Option('未选择运行',''),...state.jobs.map(j=>new Option(`${j.configuration||j.configuration_id||j.project_id||''} · ${runId(j)}`,runId(j))));$('studio-run').value=runId(state.job)||'';refreshContext();}
+  async function refreshRuns(){const generation=epoch;const result=await api.jobs();if(generation!==epoch)return;state.jobs=Array.isArray(result)?result:result.jobs||[];$('studio-run').replaceChildren(new Option('未选择运行',''),...state.jobs.map(j=>new Option(`${j.configuration||j.configuration_id||j.project_id||''} · ${runId(j)}`,runId(j))));$('studio-run').value=runId(state.job)||'';$('studio-run').disabled=!state.jobs.length;refreshContext();}
   async function selectRun(id){const generation=epoch,revision=++runEpoch;state.job=null;refreshContext();if(!id){$('studio-run').value='';return;}let job=state.jobs.find(j=>runId(j)===id);if(!job){await refreshRuns();job=state.jobs.find(j=>runId(j)===id);}if(generation!==epoch||revision!==runEpoch)return;if(!job)throw Error('运行不在已登记列表中。');const associated=job.associated_project_id||job.project_id;if(associated!==projectId(state.active))throw Error('该运行不属于当前项目。');state.job=job;$('studio-run').value=runId(job);refreshContext();}
 
   function setPlotMode(mode){if(!['none','voltage','current'].includes(mode))throw Error('Unknown plot mode');plotMode=mode;document.body.dataset.studioPlot=mode;$('studio-plot-state').hidden=mode==='none';$('studio-plot-state').textContent=mode==='voltage'?'Plot · 电压 · Esc退出':mode==='current'?'Plot · 电流 · Esc退出':'';plotController?.setPlotMode(mode);$('studio-message').dataset.plot=mode;if(mode!=='none')notify(mode==='voltage'?'电压探针：在原图选择节点；Esc 退出。':'电流探针：选择器件，再明确端口；Esc 退出。');}
-  function openPlot(){if(!plotController){notify('Plot 组件尚未安装。',{kind:'warning'});return {opened:false,reason:'Plot component unavailable'};}const result=plotController.openWindow();if(!result?.opened)notify(result?.reason||'浏览器阻止了波形窗口；请允许弹窗后重试。',{kind:'warning'});return result;}
+  function openPlot(){if(!plotController&&ui.slots.waveforms){ui.slots.waveforms.setVisible(true);void addonsReady.then(()=>lazyPlot?.ensure()).then(()=>{if(!plotController)throw Error('波形组件尚未加载');plotController.openWindow();if(plotMode!=='none')plotController.onSelection(contextOwner.api.getContext());}).catch(error=>notify(error.message,{kind:'error'}));return {opened:true,pending:true};}if(!plotController){notify('Plot 组件尚未安装。',{kind:'warning'});return {opened:false,reason:'Plot component unavailable'};}const result=plotController.openWindow();if(!result?.opened)notify(result?.reason||'浏览器阻止了波形窗口；请允许弹窗后重试。',{kind:'warning'});return result;}
   const plot=Object.freeze({attach(controller){if(plotController)throw Error('Only one Plot controller may attach');plotController=controller;controller.setPlotMode(plotMode);return ()=>{if(plotController===controller){setPlotMode('none');plotController=null;controller.destroy?.();}};},setMode:setPlotMode,getMode:()=>plotMode,openWindow:openPlot});
   const host=Object.freeze({version:1,context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
   Object.defineProperty(window,'ICRNLStudio',{value:host,writable:false});
@@ -203,12 +208,31 @@ export async function mountStudio(){
   function confirmAction(title,message,accept){return new Promise(resolve=>{const d=document.createElement('dialog');d.className='studio-confirm';const h=document.createElement('strong'),p=document.createElement('p'),menu=document.createElement('menu'),cancel=document.createElement('button'),ok=document.createElement('button');h.textContent=title;p.textContent=message;cancel.textContent='取消';ok.textContent=accept;menu.append(cancel,ok);d.append(h,p,menu);document.body.append(d);const done=result=>{d.close();d.remove();resolve(result);};cancel.onclick=()=>done(false);ok.onclick=()=>done(true);d.oncancel=e=>{e.preventDefault();done(false);};d.showModal();});}
   function showProvenance(){const d=document.createElement('dialog');d.className='studio-source-dialog';const p=document.createElement('pre');p.className='studio-diff';p.style.maxHeight='none';p.textContent=JSON.stringify(contextOwner.api.getContext(),null,2);const b=document.createElement('button');b.textContent='关闭';b.onclick=()=>{d.close();d.remove();};d.append(b,p);document.body.append(d);d.showModal();}
 
-  // Addons mount once and retain their DOM when hidden. Missing modules stay explicit.
-  async function mountAddons(){const config=await fetch(new URL('./addons.json',import.meta.url)).then(r=>r.json());for(const relative of config.modules){
-    try{const url=new URL(relative,import.meta.url);if(url.origin!==location.origin||!url.pathname.startsWith(new URL('./',import.meta.url).pathname))throw Error('Addon outside Studio');const module=await import(url.href);await module.mount(host);}catch(error){const kind=relative.includes('/simulation/')?'simulation':relative.includes('/ai/')?'ai':relative.includes('/versions/')?'versions':null;if(kind){ui.slots[kind].element.textContent='组件尚未安装：'+relative;ui.slots[kind].element.classList.add('studio-empty');}notify('扩展未挂载 '+relative+' · '+error.message,{kind:'warning'});}
-  }}
+  // Project loading must not wait for optional panels or their network requests.
+  async function mountAddons(){
+    const response=await fetch(new URL('./addons.json',import.meta.url));if(!response.ok)throw Error('扩展目录读取失败');
+    const config=await response.json();
+    await Promise.all(config.modules.map(async relative=>{
+      const url=new URL(relative,import.meta.url);
+      if(url.origin!==location.origin||!url.pathname.startsWith(new URL('./',import.meta.url).pathname))throw Error('Addon outside Studio');
+      const kind=relative.includes('/simulation/')?'simulation':relative.includes('/ai/')?'ai':relative.includes('/versions/')?'versions':relative.includes('/plot/')&&ui.slots.waveforms?'waveforms':null;
+      const placeholders=[];
+      const mount=()=>import(url.href).then(module=>{for(const remove of placeholders.splice(0))remove();return module.mount(host);});
+      const onError=error=>{
+        notify('扩展加载失败 '+relative+' · '+error.message,{kind:'warning'});
+        if(kind){const root=ui.slots[kind].element,message=document.createElement('p'),retry=document.createElement('button');message.textContent='面板加载失败：'+error.message;retry.textContent='重试';retry.onclick=()=>void loader.retry().catch(()=>{});root.replaceChildren(message,retry);}
+      };
+      let loader;
+      if(kind){loader=whenVisible(ui.slots[kind],mount,{onError});
+        // Commands must remain discoverable even when a panel was closed in the saved layout.
+        const actions=kind==='waveforms'?[['plot.run','plot','打开已有运行 (O)'],['plot.signals','plot','添加信号 (L)'],['plot.measurements','plot','波形测量 (M)'],['plot.shortcuts','plot','波形快捷键 (?)']]:kind==='versions'?[['git.versions','git','版本管理…'],['window.versions','window','版本管理']]:kind==='ai'?[['ai.toggle','window','AI：显示 / 隐藏对话'],['ai.show','window','AI：聚焦对话输入'],['ai.inspect','window','AI执行详情'],['ai.manage','window','AI：对话管理器…']]:[];
+        for(const [id,menu,label] of actions)placeholders.push(register({id,menu,label,run:async()=>{ui.slots[kind].setVisible(true);await loader.ensure();if(!['window.versions','ai.toggle'].includes(id))command(id);}}));
+        if(kind==='waveforms')lazyPlot=loader;
+      }else void mount().catch(onError);
+    }));
+  }
   setSidebarWidth(300);setPane('hierarchy');
-  controls();await mountAddons();
+  controls();addonsReady=mountAddons();void addonsReady.catch(error=>notify(error.message,{kind:'warning'}));
   try{const health=await api.health();if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';await loadProject();notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();notify(error.message,{kind:'error'});}
   return host;
 }

@@ -19,9 +19,9 @@ def main():
 <title>CircuitGit · Interactive workbench</title><link rel="icon" href="branding/circuitgit-small.svg">
 <script src="pages-redirect.js" defer></script></head><body>
 <h1>CircuitGit</h1><p>AI-native circuit design, versioned on GitHub.</p>
-<a href="vendor/rnl-viewer/index.html?studio=1&amp;layout=dockview&amp;demo=1">Open interactive demo</a>
+<a href="studio/index.html?layout=dockview&amp;demo=1">Open interactive demo</a>
 </body></html>''')
-    (OUTPUT / 'pages-redirect.js').write_text("location.replace(new URL('vendor/rnl-viewer/index.html?studio=1&layout=dockview&demo=1',location.href));\n")
+    (OUTPUT / 'pages-redirect.js').write_text("location.replace(new URL('studio/index.html?layout=dockview&demo=1',location.href));\n")
     commits=[]
     output=subprocess.check_output(['git','log','-8','--format=%H%x09%s'],cwd=ROOT,text=True)
     for line in output.splitlines():

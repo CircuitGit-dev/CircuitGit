@@ -302,7 +302,7 @@ function serverPath(url) {
  */
 async function fetchBytes(href, again) {
   const url = new URL(href);
-  const library = new URL("libraries/", location.href);
+  const library = new URL("../libraries/", import.meta.url);
   const legacy = url.origin === library.origin && url.pathname.startsWith(library.pathname)
     ? decode(url.pathname.slice(library.pathname.length)) : null;
   if (legacy && !legacy.startsWith("standard/") && legacy.endsWith(".rnl")) {
@@ -488,7 +488,7 @@ async function publicRequest(read, signal) {
 function publicPackages() {
   if (!libraryIndex) libraryIndex = publicRequest(async fetcher => {
     const config = await fetcher("public-packages.json");
-    const url = new URL(config.ok ? (await config.json()).url : DEFAULT_CATALOG, location.href).href;
+    const url = new URL(config.ok ? (await config.json()).url : DEFAULT_CATALOG, new URL("../", import.meta.url)).href;
     return (await readCatalog(url, fetcher)).packages;
   }).then(packages => {
     window.dispatchEvent(new CustomEvent("public-package-status", { detail: "" }));

@@ -28,10 +28,23 @@ const index=join(out,'index.html');let inline=0;
 let html=readFileSync(index,'utf8').replace(/<script>([\s\S]*?)<\/script>/g,(_,body)=>{
   const file=`inline-startup-${++inline}.js`;writeFileSync(join(out,file),body);return `<script src="${file}"></script>`;
 });
+html=html.replace('<title>RNL Viewer</title>', '<title>RNL Viewer</title>\n<script src="../../studio/route.js"></script>');
 writeFileSync(index,html.replace('</body>','<script type="module" src="ic-selection-bridge.js"></script>\n</body>'));
+// Resources resolve against the renderer, even when CircuitGit owns the document URL.
+const webShell=join(out,'shells/web.js');
+writeFileSync(webShell,readFileSync(webShell,'utf8').replace('new URL("libraries/", location.href)','new URL("../libraries/", import.meta.url)').replace('new URL(config.ok ? (await config.json()).url : DEFAULT_CATALOG, location.href)','new URL(config.ok ? (await config.json()).url : DEFAULT_CATALOG, new URL("../", import.meta.url))'));
+
+const windowSession=join(out,'window-session.js');
+writeFileSync(windowSession,readFileSync(windowSession,'utf8').replace('  const url = new URL(location.href);\n  url.searchParams.delete("url");', `  const url = new URL(location.href);
+  // A detached schematic owns its own document/session, not a second Studio project load.
+  if (document.body.classList.contains('workbench-entry')) {
+    url.pathname = new URL('./index.html', import.meta.url).pathname;
+    for (const key of ['studio', 'demo', 'layout']) url.searchParams.delete(key);
+  }
+  url.searchParams.delete("url");`));
 cpSync(join(upstream,'LICENSE'),join(out,'LICENSE'));
 mkdirSync(join(out,'LICENSES'),{recursive:true});for(const n of ['CC0-1.0.txt','OFL-1.1.txt'])cpSync(join(upstream,'LICENSES',n),join(out,'LICENSES',n));
-writeFileSync(join(out,'THIRD_PARTY_NOTICES.md'),`# RNL Viewer\n\nUpstream rich-netlist/rnl @ ${pinned}. UI 0.5.1, core @rich-netlist/runtime 0.5.3.\nCopyright 2026 many-question. Code MIT; standard packages CC0-1.0; Noto font metrics copyright 2014-2021 Adobe under OFL-1.1.\nLocal changes: additive ic-selection-bridge.js and index script tag; two inline startup scripts externalized for strict CSP; system-font fallback; no external package catalog; build metadata.\nThis interface is the upstream RNL Viewer, not a recreation. Selection adapter is project-specific and not an upstream API guarantee.\n`);
+writeFileSync(join(out,'THIRD_PARTY_NOTICES.md'),`# RNL Viewer\n\nUpstream rich-netlist/rnl @ ${pinned}. UI 0.5.1, core @rich-netlist/runtime 0.5.3.\nCopyright 2026 many-question. Code MIT; standard packages CC0-1.0; Noto font metrics copyright 2014-2021 Adobe under OFL-1.1.\nLocal changes: additive ic-selection-bridge.js and index script tag; two inline startup scripts externalized for strict CSP; system-font fallback; no external package catalog; build metadata; CircuitGit Studio URL redirect, renderer-relative catalog URLs and detached-window routing.\nThis interface is the upstream RNL Viewer, not a recreation. Selection adapter is project-specific and not an upstream API guarantee.\n`);
 function files(dir){return readdirSync(dir).flatMap(n=>{const p=join(dir,n);return statSync(p).isDirectory()?files(p):[p]});}
 const inventory=files(out).map(p=>({path:relative(out,p),bytes:statSync(p).size,sha256:createHash('sha256').update(readFileSync(p)).digest('hex')}));
 writeFileSync(join(out,'provenance.json'),JSON.stringify({upstream:'https://github.com/rich-netlist/rnl',commit:pinned,viewer_version:'0.5.1',core_version:'0.5.3',files:inventory},null,2)+'\n');

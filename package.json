@@ -22,7 +22,9 @@
     "test:architecture": "python3 -B tests/architecture/test_structure.py",
     "test:architecture:browser": "node tests/architecture/browser.mjs",
     "build:pages": "python3 -B tools/dev/build_pages.py",
-    "test:engineering": "node --test tests/core.test.mjs tests/viewer-mapping.test.mjs tests/viewer-hierarchy.test.mjs tests/viewer-vendor.test.mjs"
+    "test:engineering": "node --test tests/core.test.mjs tests/viewer-mapping.test.mjs tests/viewer-hierarchy.test.mjs tests/viewer-vendor.test.mjs",
+    "test:startup": "python3 -B tools/dev/build_pages.py && node tests/studio/startup-browser.mjs",
+    "test:startup:performance": "node tests/studio/startup-performance.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
