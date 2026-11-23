@@ -1,0 +1,1088 @@
+{
+  "schema": "ic.onboarding.rejection-examples.v1",
+  "synthetic": true,
+  "producer": "tools/workbench/test_onboarding_integration.py --write-rejection-example",
+  "evidence": {
+    "runtime": "actual onboarding Application, Workspace and ExperimentWorkflow",
+    "source": "newly authored two-device netlist and synthetic model file",
+    "discovery_transport": "mocked; local static scanner generated the captured evidence",
+    "source_git": "actual newly initialized temporary local repository",
+    "preflight": "synthetic identity mismatch from the mocked doctor boundary",
+    "rejection": "actual ExperimentWorkflow PreDispatchRejected control flow",
+    "runner_reservation_attempted": false,
+    "simulation_executed": false
+  },
+  "snapshots": {
+    "runRejected": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "4cb7754da9c52e11e6c0aed7c557c5db",
+      "intake_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+      "revision": 5,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+      "state": "pre_dispatch_rejected",
+      "created_at": "2026-11-23T07:55:12.171303+00:00",
+      "updated_at": "2026-11-23T07:55:12.628788+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        },
+        {
+          "kind": "ssh_selection",
+          "origin": "test_harness",
+          "ssh_targets": [
+            "synthetic-new-host"
+          ],
+          "setup_source_ids": {}
+        },
+        {
+          "kind": "pdk_search",
+          "origin": "test_harness",
+          "probe_ids": [
+            "probe_a7f46f287d6ab245e2ffb842be8c2e25"
+          ],
+          "explicit_search_paths": [],
+          "search_directory_ids": [],
+          "explicit_cds_lib_hint": null
+        },
+        {
+          "kind": "experiment_selection",
+          "origin": "test_harness",
+          "discovery_id": "discovery_62126ba65e9159cdc32649afd53ddd67",
+          "candidate_id": "ccf438e0d97be760d5b2b96e94763fa11add88dbff8b7536c75a26dde691366a",
+          "intent": {
+            "supply_v": 1.0,
+            "frequency_hz": 1000000000.0,
+            "temperature_c": 27,
+            "nominal_temperature_c": 27,
+            "input_port": "IN",
+            "output_port": "OUT",
+            "vdd_port": "HI",
+            "vss_port": "LO",
+            "cycles": 2,
+            "load_f": 1e-15,
+            "rise_s": 1e-11,
+            "fall_s": 1e-11,
+            "points_per_period": 100
+          },
+          "sections": [
+            "typical"
+          ],
+          "tmi_candidate_id": null,
+          "explicit_model_contracts": {}
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "probe_a7f46f287d6ab245e2ffb842be8c2e25",
+          "ssh_target": "synthetic-new-host",
+          "observed_at": "2026-11-23T07:55:12.176474+00:00",
+          "environment": {
+            "schema": "spiceowl.server-environment.v1",
+            "alias": "synthetic-new-host",
+            "state": "observed",
+            "transport": "reachable",
+            "identity": {
+              "observed": true,
+              "verified": false
+            },
+            "tools": [
+              {
+                "kind": "spectre",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ],
+            "licenses": [
+              {
+                "name": "CDS_LIC_FILE",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ]
+          }
+        }
+      ],
+      "discovery": {
+        "discovery_id": "discovery_62126ba65e9159cdc32649afd53ddd67",
+        "candidates": [
+          {
+            "candidate_id": "ccf438e0d97be760d5b2b96e94763fa11add88dbff8b7536c75a26dde691366a",
+            "probe_id": "probe_a7f46f287d6ab245e2ffb842be8c2e25",
+            "label": "entry.scs",
+            "entry_role": "definition_only",
+            "available_sections": [
+              null,
+              "typical"
+            ],
+            "section_candidates": [
+              "typical"
+            ],
+            "master_coverage": [
+              "device_alpha",
+              "device_beta"
+            ],
+            "model_contracts": [
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 5,
+                    "name": "device_alpha",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 6,
+                    "master": "core_n",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 3,
+                    "name": "core_n",
+                    "section": "typical",
+                    "type_literal": "n",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_alpha",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "n",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              },
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 8,
+                    "name": "device_beta",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 9,
+                    "master": "core_p",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 4,
+                    "name": "core_p",
+                    "section": "typical",
+                    "type_literal": "p",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_beta",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "p",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              }
+            ],
+            "tmi_candidates": [],
+            "evidence": {
+              "entry_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed",
+              "file_count": 1,
+              "coverage_complete": true
+            },
+            "missing": [],
+            "ready_to_run": false
+          }
+        ],
+        "ambiguities": [],
+        "missing": [],
+        "coverage": [
+          {
+            "probe_id": "probe_a7f46f287d6ab245e2ffb842be8c2e25",
+            "search_complete": true,
+            "status": "candidates",
+            "file_count": 1,
+            "bytes_read": 240,
+            "unknown_count": 0,
+            "results_omitted": false,
+            "summary": null,
+            "phase": null,
+            "transport": null,
+            "unknown_codes": []
+          }
+        ],
+        "search_directories": [
+          {
+            "directory_id": "8bcd95cba29e52f8dd5fb7368a27aa466401ff4f5a0171a301f3e440f285da77",
+            "probe_id": "probe_a7f46f287d6ab245e2ffb842be8c2e25",
+            "label": "new-synthetic-models/.",
+            "basis": [
+              "contains_candidate_model_files"
+            ],
+            "scanned": true,
+            "qualified": false
+          }
+        ],
+        "selection_made": false,
+        "simulation_started": false
+      },
+      "prepared": {
+        "schema": "ic.experiment.plan.v1",
+        "state": "prepared",
+        "project_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+        "recipe_id": "inverter-tran",
+        "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+        "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+        "missing": [],
+        "dependency_summary": {
+          "file_count": 1,
+          "pre_pinned": true
+        },
+        "qualification_scope": {
+          "scope_id": "inverter-tran",
+          "manifest_sha256": "0a42d6bdaa1920752e7a71037b4c94d9dc86a0386e16b9396fba8fdbbf43bf77",
+          "frozen_before_execution": true,
+          "checks": [
+            "soa_voltage",
+            "model_parameter_range"
+          ]
+        },
+        "source": {
+          "mode": "cell",
+          "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+          "subcircuit": "Intake_DUT",
+          "ports": [
+            "IN",
+            "OUT",
+            "HI",
+            "LO"
+          ],
+          "sources": [
+            {
+              "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+              "sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "bytes": 179,
+              "includes": [],
+              "global_parameters": {}
+            }
+          ],
+          "instances": [
+            {
+              "instance": "A",
+              "master": "device_alpha",
+              "terminals": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "parameters_literal": {
+                "w": "2u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 3,
+              "line_end": 3,
+              "byte_start": 54,
+              "byte_end": 109,
+              "sha256": "1c7c8e45f7f83e9ba44ba0f25d3d20aa745366d69ff76583a999723d3f4703d8",
+              "original_text": "A (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\n"
+            },
+            {
+              "instance": "B",
+              "master": "device_beta",
+              "terminals": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "parameters_literal": {
+                "w": "3u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 4,
+              "line_end": 4,
+              "byte_start": 109,
+              "byte_end": 163,
+              "sha256": "515cbf10f8ff7b36513a95bd944711933f1da6b84af11080e9d2213f182bb1a1",
+              "original_text": "B (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\n"
+            }
+          ],
+          "closure": [
+            {
+              "subcircuit": "Intake_DUT",
+              "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 2,
+              "line_end": 5,
+              "byte_start": 23,
+              "byte_end": 179,
+              "sha256": "605eca826860f273c6586329103409afb3d5a3eacd891ca99942650e5704807a",
+              "original_text": "subckt Intake_DUT IN OUT HI LO\nA (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\nB (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\nends Intake_DUT\n"
+            }
+          ],
+          "source_directives_emitted": false
+        },
+        "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0"
+      },
+      "selection": {
+        "discovery_id": "discovery_62126ba65e9159cdc32649afd53ddd67",
+        "candidate_id": "ccf438e0d97be760d5b2b96e94763fa11add88dbff8b7536c75a26dde691366a",
+        "sections": [
+          "typical"
+        ],
+        "tmi_candidate_id": null,
+        "model_contracts": {},
+        "intent": {
+          "supply_v": 1.0,
+          "frequency_hz": 1000000000.0,
+          "temperature_c": 27,
+          "nominal_temperature_c": 27,
+          "input_port": "IN",
+          "output_port": "OUT",
+          "vdd_port": "HI",
+          "vss_port": "LO",
+          "cycles": 2,
+          "load_f": 1e-15,
+          "rise_s": 1e-11,
+          "fall_s": 1e-11,
+          "points_per_period": 100
+        }
+      },
+      "execution_scope": {
+        "selected_ssh_targets": [
+          "synthetic-new-host"
+        ],
+        "candidate_host_ids": [
+          "synthetic-new-host"
+        ],
+        "selection_mode": "automatic_within_selected_hosts",
+        "resource_check_at_run": true,
+        "excluded_before_preparation": []
+      },
+      "source_mapping": {
+        "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+        "original_source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "compiled_source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+        "transformation": "added_explicit_subcircuit_wrapper",
+        "wrapper": {
+          "added": true,
+          "subcircuit": "Intake_DUT",
+          "transformation": "added_explicit_subcircuit_wrapper",
+          "insertions": [
+            {
+              "original_byte_offset": 23,
+              "text": "subckt Intake_DUT IN OUT HI LO\n"
+            },
+            {
+              "original_byte_offset": 132,
+              "text": "ends Intake_DUT\n"
+            }
+          ],
+          "original_bytes_preserved": true,
+          "scope": "new isolated inverter experiment; original source had no subcircuit wrapper"
+        },
+        "source_commit": "cf6545ee3b64581a6147227eda05248de3503552"
+      },
+      "job": null,
+      "submission": {
+        "intake_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+        "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+        "found": false,
+        "run_id": null,
+        "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+        "dispatch_outcome": "pre_dispatch_rejected",
+        "replay_permitted": false,
+        "job": null,
+        "rejection": {
+          "schema": "ic.experiment.pre-dispatch-rejection.v1",
+          "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+          "project_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+          "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+          "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+          "phase": "before_runner_reserve",
+          "code": "resource_or_dependency_preflight_rejected",
+          "launch_attempted": false,
+          "recorded_at": "2026-11-23T07:55:12.628172+00:00"
+        }
+      },
+      "plans": [
+        {
+          "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+          "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+          "project_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+          "recipe_id": "inverter-tran",
+          "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+          "dispatch_outcome": "pre_dispatch_rejected"
+        }
+      ]
+    },
+    "readSubmissionRejected": {
+      "intake_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+      "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+      "found": false,
+      "run_id": null,
+      "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+      "dispatch_outcome": "pre_dispatch_rejected",
+      "replay_permitted": false,
+      "job": null,
+      "rejection": {
+        "schema": "ic.experiment.pre-dispatch-rejection.v1",
+        "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+        "project_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+        "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+        "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+        "phase": "before_runner_reserve",
+        "code": "resource_or_dependency_preflight_rejected",
+        "launch_attempted": false,
+        "recorded_at": "2026-11-23T07:55:12.628172+00:00"
+      }
+    },
+    "getSessionRejected": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "4cb7754da9c52e11e6c0aed7c557c5db",
+      "intake_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+      "revision": 5,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+      "state": "pre_dispatch_rejected",
+      "created_at": "2026-11-23T07:55:12.171303+00:00",
+      "updated_at": "2026-11-23T07:55:12.628788+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        },
+        {
+          "kind": "ssh_selection",
+          "origin": "test_harness",
+          "ssh_targets": [
+            "synthetic-new-host"
+          ],
+          "setup_source_ids": {}
+        },
+        {
+          "kind": "pdk_search",
+          "origin": "test_harness",
+          "probe_ids": [
+            "probe_a7f46f287d6ab245e2ffb842be8c2e25"
+          ],
+          "explicit_search_paths": [],
+          "search_directory_ids": [],
+          "explicit_cds_lib_hint": null
+        },
+        {
+          "kind": "experiment_selection",
+          "origin": "test_harness",
+          "discovery_id": "discovery_62126ba65e9159cdc32649afd53ddd67",
+          "candidate_id": "ccf438e0d97be760d5b2b96e94763fa11add88dbff8b7536c75a26dde691366a",
+          "intent": {
+            "supply_v": 1.0,
+            "frequency_hz": 1000000000.0,
+            "temperature_c": 27,
+            "nominal_temperature_c": 27,
+            "input_port": "IN",
+            "output_port": "OUT",
+            "vdd_port": "HI",
+            "vss_port": "LO",
+            "cycles": 2,
+            "load_f": 1e-15,
+            "rise_s": 1e-11,
+            "fall_s": 1e-11,
+            "points_per_period": 100
+          },
+          "sections": [
+            "typical"
+          ],
+          "tmi_candidate_id": null,
+          "explicit_model_contracts": {}
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "probe_a7f46f287d6ab245e2ffb842be8c2e25",
+          "ssh_target": "synthetic-new-host",
+          "observed_at": "2026-11-23T07:55:12.176474+00:00",
+          "environment": {
+            "schema": "spiceowl.server-environment.v1",
+            "alias": "synthetic-new-host",
+            "state": "observed",
+            "transport": "reachable",
+            "identity": {
+              "observed": true,
+              "verified": false
+            },
+            "tools": [
+              {
+                "kind": "spectre",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ],
+            "licenses": [
+              {
+                "name": "CDS_LIC_FILE",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ]
+          }
+        }
+      ],
+      "discovery": {
+        "discovery_id": "discovery_62126ba65e9159cdc32649afd53ddd67",
+        "candidates": [
+          {
+            "candidate_id": "ccf438e0d97be760d5b2b96e94763fa11add88dbff8b7536c75a26dde691366a",
+            "probe_id": "probe_a7f46f287d6ab245e2ffb842be8c2e25",
+            "label": "entry.scs",
+            "entry_role": "definition_only",
+            "available_sections": [
+              null,
+              "typical"
+            ],
+            "section_candidates": [
+              "typical"
+            ],
+            "master_coverage": [
+              "device_alpha",
+              "device_beta"
+            ],
+            "model_contracts": [
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 5,
+                    "name": "device_alpha",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 6,
+                    "master": "core_n",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 3,
+                    "name": "core_n",
+                    "section": "typical",
+                    "type_literal": "n",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_alpha",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "n",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              },
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 8,
+                    "name": "device_beta",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 9,
+                    "master": "core_p",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 4,
+                    "name": "core_p",
+                    "section": "typical",
+                    "type_literal": "p",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_beta",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "p",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              }
+            ],
+            "tmi_candidates": [],
+            "evidence": {
+              "entry_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed",
+              "file_count": 1,
+              "coverage_complete": true
+            },
+            "missing": [],
+            "ready_to_run": false
+          }
+        ],
+        "ambiguities": [],
+        "missing": [],
+        "coverage": [
+          {
+            "probe_id": "probe_a7f46f287d6ab245e2ffb842be8c2e25",
+            "search_complete": true,
+            "status": "candidates",
+            "file_count": 1,
+            "bytes_read": 240,
+            "unknown_count": 0,
+            "results_omitted": false,
+            "summary": null,
+            "phase": null,
+            "transport": null,
+            "unknown_codes": []
+          }
+        ],
+        "search_directories": [
+          {
+            "directory_id": "8bcd95cba29e52f8dd5fb7368a27aa466401ff4f5a0171a301f3e440f285da77",
+            "probe_id": "probe_a7f46f287d6ab245e2ffb842be8c2e25",
+            "label": "new-synthetic-models/.",
+            "basis": [
+              "contains_candidate_model_files"
+            ],
+            "scanned": true,
+            "qualified": false
+          }
+        ],
+        "selection_made": false,
+        "simulation_started": false
+      },
+      "prepared": {
+        "schema": "ic.experiment.plan.v1",
+        "state": "prepared",
+        "project_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+        "recipe_id": "inverter-tran",
+        "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+        "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+        "missing": [],
+        "dependency_summary": {
+          "file_count": 1,
+          "pre_pinned": true
+        },
+        "qualification_scope": {
+          "scope_id": "inverter-tran",
+          "manifest_sha256": "0a42d6bdaa1920752e7a71037b4c94d9dc86a0386e16b9396fba8fdbbf43bf77",
+          "frozen_before_execution": true,
+          "checks": [
+            "soa_voltage",
+            "model_parameter_range"
+          ]
+        },
+        "source": {
+          "mode": "cell",
+          "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+          "subcircuit": "Intake_DUT",
+          "ports": [
+            "IN",
+            "OUT",
+            "HI",
+            "LO"
+          ],
+          "sources": [
+            {
+              "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+              "sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "bytes": 179,
+              "includes": [],
+              "global_parameters": {}
+            }
+          ],
+          "instances": [
+            {
+              "instance": "A",
+              "master": "device_alpha",
+              "terminals": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "parameters_literal": {
+                "w": "2u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 3,
+              "line_end": 3,
+              "byte_start": 54,
+              "byte_end": 109,
+              "sha256": "1c7c8e45f7f83e9ba44ba0f25d3d20aa745366d69ff76583a999723d3f4703d8",
+              "original_text": "A (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\n"
+            },
+            {
+              "instance": "B",
+              "master": "device_beta",
+              "terminals": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "parameters_literal": {
+                "w": "3u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 4,
+              "line_end": 4,
+              "byte_start": 109,
+              "byte_end": 163,
+              "sha256": "515cbf10f8ff7b36513a95bd944711933f1da6b84af11080e9d2213f182bb1a1",
+              "original_text": "B (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\n"
+            }
+          ],
+          "closure": [
+            {
+              "subcircuit": "Intake_DUT",
+              "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 2,
+              "line_end": 5,
+              "byte_start": 23,
+              "byte_end": 179,
+              "sha256": "605eca826860f273c6586329103409afb3d5a3eacd891ca99942650e5704807a",
+              "original_text": "subckt Intake_DUT IN OUT HI LO\nA (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\nB (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\nends Intake_DUT\n"
+            }
+          ],
+          "source_directives_emitted": false
+        },
+        "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0"
+      },
+      "selection": {
+        "discovery_id": "discovery_62126ba65e9159cdc32649afd53ddd67",
+        "candidate_id": "ccf438e0d97be760d5b2b96e94763fa11add88dbff8b7536c75a26dde691366a",
+        "sections": [
+          "typical"
+        ],
+        "tmi_candidate_id": null,
+        "model_contracts": {},
+        "intent": {
+          "supply_v": 1.0,
+          "frequency_hz": 1000000000.0,
+          "temperature_c": 27,
+          "nominal_temperature_c": 27,
+          "input_port": "IN",
+          "output_port": "OUT",
+          "vdd_port": "HI",
+          "vss_port": "LO",
+          "cycles": 2,
+          "load_f": 1e-15,
+          "rise_s": 1e-11,
+          "fall_s": 1e-11,
+          "points_per_period": 100
+        }
+      },
+      "execution_scope": {
+        "selected_ssh_targets": [
+          "synthetic-new-host"
+        ],
+        "candidate_host_ids": [
+          "synthetic-new-host"
+        ],
+        "selection_mode": "automatic_within_selected_hosts",
+        "resource_check_at_run": true,
+        "excluded_before_preparation": []
+      },
+      "source_mapping": {
+        "source_id": "projects/intake_7764c9aefbc187f7f23e42d0e8bbd0a2/input.scs",
+        "original_source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "compiled_source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+        "transformation": "added_explicit_subcircuit_wrapper",
+        "wrapper": {
+          "added": true,
+          "subcircuit": "Intake_DUT",
+          "transformation": "added_explicit_subcircuit_wrapper",
+          "insertions": [
+            {
+              "original_byte_offset": 23,
+              "text": "subckt Intake_DUT IN OUT HI LO\n"
+            },
+            {
+              "original_byte_offset": 132,
+              "text": "ends Intake_DUT\n"
+            }
+          ],
+          "original_bytes_preserved": true,
+          "scope": "new isolated inverter experiment; original source had no subcircuit wrapper"
+        },
+        "source_commit": "cf6545ee3b64581a6147227eda05248de3503552"
+      },
+      "job": null,
+      "submission": {
+        "intake_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+        "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+        "found": false,
+        "run_id": null,
+        "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+        "dispatch_outcome": "pre_dispatch_rejected",
+        "replay_permitted": false,
+        "job": null,
+        "rejection": {
+          "schema": "ic.experiment.pre-dispatch-rejection.v1",
+          "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+          "project_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+          "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+          "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+          "phase": "before_runner_reserve",
+          "code": "resource_or_dependency_preflight_rejected",
+          "launch_attempted": false,
+          "recorded_at": "2026-11-23T07:55:12.628172+00:00"
+        }
+      },
+      "plans": [
+        {
+          "plan_id": "ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+          "source_commit": "cf6545ee3b64581a6147227eda05248de3503552",
+          "project_id": "intake_7764c9aefbc187f7f23e42d0e8bbd0a2",
+          "recipe_id": "inverter-tran",
+          "submission_key": "experiment-ea85bf5d32911d7bbd59fc99f4d9ea4cda84c9331170e2c289c22dbb79341ae0",
+          "dispatch_outcome": "pre_dispatch_rejected"
+        }
+      ]
+    }
+  }
+}

@@ -775,9 +775,55 @@ def write_session_examples(path):
     return path
 
 
+def write_rejection_examples(path):
+    """Serialize actual typed rejection and subsequent read replies from a fixture."""
+    fixture = _IntakeFixture()
+    try:
+        fixture.setUp()
+        prepared = fixture.prepare()
+        fixture.assertEqual(prepared['state'], 'prepared', prepared.get('prepared'))
+        fixture.enable_reservation(prepared)
+        fixture.doctor.return_value = {**fixture.doctor.return_value, 'identity_ok': False}
+        rejected = fixture.submit_intake(prepared)
+        lookup = fixture.runtime.read('submission', {'intake_id': prepared['intake_id'],
+            'plan_id': prepared['prepared']['plan_id']})
+        session = fixture.runtime.read('session', {'intake_id': prepared['intake_id']})
+        fixture.assertEqual(rejected['state'], 'pre_dispatch_rejected')
+        fixture.assertEqual(rejected['submission'], lookup)
+        fixture.assertEqual(session['submission'], lookup)
+        fixture.assertEqual(lookup['rejection']['phase'], 'before_runner_reserve')
+        fixture.assertFalse(lookup['replay_permitted'])
+        fixture.reserve.assert_not_called()
+        fixture.dispatch.assert_not_called()
+        fixture.ssh.assert_not_called()
+        payload = {'schema': 'ic.onboarding.rejection-examples.v1', 'synthetic': True,
+            'producer': 'tools/workbench/test_onboarding_integration.py --write-rejection-example',
+            'evidence': {'runtime': 'actual onboarding Application, Workspace and ExperimentWorkflow',
+                'source': 'newly authored two-device netlist and synthetic model file',
+                'discovery_transport': 'mocked; local static scanner generated the captured evidence',
+                'source_git': 'actual newly initialized temporary local repository',
+                'preflight': 'synthetic identity mismatch from the mocked doctor boundary',
+                'rejection': 'actual ExperimentWorkflow PreDispatchRejected control flow',
+                'runner_reservation_attempted': False, 'simulation_executed': False},
+            'snapshots': {'runRejected': rejected, 'readSubmissionRejected': lookup,
+                'getSessionRejected': session}}
+        raw = json.dumps(payload, indent=2, ensure_ascii=False, allow_nan=False) + '\n'
+        fixture.assertNotIn(str(fixture.root), raw)
+        fixture.assertNotIn(SECRET, raw)
+    finally:
+        fixture.doCleanups()
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(raw)
+    return path
+
+
 if __name__ == '__main__':
     if sys.argv[1:] == ['--write-examples']:
         output = Path(__file__).resolve().parents[2] / 'docs/contracts/onboarding-session.example.json'
         print(write_session_examples(output))
+    elif sys.argv[1:] == ['--write-rejection-example']:
+        output = Path(__file__).resolve().parents[2] / 'docs/contracts/onboarding-rejection.example.json'
+        print(write_rejection_examples(output))
     else:
         unittest.main()
