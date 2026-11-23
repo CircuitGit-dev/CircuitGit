@@ -94,13 +94,23 @@ def main():
     p.add_argument('--gateway-url', help='Optional existing loopback engineering gateway')
     p.add_argument('--no-browser', action='store_true')
     p.add_argument('--allow-origin', action='append', default=[])
+    mode=p.add_mutually_exclusive_group()
+    mode.add_argument('--fresh-onboarding',action='store_true',help='Start simulation onboarding in an explicitly empty state directory')
+    mode.add_argument('--resume-onboarding',action='store_true',help='Resume only the explicitly selected onboarding store')
+    p.add_argument('--port',type=int,default=8767,help='Browser companion loopback port')
+    p.add_argument('--gateway-port',type=int,default=0,help='Fresh onboarding gateway loopback port')
     args = p.parse_args()
+    if args.fresh_onboarding or args.resume_onboarding:
+        if args.gateway_url:p.error('Onboarding creates an isolated gateway; it cannot reuse --gateway-url')
+        from onboarding_server import serve_onboarding
+        return serve_onboarding(args.state_dir,root=ROOT,node_port=args.port,gateway_port=args.gateway_port,
+            allow_origins=args.allow_origin,resume=args.resume_onboarding,no_browser=args.no_browser)
     state = args.state_dir.expanduser().resolve();state.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (state / 'helper.lock').open('a') as lock:
         try:fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:raise RuntimeError('连接助手已经运行，请回到网页点击“连接本机 Codex”。')
         # Reserve the known pairing port first. Never replace another process.
-        try:browser = Server(('127.0.0.1', 8767), Handler)
+        try:browser = Server(('127.0.0.1', args.port), Handler)
         except OSError:raise RuntimeError('本机连接端口已被占用。请检查已有连接助手，未停止任何现有程序。')
         gateway = routes = node = remote_lock = None
         cfg = None
@@ -124,7 +134,7 @@ def main():
             try:fcntl.flock(remote_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:raise RuntimeError('已有服务使用此 AI 会话目录，未启动重复实例。')
             routes = AiRoutes(Service(config))
-            node = Node(routes, token, ['https://joshuazeng713.github.io', *args.allow_origin], identity, 'http://127.0.0.1:8767', '本机 Codex')
+            node = Node(routes, token, ['https://joshuazeng713.github.io', *args.allow_origin], identity, 'http://127.0.0.1:'+str(browser.server_port), '本机 Codex')
             node.login = LocalLogin(config)
             if config.get('simulation_direct', {}).get('enabled') and callable(getattr(routes.service, 'execute_simulation', None)):
                 node.simulation = routes.service.execute_simulation

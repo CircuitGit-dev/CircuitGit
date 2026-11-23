@@ -1,0 +1,2218 @@
+{
+  "schema": "ic.onboarding.session-examples.v1",
+  "synthetic": true,
+  "producer": "tools/workbench/test_onboarding_integration.py --write-examples",
+  "evidence": {
+    "runtime": "actual onboarding Application, Workspace, ExperimentWorkflow and Runner",
+    "source": "newly authored two-device netlist and synthetic model file",
+    "discovery_transport": "mocked; local static scanner generated the captured evidence",
+    "source_git": "actual newly initialized temporary local repository",
+    "reservation": "actual Runner reservation",
+    "dispatch": "deferred fixture callback",
+    "simulation_executed": false,
+    "inspection": "actual working response for the queued job"
+  },
+  "snapshots": {
+    "netlist": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "d1be1cfb8afcc494e3d95170f6ce2e46",
+      "intake_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+      "revision": 1,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": null,
+      "state": "source_inspected",
+      "created_at": "2026-11-23T07:40:38.986845+00:00",
+      "updated_at": "2026-11-23T07:40:38.986854+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": null,
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        }
+      ],
+      "plans": []
+    },
+    "getSession": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "d1be1cfb8afcc494e3d95170f6ce2e46",
+      "intake_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+      "revision": 1,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": null,
+      "state": "source_inspected",
+      "created_at": "2026-11-23T07:40:38.986845+00:00",
+      "updated_at": "2026-11-23T07:40:38.986854+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": null,
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        }
+      ],
+      "plans": []
+    },
+    "probe": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "d1be1cfb8afcc494e3d95170f6ce2e46",
+      "intake_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+      "revision": 2,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": null,
+      "state": "hosts_observed",
+      "created_at": "2026-11-23T07:40:38.986845+00:00",
+      "updated_at": "2026-11-23T07:40:38.992121+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": null,
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        },
+        {
+          "kind": "ssh_selection",
+          "origin": "test_harness",
+          "ssh_targets": [
+            "synthetic-new-host"
+          ],
+          "setup_source_ids": {}
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+          "ssh_target": "synthetic-new-host",
+          "observed_at": "2026-11-23T07:40:38.991586+00:00",
+          "environment": {
+            "schema": "spiceowl.server-environment.v1",
+            "alias": "synthetic-new-host",
+            "state": "observed",
+            "transport": "reachable",
+            "identity": {
+              "observed": true,
+              "verified": false
+            },
+            "tools": [
+              {
+                "kind": "spectre",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ],
+            "licenses": [
+              {
+                "name": "CDS_LIC_FILE",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ]
+          }
+        }
+      ],
+      "plans": []
+    },
+    "discover": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "d1be1cfb8afcc494e3d95170f6ce2e46",
+      "intake_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+      "revision": 3,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": null,
+      "state": "models_discovered",
+      "created_at": "2026-11-23T07:40:38.986845+00:00",
+      "updated_at": "2026-11-23T07:40:39.011565+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": null,
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        },
+        {
+          "kind": "ssh_selection",
+          "origin": "test_harness",
+          "ssh_targets": [
+            "synthetic-new-host"
+          ],
+          "setup_source_ids": {}
+        },
+        {
+          "kind": "pdk_search",
+          "origin": "test_harness",
+          "probe_ids": [
+            "probe_19dea95ce1e2121cf15e77e14021e4dc"
+          ],
+          "explicit_search_paths": [],
+          "search_directory_ids": [],
+          "explicit_cds_lib_hint": null
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+          "ssh_target": "synthetic-new-host",
+          "observed_at": "2026-11-23T07:40:38.991586+00:00",
+          "environment": {
+            "schema": "spiceowl.server-environment.v1",
+            "alias": "synthetic-new-host",
+            "state": "observed",
+            "transport": "reachable",
+            "identity": {
+              "observed": true,
+              "verified": false
+            },
+            "tools": [
+              {
+                "kind": "spectre",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ],
+            "licenses": [
+              {
+                "name": "CDS_LIC_FILE",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ]
+          }
+        }
+      ],
+      "discovery": {
+        "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+        "candidates": [
+          {
+            "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "label": "entry.scs",
+            "entry_role": "definition_only",
+            "available_sections": [
+              null,
+              "typical"
+            ],
+            "section_candidates": [
+              "typical"
+            ],
+            "master_coverage": [
+              "device_alpha",
+              "device_beta"
+            ],
+            "model_contracts": [
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 5,
+                    "name": "device_alpha",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 6,
+                    "master": "core_n",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 3,
+                    "name": "core_n",
+                    "section": "typical",
+                    "type_literal": "n",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_alpha",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "n",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              },
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 8,
+                    "name": "device_beta",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 9,
+                    "master": "core_p",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 4,
+                    "name": "core_p",
+                    "section": "typical",
+                    "type_literal": "p",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_beta",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "p",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              }
+            ],
+            "tmi_candidates": [],
+            "evidence": {
+              "entry_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed",
+              "file_count": 1,
+              "coverage_complete": true
+            },
+            "missing": [],
+            "ready_to_run": false
+          }
+        ],
+        "ambiguities": [],
+        "missing": [],
+        "coverage": [
+          {
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "search_complete": true,
+            "status": "candidates",
+            "file_count": 1,
+            "bytes_read": 240,
+            "unknown_count": 0,
+            "results_omitted": false,
+            "summary": null,
+            "phase": null,
+            "transport": null,
+            "unknown_codes": []
+          }
+        ],
+        "search_directories": [
+          {
+            "directory_id": "6938ea9209cdd63fea5a58818d80ad5d28d15440eef3ef7c609d698ccf1c97ef",
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "label": "new-synthetic-models/.",
+            "basis": [
+              "contains_candidate_model_files"
+            ],
+            "scanned": true,
+            "qualified": false
+          }
+        ],
+        "selection_made": false,
+        "simulation_started": false
+      },
+      "plans": []
+    },
+    "prepare": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "d1be1cfb8afcc494e3d95170f6ce2e46",
+      "intake_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+      "revision": 4,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+      "state": "prepared",
+      "created_at": "2026-11-23T07:40:38.986845+00:00",
+      "updated_at": "2026-11-23T07:40:39.547270+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        },
+        {
+          "kind": "ssh_selection",
+          "origin": "test_harness",
+          "ssh_targets": [
+            "synthetic-new-host"
+          ],
+          "setup_source_ids": {}
+        },
+        {
+          "kind": "pdk_search",
+          "origin": "test_harness",
+          "probe_ids": [
+            "probe_19dea95ce1e2121cf15e77e14021e4dc"
+          ],
+          "explicit_search_paths": [],
+          "search_directory_ids": [],
+          "explicit_cds_lib_hint": null
+        },
+        {
+          "kind": "experiment_selection",
+          "origin": "test_harness",
+          "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+          "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+          "intent": {
+            "supply_v": 1.0,
+            "frequency_hz": 1000000000.0,
+            "temperature_c": 27,
+            "nominal_temperature_c": 27,
+            "input_port": "IN",
+            "output_port": "OUT",
+            "vdd_port": "HI",
+            "vss_port": "LO",
+            "cycles": 2,
+            "load_f": 1e-15,
+            "rise_s": 1e-11,
+            "fall_s": 1e-11,
+            "points_per_period": 100
+          },
+          "sections": [
+            "typical"
+          ],
+          "tmi_candidate_id": null,
+          "explicit_model_contracts": {}
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+          "ssh_target": "synthetic-new-host",
+          "observed_at": "2026-11-23T07:40:38.991586+00:00",
+          "environment": {
+            "schema": "spiceowl.server-environment.v1",
+            "alias": "synthetic-new-host",
+            "state": "observed",
+            "transport": "reachable",
+            "identity": {
+              "observed": true,
+              "verified": false
+            },
+            "tools": [
+              {
+                "kind": "spectre",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ],
+            "licenses": [
+              {
+                "name": "CDS_LIC_FILE",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ]
+          }
+        }
+      ],
+      "discovery": {
+        "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+        "candidates": [
+          {
+            "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "label": "entry.scs",
+            "entry_role": "definition_only",
+            "available_sections": [
+              null,
+              "typical"
+            ],
+            "section_candidates": [
+              "typical"
+            ],
+            "master_coverage": [
+              "device_alpha",
+              "device_beta"
+            ],
+            "model_contracts": [
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 5,
+                    "name": "device_alpha",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 6,
+                    "master": "core_n",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 3,
+                    "name": "core_n",
+                    "section": "typical",
+                    "type_literal": "n",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_alpha",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "n",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              },
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 8,
+                    "name": "device_beta",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 9,
+                    "master": "core_p",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 4,
+                    "name": "core_p",
+                    "section": "typical",
+                    "type_literal": "p",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_beta",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "p",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              }
+            ],
+            "tmi_candidates": [],
+            "evidence": {
+              "entry_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed",
+              "file_count": 1,
+              "coverage_complete": true
+            },
+            "missing": [],
+            "ready_to_run": false
+          }
+        ],
+        "ambiguities": [],
+        "missing": [],
+        "coverage": [
+          {
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "search_complete": true,
+            "status": "candidates",
+            "file_count": 1,
+            "bytes_read": 240,
+            "unknown_count": 0,
+            "results_omitted": false,
+            "summary": null,
+            "phase": null,
+            "transport": null,
+            "unknown_codes": []
+          }
+        ],
+        "search_directories": [
+          {
+            "directory_id": "6938ea9209cdd63fea5a58818d80ad5d28d15440eef3ef7c609d698ccf1c97ef",
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "label": "new-synthetic-models/.",
+            "basis": [
+              "contains_candidate_model_files"
+            ],
+            "scanned": true,
+            "qualified": false
+          }
+        ],
+        "selection_made": false,
+        "simulation_started": false
+      },
+      "prepared": {
+        "schema": "ic.experiment.plan.v1",
+        "state": "prepared",
+        "project_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+        "recipe_id": "inverter-tran",
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+        "plan_id": "10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+        "missing": [],
+        "dependency_summary": {
+          "file_count": 1,
+          "pre_pinned": true
+        },
+        "qualification_scope": {
+          "scope_id": "inverter-tran",
+          "manifest_sha256": "e9dddea595c1f8467aaa72ac913939cc816e1c65ba7444cde936abcd92ef0e26",
+          "frozen_before_execution": true,
+          "checks": [
+            "soa_voltage",
+            "model_parameter_range"
+          ]
+        },
+        "source": {
+          "mode": "cell",
+          "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+          "subcircuit": "Intake_DUT",
+          "ports": [
+            "IN",
+            "OUT",
+            "HI",
+            "LO"
+          ],
+          "sources": [
+            {
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "bytes": 179,
+              "includes": [],
+              "global_parameters": {}
+            }
+          ],
+          "instances": [
+            {
+              "instance": "A",
+              "master": "device_alpha",
+              "terminals": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "parameters_literal": {
+                "w": "2u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 3,
+              "line_end": 3,
+              "byte_start": 54,
+              "byte_end": 109,
+              "sha256": "1c7c8e45f7f83e9ba44ba0f25d3d20aa745366d69ff76583a999723d3f4703d8",
+              "original_text": "A (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\n"
+            },
+            {
+              "instance": "B",
+              "master": "device_beta",
+              "terminals": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "parameters_literal": {
+                "w": "3u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 4,
+              "line_end": 4,
+              "byte_start": 109,
+              "byte_end": 163,
+              "sha256": "515cbf10f8ff7b36513a95bd944711933f1da6b84af11080e9d2213f182bb1a1",
+              "original_text": "B (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\n"
+            }
+          ],
+          "closure": [
+            {
+              "subcircuit": "Intake_DUT",
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 2,
+              "line_end": 5,
+              "byte_start": 23,
+              "byte_end": 179,
+              "sha256": "605eca826860f273c6586329103409afb3d5a3eacd891ca99942650e5704807a",
+              "original_text": "subckt Intake_DUT IN OUT HI LO\nA (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\nB (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\nends Intake_DUT\n"
+            }
+          ],
+          "source_directives_emitted": false
+        },
+        "submission_key": "experiment-10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b"
+      },
+      "selection": {
+        "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+        "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+        "sections": [
+          "typical"
+        ],
+        "tmi_candidate_id": null,
+        "model_contracts": {},
+        "intent": {
+          "supply_v": 1.0,
+          "frequency_hz": 1000000000.0,
+          "temperature_c": 27,
+          "nominal_temperature_c": 27,
+          "input_port": "IN",
+          "output_port": "OUT",
+          "vdd_port": "HI",
+          "vss_port": "LO",
+          "cycles": 2,
+          "load_f": 1e-15,
+          "rise_s": 1e-11,
+          "fall_s": 1e-11,
+          "points_per_period": 100
+        }
+      },
+      "execution_scope": {
+        "selected_ssh_targets": [
+          "synthetic-new-host"
+        ],
+        "candidate_host_ids": [
+          "synthetic-new-host"
+        ],
+        "selection_mode": "automatic_within_selected_hosts",
+        "resource_check_at_run": true,
+        "excluded_before_preparation": []
+      },
+      "source_mapping": {
+        "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+        "original_source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "compiled_source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+        "transformation": "added_explicit_subcircuit_wrapper",
+        "wrapper": {
+          "added": true,
+          "subcircuit": "Intake_DUT",
+          "transformation": "added_explicit_subcircuit_wrapper",
+          "insertions": [
+            {
+              "original_byte_offset": 23,
+              "text": "subckt Intake_DUT IN OUT HI LO\n"
+            },
+            {
+              "original_byte_offset": 132,
+              "text": "ends Intake_DUT\n"
+            }
+          ],
+          "original_bytes_preserved": true,
+          "scope": "new isolated inverter experiment; original source had no subcircuit wrapper"
+        },
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a"
+      },
+      "plans": [
+        {
+          "plan_id": "10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+          "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+          "project_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+          "recipe_id": "inverter-tran",
+          "submission_key": "experiment-10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+          "dispatch_outcome": "not_requested"
+        }
+      ]
+    },
+    "run": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "d1be1cfb8afcc494e3d95170f6ce2e46",
+      "intake_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+      "revision": 5,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+      "state": "submitted",
+      "created_at": "2026-11-23T07:40:38.986845+00:00",
+      "updated_at": "2026-11-23T07:40:39.642534+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        },
+        {
+          "kind": "ssh_selection",
+          "origin": "test_harness",
+          "ssh_targets": [
+            "synthetic-new-host"
+          ],
+          "setup_source_ids": {}
+        },
+        {
+          "kind": "pdk_search",
+          "origin": "test_harness",
+          "probe_ids": [
+            "probe_19dea95ce1e2121cf15e77e14021e4dc"
+          ],
+          "explicit_search_paths": [],
+          "search_directory_ids": [],
+          "explicit_cds_lib_hint": null
+        },
+        {
+          "kind": "experiment_selection",
+          "origin": "test_harness",
+          "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+          "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+          "intent": {
+            "supply_v": 1.0,
+            "frequency_hz": 1000000000.0,
+            "temperature_c": 27,
+            "nominal_temperature_c": 27,
+            "input_port": "IN",
+            "output_port": "OUT",
+            "vdd_port": "HI",
+            "vss_port": "LO",
+            "cycles": 2,
+            "load_f": 1e-15,
+            "rise_s": 1e-11,
+            "fall_s": 1e-11,
+            "points_per_period": 100
+          },
+          "sections": [
+            "typical"
+          ],
+          "tmi_candidate_id": null,
+          "explicit_model_contracts": {}
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+          "ssh_target": "synthetic-new-host",
+          "observed_at": "2026-11-23T07:40:38.991586+00:00",
+          "environment": {
+            "schema": "spiceowl.server-environment.v1",
+            "alias": "synthetic-new-host",
+            "state": "observed",
+            "transport": "reachable",
+            "identity": {
+              "observed": true,
+              "verified": false
+            },
+            "tools": [
+              {
+                "kind": "spectre",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ],
+            "licenses": [
+              {
+                "name": "CDS_LIC_FILE",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ]
+          }
+        }
+      ],
+      "discovery": {
+        "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+        "candidates": [
+          {
+            "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "label": "entry.scs",
+            "entry_role": "definition_only",
+            "available_sections": [
+              null,
+              "typical"
+            ],
+            "section_candidates": [
+              "typical"
+            ],
+            "master_coverage": [
+              "device_alpha",
+              "device_beta"
+            ],
+            "model_contracts": [
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 5,
+                    "name": "device_alpha",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 6,
+                    "master": "core_n",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 3,
+                    "name": "core_n",
+                    "section": "typical",
+                    "type_literal": "n",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_alpha",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "n",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              },
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 8,
+                    "name": "device_beta",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 9,
+                    "master": "core_p",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 4,
+                    "name": "core_p",
+                    "section": "typical",
+                    "type_literal": "p",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_beta",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "p",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              }
+            ],
+            "tmi_candidates": [],
+            "evidence": {
+              "entry_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed",
+              "file_count": 1,
+              "coverage_complete": true
+            },
+            "missing": [],
+            "ready_to_run": false
+          }
+        ],
+        "ambiguities": [],
+        "missing": [],
+        "coverage": [
+          {
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "search_complete": true,
+            "status": "candidates",
+            "file_count": 1,
+            "bytes_read": 240,
+            "unknown_count": 0,
+            "results_omitted": false,
+            "summary": null,
+            "phase": null,
+            "transport": null,
+            "unknown_codes": []
+          }
+        ],
+        "search_directories": [
+          {
+            "directory_id": "6938ea9209cdd63fea5a58818d80ad5d28d15440eef3ef7c609d698ccf1c97ef",
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "label": "new-synthetic-models/.",
+            "basis": [
+              "contains_candidate_model_files"
+            ],
+            "scanned": true,
+            "qualified": false
+          }
+        ],
+        "selection_made": false,
+        "simulation_started": false
+      },
+      "prepared": {
+        "schema": "ic.experiment.plan.v1",
+        "state": "prepared",
+        "project_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+        "recipe_id": "inverter-tran",
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+        "plan_id": "10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+        "missing": [],
+        "dependency_summary": {
+          "file_count": 1,
+          "pre_pinned": true
+        },
+        "qualification_scope": {
+          "scope_id": "inverter-tran",
+          "manifest_sha256": "e9dddea595c1f8467aaa72ac913939cc816e1c65ba7444cde936abcd92ef0e26",
+          "frozen_before_execution": true,
+          "checks": [
+            "soa_voltage",
+            "model_parameter_range"
+          ]
+        },
+        "source": {
+          "mode": "cell",
+          "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+          "subcircuit": "Intake_DUT",
+          "ports": [
+            "IN",
+            "OUT",
+            "HI",
+            "LO"
+          ],
+          "sources": [
+            {
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "bytes": 179,
+              "includes": [],
+              "global_parameters": {}
+            }
+          ],
+          "instances": [
+            {
+              "instance": "A",
+              "master": "device_alpha",
+              "terminals": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "parameters_literal": {
+                "w": "2u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 3,
+              "line_end": 3,
+              "byte_start": 54,
+              "byte_end": 109,
+              "sha256": "1c7c8e45f7f83e9ba44ba0f25d3d20aa745366d69ff76583a999723d3f4703d8",
+              "original_text": "A (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\n"
+            },
+            {
+              "instance": "B",
+              "master": "device_beta",
+              "terminals": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "parameters_literal": {
+                "w": "3u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 4,
+              "line_end": 4,
+              "byte_start": 109,
+              "byte_end": 163,
+              "sha256": "515cbf10f8ff7b36513a95bd944711933f1da6b84af11080e9d2213f182bb1a1",
+              "original_text": "B (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\n"
+            }
+          ],
+          "closure": [
+            {
+              "subcircuit": "Intake_DUT",
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 2,
+              "line_end": 5,
+              "byte_start": 23,
+              "byte_end": 179,
+              "sha256": "605eca826860f273c6586329103409afb3d5a3eacd891ca99942650e5704807a",
+              "original_text": "subckt Intake_DUT IN OUT HI LO\nA (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\nB (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\nends Intake_DUT\n"
+            }
+          ],
+          "source_directives_emitted": false
+        },
+        "submission_key": "experiment-10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b"
+      },
+      "selection": {
+        "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+        "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+        "sections": [
+          "typical"
+        ],
+        "tmi_candidate_id": null,
+        "model_contracts": {},
+        "intent": {
+          "supply_v": 1.0,
+          "frequency_hz": 1000000000.0,
+          "temperature_c": 27,
+          "nominal_temperature_c": 27,
+          "input_port": "IN",
+          "output_port": "OUT",
+          "vdd_port": "HI",
+          "vss_port": "LO",
+          "cycles": 2,
+          "load_f": 1e-15,
+          "rise_s": 1e-11,
+          "fall_s": 1e-11,
+          "points_per_period": 100
+        }
+      },
+      "execution_scope": {
+        "selected_ssh_targets": [
+          "synthetic-new-host"
+        ],
+        "candidate_host_ids": [
+          "synthetic-new-host"
+        ],
+        "selection_mode": "automatic_within_selected_hosts",
+        "resource_check_at_run": true,
+        "excluded_before_preparation": []
+      },
+      "source_mapping": {
+        "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+        "original_source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "compiled_source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+        "transformation": "added_explicit_subcircuit_wrapper",
+        "wrapper": {
+          "added": true,
+          "subcircuit": "Intake_DUT",
+          "transformation": "added_explicit_subcircuit_wrapper",
+          "insertions": [
+            {
+              "original_byte_offset": 23,
+              "text": "subckt Intake_DUT IN OUT HI LO\n"
+            },
+            {
+              "original_byte_offset": 132,
+              "text": "ends Intake_DUT\n"
+            }
+          ],
+          "original_bytes_preserved": true,
+          "scope": "new isolated inverter experiment; original source had no subcircuit wrapper"
+        },
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a"
+      },
+      "job": {
+        "schema": "ic.experiment.job.v1",
+        "project_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+        "plan_id": "10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+        "job_id": "20261123T074039Z-9ff0707bcb-836b0307",
+        "run_id": "20261123T074039Z-9ff0707bcb-836b0307",
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+        "configuration": "inverter-tran",
+        "state": "queued",
+        "launch_attempts": 0,
+        "execution_target": "synthetic-new-host",
+        "automatic_retry": false
+      },
+      "plans": [
+        {
+          "plan_id": "10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+          "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+          "project_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+          "recipe_id": "inverter-tran",
+          "submission_key": "experiment-10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+          "dispatch_outcome": "recorded",
+          "job_id": "20261123T074039Z-9ff0707bcb-836b0307"
+        }
+      ]
+    },
+    "inspect": {
+      "schema": "ic.onboarding.session.v1",
+      "connection_id": "d1be1cfb8afcc494e3d95170f6ce2e46",
+      "intake_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+      "revision": 5,
+      "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+      "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+      "state": "submitted",
+      "created_at": "2026-11-23T07:40:38.986845+00:00",
+      "updated_at": "2026-11-23T07:40:39.655057+00:00",
+      "source": {
+        "file_name": "user-input.scs",
+        "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+        "requirements": {
+          "schema": "spiceowl.netlist-model-requirements.v1",
+          "source_id": "user-input.scs",
+          "source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "status": "parsed",
+          "instances": [
+            {
+              "name": "A",
+              "master": "device_alpha",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "2u",
+                  "value_m": 2e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 2,
+              "polarity": null,
+              "terminal_semantics": null
+            },
+            {
+              "name": "B",
+              "master": "device_beta",
+              "ordered_nets": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "port_count": 4,
+              "dimensions": {
+                "w": {
+                  "literal": "3u",
+                  "value_m": 3e-06,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                },
+                "l": {
+                  "literal": "200n",
+                  "value_m": 2.0000000000000002e-07,
+                  "language": "spectre",
+                  "evaluated_expression": false
+                }
+              },
+              "line": 3,
+              "polarity": null,
+              "terminal_semantics": null
+            }
+          ],
+          "interfaces": [],
+          "required_masters": [
+            "device_alpha",
+            "device_beta"
+          ],
+          "issues": [],
+          "confirmation_required": [
+            "model_polarity",
+            "terminal_semantics",
+            "experiment_intent"
+          ],
+          "dimensions_scope": "source literals only; model scale and legal dimensions are unknown"
+        }
+      },
+      "input_provenance": [
+        {
+          "kind": "netlist",
+          "origin": "test_harness",
+          "sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559"
+        },
+        {
+          "kind": "ssh_selection",
+          "origin": "test_harness",
+          "ssh_targets": [
+            "synthetic-new-host"
+          ],
+          "setup_source_ids": {}
+        },
+        {
+          "kind": "pdk_search",
+          "origin": "test_harness",
+          "probe_ids": [
+            "probe_19dea95ce1e2121cf15e77e14021e4dc"
+          ],
+          "explicit_search_paths": [],
+          "search_directory_ids": [],
+          "explicit_cds_lib_hint": null
+        },
+        {
+          "kind": "experiment_selection",
+          "origin": "test_harness",
+          "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+          "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+          "intent": {
+            "supply_v": 1.0,
+            "frequency_hz": 1000000000.0,
+            "temperature_c": 27,
+            "nominal_temperature_c": 27,
+            "input_port": "IN",
+            "output_port": "OUT",
+            "vdd_port": "HI",
+            "vss_port": "LO",
+            "cycles": 2,
+            "load_f": 1e-15,
+            "rise_s": 1e-11,
+            "fall_s": 1e-11,
+            "points_per_period": 100
+          },
+          "sections": [
+            "typical"
+          ],
+          "tmi_candidate_id": null,
+          "explicit_model_contracts": {}
+        }
+      ],
+      "probes": [
+        {
+          "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+          "ssh_target": "synthetic-new-host",
+          "observed_at": "2026-11-23T07:40:38.991586+00:00",
+          "environment": {
+            "schema": "spiceowl.server-environment.v1",
+            "alias": "synthetic-new-host",
+            "state": "observed",
+            "transport": "reachable",
+            "identity": {
+              "observed": true,
+              "verified": false
+            },
+            "tools": [
+              {
+                "kind": "spectre",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ],
+            "licenses": [
+              {
+                "name": "CDS_LIC_FILE",
+                "configured": true,
+                "usable": "unknown"
+              }
+            ]
+          }
+        }
+      ],
+      "discovery": {
+        "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+        "candidates": [
+          {
+            "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "label": "entry.scs",
+            "entry_role": "definition_only",
+            "available_sections": [
+              null,
+              "typical"
+            ],
+            "section_candidates": [
+              "typical"
+            ],
+            "master_coverage": [
+              "device_alpha",
+              "device_beta"
+            ],
+            "model_contracts": [
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 5,
+                    "name": "device_alpha",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 6,
+                    "master": "core_n",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 3,
+                    "name": "core_n",
+                    "section": "typical",
+                    "type_literal": "n",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_alpha",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "n",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              },
+              {
+                "confidence": "verified",
+                "evidence": [
+                  {
+                    "kind": "declaration",
+                    "line": 8,
+                    "name": "device_beta",
+                    "section": "typical",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "kind": "direct_instance",
+                    "line": 9,
+                    "master": "core_p",
+                    "name": "M0",
+                    "ordered_nets": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ],
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  },
+                  {
+                    "evidence_rule": "explicit_supported_mos_type",
+                    "family": "bsim4",
+                    "line": 4,
+                    "name": "core_p",
+                    "section": "typical",
+                    "type_literal": "p",
+                    "file_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed"
+                  }
+                ],
+                "name": "device_beta",
+                "needs_confirmation": false,
+                "ordered_terminal_roles": [
+                  "d",
+                  "g",
+                  "s",
+                  "b"
+                ],
+                "polarity": "p",
+                "reason": "single_mos_bijective_wrapper",
+                "scope": "static source contract only; no simulator or process qualification"
+              }
+            ],
+            "tmi_candidates": [],
+            "evidence": {
+              "entry_sha256": "ed44e76ddddcd91446c2b1f15b143036bcc60f15d12c0692dd4fc0e2d99033ed",
+              "file_count": 1,
+              "coverage_complete": true
+            },
+            "missing": [],
+            "ready_to_run": false
+          }
+        ],
+        "ambiguities": [],
+        "missing": [],
+        "coverage": [
+          {
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "search_complete": true,
+            "status": "candidates",
+            "file_count": 1,
+            "bytes_read": 240,
+            "unknown_count": 0,
+            "results_omitted": false,
+            "summary": null,
+            "phase": null,
+            "transport": null,
+            "unknown_codes": []
+          }
+        ],
+        "search_directories": [
+          {
+            "directory_id": "6938ea9209cdd63fea5a58818d80ad5d28d15440eef3ef7c609d698ccf1c97ef",
+            "probe_id": "probe_19dea95ce1e2121cf15e77e14021e4dc",
+            "label": "new-synthetic-models/.",
+            "basis": [
+              "contains_candidate_model_files"
+            ],
+            "scanned": true,
+            "qualified": false
+          }
+        ],
+        "selection_made": false,
+        "simulation_started": false
+      },
+      "prepared": {
+        "schema": "ic.experiment.plan.v1",
+        "state": "prepared",
+        "project_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+        "recipe_id": "inverter-tran",
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+        "plan_id": "10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+        "missing": [],
+        "dependency_summary": {
+          "file_count": 1,
+          "pre_pinned": true
+        },
+        "qualification_scope": {
+          "scope_id": "inverter-tran",
+          "manifest_sha256": "e9dddea595c1f8467aaa72ac913939cc816e1c65ba7444cde936abcd92ef0e26",
+          "frozen_before_execution": true,
+          "checks": [
+            "soa_voltage",
+            "model_parameter_range"
+          ]
+        },
+        "source": {
+          "mode": "cell",
+          "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+          "subcircuit": "Intake_DUT",
+          "ports": [
+            "IN",
+            "OUT",
+            "HI",
+            "LO"
+          ],
+          "sources": [
+            {
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "bytes": 179,
+              "includes": [],
+              "global_parameters": {}
+            }
+          ],
+          "instances": [
+            {
+              "instance": "A",
+              "master": "device_alpha",
+              "terminals": [
+                "OUT",
+                "IN",
+                "LO",
+                "LO"
+              ],
+              "parameters_literal": {
+                "w": "2u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 3,
+              "line_end": 3,
+              "byte_start": 54,
+              "byte_end": 109,
+              "sha256": "1c7c8e45f7f83e9ba44ba0f25d3d20aa745366d69ff76583a999723d3f4703d8",
+              "original_text": "A (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\n"
+            },
+            {
+              "instance": "B",
+              "master": "device_beta",
+              "terminals": [
+                "OUT",
+                "IN",
+                "HI",
+                "HI"
+              ],
+              "parameters_literal": {
+                "w": "3u",
+                "l": "200n",
+                "nf": "1",
+                "multi": "1"
+              },
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 4,
+              "line_end": 4,
+              "byte_start": 109,
+              "byte_end": 163,
+              "sha256": "515cbf10f8ff7b36513a95bd944711933f1da6b84af11080e9d2213f182bb1a1",
+              "original_text": "B (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\n"
+            }
+          ],
+          "closure": [
+            {
+              "subcircuit": "Intake_DUT",
+              "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+              "source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+              "line_start": 2,
+              "line_end": 5,
+              "byte_start": 23,
+              "byte_end": 179,
+              "sha256": "605eca826860f273c6586329103409afb3d5a3eacd891ca99942650e5704807a",
+              "original_text": "subckt Intake_DUT IN OUT HI LO\nA (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\nB (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\nends Intake_DUT\n"
+            }
+          ],
+          "source_directives_emitted": false
+        },
+        "submission_key": "experiment-10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b"
+      },
+      "selection": {
+        "discovery_id": "discovery_af6823090c1a46a404a8a73254f05d47",
+        "candidate_id": "4e8cf53deb37aae641f106b819487a5295708324dd529f43c1aac2bcd16da602",
+        "sections": [
+          "typical"
+        ],
+        "tmi_candidate_id": null,
+        "model_contracts": {},
+        "intent": {
+          "supply_v": 1.0,
+          "frequency_hz": 1000000000.0,
+          "temperature_c": 27,
+          "nominal_temperature_c": 27,
+          "input_port": "IN",
+          "output_port": "OUT",
+          "vdd_port": "HI",
+          "vss_port": "LO",
+          "cycles": 2,
+          "load_f": 1e-15,
+          "rise_s": 1e-11,
+          "fall_s": 1e-11,
+          "points_per_period": 100
+        }
+      },
+      "execution_scope": {
+        "selected_ssh_targets": [
+          "synthetic-new-host"
+        ],
+        "candidate_host_ids": [
+          "synthetic-new-host"
+        ],
+        "selection_mode": "automatic_within_selected_hosts",
+        "resource_check_at_run": true,
+        "excluded_before_preparation": []
+      },
+      "source_mapping": {
+        "source_id": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+        "original_source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+        "compiled_source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+        "transformation": "added_explicit_subcircuit_wrapper",
+        "wrapper": {
+          "added": true,
+          "subcircuit": "Intake_DUT",
+          "transformation": "added_explicit_subcircuit_wrapper",
+          "insertions": [
+            {
+              "original_byte_offset": 23,
+              "text": "subckt Intake_DUT IN OUT HI LO\n"
+            },
+            {
+              "original_byte_offset": 132,
+              "text": "ends Intake_DUT\n"
+            }
+          ],
+          "original_bytes_preserved": true,
+          "scope": "new isolated inverter experiment; original source had no subcircuit wrapper"
+        },
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a"
+      },
+      "job": {
+        "schema": "ic.experiment.job.v1",
+        "project_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+        "plan_id": "10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+        "job_id": "20261123T074039Z-9ff0707bcb-836b0307",
+        "run_id": "20261123T074039Z-9ff0707bcb-836b0307",
+        "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+        "configuration": "inverter-tran",
+        "state": "queued",
+        "launch_attempts": 0,
+        "execution_target": "synthetic-new-host",
+        "automatic_retry": false,
+        "inspection_state": "working",
+        "waveforms": {
+          "schema": "ic.onboarding.waveform-descriptor.v1",
+          "intake_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+          "job_id": "20261123T074039Z-9ff0707bcb-836b0307",
+          "run_id": "20261123T074039Z-9ff0707bcb-836b0307",
+          "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+          "archive_sha256": null,
+          "original_source_sha256": "4a72f50e4b63d39849bc393e22c704e10afcc82716efd8ece75198c601099559",
+          "compiled_source_sha256": "cd73cce34afa018f35026d4f18a6a551455ac8f9a4e8113b0c653d8c5c1fb85e",
+          "compiled_source_path": "projects/intake_b6090bf74c51caeb3b85a2e3cefc18dd/input.scs",
+          "transformation": "added_explicit_subcircuit_wrapper",
+          "available": false,
+          "source_binding_verified": false,
+          "available_signal_ids": [],
+          "read_only": true,
+          "probe": {
+            "enabled": false,
+            "reason": "current_geometry_context_unverified",
+            "current_geometry_context_verified": false
+          },
+          "unavailable_reason": "not_extracted"
+        }
+      },
+      "plans": [
+        {
+          "plan_id": "10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+          "source_commit": "9ff0707bcb6b71171ddd4df425b14e14c21a493a",
+          "project_id": "intake_b6090bf74c51caeb3b85a2e3cefc18dd",
+          "recipe_id": "inverter-tran",
+          "submission_key": "experiment-10e4348c5de64f4b336a07db43bcee576bf9108359dcb2d9480e4dac853b0a4b",
+          "dispatch_outcome": "recorded",
+          "job_id": "20261123T074039Z-9ff0707bcb-836b0307"
+        }
+      ]
+    }
+  }
+}

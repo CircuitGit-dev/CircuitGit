@@ -27,6 +27,7 @@ function parameterValues(source){
   }
   return dimensions.flatMap(name=>typeof values.get(name)==='string'?[{name,value:values.get(name)}]:[]);
 }
+export {parameterValues as literalDimensions};
 
 export function selectedInstanceProperties(document,index){
   const object=document?.objects?.[index];

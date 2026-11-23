@@ -117,8 +117,11 @@ def assignments(text,values,kind):
 class Workspace:
     def __init__(self,cfg,site,signing_key):
         self.cfg=cfg;self.site=site;self.key=signing_key;self.runtime=Path(cfg['runtime_root']).resolve();self.root=self.runtime/'workspace';self.frozen=self.runtime/'frozen';self.frozen.mkdir(parents=True,exist_ok=True)
-        self.repo=cfg['github_repo'];self.branch=cfg.get('runtime_branch','codex/gateway-session');self.base_branch=cfg.get('base_branch','main')
-        if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',self.repo) or any(x in ['.','..'] for x in self.repo.split('/')):raise ValueError('invalid installed repository allowlist')
+        self.local_only=cfg.get('local_only') is True
+        self.repo=cfg.get('github_repo');self.branch=cfg.get('runtime_branch','codex/gateway-session');self.base_branch=cfg.get('base_branch','main')
+        if self.local_only:
+            if self.repo is not None or cfg.get('source_repository'):raise ValueError('Local intake cannot borrow a remote repository or another source workspace')
+        elif not isinstance(self.repo,str) or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',self.repo) or any(x in ['.','..'] for x in self.repo.split('/')):raise ValueError('invalid installed repository allowlist')
         for branch in [self.branch,self.base_branch]:
             if not re.fullmatch(r'[A-Za-z0-9_/-]+',branch) or '..' in branch:raise ValueError('invalid configured branch')
         if not self.branch.startswith('codex/'):raise ValueError('runtime branch must be an isolated codex/ branch')
@@ -127,8 +130,12 @@ class Workspace:
                 seed=Path(cfg['seed_repo']).resolve()
                 p=subprocess.run(['git','clone','--no-hardlinks','--no-local',str(seed),str(self.root)],capture_output=True)
                 if p.returncode:raise ValueError('runtime clone failed: '+p.stderr.decode())
-                git(self.root,'remote','set-url','origin','https://github.com/'+self.repo+'.git');git(self.root,'checkout','-b',self.branch)
-            if git(self.root,'remote','get-url','origin').stdout.decode().strip()!='https://github.com/'+self.repo+'.git':raise ValueError('runtime origin does not match pinned repository')
+                if self.local_only:git(self.root,'remote','remove','origin')
+                else:git(self.root,'remote','set-url','origin','https://github.com/'+self.repo+'.git')
+                git(self.root,'checkout','-b',self.branch)
+            if self.local_only:
+                if git(self.root,'remote').stdout.strip():raise ValueError('Local intake workspace must not have a remote')
+            elif git(self.root,'remote','get-url','origin').stdout.decode().strip()!='https://github.com/'+self.repo+'.git':raise ValueError('runtime origin does not match pinned repository')
         self.source_repository=None
         if cfg.get('source_repository'):
             source=Path(cfg['source_repository']).expanduser().resolve()
@@ -167,7 +174,7 @@ class Workspace:
     def describe(self):
         projects=[{'id':p['id'],'name':p.get('name',p['id']),**project_metadata(p),'source_path':p['source_path'],'configurations':[{'id':c['id'],'name':c.get('name',c['id']),'path':c['configuration_path']} for c in p['configurations']]} for p in self.projects.values()]
         tracking=git(self.root,'rev-parse','--abbrev-ref','--symbolic-full-name','@{u}',check=False).stdout.decode().strip() or 'origin/'+self.base_branch
-        return {'repo':self.repo,'branch':self.branch,'tracking_branch':tracking,'source_commit':self.head(),'clean':self.clean(),'dirty':not self.clean(),'projects':projects,'active_project':projects[0]['id'] if projects else None,'capabilities':{'git':True,'runner':True,'publish':True,'viewer':False}}
+        return {'repo':self.repo,'branch':self.branch,'tracking_branch':None if self.local_only else tracking,'source_commit':self.head(),'clean':self.clean(),'dirty':not self.clean(),'projects':projects,'active_project':projects[0]['id'] if projects else None,'capabilities':{'git':True,'runner':True,'publish':not self.local_only,'viewer':False}}
     def tree(self,project_id):
         if project_id not in self.projects:raise FileNotFoundError('unknown project')
         p=self.projects[project_id];paths={p['source_path'],*[c['configuration_path'] for c in p['configurations']],*p.get('read_paths',[]),*[r['source'] for c in p['configurations'] for r in c.get('source_replacements',[])]}
@@ -503,6 +510,7 @@ class Workspace:
             if push:self.push();result['push_status']='confirmed'
             return result
     def private_repo(self):
+        if self.local_only:raise PermissionError('Local intake has no publication destination')
         gh=self.cfg.get('gh_bin','gh');p=subprocess.run([gh,'api','repos/'+self.repo],capture_output=True)
         if p.returncode:raise ValueError('GitHub repository lookup failed')
         if json.loads(p.stdout).get('private') is not True:raise ValueError('refusing non-private repository')
@@ -511,6 +519,7 @@ class Workspace:
         remote=git(self.root,'ls-remote','origin','refs/heads/'+self.branch).stdout.decode().split()
         if not remote or remote[0]!=self.head():raise Conflict('push outcome not confirmed; do not repeat blindly')
     def sync(self):
+        if self.local_only:raise PermissionError('Local intake has no remote to synchronize')
         with locked(self.runtime/'workspace.lock'):
             if not self.clean():raise Conflict('cannot sync dirty workspace')
             exists=git(self.root,'ls-remote','--heads','origin','refs/heads/'+self.branch).stdout

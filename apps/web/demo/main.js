@@ -2,7 +2,7 @@ import {createLayout} from '../studio/layout.js';
 import {whenVisible} from '../studio/lazy-slot.js';
 import {openSource,showBuilt,adoptSource,isLoading} from '../vendor/rnl-viewer/open.js';
 import {doc,current,selected} from '../vendor/rnl-viewer/state.js';
-import {dirtyPaths,unappliedPaths,resetBuffers} from '../vendor/rnl-viewer/edits.js';
+import {dirtyPaths,unappliedPaths,resetBuffers,hasBuffer,fileText} from '../vendor/rnl-viewer/edits.js';
 import {shell} from '../vendor/rnl-viewer/shell.js';
 import {sourceOpened} from '../vendor/rnl-viewer/pool.js';
 import {previewing} from '../vendor/rnl-viewer/solve.js';
@@ -15,6 +15,7 @@ import {reference,referenceWindow} from './reference.js';
 import {mountLibraryManager} from '../library/panel.js';
 import {createLibraryClient} from '../library/model.js';
 import {createLibraryBridge} from '../remote/library-bridge.js';
+import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
 import {confirmLeave} from '../vendor/rnl-viewer/editor.js';
 import {enterRoot} from '../vendor/rnl-viewer/subcircuits.js';
 
@@ -33,7 +34,7 @@ function download(name,text,type='text/plain') {
 }
 function section(root,html){root.replaceChildren();const e=document.createElement('div');e.className='demo-section';e.innerHTML=html;root.append(e);return e;}
 function dialog(title,content) {
-  const d=document.createElement('dialog');d.className='demo-dialog';const h=document.createElement('h2');h.textContent=title;
+  const d=document.createElement('dialog');d.className='demo-dialog';d.setAttribute('aria-label',title);const h=document.createElement('h2');h.textContent=title;
   const close=document.createElement('button');close.textContent='关闭';close.onclick=()=>{d.close();d.remove();};
   d.append(h,content,close);document.body.append(d);d.addEventListener('cancel',()=>d.remove(),{once:true});d.showModal();return d;
 }
@@ -55,7 +56,7 @@ export async function mountStudio({ui:providedUI}={}) {
   const fav=document.createElement('link');fav.rel='icon';fav.type='image/svg+xml';fav.href=new URL('../branding/circuitgit-small.svg',import.meta.url);document.head.append(fav);
   const baseText=await fetch(new URL('./rc.scs',import.meta.url)).then(r=>{if(!r.ok)throw Error('RC example unavailable');return r.text();});
   let source=baseText,hash=await sha256(source),points=null,plotController=null,mode='none';
-  let activeLibrary=null,versionSelection=null,libraryVersions=null,switching=false,waveformMount=null,referenceObserver=null;
+  let activeLibrary=null,versionSelection=null,libraryVersions=null,switching=false,waveformMount=null,referenceObserver=null,onboardingWaves=false,onboardingWaveEpoch=0;
   let loadedWatch=null,hotTask=null,hotController=null,hotQueued=false,hotDeferred=false,hotNotice='';
   let parameters={resistance:1000,capacitance:1e-12,stop:12e-9};
   const listeners=new Set();
@@ -76,13 +77,37 @@ export async function mountStudio({ui:providedUI}={}) {
     getRuns:()=>referenceActive()?jobs:[],refresh:async()=>{},selectRun:async id=>{requireReference(id);context.run={runId:id};emit();},
     plot:{attach(controller){plotController=controller;controller.setPlotMode(mode);return()=>controller.destroy();}}};
   host.libraryBridge=createLibraryBridge();
+  host.onboarding=createOnboardingBridge({win:window});
+  host.getOnboardingSource=()=>snapshotOnboardingSource(doc,{hasBuffer,fileText});
+  host.prepareOnboardingWaveformSlot=()=>{stopReference();onboardingWaves=true;ui.slots.waveforms.setVisible(true);};
+  host.openOnboardingWaveforms=async payload=>{
+    const generation=++onboardingWaveEpoch;
+    const {openOnboardingWaveforms}=await import('../remote/onboarding-waveforms.js');
+    if(generation!==onboardingWaveEpoch)return null;
+    const waveformHost={...host,prepareOnboardingWaveformSlot(){if(generation!==onboardingWaveEpoch)throw Error('波形打开请求已被新的选择取代。');host.prepareOnboardingWaveformSlot();}};
+    const handle=await openOnboardingWaveforms(waveformHost,payload);
+    if(generation!==onboardingWaveEpoch){handle?.destroy();return null;}
+    waveformMount=handle;return handle;
+  };
+  window.addEventListener('pagehide',()=>host.onboarding.disconnect(),{once:true});
+  let environmentRoot=null,environmentDialog=null,environmentMount=null;
+  async function showEnvironment(){
+    if(environmentDialog?.isConnected&&environmentDialog.open){environmentDialog.focus();return;}
+    if(!environmentRoot){environmentRoot=document.createElement('section');environmentRoot.className='ic-sim-panel';const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('../../../modules/simulation/style.css',import.meta.url);document.head.append(style);}
+    environmentDialog=dialog('连接仿真环境',environmentRoot);
+    if(!environmentMount){
+      environmentRoot.textContent='正在打开环境配置…';
+      environmentMount=import('../../../modules/simulation/environment/panel.js').then(({mountEnvironmentWizard})=>mountEnvironmentWizard(environmentRoot,{adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,notify:ui.notify,onRun:job=>ui.notify('仿真请求已登记：'+(job.job_id||job.run_id||'')+'；请在环境页查看原任务进度。')})).catch(error=>{environmentMount=null;environmentRoot.textContent='环境配置加载失败：'+error.message;throw error;});
+    }
+    await environmentMount;
+  }
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
-    if(waveformMount||!referenceActive())return;
+    if(waveformMount||!referenceActive()||onboardingWaves)return;
     if(waveMountTask)return waveMountTask;
     waveMountTask=(async()=>{
       waveModule ||= await import('../studio/dockview/waveforms.js');
-      if(!referenceActive()||waveformMount)return;
+      if(!referenceActive()||waveformMount||onboardingWaves)return;
       waveformMount=waveModule.mount(host,{api,labels:{loaded:'已加载浏览器计算的 RC 解析参考；不是 Spectre 仿真结果。',
         catalog:'RC 解析参考信号（浏览器计算，非 PSF 导出）。',provenance:'Piecewise-linear RC analytical reference · no Spectre execution',
         measurement:'RC 解析参考 / 线性插值',dataNote:'RC 一阶方程的分段线性输入解析解；每 5 ps 取样。显示使用保峰抽样，游标使用完整参考向量。'}});
@@ -94,14 +119,15 @@ export async function mountStudio({ui:providedUI}={}) {
   const showWaves=shown=>{if(shown)void mountReferenceWaves().catch(panelError);};
   ui.slots.waveforms.onVisibility?.(showWaves);showWaves(ui.slots.waveforms.isVisible());
 
-  function setMode(value){if(value!=='none'&&!referenceActive())throw Error('此库视图没有关联波形。');mode=value;plotController?.setPlotMode(value);$('studio-plot-state').hidden=value==='none';$('studio-plot-state').textContent=value==='voltage'?'电压探针 · Esc退出':value==='current'?'电流探针 · R0 端口1 · Esc退出':'';}
-  for(const [value,label] of [['voltage','电压探针：点击 in / out'],['current','电流探针：点击 R0']])register({id:'plot.'+value,menu:'plot',label,enabled:()=>referenceActive(),run:async()=>{if(!referenceActive())throw Error('此库视图没有关联波形。');ui.slots.waveforms.setVisible(true);await mountReferenceWaves();if(!referenceActive()||!plotController)return;plotController.openWindow();setMode(value);ui.notify(label);},checked:()=>mode===value});
+  function setMode(value){if(value!=='none'&&(!referenceActive()||onboardingWaves))throw Error('当前波形未建立电路节点映射，请从信号列表添加曲线。');mode=value;plotController?.setPlotMode(value);$('studio-plot-state').hidden=value==='none';$('studio-plot-state').textContent=value==='voltage'?'电压探针 · Esc退出':value==='current'?'电流探针 · R0 端口1 · Esc退出':'';}
+  for(const [value,label] of [['voltage','电压探针：点击 in / out'],['current','电流探针：点击 R0']])register({id:'plot.'+value,menu:'plot',label,enabled:()=>referenceActive()&&!onboardingWaves,run:async()=>{if(!referenceActive()||onboardingWaves)throw Error('当前波形未建立电路节点映射。');ui.slots.waveforms.setVisible(true);await mountReferenceWaves();if(!referenceActive()||!plotController)return;plotController.openWindow();setMode(value);ui.notify(label);},checked:()=>mode===value});
   register({id:'plot.exit',menu:'plot',label:'退出探针 (Esc)',run:()=>setMode('none')});
   register({id:'window.reset',menu:'window',label:'恢复默认布局',run:()=>ui.resetLayout()});
   register({id:'git.history',menu:'git',label:'电路版本管理',run:async()=>{ui.slots.versions.setVisible(true);const versions=await versionLoader.ensure();await versions.activate();}});
   register({id:'project.source',menu:'project',label:'查看 / 下载示例网表',run:()=>showSource()});
   register({id:'simulation.export',menu:'simulation',label:'导出仿真配置 JSON',enabled:()=>referenceActive(),run:()=>exportConfiguration()});
   register({id:'simulation.local',menu:'simulation',label:'如何连接本地仿真',run:()=>showGuide()});
+  register({id:'simulation.environment',menu:'simulation',label:'连接仿真环境…',run:showEnvironment});
   register({id:'window.help.demo',menu:'help',label:'CircuitGit 演示与本地使用',run:()=>showGuide()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&mode!=='none'){setMode('none');ui.notify('已退出探针。');}});
   window.addEventListener('viewer-selection',()=>{
@@ -118,7 +144,7 @@ export async function mountStudio({ui:providedUI}={}) {
     <div class="demo-fields"><label>电阻 R (Ω)<input id="demo-r" type="number" min="1" max="1000000" value="1000"></label><label>电容 C (pF)<input id="demo-c" type="number" min="0.01" max="1000" step="0.1" value="1"></label><label>终止时间 (ns)<input id="demo-stop" type="number" min="2" max="50" value="12"></label></div>
     <div class="demo-actions"><button id="demo-update" class="primary">更新参考曲线</button><button id="demo-export">导出配置</button></div>
     <h3>保存与查看的信号</h3><span class="demo-signal">V(in) · V(out)</span><span class="demo-signal">I(R0:1) · 流入 R0 端口 1</span>
-    <h3>当前数据</h3><p id="demo-basis">R = 1 kΩ · C = 1 pF · τ = 1 ns</p><p>波形由 RC 方程在浏览器计算，未提交仿真任务。</p><button id="demo-guide">连接本地 Spectre / AI →</button>`);
+    <h3>当前数据</h3><p id="demo-basis">R = 1 kΩ · C = 1 pF · τ = 1 ns</p><p>波形由 RC 方程在浏览器计算，未提交仿真任务。</p><button id="demo-guide">连接仿真环境 →</button>`);
   function readParameters(){const r=Number($('demo-r').value),c=Number($('demo-c').value),stop=Number($('demo-stop').value);
     if(!Number.isFinite(r)||r<1||r>1e6||!Number.isFinite(c)||c<.01||c>1000||!Number.isFinite(stop)||stop<2||stop>50)throw Error('参数范围：R 1–1000000 Ω，C 0.01–1000 pF，时间 2–50 ns。');
     return {resistance:r,capacitance:c*1e-12,stop:stop*1e-9};}
@@ -132,7 +158,7 @@ export async function mountStudio({ui:providedUI}={}) {
       $('demo-basis').textContent=`R = ${p.resistance} Ω · C = ${Number((p.capacitance*1e12).toPrecision(6))} pF · τ = ${Number((p.resistance*p.capacitance*1e9).toPrecision(5))} ns`;
       ui.notify('参考曲线已更新；在波形列表中重新选择要查看的信号。');
     }finally{$('demo-update').disabled=false;}}
-  $('demo-update').onclick=()=>rebuild().catch(e=>ui.notify(e.message,{kind:'error'}));$('demo-export').onclick=()=>{try{exportConfiguration();}catch(e){ui.notify(e.message,{kind:'error'});}};$('demo-guide').onclick=showGuide;
+  $('demo-update').onclick=()=>rebuild().catch(e=>ui.notify(e.message,{kind:'error'}));$('demo-export').onclick=()=>{try{exportConfiguration();}catch(e){ui.notify(e.message,{kind:'error'});}};$('demo-guide').onclick=()=>void showEnvironment().catch(panelError);
   function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=activeLibrary?activeLibrary.bundle.text:source;dialog(activeLibrary?activeLibrary.cell.name+' · '+activeLibrary.view.label:'RC 示例网表 · 含固定 RNL 布局',area);}
   function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p>本页直接运行 RNL Viewer、Dockview 和共享波形组件，可拖动、关闭、浮动及放回面板。</p><p>Plot → 电压探针，点击 in 或 out；电流探针可查看 R0 端口 1。波形支持滚轮、拖动、F 适配，M 查看测量。</p><p>AI 面板点击“连接本机 Codex”，在本机助手弹窗中确认授权后即可检查登录；未登录时可继续打开官方登录页。首次需要启动项目包中的连接助手。自己的服务器可在“高级”设置中连接。原理图与波形仍是公开 RC 示例；AI 工程以助手返回的身份为准。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">首次配置 Codex 运行节点 ↗</a></p><p>需要完整本地工程界面时，可启动自己的网关并配置授权 Cadence 环境：</p><pre>git clone ${REPO}.git
 cd CircuitGit
@@ -142,6 +168,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
   register({id:'project.library',menu:'project',label:'Library Manager…',run:()=>libraryManager.show()});
   register({id:'project.reference',menu:'project',label:'返回 RC 解析参考',run:openReference});
   function stopReference(){
+    onboardingWaves=false;
     setMode('none');referenceObserver?.disconnect();referenceObserver=null;waveformMount?.destroy();waveformMount=null;plotController=null;
     const root=ui.slots.waveforms.element;root.replaceChildren();root.classList.remove('wf-panel','wf-minimal');root.removeAttribute('title');root.setAttribute('aria-label','库视图的数据状态');
     const empty=document.createElement('section');empty.className='cg-library-empty-wave';
@@ -154,14 +181,15 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     const dependency=document.createElement('p');dependency.textContent=value.cell.requires_external_models?'重放可能需要外部模型。请查看单元说明和已有配置。':'重放要求以单元说明和已有配置为准。';
     const ai=document.createElement('p');ai.textContent='AI 使用连接节点返回的工程身份；此公开库选择不会切换 AI 工程。';
     const browse=document.createElement('button');browse.type='button';browse.textContent='查看库视图与说明';browse.onclick=()=>libraryManager.show();
+    const environment=document.createElement('button');environment.type='button';environment.textContent='连接仿真环境';environment.onclick=()=>void showEnvironment().catch(panelError);
     const back=document.createElement('button');back.type='button';back.textContent='回到 RC 参考';back.onclick=()=>void openReference().catch(e=>ui.notify(e.message,{kind:'error'}));
-    box.append(title,name,evidence,dependency,ai,browse,document.createTextNode(' '),back);ui.slots.simulation.element.replaceChildren(box);
+    box.append(title,name,evidence,dependency,ai,environment,document.createTextNode(' '),browse,document.createTextNode(' '),back);ui.slots.simulation.element.replaceChildren(box);
   }
   async function openLibrary(value){
     if(switching)return false;
     if(!await confirmLeave('打开公开库视图'))return false;
     hotController?.abort();loadedWatch?.();loadedWatch=null;
-    switching=true;activeLibrary=value;versionSelection=value;stopReference();libraryInformation(value);
+    ++onboardingWaveEpoch;switching=true;activeLibrary=value;versionSelection=value;stopReference();libraryInformation(value);
     $('studio-project').replaceChildren(new Option(value.library.name,value.library.id));$('studio-entry').replaceChildren(new Option(value.cell.name+' / '+value.view.label,value.view.entry));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
     context={project:{id:(value.origin==='working'?'local-library:':'public-library:')+value.library.id+':'+value.cell.id,sourceCommit:value.origin==='working'?value.base_commit:null,libraryId:value.library.id,cellId:value.cell.id},run:null,selection:null,loading:true,loadState:'loading',file:{path:value.bundle.source.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};emit();
     ui.setNativeState({loading:true,hidden:false});$('studio-native-note').textContent='读取公开库视图…';
@@ -182,7 +210,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     if(switching)return false;
     if(!await confirmLeave('返回 RC 解析参考'))return false;
     hotController?.abort();loadedWatch?.();loadedWatch=null;
-    switching=true;stopReference();context={...context,run:null,selection:null,loading:true};emit();ui.setNativeState({loading:true,hidden:false});
+    ++onboardingWaveEpoch;switching=true;stopReference();context={...context,run:null,selection:null,loading:true};emit();ui.setNativeState({loading:true,hidden:false});
     try{
       const opened=await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false,undefined,false,null,null,true);
       if(!opened||!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
@@ -273,7 +301,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
   // Auto-show two voltage references after the shared catalog has loaded.
   function showReferenceTraces(){
     referenceObserver?.disconnect();
-    const ready=()=>{if(!referenceActive())return true;const buttons=ui.slots.waveforms.element.querySelectorAll('[data-signal-id]');if(buttons.length>=2){buttons[0].click();buttons[1].click();return true;}return false;};
+    const ready=()=>{if(!referenceActive()||onboardingWaves)return true;const buttons=ui.slots.waveforms.element.querySelectorAll('[data-signal-id]');if(buttons.length>=2){buttons[0].click();buttons[1].click();return true;}return false;};
     if(!ready()){const observer=new MutationObserver(()=>{if(ready())observer.disconnect();});referenceObserver=observer;observer.observe(ui.slots.waveforms.element,{subtree:true,childList:true});setTimeout(()=>observer.disconnect(),10000);}
   }
   showReferenceTraces();

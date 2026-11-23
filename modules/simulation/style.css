@@ -17,7 +17,7 @@
 .ic-sim-config-selector .ic-sim-field{flex:1;margin:0;grid-template-columns:auto minmax(0,1fr)}
 .ic-sim-config-selector>button{flex-shrink:0}
 .ic-sim-panel .ic-sim-project{margin-top:5px;color:var(--sim-muted);font-size:10px}
-.ic-sim-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:3px;margin:13px 0;background:var(--sim-wash);border:1px solid var(--sim-line);border-radius:6px}
+.ic-sim-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:3px;margin:13px 0;background:var(--sim-wash);border:1px solid var(--sim-line);border-radius:6px}
 .ic-sim-panel .ic-sim-nav button{padding:6px 4px;background:transparent;border-color:transparent;color:var(--sim-muted)}
 .ic-sim-panel .ic-sim-nav button.is-active{color:var(--sim-blue);background:white;border-color:var(--sim-line);font-weight:650;box-shadow:0 1px 2px #23384b08}
 .ic-sim-page{display:grid;gap:12px}

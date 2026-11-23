@@ -28,6 +28,9 @@ POST_ROUTES = {'sessions', 'sessions/rename', 'sessions/delete', 'connect',
                'resume', 'turn', 'approval', 'interrupt', 'doctor', 'auth/login', 'development/settings-request'}
 LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/review-request', '/api/library/execute'}
 SIMULATION_ROUTE = '/api/simulation/execute'
+ONBOARDING_PREFIX = '/api/simulation/onboarding/'
+ONBOARDING_READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window'}
+ONBOARDING_WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect'}
 
 def node_config(config_path=None, gateway_url='http://127.0.0.1:8766', state_dir=None, codex_bin=None):
     config = load_config(config_path) if config_path else {'gateway_url': gateway_url}
@@ -97,16 +100,20 @@ class Node:
         self.development = None
         self.library = None
         self.simulation = None
+        self.onboarding = None
 
     def info(self):
         return {'schema': 'circuitgit.remote-node.v1', 'node_id': self.node_id,
                 'name': self.label, 'single_owner': True,
-                'auth': 'bearer', 'account_source': 'operator-configured Codex runtime',
-                'capabilities': {'chat': True, 'projects': True, 'approvals': True,
+                'auth': 'bearer', 'account_source': 'operator-configured Codex runtime' if self.routes is not None else 'isolated simulation onboarding',
+                'connection_id': self.node_id,
+                'capabilities': {'chat': self.routes is not None, 'projects': self.routes is not None, 'approvals': self.routes is not None,
                                  'developer': False, 'hosted_subscription_oauth': False,
                                  'local_developer_settings': self.development is not None,
                                  'library_workflow': self.library is not None,
                                  'simulation_workflow': self.simulation is not None,
+                                 'simulation_onboarding': self.onboarding is not None,
+                                 'simulation_onboarding_api_version': '1' if self.onboarding is not None else None,
                                  'local_login': self.login is not None and self.public_origin.startswith('http://127.0.0.1:') and not self.prefix},
                 'automatic_model_start': False,
                 'library_activity': self.library.activity() if self.library else {'running_actions': 0}}
@@ -179,7 +186,8 @@ class Handler(BaseHTTPRequestHandler):
         target, state = query['origin'][0], query['state'][0]
         rid, csrf = self.node.pairing.create(target, state)
         nonce = secrets.token_urlsafe(24)
-        self.send_page(confirmation_html(target, state, rid, csrf, self.node.url, nonce), nonce)
+        self.send_page(confirmation_html(target, state, rid, csrf, self.node.url, nonce,
+            mode='simulation-only' if self.node.routes is None else 'codex'), nonce)
 
     def development_page(self):
         settings = self.developer_guard()
@@ -216,6 +224,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def send(self, status, data=None, preflight=False):
         raw = b'' if status == 204 else json.dumps(data, ensure_ascii=False).encode()
+        if ONBOARDING_PREFIX in urlsplit(self.path).path and len(raw)>2*1024*1024:
+            status=503;raw=json.dumps({'ok':False,'error':{'code':'response_size_limit','message':'Onboarding response exceeds its UTF-8 budget','details':{}}}).encode()
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(raw)))
@@ -272,7 +282,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             self.guard(False)
             path, _ = self.route()
-            if path != '/node/info' and path not in LIBRARY_ROUTES and path != SIMULATION_ROUTE and not (path.startswith('/api/ai/') and path[8:] in GET_ROUTES | POST_ROUTES):
+            onboarding_route=path.startswith(ONBOARDING_PREFIX) and path[len(ONBOARDING_PREFIX):] in ONBOARDING_READS|ONBOARDING_WRITES
+            if path != '/node/info' and path not in LIBRARY_ROUTES and path != SIMULATION_ROUTE and not onboarding_route and not (path.startswith('/api/ai/') and path[8:] in GET_ROUTES | POST_ROUTES):
                 raise ValueError('Unknown preflight route')
             if self.headers.get('Access-Control-Request-Method') not in ('GET', 'POST'):
                 raise PermissionError('Method is not allowed')
@@ -295,7 +306,11 @@ class Handler(BaseHTTPRequestHandler):
             path, qs = self.route()
             if path == '/node/info' and not qs:
                 data = self.node.info()
+            elif path.startswith(ONBOARDING_PREFIX) and path[len(ONBOARDING_PREFIX):] in ONBOARDING_READS:
+                if self.node.onboarding is None:raise PermissionError('Onboarding is unavailable on this connection')
+                data=self.node.onboarding.read(path[len(ONBOARDING_PREFIX):],{k:v[0] for k,v in qs.items()})
             elif path.startswith('/api/ai/') and path[8:] in GET_ROUTES:
+                if self.node.routes is None:raise PermissionError('This connection has no chat or login service')
                 if path == '/api/ai/auth/status':
                     self.login_guard()
                     if qs: raise ValueError('Login status does not accept query fields')
@@ -339,6 +354,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200, {'ok': True, 'data': data}); return
             self.guard()
             path, qs = self.route()
+            if path.startswith(ONBOARDING_PREFIX) and path[len(ONBOARDING_PREFIX):] in ONBOARDING_WRITES:
+                token,browser_origin=self.browser_identity()
+                if not self.node.pairing.accepts(token,browser_origin):raise PermissionError('Onboarding requires the confirmed local browser connection')
+                if self.node.onboarding is None:raise PermissionError('Onboarding is unavailable on this connection')
+                if qs:raise ValueError('Onboarding writes have no query fields')
+                data=self.node.onboarding.write(path[len(ONBOARDING_PREFIX):],self.body(2*1024*1024))
+                self.send(200,{'ok':True,'data':data});return
             if path == SIMULATION_ROUTE:
                 token, browser_origin = self.browser_identity()
                 if not self.node.pairing.accepts(token, browser_origin):
@@ -370,6 +392,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200, {'ok': True, 'data': data}); return
             if qs or not path.startswith('/api/ai/') or path[8:] not in POST_ROUTES:
                 raise ValueError('Unknown node write route')
+            if self.node.routes is None:raise PermissionError('This connection has no chat or login service')
             body = self.body()
             if path == '/api/ai/development/settings-request':
                 settings = self.developer_guard()

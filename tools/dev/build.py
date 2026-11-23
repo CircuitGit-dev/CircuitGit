@@ -60,7 +60,7 @@ def codex_payload():
     from mcp_ui import ui_payload
     payload.update(ui_payload(ROOT))
     # Installed executable code, distinct from engineering data and site settings.
-    for name in ('server.py','runner.py','spiceowl_pool.py','simulation_runtime.py','experiment_workflow.py','simulation_monitor.py','workspace.py','configuration.py','publisher.py','geometry.py','waveforms.py','supervision.py','ic_sim.py','library_workflow.py','local_inputs.py','library_sources.py'):
+    for name in ('server.py','runner.py','spiceowl_pool.py','simulation_runtime.py','experiment_workflow.py','onboarding_runtime.py','onboarding_discovery.py','onboarding_prepare.py','onboarding_recipe.py','onboarding_waveforms.py','simulation_monitor.py','workspace.py','configuration.py','publisher.py','geometry.py','waveforms.py','supervision.py','ic_sim.py','library_workflow.py','local_inputs.py','library_sources.py'):
         payload['gateway/'+name]=(ROOT/'tools/workbench'/name).read_bytes()
     payload['library-testbenches.json']=(ROOT/'config/library-testbenches.json').read_bytes()
     payload['gateway-web/index.html']=b'<!doctype html><meta charset="utf-8"><title>IC Workbench</title><p>IC Workbench gateway is running. Open the schematic, waveform or simulation window in Codex.</p>'

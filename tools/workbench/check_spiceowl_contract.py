@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check the locally installed SpiceOwl contract pin; never fetch or run adapters."""
 import argparse
+import ast
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -11,6 +12,11 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 LOCK_PATH = 'contracts/spiceowl-integration.lock.json'
 ADAPTER_PATH = 'src/spiceowl/integrations/circuitgit_pool.py'
+ONBOARDING_SOURCE_PATH = 'src/spiceowl/onboarding/pdk_discovery.py'
+ONBOARDING_SCHEMAS = {
+    'DISCOVERY_SCHEMA': 'spiceowl.pdk-discovery.v1',
+    'REQUIREMENTS_SCHEMA': 'spiceowl.netlist-model-requirements.v1',
+}
 LOCK_SCHEMA = 'circuitgit.spiceowl-integration.v1'
 CONTRACT_VERSION = '1.2.0'
 RUNTIME_VERSIONS = {'1.0.0', '1.1.0'}
@@ -115,13 +121,69 @@ def check_paired_schema(record, root, external, commit, versions, label):
     return schema
 
 
+def validate_onboarding_lock(record, root):
+    fields = {'version', 'gateway_contract', 'upstream_discovery_schema',
+              'source_requirements_schema', 'waveform_contract'}
+    require(isinstance(record, dict) and set(record) == fields
+            and record['version'] == '1'
+            and record['upstream_discovery_schema'] == ONBOARDING_SCHEMAS['DISCOVERY_SCHEMA']
+            and record['source_requirements_schema'] == ONBOARDING_SCHEMAS['REQUIREMENTS_SCHEMA'],
+            'invalid_lock', 'The onboarding API requires exact fields, version 1 and supported schema IDs.')
+    for key in ('gateway_contract', 'waveform_contract'):
+        read_bytes(local_path(root, record[key]), 'onboarding_contract_missing')
+
+
+def check_onboarding_source(external, commit):
+    """Inspect literal module constants at the pin without importing upstream code."""
+    current = read_bytes(local_path(external, ONBOARDING_SOURCE_PATH), 'upstream_onboarding_missing')
+    object_name = commit + ':' + ONBOARDING_SOURCE_PATH
+    size = git(external, 'cat-file', '-s', object_name).strip()
+    require(size.isdigit() and int(size) <= MAX_BYTES,
+            'upstream_onboarding_invalid', 'The pinned onboarding source exceeds the read limit.')
+    require(git(external, 'cat-file', '-t', object_name).strip() == b'blob',
+            'upstream_onboarding_invalid', 'The pinned onboarding source must be a file.')
+    pinned = git(external, 'show', object_name)
+    require(len(pinned) <= MAX_BYTES, 'upstream_onboarding_invalid', 'The pinned onboarding source exceeds the read limit.')
+    require(pinned == current, 'uncommitted_onboarding', 'The onboarding source differs from the exact locked commit.')
+    try:
+        module = ast.parse(pinned.decode('utf-8'), filename=ONBOARDING_SOURCE_PATH)
+    except (SyntaxError, UnicodeError, ValueError, RecursionError):
+        raise ContractError('upstream_onboarding_invalid', 'The pinned onboarding source is not bounded readable Python.') from None
+    constants = {}
+    allowed_targets = set()
+    for statement in module.body:
+        if isinstance(statement, ast.Assign):
+            targets, value = statement.targets, statement.value
+        elif isinstance(statement, ast.AnnAssign):
+            targets, value = [statement.target], statement.value
+        else:
+            continue
+        for target in targets:
+            if isinstance(target, ast.Name) and target.id in ONBOARDING_SCHEMAS:
+                require(target.id not in constants and isinstance(value, ast.Constant)
+                        and type(value.value) is str,
+                        'onboarding_schema_mismatch', 'Onboarding schema constants must be unique literal strings.')
+                constants[target.id] = value.value
+                allowed_targets.add(id(target))
+    # Conditional/dynamic reassignment cannot be vouched for by this static check.
+    require(not any(isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del))
+                    and node.id in ONBOARDING_SCHEMAS and id(node) not in allowed_targets
+                    for node in ast.walk(module)),
+            'onboarding_schema_mismatch', 'Onboarding schema constants must not be reassigned.')
+    require(constants == ONBOARDING_SCHEMAS, 'onboarding_schema_mismatch',
+            'The exact pinned upstream does not declare the required onboarding schemas.')
+
+
 def check(spiceowl_root, root=ROOT):
     root = Path(root).resolve()
     external = Path(spiceowl_root).resolve()
     lock = parse_json(read_bytes(local_path(root, LOCK_PATH), 'lock_missing'))
     fields = {'schema', 'spiceowl', 'contract', 'resource_selection_profile', 'related_pull_requests'}
-    require(fields <= set(lock) and not set(lock) - fields - {'runtime_contract', 'simulation_report_contract'}
+    require(fields <= set(lock) and not set(lock) - fields - {'runtime_contract', 'simulation_report_contract', 'onboarding_api'}
             and lock['schema'] == LOCK_SCHEMA, 'invalid_lock', 'Unsupported integration lock structure or schema.')
+    onboarding = lock.get('onboarding_api')
+    if 'onboarding_api' in lock:
+        validate_onboarding_lock(onboarding, root)
     upstream, contract = lock['spiceowl'], lock['contract']
     require(isinstance(upstream, dict) and set(upstream) == {'repository', 'commit', 'contract_path', 'contract_sha256'}
             and isinstance(contract, dict) and set(contract) == {'path', 'version'},
@@ -154,6 +216,8 @@ def check(spiceowl_root, root=ROOT):
     require(pinned_bytes == upstream_bytes, 'uncommitted_contract', 'The external contract is not the content saved at the locked commit.')
     require(adapter.is_file(), 'adapter_missing', 'The local SpiceOwl CircuitGit resource adapter is missing.')
     git(external, 'cat-file', '-e', upstream['commit'] + ':' + ADAPTER_PATH)
+    if onboarding is not None:
+        check_onboarding_source(external, upstream['commit'])
     runtime = lock.get('runtime_contract')
     report = lock.get('simulation_report_contract')
     runtime_schema = None
@@ -177,7 +241,8 @@ def check(spiceowl_root, root=ROOT):
             'runtime_contract_version': runtime['version'] if runtime else None,
             'simulation_report_contract_version': report['version'] if report else None,
             'simulation_report_contract_sha256': report['sha256'] if report else None,
-            'resource_selection_profile': lock['resource_selection_profile'], 'adapter': ADAPTER_PATH}
+            'resource_selection_profile': lock['resource_selection_profile'], 'adapter': ADAPTER_PATH,
+            'onboarding_api_version': onboarding['version'] if onboarding is not None else None}
 
 
 def main(argv=None):

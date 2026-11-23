@@ -86,6 +86,112 @@ class ContractCheckTests(unittest.TestCase):
         self.write_lock()
         return runtime, report
 
+    def add_onboarding(self):
+        self.onboarding_source = self.external / checker.ONBOARDING_SOURCE_PATH
+        self.onboarding_source.parent.mkdir(parents=True, exist_ok=True)
+        self.onboarding_source.write_text(
+            'DISCOVERY_SCHEMA = "spiceowl.pdk-discovery.v1"\n'
+            'REQUIREMENTS_SCHEMA = "spiceowl.netlist-model-requirements.v1"\n'
+            'raise AssertionError("External onboarding source must never execute")\n')
+        for name in ('onboarding-api', 'onboarding-waveforms'):
+            path = self.local / ('docs/' + name + '.md')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('# Synthetic fixture contract\n')
+        self.lock['onboarding_api'] = {
+            'version': '1', 'gateway_contract': 'docs/onboarding-api.md',
+            'upstream_discovery_schema': 'spiceowl.pdk-discovery.v1',
+            'source_requirements_schema': 'spiceowl.netlist-model-requirements.v1',
+            'waveform_contract': 'docs/onboarding-waveforms.md'}
+        self.pin_onboarding_source('onboarding contract fixture')
+
+    def pin_onboarding_source(self, message):
+        self.git('add', '.'); self.commit(message)
+        self.lock['spiceowl']['commit'] = self.git('rev-parse', 'HEAD')
+        self.write_lock()
+
+    def test_optional_onboarding_passes_without_executing_upstream(self):
+        self.assertIsNone(self.check()['onboarding_api_version'])
+        self.add_onboarding()
+        self.assertEqual(self.check()['onboarding_api_version'], '1')
+
+    def test_onboarding_exact_shape_version_and_schema_ids_fail_before_git(self):
+        self.add_onboarding(); valid = copy.deepcopy(self.lock['onboarding_api'])
+        invalid = [None, [], {**valid, 'unexpected': True},
+                   {key: value for key, value in valid.items() if key != 'waveform_contract'},
+                   {**valid, 'version': 1}, {**valid, 'version': '2'},
+                   {**valid, 'upstream_discovery_schema': 'spiceowl.pdk-discovery.v2'},
+                   {**valid, 'source_requirements_schema': 'spiceowl.netlist-model-requirements.v2'}]
+        for record in invalid:
+            with self.subTest(record=record):
+                self.lock['onboarding_api'] = record; self.write_lock()
+                with patch.object(checker, 'git', side_effect=AssertionError('must not inspect Git')):
+                    self.assert_error('invalid_lock')
+
+    def test_onboarding_document_paths_reject_escape_before_git(self):
+        self.add_onboarding()
+        (self.local / 'docs/link.md').symlink_to(self.external_schema)
+        (self.local / 'linked-directory').symlink_to(self.external, target_is_directory=True)
+        for key in ('gateway_contract', 'waveform_contract'):
+            original = self.lock['onboarding_api'][key]
+            for path in ('../outside.md', '/tmp/outside.md', './docs/file.md', 'docs//file.md',
+                         'docs\\file.md', 'docs/link.md', 'linked-directory/docs/contracts/supervision.json'):
+                with self.subTest(field=key, path=path):
+                    self.lock['onboarding_api'][key] = path; self.write_lock()
+                    with patch.object(checker, 'git', side_effect=AssertionError('must not inspect Git')):
+                        self.assert_error('invalid_path')
+            self.lock['onboarding_api'][key] = original
+        self.write_lock()
+
+    def test_onboarding_documents_are_required_and_bounded(self):
+        self.add_onboarding()
+        for key in ('gateway_contract', 'waveform_contract'):
+            path = self.local / self.lock['onboarding_api'][key]
+            original = path.read_bytes(); path.unlink()
+            self.assert_error('onboarding_contract_missing')
+            path.write_bytes(b'x' * (checker.MAX_BYTES + 1)); self.assert_error('onboarding_contract_missing')
+            path.write_bytes(original)
+        self.assertEqual(self.check()['status'], 'passed')
+
+    def test_onboarding_source_must_be_present_bounded_and_exactly_pinned(self):
+        self.add_onboarding(); original = self.onboarding_source.read_bytes()
+        self.onboarding_source.unlink(); self.assert_error('upstream_onboarding_missing')
+        self.onboarding_source.write_bytes(b'x' * (checker.MAX_BYTES + 1)); self.assert_error('upstream_onboarding_missing')
+        self.onboarding_source.write_bytes(original + b'# dirty source\n'); self.assert_error('uncommitted_onboarding')
+        self.onboarding_source.write_bytes(original); self.assertEqual(self.check()['status'], 'passed')
+        self.onboarding_source.unlink(); self.onboarding_source.symlink_to(self.external_schema)
+        self.assert_error('invalid_path')
+
+    def test_committed_wrong_missing_dynamic_or_reassigned_schema_constants_fail(self):
+        self.add_onboarding(); valid = self.onboarding_source.read_text()
+        for index, source in enumerate((
+            valid.replace('spiceowl.pdk-discovery.v1', 'spiceowl.pdk-discovery.v2'),
+            valid.replace('spiceowl.netlist-model-requirements.v1', 'spiceowl.netlist-model-requirements.v2'),
+            '# DISCOVERY_SCHEMA = "spiceowl.pdk-discovery.v1"\nREQUIREMENTS_SCHEMA = "spiceowl.netlist-model-requirements.v1"\n',
+            valid.replace('DISCOVERY_SCHEMA = "spiceowl.pdk-discovery.v1"', 'DISCOVERY_SCHEMA = str("spiceowl.pdk-discovery.v1")'),
+            valid + 'DISCOVERY_SCHEMA = "spiceowl.pdk-discovery.v1"\n',
+            valid + 'if True:\n    DISCOVERY_SCHEMA = "other"\n', valid + 'del REQUIREMENTS_SCHEMA\n',
+        )):
+            with self.subTest(index=index):
+                self.onboarding_source.write_text(source); self.pin_onboarding_source('invalid literal ' + str(index))
+                self.assert_error('onboarding_schema_mismatch')
+
+    def test_dirty_literals_cannot_substitute_for_absent_pinned_schemas(self):
+        self.add_onboarding(); valid = self.onboarding_source.read_bytes()
+        self.onboarding_source.write_text('# No schemas in this pinned revision\n')
+        self.pin_onboarding_source('old upstream lacking onboarding')
+        self.onboarding_source.write_bytes(valid); self.assert_error('uncommitted_onboarding')
+
+    def test_pinned_onboarding_blob_size_and_syntax_are_validated(self):
+        self.add_onboarding(); valid = self.onboarding_source.read_bytes()
+        for index, raw in enumerate((b'not valid python !', b'\xff')):
+            self.onboarding_source.write_bytes(raw); self.pin_onboarding_source('invalid Python ' + str(index))
+            self.assert_error('upstream_onboarding_invalid')
+        self.onboarding_source.write_bytes(b'#' * (checker.MAX_BYTES + 1))
+        self.pin_onboarding_source('oversized pinned source')
+        self.onboarding_source.write_bytes(valid)
+        self.assert_error('upstream_onboarding_invalid')
+
+
     def test_matching_pinned_checkout_passes_without_importing_adapter(self):
         result = self.check()
         self.assertEqual(result['status'], 'passed')
