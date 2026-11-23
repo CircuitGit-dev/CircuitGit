@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNodeClient,endpoint} from '../../apps/web/remote/client.js';
+import {createNodeClient,endpoint,ONBOARDING_OPERATIONS,isOnboardingRequest} from '../../apps/web/remote/client.js';
 const code='x'.repeat(43);
 test('remote HTTPS/prefix or explicit loopback only, never embedded credentials',()=>{
   assert.equal(endpoint('https://node.example/owner/'),'https://node.example/owner');
@@ -40,4 +40,27 @@ test('revoked node authorization notifies the host once without replaying',async
   await assert.rejects(client.request('/ai/events?after=0'),e=>e.status===403);
   await assert.rejects(client.request('/node/info'),/断开/);
   assert.equal(rejected,1);assert.equal(calls,1);
+});
+test('onboarding permits only the documented nine routes, exact verbs and bounded query identity',async()=>{
+  const calls=[],client=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async(url,options)=>{calls.push({url,options});return new Response(JSON.stringify({ok:true,data:{observed:true}}));}});
+  for(const row of Object.values(ONBOARDING_OPERATIONS)){
+    const path='/simulation/onboarding'+row.path+(row.query?'?'+new URLSearchParams(Object.fromEntries(row.query.map(key=>[key,'opaque-original-id']))):'');
+    assert.equal(isOnboardingRequest(path,row.method),true);await client.request(path,{method:row.method,...(row.method==='POST'?{body:{}}:{})});
+    assert.equal(isOnboardingRequest(path,row.method==='GET'?'POST':'GET'),false);
+  }
+  assert.equal(calls.length,9);
+  for(const path of ['/simulation/onboarding/admin','/simulation/onboarding/session','/simulation/onboarding/session?intake_id=a&intake_id=b','/simulation/onboarding/session?intake_id=a&path=secret','/simulation/onboarding/../onboarding/ssh-hosts','/simulation/onboarding/ssh-hosts#fragment'])await assert.rejects(client.request(path),/运行节点/);
+  assert.equal(calls.length,9);
+});
+test('all onboarding envelopes enforce the simulation 2 MiB bound and retain structured rejection',async()=>{
+  const large=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async()=>new Response(' '.repeat(2*1024*1024+1))});
+  await assert.rejects(large.request('/simulation/onboarding/ssh-hosts'),e=>e.code==='response_size_limit');
+  const rejected=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async()=>new Response(JSON.stringify({ok:false,error:{code:'stale_state',message:'revision changed'}}),{status:409})});
+  await assert.rejects(rejected.request('/simulation/onboarding/probe',{method:'POST',body:{}}),e=>e.status===409&&e.data.code==='stale_state');
+});
+test('onboarding waveforms accept only bound finite GET reads and supported window fields',()=>{
+  const base='/simulation/onboarding/waveforms/',identity='?intake_id=i&job_id=j';
+  for(const kind of ['catalog','mapping']){assert(isOnboardingRequest(base+kind+identity,'GET'));assert.equal(isOnboardingRequest(base+kind+identity,'POST'),false);}
+  const window=base+'window'+identity+'&signal_ids=signal-A,signal-B&start=0&stop=1e-9&max_points=1600';assert(isOnboardingRequest(window,'GET'));
+  for(const path of [base+'raw'+identity,base+'window'+identity,window+'&cursor_a=0',window+'&analysis=tran',window+'&job_id=other',window.replace('1600','10001'),window.replace('signal-A,signal-B',','),window.replace('start=0','start=NaN')])assert.equal(isOnboardingRequest(path,'GET'),false,path);
 });

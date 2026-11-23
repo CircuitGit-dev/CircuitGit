@@ -1,0 +1,357 @@
+{
+  "descriptor": {
+    "archive_sha256": "7c1f2af52d16689c0490b5e8f12c5ea7020a5873c842e8815302e0430b85831a",
+    "available": true,
+    "available_signal_ids": [
+      "s_346c0819ea31144ee2dede7ee2765ac5"
+    ],
+    "compiled_source_path": "projects/synthetic-waveform/input.scs",
+    "compiled_source_sha256": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e",
+    "csv_sha256": "0993262ac27f60df0ccf85b6c6cdd60204c0e969021bec83ae0f17632b550820",
+    "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+    "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "job_id": "derived-fixture-run",
+    "original_source_sha256": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e",
+    "probe": {
+      "current_geometry_context_verified": false,
+      "enabled": false,
+      "reason": "current_geometry_context_unverified"
+    },
+    "raw_signature": "f93be915c7f79e65fcc547240568c135f8f272e0686c6a87a00a0332e9b4b9e4",
+    "read_only": true,
+    "run_id": "derived-fixture-run",
+    "schema": "ic.onboarding.waveform-descriptor.v1",
+    "source_binding_verified": true,
+    "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_hashes": {
+      "projects/synthetic-waveform/input.scs": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e"
+    },
+    "transformation": "none"
+  },
+  "evidence_kind": "synthetic_local_native_psf_derivation",
+  "fixture_note": "Original synthetic PSF ASCII and source bytes were written to a temporary local run. The current actual SimulationRuntime PSF parser generated a hash-bound CSV, then the actual WaveformService and onboarding adapter produced these responses. No Spectre, OCEAN or remote process ran; this is API evidence, not a circuit performance result.",
+  "generation": {
+    "derive": "simulation_runtime.SimulationRuntime.derive_results",
+    "native_fixture": "test_simulation_derivation.DerivationTests.make_archive",
+    "read": "waveforms.WaveformService and onboarding_waveforms.OnboardingWaveforms",
+    "response_fields_rewritten": false
+  },
+  "real_simulator_performed": false,
+  "real_ssh_performed": false,
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/simulation/onboarding/waveforms/catalog",
+      "query": {
+        "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "job_id": "derived-fixture-run"
+      },
+      "response": {
+        "data": {
+          "archive_sha256": "7c1f2af52d16689c0490b5e8f12c5ea7020a5873c842e8815302e0430b85831a",
+          "catalog": {
+            "analyses": [
+              {
+                "family": false,
+                "id": "tran",
+                "kind": "transient",
+                "x_unit": "s"
+              }
+            ],
+            "archive_sha256": "7c1f2af52d16689c0490b5e8f12c5ea7020a5873c842e8815302e0430b85831a",
+            "coverage": "exported_subset",
+            "csv_sha256": "0993262ac27f60df0ccf85b6c6cdd60204c0e969021bec83ae0f17632b550820",
+            "data_basis": "local_PSF_ASCII_derivation",
+            "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+            "extraction": {
+              "enabled": false,
+              "state": "requires_coordinator_slot"
+            },
+            "limits": {
+              "max_csv_rows": 200000,
+              "max_display_points": 10000,
+              "max_signals": 32
+            },
+            "raw_catalog_complete": false,
+            "raw_signature": "f93be915c7f79e65fcc547240568c135f8f272e0686c6a87a00a0332e9b4b9e4",
+            "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+            "run_id": "derived-fixture-run",
+            "schema": "ic.waveforms.v1",
+            "signals": [
+              {
+                "analysis": "tran",
+                "data_basis": "local_PSF_ASCII_derivation",
+                "domain": [
+                  0.0,
+                  2e-09
+                ],
+                "id": "s_346c0819ea31144ee2dede7ee2765ac5",
+                "label": "out",
+                "name_evidence": "exact name in same-run native PSF ASCII and hash-bound local CSV",
+                "polarity": null,
+                "psf_name": "out",
+                "quantity": "voltage",
+                "sample_count": 3,
+                "status": "available",
+                "unit": "V",
+                "x_unit": "s"
+              }
+            ],
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_hashes": {
+              "projects/synthetic-waveform/input.scs": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e"
+            },
+            "staged_sources": [],
+            "unexported_status": "saved_state_unknown",
+            "unsupported": [
+              "ac",
+              "complex",
+              "dc_sweep",
+              "corner_family",
+              "monte_carlo_family"
+            ]
+          },
+          "compiled_source_path": "projects/synthetic-waveform/input.scs",
+          "compiled_source_sha256": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e",
+          "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "job_id": "derived-fixture-run",
+          "limits": {
+            "max_points_per_signal": 10000,
+            "max_query_bytes": 4096,
+            "max_response_bytes": 2097152,
+            "max_window_signals": 8
+          },
+          "operation": "catalog",
+          "original_source_sha256": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e",
+          "probe": {
+            "current_geometry_context_verified": false,
+            "enabled": false,
+            "reason": "mapping_not_checked"
+          },
+          "read_only": true,
+          "run_id": "derived-fixture-run",
+          "schema": "ic.onboarding.waveforms.v1",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "transformation": "none"
+        },
+        "ok": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/simulation/onboarding/waveforms/mapping",
+      "query": {
+        "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "job_id": "derived-fixture-run"
+      },
+      "response": {
+        "data": {
+          "archive_sha256": "7c1f2af52d16689c0490b5e8f12c5ea7020a5873c842e8815302e0430b85831a",
+          "compiled_source_path": "projects/synthetic-waveform/input.scs",
+          "compiled_source_sha256": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e",
+          "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "job_id": "derived-fixture-run",
+          "limits": {
+            "max_points_per_signal": 10000,
+            "max_query_bytes": 4096,
+            "max_response_bytes": 2097152,
+            "max_window_signals": 8
+          },
+          "mapping": {
+            "analyses": [
+              {
+                "family": false,
+                "id": "tran",
+                "kind": "transient",
+                "x_unit": "s"
+              }
+            ],
+            "archive_sha256": "7c1f2af52d16689c0490b5e8f12c5ea7020a5873c842e8815302e0430b85831a",
+            "coverage": "exported_subset",
+            "csv_sha256": "0993262ac27f60df0ccf85b6c6cdd60204c0e969021bec83ae0f17632b550820",
+            "data_basis": "local_PSF_ASCII_derivation",
+            "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+            "extraction": {
+              "enabled": false,
+              "state": "requires_coordinator_slot"
+            },
+            "limits": {
+              "max_csv_rows": 200000,
+              "max_display_points": 10000,
+              "max_signals": 32
+            },
+            "objects": [],
+            "raw_catalog_complete": false,
+            "raw_signature": "f93be915c7f79e65fcc547240568c135f8f272e0686c6a87a00a0332e9b4b9e4",
+            "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+            "reason": "No installed source/geometry-bound mapping; catalog remains independently viewable",
+            "run_id": "derived-fixture-run",
+            "schema": "ic.waveforms.v1",
+            "signals": [
+              {
+                "analysis": "tran",
+                "data_basis": "local_PSF_ASCII_derivation",
+                "domain": [
+                  0.0,
+                  2e-09
+                ],
+                "id": "s_346c0819ea31144ee2dede7ee2765ac5",
+                "label": "out",
+                "name_evidence": "exact name in same-run native PSF ASCII and hash-bound local CSV",
+                "polarity": null,
+                "psf_name": "out",
+                "quantity": "voltage",
+                "sample_count": 3,
+                "status": "available",
+                "unit": "V",
+                "x_unit": "s"
+              }
+            ],
+            "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_hashes": {
+              "projects/synthetic-waveform/input.scs": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e"
+            },
+            "staged_sources": [],
+            "status": "unmapped",
+            "unexported_status": "saved_state_unknown",
+            "unsupported": [
+              "ac",
+              "complex",
+              "dc_sweep",
+              "corner_family",
+              "monte_carlo_family"
+            ]
+          },
+          "operation": "mapping",
+          "original_source_sha256": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e",
+          "probe": {
+            "current_geometry_context_verified": false,
+            "enabled": false,
+            "reason": "no_source_geometry_binding"
+          },
+          "read_only": true,
+          "run_id": "derived-fixture-run",
+          "schema": "ic.onboarding.waveforms.v1",
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "transformation": "none"
+        },
+        "ok": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/simulation/onboarding/waveforms/window",
+      "query": {
+        "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "job_id": "derived-fixture-run",
+        "max_points": 1600,
+        "signal_ids": "s_346c0819ea31144ee2dede7ee2765ac5",
+        "start": 0,
+        "stop": 2e-09
+      },
+      "response": {
+        "data": {
+          "archive_sha256": "7c1f2af52d16689c0490b5e8f12c5ea7020a5873c842e8815302e0430b85831a",
+          "compiled_source_path": "projects/synthetic-waveform/input.scs",
+          "compiled_source_sha256": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e",
+          "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "job_id": "derived-fixture-run",
+          "limits": {
+            "max_points_per_signal": 10000,
+            "max_query_bytes": 4096,
+            "max_response_bytes": 2097152,
+            "max_window_signals": 8
+          },
+          "operation": "window",
+          "original_source_sha256": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e",
+          "probe": {
+            "current_geometry_context_verified": false,
+            "enabled": false,
+            "reason": "mapping_not_checked"
+          },
+          "read_only": true,
+          "run_id": "derived-fixture-run",
+          "schema": "ic.onboarding.waveforms.v1",
+          "series": [
+            {
+              "archive_sha256": "7c1f2af52d16689c0490b5e8f12c5ea7020a5873c842e8815302e0430b85831a",
+              "csv_sha256": "0993262ac27f60df0ccf85b6c6cdd60204c0e969021bec83ae0f17632b550820",
+              "display": {
+                "decimated": false,
+                "input_points": 3,
+                "limit": 1600,
+                "method": "all_window_points",
+                "returned_points": 3
+              },
+              "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+              "measurement": {
+                "basis": "local_PSF_ASCII_derivation",
+                "cursors": {},
+                "delta": null,
+                "note": "CSV may already be OCEAN-resampled; off-grid cursors interpolate CSV, never the display envelope.",
+                "uses_display_samples": false
+              },
+              "points": [
+                [
+                  0.0,
+                  0.0
+                ],
+                [
+                  1e-09,
+                  1.2
+                ],
+                [
+                  2e-09,
+                  0.6
+                ]
+              ],
+              "raw_signature": "f93be915c7f79e65fcc547240568c135f8f272e0686c6a87a00a0332e9b4b9e4",
+              "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+              "run_id": "derived-fixture-run",
+              "schema": "ic.waveforms.v1",
+              "signal": {
+                "analysis": "tran",
+                "data_basis": "local_PSF_ASCII_derivation",
+                "domain": [
+                  0.0,
+                  2e-09
+                ],
+                "id": "s_346c0819ea31144ee2dede7ee2765ac5",
+                "label": "out",
+                "name_evidence": "exact name in same-run native PSF ASCII and hash-bound local CSV",
+                "polarity": null,
+                "psf_name": "out",
+                "quantity": "voltage",
+                "sample_count": 3,
+                "status": "available",
+                "unit": "V",
+                "x_unit": "s"
+              },
+              "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "source_hashes": {
+                "projects/synthetic-waveform/input.scs": "7a4a8efb3ddf663b15d59d2927fde0d5e24413acf09ee9e02d16cf578dbe8e9e"
+              },
+              "staged_sources": [],
+              "window": {
+                "clipped": false,
+                "requested": [
+                  0.0,
+                  2e-09
+                ],
+                "returned": [
+                  0.0,
+                  2e-09
+                ]
+              }
+            }
+          ],
+          "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "transformation": "none"
+        },
+        "ok": true
+      }
+    }
+  ],
+  "schema": "ic.onboarding.waveforms.fixture.v1",
+  "source_text": "subckt Synthetic OUT\nR1 (OUT 0) resistor r=1000\nends Synthetic\n"
+}

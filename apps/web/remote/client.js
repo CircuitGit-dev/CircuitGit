@@ -1,5 +1,34 @@
 /** Explicit single-owner node transport. Credentials stay in memory and never enter a URL. */
 import {readSimulationJson} from '../../../modules/simulation/http.js';
+export const ONBOARDING_OPERATIONS=Object.freeze({
+  inspectNetlist:{path:'/netlist',method:'POST'},listSshAliases:{path:'/ssh-hosts',method:'GET'},
+  getSession:{path:'/session',method:'GET',query:['intake_id']},probeHost:{path:'/probe',method:'POST'},
+  discoverPdk:{path:'/discover-pdk',method:'POST'},prepareExperiment:{path:'/prepare',method:'POST'},
+  runPrepared:{path:'/run',method:'POST'},readSubmission:{path:'/submission',method:'GET',query:['intake_id','plan_id']},
+  inspectExperiment:{path:'/inspect',method:'POST'},
+});
+const ONBOARDING_PREFIX='/simulation/onboarding';
+export function isOnboardingRequest(path,method){
+  if(typeof path!=='string'||!path.startsWith(ONBOARDING_PREFIX+'/'))return false;
+  const parsed=new URL(path,'http://node.invalid');
+  if(parsed.origin!=='http://node.invalid'||path!==parsed.pathname+parsed.search||parsed.hash)return false;
+  const wave=parsed.pathname.slice((ONBOARDING_PREFIX+'/waveforms/').length);
+  if(method==='GET'&&parsed.pathname.startsWith(ONBOARDING_PREFIX+'/waveforms/')&&['catalog','mapping','window'].includes(wave)){
+    const required=['intake_id','job_id',...(wave==='window'?['signal_ids']:[])],allowed=[...required,...(wave==='window'?['start','stop','max_points']:[])];
+    if([...parsed.searchParams.keys()].some(key=>!allowed.includes(key)||parsed.searchParams.getAll(key).length!==1)||required.some(key=>!parsed.searchParams.get(key)))return false;
+    if(['intake_id','job_id'].some(key=>parsed.searchParams.get(key).length>512))return false;
+    if(wave==='window'){
+      const ids=parsed.searchParams.get('signal_ids').split(',');if(ids.length>8||ids.some(id=>!id||id.length>512)||new Set(ids).size!==ids.length)return false;
+      for(const key of ['start','stop'])if(parsed.searchParams.has(key)&&(parsed.searchParams.get(key).trim()===''||!Number.isFinite(Number(parsed.searchParams.get(key)))))return false;
+      if(parsed.searchParams.has('max_points')){const limit=Number(parsed.searchParams.get('max_points'));if(!Number.isInteger(limit)||limit<4||limit>10000)return false;}
+    }
+    return true;
+  }
+  const operation=Object.values(ONBOARDING_OPERATIONS).find(row=>ONBOARDING_PREFIX+row.path===parsed.pathname&&row.method===method);
+  if(!operation)return false;
+  const fields=operation.query||[];
+  return [...parsed.searchParams.keys()].length===fields.length&&fields.every(key=>parsed.searchParams.getAll(key).length===1&&parsed.searchParams.get(key)?.length>0&&parsed.searchParams.get(key).length<=512);
+}
 export function endpoint(value) {
   const u=new URL(value);
   if(u.username||u.password||u.search||u.hash||!['https:','http:'].includes(u.protocol))throw Error('节点地址不能包含账号、密码、查询参数或片段。');
@@ -15,7 +44,7 @@ export function createNodeClient({url,accessCode,fetchImpl=fetch,timeout=45000,o
   async function request(path,{method='GET',body}={}) {
     if(closed)throw Error('节点已断开。');
     const library=['/library/read','/library/prepare','/library/review-request','/library/execute'].includes(path);
-    const simulation=path==='/simulation/execute';
+    const simulation=path==='/simulation/execute'||isOnboardingRequest(path,method);
     if(!['GET','POST'].includes(method)||(!path.startsWith('/ai/')&&path!=='/node/info'&&!library&&!simulation))throw Error('请求不属于运行节点接口。');
     const target=new URL(base+(path==='/node/info'?path:'/api'+path));
     const expected=new URL(base);

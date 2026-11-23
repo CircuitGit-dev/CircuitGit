@@ -17,6 +17,8 @@ import {renderHierarchy} from '../vendor/rnl-viewer/hierarchy.js';
 import {createLayout} from './layout.js';
 import {whenVisible} from './lazy-slot.js';
 import {createCommitMessage} from '../../../modules/workspace/commit-message.js';
+import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
+import {hasBuffer,fileText} from '../vendor/rnl-viewer/edits.js';
 
 const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
 const clone=v=>v==null?null:freeze(structuredClone(v));
@@ -127,7 +129,9 @@ export async function mountStudio({ui:providedUI}={}){
   function setPlotMode(mode){if(!['none','voltage','current'].includes(mode))throw Error('Unknown plot mode');plotMode=mode;document.body.dataset.studioPlot=mode;$('studio-plot-state').hidden=mode==='none';$('studio-plot-state').textContent=mode==='voltage'?'Plot · 电压 · Esc退出':mode==='current'?'Plot · 电流 · Esc退出':'';plotController?.setPlotMode(mode);$('studio-message').dataset.plot=mode;if(mode!=='none')notify(mode==='voltage'?'电压探针：在原图选择节点；Esc 退出。':'电流探针：选择器件，再明确端口；Esc 退出。');}
   function openPlot(){if(!plotController&&ui.slots.waveforms){ui.slots.waveforms.setVisible(true);void addonsReady.then(()=>lazyPlot?.ensure()).then(()=>{if(!plotController)throw Error('波形组件尚未加载');plotController.openWindow();if(plotMode!=='none')plotController.onSelection(contextOwner.api.getContext());}).catch(error=>notify(error.message,{kind:'error'}));return {opened:true,pending:true};}if(!plotController){notify('Plot 组件尚未安装。',{kind:'warning'});return {opened:false,reason:'Plot component unavailable'};}const result=plotController.openWindow();if(!result?.opened)notify(result?.reason||'浏览器阻止了波形窗口；请允许弹窗后重试。',{kind:'warning'});return result;}
   const plot=Object.freeze({attach(controller){if(plotController)throw Error('Only one Plot controller may attach');plotController=controller;controller.setPlotMode(plotMode);return ()=>{if(plotController===controller){setPlotMode('none');plotController=null;controller.destroy?.();}};},setMode:setPlotMode,getMode:()=>plotMode,openWindow:openPlot});
-  const host=Object.freeze({version:1,context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
+  const onboarding=createOnboardingBridge({gateway:api,win:window});
+  const host=Object.freeze({version:1,context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,getOnboardingSource:()=>snapshotOnboardingSource(doc,{hasBuffer,fileText}),getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
+  window.addEventListener('pagehide',()=>onboarding.disconnect(),{once:true});
   Object.defineProperty(window,'ICRNLStudio',{value:host,writable:false});
   register({id:'project.choose',menu:'project',label:'选择项目…',run:()=>$('studio-project').focus()});
   register({id:'project.source',menu:'project',label:'Canonical 源码…',run:()=>openCanonicalEditor(),enabled:()=>!!state.file});
@@ -225,7 +229,7 @@ export async function mountStudio({ui:providedUI}={}){
       let loader;
       if(kind){loader=whenVisible(ui.slots[kind],mount,{onError});
         // Commands must remain discoverable even when a panel was closed in the saved layout.
-        const actions=kind==='waveforms'?[['plot.run','plot','打开已有运行 (O)'],['plot.signals','plot','添加信号 (L)'],['plot.measurements','plot','波形测量 (M)'],['plot.shortcuts','plot','波形快捷键 (?)']]:kind==='versions'?[['git.versions','git','版本管理…'],['window.versions','window','版本管理']]:kind==='ai'?[['ai.toggle','window','AI：显示 / 隐藏对话'],['ai.show','window','AI：聚焦对话输入'],['ai.inspect','window','AI执行详情'],['ai.manage','window','AI：对话管理器…']]:[];
+        const actions=kind==='waveforms'?[['plot.run','plot','打开已有运行 (O)'],['plot.signals','plot','添加信号 (L)'],['plot.measurements','plot','波形测量 (M)'],['plot.shortcuts','plot','波形快捷键 (?)']]:kind==='versions'?[['git.versions','git','版本管理…'],['window.versions','window','版本管理']]:kind==='ai'?[['ai.toggle','window','AI：显示 / 隐藏对话'],['ai.show','window','AI：聚焦对话输入'],['ai.inspect','window','AI执行详情'],['ai.manage','window','AI：对话管理器…']]:kind==='simulation'?[['simulation.environment','simulation','连接仿真环境…']]:[];
         for(const [id,menu,label] of actions)placeholders.push(register({id,menu,label,run:async()=>{ui.slots[kind].setVisible(true);await loader.ensure();if(!['window.versions','ai.toggle'].includes(id))command(id);}}));
         if(kind==='waveforms')lazyPlot=loader;
       }else void mount().catch(onError);
