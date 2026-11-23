@@ -1,0 +1,36 @@
+// Reads an unchanged backend-generated serializer fixture supplied explicitly.
+// The fixture's real local Git/Runner reservation has synthetic SSH and deferred
+// dispatch. This test does not execute the backend, SSH, a model or a simulator.
+// ONBOARDING_SESSION_FIXTURE=/.../onboarding-session.example.json node --test tests/studio/environment.contract.mjs
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {createEnvironmentController} from '../../modules/simulation/environment/model.js';
+
+const fixturePath=process.env.ONBOARDING_SESSION_FIXTURE;
+if(!fixturePath)throw Error('Set ONBOARDING_SESSION_FIXTURE to the unchanged backend-generated example.');
+const raw=await readFile(fixturePath,'utf8'),fixture=JSON.parse(raw),snapshots=fixture.snapshots;
+assert.equal(fixture.synthetic,true);assert.equal(fixture.evidence.simulation_executed,false);
+const clone=value=>structuredClone(value);
+const source='simulator lang=spectre\nA (OUT IN LO LO) device_alpha w=2u l=200n nf=1 multi=1\nB (OUT IN HI HI) device_beta w=3u l=200n nf=1 multi=1\n';
+assert.equal(createHash('sha256').update(source).digest('hex'),snapshots.netlist.source_sha256,'Source bytes match the original fixture producer.');
+function make(){
+  const calls=[],records=[],pendingStore={async load(){return clone(records);},async put(value){records.push(clone(value));},async remove(value){const index=records.findIndex(item=>item.phase===value.phase);if(index>=0)records.splice(index,1);}};
+  const adapter={pendingStore,getState:()=>({connected:true,connectionId:'fixture|'+snapshots.netlist.connection_id,selectedIntakeId:snapshots.netlist.intake_id}),subscribe:()=>()=>{}};
+  for(const [method,snapshot]of Object.entries({inspectNetlist:'netlist',probeHost:'probe',discoverPdk:'discover',prepareExperiment:'prepare',runPrepared:'run',inspectExperiment:'inspect',getSession:'getSession'}))adapter[method]=async args=>{calls.push({method,args:clone(args)});return clone(snapshots[snapshot]);};
+  return {adapter,calls,records};
+}
+test('unchanged actual serializer snapshots pass the complete UI state workflow',async()=>{
+  const {adapter,calls,records}=make(),controller=createEnvironmentController({adapter});await controller.ready;await controller.importSource({file_name:snapshots.netlist.source.file_name,text:source});
+  controller.setTargets(snapshots.probe.probes.map(probe=>probe.ssh_target));await controller.probeHost();await controller.matchPdk();
+  const selection=snapshots.prepare.selection;controller.selectCandidate(selection.candidate_id);assert.deepEqual(controller.state.modelContracts,{});controller.selectSections(selection.sections);
+  assert.equal(controller.state.modelContracts.device_alpha.polarity,'n');assert.equal(controller.state.modelContracts.device_beta.polarity,'p');
+  for(const [key,value]of Object.entries(selection.intent))controller.setIntent(key,String(value));controller.confirmIntent(true);await controller.prepare();await controller.runPrepared();await controller.inspect();
+  assert.deepEqual(controller.state.run.result,snapshots.inspect.job);assert.equal(controller.state.run.result.inspection_state,'working');assert.equal(controller.state.run.result.waveforms.available,false);assert.equal(records.length,0);
+  assert.deepEqual(calls.map(call=>call.method),['inspectNetlist','probeHost','discoverPdk','prepareExperiment','runPrepared','inspectExperiment']);assert.equal(calls[4].args.plan_id,snapshots.prepare.prepared.plan_id);assert.deepEqual(calls[5].args,{intake_id:snapshots.netlist.intake_id,job_id:snapshots.run.job.job_id});
+  controller.destroy();
+});
+test('unchanged prepared session restores verified model evidence when explicit map is empty',async()=>{
+  const {adapter,calls}=make();adapter.getSession=async args=>{calls.push({method:'getSession',args});return clone(snapshots.prepare);};const controller=createEnvironmentController({adapter});await controller.ready;assert.deepEqual(calls,[]);await controller.restoreSelected();assert.equal(controller.intentReady,true);assert.equal(controller.state.intentConfirmed,false);assert.equal(controller.state.modelContracts.device_beta.polarity,'p');controller.confirmIntent(true);assert.equal(controller.state.preparation.result.prepared.plan_id,snapshots.prepare.prepared.plan_id);assert.deepEqual(calls.map(call=>call.method),['getSession']);controller.destroy();
+});

@@ -36,9 +36,9 @@ export function inspectLiteralNetlist(source){
 }
 
 function session(value,previous=null,{initial=false,mutating=false}={}){
-  if(!object(value)||value.schema!=='ic.onboarding.session.v1'||!id(value.intake_id)||!Number.isSafeInteger(value.revision)||value.revision<0||!sha(value.source_sha256)||!commit(value.source_commit)||!id(value.state))throw Error('环境响应缺少完整 intake 身份或整数 revision。');
+  if(!object(value)||value.schema!=='ic.onboarding.session.v1'||!id(value.connection_id)||!id(value.intake_id)||!Number.isSafeInteger(value.revision)||value.revision<0||!sha(value.source_sha256)||!commit(value.source_commit)||!id(value.state))throw Error('环境响应缺少完整 intake 身份或整数 revision。');
   if(initial&&(value.source_commit!==null||value.state!=='source_inspected'))throw Error('独立网表必须从新的 intake 开始。');
-  if(previous&&(value.intake_id!==previous.intake_id||value.source_sha256!==previous.source_sha256||value.revision<previous.revision||(mutating&&value.revision<=previous.revision)))throw Error('环境响应过期或属于另一份网表。');
+  if(previous&&(value.connection_id!==previous.connection_id||value.intake_id!==previous.intake_id||value.source_sha256!==previous.source_sha256||value.revision<previous.revision||(mutating&&value.revision<=previous.revision)))throw Error('环境响应过期或属于另一份网表。');
   const requirements=value.source?.requirements;
   if(!object(requirements)||!Array.isArray(requirements.instances)||!Array.isArray(requirements.interfaces)||!Array.isArray(requirements.required_masters)||requirements.required_masters.some(name=>!id(name))||!Array.isArray(requirements.issues))throw Error('网表响应缺少字面器件、端口和模型需求。');
   return clone(value);
@@ -48,17 +48,29 @@ function aliases(value){
   return clone(value);
 }
 function probes(value,targets){
-  if(!Array.isArray(value.probes)||!value.probes.length||value.probes.some(probe=>!(id(probe.probe_id)||probe.probe_id===null&&probe.environment?.state==='unavailable')||!targets.includes(probe.ssh_target)||!text(probe.observed_at)||!object(probe.environment)))throw Error('探测响应缺少所选主机的观察证据。');
+  if(!Array.isArray(value.probes)||!value.probes.length||value.probes.some(probe=>!(id(probe.probe_id)||probe.probe_id===null)||!targets.includes(probe.ssh_target)||!text(probe.observed_at)||!object(probe.environment)))throw Error('探测响应缺少所选主机的观察证据。');
   return value;
 }
 function discovery(value){
-  if(!id(value.discovery_id)||!Array.isArray(value.candidates)||value.candidates.length>128)throw Error('PDK 响应缺少 discovery 身份。');
+  const result=value.discovery;
+  if(!object(result)||!id(result.discovery_id)||!Array.isArray(result.candidates)||result.candidates.length>128||Object.hasOwn(value,'discovery_id')||Object.hasOwn(value,'candidates'))throw Error('PDK 响应缺少唯一的嵌套 discovery 身份。');
   const ids=new Set(),probeIds=new Set(value.probes?.map(probe=>probe.probe_id)||[]);
-  for(const item of value.candidates){
-    if(!id(item?.candidate_id)||ids.has(item.candidate_id)||!probeIds.has(item.probe_id)||!text(item.label)||!Array.isArray(item.available_sections)||item.available_sections.some(section=>section!==null&&!id(section))||!object(item.model_contracts)||!Array.isArray(item.tmi_candidates))throw Error('PDK 候选与当前探测身份不一致。');
+  for(const item of result.candidates){
+    if(!id(item?.candidate_id)||ids.has(item.candidate_id)||!probeIds.has(item.probe_id)||!text(item.label)||!Array.isArray(item.available_sections)||item.available_sections.some(section=>section!==null&&!id(section))||!Array.isArray(item.model_contracts)||!Array.isArray(item.tmi_candidates))throw Error('PDK 候选与当前探测身份不一致。');
     ids.add(item.candidate_id);
   }
   return value;
+}
+function verifiedContracts(candidate,discovery,sections){
+  if(!candidate||!Array.isArray(sections)||!Array.isArray(candidate.section_candidates)||sections.length!==candidate.section_candidates.length||!sections.every(section=>candidate.section_candidates.includes(section))||candidate.evidence?.coverage_complete!==true||candidate.missing?.length)return {};
+  const coverage=discovery?.coverage?.find(item=>item.probe_id===candidate.probe_id);
+  if(coverage?.search_complete!==true||coverage.unknown_count>0)return {};
+  const result={};for(const item of candidate.model_contracts){
+    const matches=candidate.model_contracts.filter(row=>row.name===item.name);
+    if(matches.length!==1||item.confidence!=='verified'||item.needs_confirmation!==false||!['n','p'].includes(item.polarity)||!Array.isArray(item.ordered_terminal_roles)||item.ordered_terminal_roles.length!==4||new Set(item.ordered_terminal_roles).size!==4||!item.ordered_terminal_roles.every(role=>['d','g','s','b'].includes(role)))continue;
+    result[item.name]={polarity:item.polarity,terminals:clone(item.ordered_terminal_roles)};
+  }
+  return result;
 }
 function prepared(value,allowedTargets=null){
   const plan=value.prepared;
@@ -94,16 +106,16 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   const editable=()=>{if(disposed||locked())throw Error('请先核对原请求；当前输入与重复提交已暂停。');};
   const clearPrepared=()=>{state.intentConfirmed=false;state.preparation=step();state.run=step();};
   const clearDiscovery=()=>{state.discovery=step();state.candidateId='';state.sections=[];state.tmiCandidateId=null;state.modelContracts={};clearPrepared();};
-  const candidate=()=>state.discovery.result?.candidates.find(item=>item.candidate_id===state.candidateId)||null;
+  const candidate=()=>state.discovery.result?.discovery.candidates.find(item=>item.candidate_id===state.candidateId)||null;
   const identity=()=>{if(!state.session)throw Error('请先核对独立网表。');return {intake_id:state.session.intake_id,revision:state.session.revision};};
   const acceptSession=(value,options={})=>{const next=session(value,state.session,options);state.session=next;state.intake={status:'complete',result:next,error:null};return next;};
   function hydrate(current){
-    const selection=current.selection||{},choice=current.candidates?.find(item=>item.candidate_id===selection.candidate_id);
+    const selection=current.selection||{},choice=current.discovery?.candidates.find(item=>item.candidate_id===selection.candidate_id);
     state.targets=clone(current.execution_scope?.selected_ssh_targets||current.probes?.map(probe=>probe.ssh_target)||[]);
     state.probe=current.probes?.length?{status:'complete',result:current,error:null}:step();
-    state.discovery=current.discovery_id?{status:'complete',result:discovery(current),error:null}:step();
+    state.discovery=current.discovery?{status:'complete',result:discovery(current),error:null}:step();
     state.candidateId=choice?.candidate_id||'';state.sections=choice&&Array.isArray(selection.sections)?selection.sections.filter(value=>choice.available_sections.includes(value)):[];
-    state.tmiCandidateId=selection.tmi_candidate_id??null;state.modelContracts=clone(selection.model_contracts||choice?.model_contracts||{});
+    state.tmiCandidateId=selection.tmi_candidate_id??null;state.modelContracts={...verifiedContracts(choice,current.discovery,state.sections),...clone(selection.model_contracts||{})};
     state.intent=emptyIntent();for(const key of intentFields)if(['string','number'].includes(typeof selection.intent?.[key]))state.intent[key]=String(selection.intent[key]);
     state.intentConfirmed=false;
   }
@@ -188,15 +200,15 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     probeHost(){editable();requireAdapter('probeHost');if(!state.targets.length)throw Error('请明确选择允许探测与运行的主机范围。');const args={...identity(),ssh_targets:clone(state.targets)};if(Object.keys(state.setupSourceIds).length)args.overrides={setup_source_ids:clone(state.setupSourceIds)};clearDiscovery();return action('probe',state.probe,async()=>{const result=probes(session(await guarded(()=>adapter.probeHost(args)),state.session,{mutating:true}),args.ssh_targets);state.setupDirty=false;return acceptSession(result);});},
     setHint(key,value){editable();if(!Object.hasOwn(state.hints,key)||!text(value,4000))throw Error('搜索提示格式不符。');state.hints[key]=value;clearDiscovery();emit();},
     matchPdk(){editable();requireAdapter('discoverPdk');if(state.probe.status!=='complete'||state.setupDirty)throw Error('请先完成当前所选主机与环境配置的探测。');const args={...identity(),probe_ids:state.probe.result.probes.map(probe=>probe.probe_id).filter(id)};if(!args.probe_ids.length)throw Error('没有可用主机探测结果；请检查失败原因。');const paths=state.hints.search_paths.split('\n').map(path=>path.trim()).filter(Boolean);if(paths.length)args.search_paths=paths;if(state.hints.cds_lib_hint.trim())args.cds_lib_hint=state.hints.cds_lib_hint.trim();clearDiscovery();return action('pdk',state.discovery,async()=>acceptSession(discovery(session(await guarded(()=>adapter.discoverPdk(args)),state.session,{mutating:true}))));},
-    selectCandidate(value){editable();const choice=state.discovery.result?.candidates.find(item=>item.candidate_id===value);if(!choice)throw Error('请选择当前返回的 PDK 候选。');state.candidateId=value;state.sections=[];state.tmiCandidateId=null;state.modelContracts=clone(choice.model_contracts);clearPrepared();emit();},
-    selectSections(values){editable();if(!Array.isArray(values)||!candidate()||values.some(value=>!candidate().available_sections.includes(value)))throw Error('请选择当前 PDK 的 section。');state.sections=[...new Set(values)];const observed=candidate().section_candidates||[];state.modelContracts=state.sections.length===observed.length&&state.sections.every(value=>observed.includes(value))?clone(candidate().model_contracts):{};clearPrepared();emit();},
+    selectCandidate(value){editable();const choice=state.discovery.result?.discovery.candidates.find(item=>item.candidate_id===value);if(!choice)throw Error('请选择当前返回的 PDK 候选。');state.candidateId=value;state.sections=[];state.tmiCandidateId=null;state.modelContracts={};clearPrepared();emit();},
+    selectSections(values){editable();if(!Array.isArray(values)||!candidate()||values.some(value=>!candidate().available_sections.includes(value)))throw Error('请选择当前 PDK 的 section。');state.sections=[...new Set(values)];state.modelContracts=verifiedContracts(candidate(),state.discovery.result.discovery,state.sections);clearPrepared();emit();},
     selectTmi(value){editable();if(value!==null&&!candidate()?.tmi_candidates.some(item=>item.tmi_candidate_id===value||item.candidate_id===value))throw Error('请选择返回的 TMI 候选。');state.tmiCandidateId=value;clearPrepared();emit();},
     setModelContract(master,value){editable();if(!state.session?.source.requirements.required_masters.includes(master)||!object(value))throw Error('模型必须来自本次独立网表。');state.modelContracts[master]=clone(value);clearPrepared();emit();},
     setIntent(key,value){editable();if(!intentFields.includes(key)||!text(value,240))throw Error('实验条件格式不符。');state.intent[key]=value;clearPrepared();emit();},
     confirmIntent(value){editable();if(value&&!api.intentReady)throw Error('请完整填写实验条件和模型端口契约。');state.intentConfirmed=value===true;emit();},
     async prepare(){
       editable();requireAdapter('prepareExperiment');if(!candidate()||!state.intentConfirmed||!api.intentReady||(candidate().available_sections.length&&!state.sections.length))throw Error('请明确选择 PDK、section 并确认完整实验条件。');
-      const args={...identity(),discovery_id:state.discovery.result.discovery_id,candidate_id:state.candidateId,sections:clone(state.sections),tmi_candidate_id:state.tmiCandidateId,model_contracts:clone(state.modelContracts),intent:intentValue()};
+      const args={...identity(),discovery_id:state.discovery.result.discovery.discovery_id,candidate_id:state.candidateId,sections:clone(state.sections),tmi_candidate_id:state.tmiCandidateId,model_contracts:clone(state.modelContracts),intent:intentValue()};
       return action('prepare',state.preparation,async()=>{const record=await persist('prepare');const result=prepared(session(await guarded(()=>adapter.prepareExperiment(args)),state.session,{mutating:true}),state.targets);acceptSession(result);await resolved(record);return result;},{uncertain:()=>state.pending.some(record=>record.phase==='prepare')});
     },
     async runPrepared(){
