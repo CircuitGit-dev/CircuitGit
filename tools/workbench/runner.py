@@ -1,5 +1,5 @@
 """Durable standalone runner. No automatic launch retries, no CIW access."""
-import contextlib, fcntl, hashlib, hmac, json, os, re, subprocess, tarfile, time, uuid
+import contextlib, fcntl, hashlib, hmac, json, os, posixpath, re, subprocess, tarfile, time, uuid
 import csv,io,math
 import copy
 from datetime import datetime, timezone
@@ -7,6 +7,7 @@ from pathlib import Path
 import ic_sim as core
 
 TERMINAL={'simulator_complete_pending_measurements','simulator_failed','input_hash_failure','job_setup_failed'}
+VA_HEADER_STAGING='netlist/__ic_va_headers__'
 def stamp():return datetime.now(timezone.utc).isoformat()
 def atomic(path,obj):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
@@ -99,6 +100,55 @@ def materialization_metadata(proof):
             raise ValueError('invalid materialization ' + field)
         metadata[field] = value
     return metadata
+
+def declared_native_analyses(payload):
+    """Retain names from the frozen owner recipe, without evaluating analyses."""
+    raw=payload.get('experiment/recipe.json')
+    if raw is None:return None
+    if len(raw)>2*1024*1024:raise ValueError('Frozen analysis recipe exceeds the collection metadata bound')
+    recipe=json.loads(raw)
+    if not isinstance(recipe,dict) or recipe.get('recipe')!='agent-testbench':return None
+    analyses=recipe.get('analyses')
+    if not isinstance(analyses,list) or not 1<=len(analyses)<=128:
+        raise ValueError('Frozen native analysis declarations are missing or invalid')
+    names=set();result=[]
+    for row in analyses:
+        if (not isinstance(row,dict) or not isinstance(row.get('name'),str)
+                or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.$:+-]{0,127}',row['name'])
+                or row.get('kind') not in ('tran','ac','dc') or row['name'] in names):
+            raise ValueError('Frozen native analysis declaration is unsupported or ambiguous')
+        names.add(row['name']);result.append({'name':row['name'],'kind':row['kind']})
+    return result
+
+def collection_member_name(member):
+    """Validate every tar member before ignoring directories or reading bytes."""
+    name=posixpath.normpath(member.name)
+    if name==VA_HEADER_STAGING or name.startswith(VA_HEADER_STAGING+'/'):
+        raise ValueError('Archive contains excluded Verilog-A standard header staging')
+    if (member.name.startswith('/') or '..' in member.name.split('/')
+            or member.issym() or member.islnk() or not (member.isfile() or member.isdir())):
+        raise ValueError('unsafe archive member')
+    return name
+
+def native_result_files(plan,inventory):
+    """Check native artifact presence only; parsing/scientific validity is separate."""
+    files={posixpath.normpath(row['path']):row for row in inventory if row['bytes']>0}
+    declared=plan.get('native_analyses')
+    if declared is not None:
+        expected={'psf/'+row['name']+'.'+row['kind'] for row in declared}
+        if not expected or not expected<=set(files):
+            raise ValueError('success archive is missing a declared native analysis result')
+        return [files[name] for name in sorted(expected)]
+    result=[]
+    for name,row in files.items():
+        directory,leaf=posixpath.split(name)
+        if directory!='psf':continue
+        lowered=leaf.lower()
+        if (re.fullmatch(r'.+\.(?:tran|ac|dc|dcop)',lowered)
+                or lowered=='dcopinfo.info'):
+            result.append(row)
+    if not result:raise ValueError('success archive has no supported native analysis result')
+    return result
 
 class Record(dict):
     """Tracks only locally changed fields so polling cannot erase other receipts."""
@@ -203,7 +253,8 @@ class Runner:
         b,payload,proof=self.prepare(Path(bundle),site=site);sim=core.simulator_config(b)
         if expected_commit and proof['source_commit']!=expected_commit:raise ValueError('source_commit conflict')
         if Path(b['entrypoint']).parent!=Path('netlist'):raise ValueError('entrypoint must be within netlist/')
-        return {'schema':'ic.sim.plan.v2',**{k:b.get(k) for k in ['design_id','design_origin','library','top_cell','testbench','test','test_id','history','configuration','historical_reference']},**materialization_metadata(proof),'postprocess':postprocess_config(b.get('postprocess')),'entrypoint':b['entrypoint'],'simulator':sim,'provenance':proof,'external_sha256':core.external_pins(b),**({'veriloga_header_staging_sha256':record_digest(b['veriloga_header_staging'])} if b.get('veriloga_header_staging') else {}),'reviewed_for_distribution':bool(b.get('reviewed_for_distribution')),'blockers':[s for c,s in [(not proof['source_clean'],'dirty_source'),(not proof['source_commit'],'uncommitted_source'),(not b.get('reviewed_for_distribution'),'review_required')] if c]}
+        analyses=declared_native_analyses(payload)
+        return {'schema':'ic.sim.plan.v2',**{k:b.get(k) for k in ['design_id','design_origin','library','top_cell','testbench','test','test_id','history','configuration','historical_reference']},**materialization_metadata(proof),'postprocess':postprocess_config(b.get('postprocess')),'entrypoint':b['entrypoint'],'simulator':sim,'provenance':proof,'external_sha256':core.external_pins(b),**({'native_analyses':analyses} if analyses is not None else {}),**({'veriloga_header_staging_sha256':record_digest(b['veriloga_header_staging'])} if b.get('veriloga_header_staging') else {}),'reviewed_for_distribution':bool(b.get('reviewed_for_distribution')),'blockers':[s for c,s in [(not proof['source_clean'],'dirty_source'),(not proof['source_commit'],'uncommitted_source'),(not b.get('reviewed_for_distribution'),'review_required')] if c]}
     def preflight(self,bundle,expected_commit=None,site=None):
         site=validated_site(self.site if site is None else site)
         plan=self.plan(bundle,expected_commit,site=site);b,_,proof=self.prepare(Path(bundle),site=site);p=core.doctor(site)
@@ -327,14 +378,18 @@ test ! -f psf/spectre.out || tail -c 60000 psf/spectre.out
             site=self.execution_site(r)
             if r.get('remote_state') not in TERMINAL:raise ValueError('collection requires observed terminal run; no partial success claim')
             root=self.path(rid);remote=r['remote_directory'];r['collection_phase']='preparing';self.save(r)
-            header_exclusion=" --exclude='./netlist/__ic_va_headers__'" if r['plan'].get('veriloga_header_staging_sha256') else ''
+            exclusions=[('ahdl','ahdl compiled cache'),('exports','exports packaging scratch'),('launch_once','launch_once directory')]
+            if r['plan'].get('veriloga_header_staging_sha256'):
+                exclusions.append((VA_HEADER_STAGING,'Verilog-A standard header staging'))
+            find_exclusions=''.join(' ! -path '+core.q('./'+path)+' ! -path '+core.q('./'+path+'/*') for path,_ in exclusions)
+            tar_exclusions=''.join(' --exclude='+core.q('./'+path) for path,_ in exclusions)
             # Full run result tree, including generated solver outputs outside psf.
             # AHDL compiled cache is excluded; neither site env nor PDK bodies are copied.
             script=f'''cd {core.q(remote)} || exit 70
 mkdir -p exports || exit 70
-find . -type f ! -path './ahdl/*' ! -path './exports/*' ! -path './launch_once/*' -print0 | sort -z | xargs -0 sha256sum > exports/files.new || exit 71
+find . -type f{find_exclusions} -print0 | sort -z | xargs -0 sha256sum > exports/files.new || exit 71
 if test ! -f exports/full-results.tar.gz || ! cmp -s exports/files.new exports/files.sha256; then
-  tar czf exports/full-results.tar.gz.part --exclude='./ahdl' --exclude='./exports' --exclude='./launch_once'{header_exclusion} . || exit 71
+  tar czf exports/full-results.tar.gz.part{tar_exclusions} . || exit 71
   mv exports/full-results.tar.gz.part exports/full-results.tar.gz || exit 71
   mv exports/files.new exports/files.sha256 || exit 71
 fi
@@ -345,24 +400,34 @@ wc -c < exports/full-results.tar.gz
             if p.returncode:raise ValueError('remote archive generation failed: '+p.stderr.decode(errors='replace'))
             lines=p.stdout.decode().splitlines();expected=lines[-2].split()[0];size=int(lines[-1]);out=root/'full-results.tar.gz';part=out.with_suffix('.part')
             argv=['ssh','-o','BatchMode=yes','-o','ConnectTimeout=10',site['ssh_target'],command('cat '+core.q(remote+'/exports/full-results.tar.gz'))]
-            with part.open('wb') as f:p=subprocess.run(argv,stdout=f,stderr=subprocess.PIPE,timeout=1200)
-            if p.returncode or part.stat().st_size!=size or filehash(part)!=expected:raise ValueError('archive transfer checksum/size mismatch')
+            inventory=[];logs={}
+            try:
+                with part.open('wb') as f:p=subprocess.run(argv,stdout=f,stderr=subprocess.PIPE,timeout=1200)
+                if p.returncode or part.stat().st_size!=size or filehash(part)!=expected:raise ValueError('archive transfer checksum/size mismatch')
+                seen=set()
+                with tarfile.open(part,'r:gz') as tf:
+                    for member in tf:
+                        name=collection_member_name(member)
+                        if not member.isfile():continue
+                        if name in seen:raise ValueError('duplicate normalized archive member')
+                        seen.add(name)
+                        f=tf.extractfile(member);h=hashlib.sha256()
+                        for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
+                        inventory.append({'path':member.name,'bytes':member.size,'sha256':h.hexdigest()})
+                        if name in ['psf/spectre.out','console.log'] and member.size<10*1024*1024:
+                            logs[name]=tf.extractfile(member).read().decode(errors='replace')
+                if r['remote_state']=='simulator_complete_pending_measurements':native_result_files(r['plan'],inventory)
+            except Exception:
+                # Only this transfer's temporary file is discarded. Previously
+                # validated archives and the original collection receipt remain.
+                part.unlink(missing_ok=True)
+                raise
             if out.exists() and filehash(out)!=expected:
                 history=root/'archives';history.mkdir(exist_ok=True);out.replace(history/(filehash(out)+'.tar.gz'))
             part.replace(out)
-            inventory=[];logs={}
-            with tarfile.open(out,'r:gz') as tf:
-                for member in tf:
-                    if not member.isfile():continue
-                    if member.name.startswith('/') or '..' in Path(member.name).parts:raise ValueError('unsafe archive member')
-                    f=tf.extractfile(member);h=hashlib.sha256()
-                    for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
-                    inventory.append({'path':member.name,'bytes':member.size,'sha256':h.hexdigest()})
-                    if member.name in ['./psf/spectre.out','./console.log'] and member.size<10*1024*1024:logs[member.name]=tf.extractfile(member).read().decode(errors='replace')
-            if r['remote_state']=='simulator_complete_pending_measurements' and not any('/psf/' in m['path'] and 'tran' in m['path'] for m in inventory):raise ValueError('success archive has no transient raw result')
-            summary={'execution_success':r['remote_state']=='simulator_complete_pending_measurements','scientific_acceptance':False,'source_commit':r['source_commit'],'configuration':r['plan'].get('configuration'),'metrics':r.get('scientific_metrics',[]),'postprocess_phase':r.get('postprocess_phase'),'simulator_footer':re.findall(r'spectre completes with .*',logs.get('./psf/spectre.out',''))[-1:]}
+            summary={'execution_success':r['remote_state']=='simulator_complete_pending_measurements','scientific_acceptance':False,'source_commit':r['source_commit'],'configuration':r['plan'].get('configuration'),'metrics':r.get('scientific_metrics',[]),'postprocess_phase':r.get('postprocess_phase'),'simulator_footer':re.findall(r'spectre completes with .*',logs.get('psf/spectre.out',''))[-1:]}
             atomic(root/'result-summary.json',summary);atomic(root/'archive-files.json',inventory)
-            r['collection']={'archive':str(out),'sha256':expected,'bytes':size,'file_count':len(inventory),'contains_full_raw':True,'included':'all regular files from run tree','excluded':['ahdl compiled cache','exports packaging scratch','launch_once directory'],'summary':summary,'collected_at':stamp()};r['collection_phase']='complete';self.save(r);return r
+            r['collection']={'archive':str(out),'sha256':expected,'bytes':size,'file_count':len(inventory),'contains_full_raw':True,'included':'all regular files from run tree except declared exclusions','excluded':[label for _,label in exclusions],'excluded_paths':[path for path,_ in exclusions],'summary':summary,'collected_at':stamp()};r['collection_phase']='complete';self.save(r);return r
     def postprocess(self,rid,wait_seconds=90):
         """Export a few actual signals through an independent owned OCEAN process."""
         with locked(self.path(rid)/'postprocess.lock'):
