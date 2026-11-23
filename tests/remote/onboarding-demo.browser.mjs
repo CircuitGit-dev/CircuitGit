@@ -46,14 +46,22 @@ try{
   await page.waitForFunction(()=>window.fixtureHost&&document.body.dataset.studioState==='ready',null,{timeout:45000});
   await page.waitForSelector('.wf-trace[data-trace="vout:1"]');
   const originalContext=await page.evaluate(()=>fixtureHost.context.getContext());
+  const wizard=page.locator('.studio-panel-simulation [aria-label="环境与 PDK 向导"]');await wizard.waitFor();
+  assert.equal(await page.getByRole('dialog',{name:'连接仿真环境',exact:true}).count(),0);
+  assert.equal(await page.locator('.studio-panel-simulation [data-page="reference"]').isVisible(),false);
+  assert.equal(calls.length,0,'Default inline environment must not connect or discover');
+  await page.evaluate(()=>window.fixtureWizard=document.querySelector('[aria-label="环境与 PDK 向导"]'));
+  await page.evaluate(()=>ICStudioDock.api.getPanel('simulation').api.close());
   await page.evaluate(()=>window.viewer.command('simulation.environment'));
-  const wizard=page.getByRole('dialog',{name:'连接仿真环境',exact:true});await wizard.waitFor();
+  await wizard.waitFor();assert.equal(await page.evaluate(()=>fixtureWizard===document.querySelector('[aria-label="环境与 PDK 向导"]')),true);
+  await page.locator('.studio-panel-simulation [data-field="page-reference"]').click();await page.locator('#demo-r').fill('2400');
+  await page.locator('.studio-panel-simulation [data-field="page-environment"]').click();
   assert.equal(calls.length,0,'Opening the wizard cannot discover or connect');
   await wizard.locator('[data-environment-field="connection-port"]').fill('18885');await wizard.locator('[data-environment-field="connection-port"]').press('Tab');
   const popupReady=page.waitForEvent('popup');await wizard.getByRole('button',{name:'连接本机环境服务',exact:true}).click();const popup=await popupReady;await popup.locator('#allow').click();
   await page.waitForFunction(()=>fixtureHost.onboarding.getState().connected);assert.deepEqual(calls.map(row=>row.path),['/node/info']);
-  await wizard.getByRole('button',{name:'关闭',exact:true}).click();
-  report.checks.push('real demo environment command opens lazy styled wizard and explicitly pairs at selected port');
+  await page.locator('.studio-panel-simulation [data-field="page-reference"]').click();assert.equal(await page.locator('#demo-r').inputValue(),'2400');
+  report.checks.push('default inline environment stays mounted across close/reopen and RC switching; explicit pairing uses selected port');
   await page.evaluate(async({source,intake,job})=>{window.fixturePayload={intake,job};await fixtureHost.onboarding.inspectNetlist({file_name:'synthetic.scs',text:source});},{source:record.source_text,intake,job});
   foreign=true;
   const rejection=await page.evaluate(async()=>{try{await fixtureHost.openOnboardingWaveforms(fixturePayload);return null;}catch(error){return error.message;}});
@@ -68,6 +76,12 @@ try{
   report.checks.push('disconnect preserves the curve and refuses further helper reads');
   await page.evaluate(()=>window.viewer.command('project.reference'));await page.waitForSelector('.wf-trace[data-trace="vout:1"]');assert.equal(await page.locator('.wf-trace').count(),2);
   report.checks.push('explicit return destroys independent waveform handle and restores RC references');
+  const beforeImport=calls.length;
+  await page.evaluate(async({text,url})=>{const {openSource}=await import(url);await openSource({name:'imported.scs',path:'/imported.scs',text},false);},{text:record.source_text,url:origin+prefix+'vendor/rnl-viewer/open.js'});
+  await wizard.waitFor();assert.equal(await page.locator('.studio-panel-simulation [data-field="page-reference"]').isDisabled(),true);
+  assert.equal(await page.locator('.wf-trace').count(),0);assert.equal(calls.length,beforeImport);
+  assert.equal(await page.evaluate(()=>fixtureHost.context.getContext().project.id),'imported-netlist');
+  report.checks.push('opening a separate netlist selects inline environment and removes unrelated RC curves without importing or probing');
   assert.equal(calls.some(row=>row.path.includes('/ai/')),false);assert.deepEqual(errors,[]);report.status='passed';
 }catch(error){report.status='failed';report.failure=error.stack;process.exitCode=1;}
 finally{report.calls=calls;report.errors=errors;const output=process.env.EVIDENCE_DIR||'/tmp/circuitgit-onboarding-demo';await mkdir(output,{recursive:true});await page.screenshot({path:resolve(output,'onboarding-demo.png')});await writeFile(resolve(output,'report.json'),JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}

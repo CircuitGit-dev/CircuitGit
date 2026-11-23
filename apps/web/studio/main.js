@@ -18,6 +18,7 @@ import {createLayout} from './layout.js';
 import {whenVisible} from './lazy-slot.js';
 import {createCommitMessage} from '../../../modules/workspace/commit-message.js';
 import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
+import {createOnboardingSync} from '../remote/onboarding-sync.js';
 import {hasBuffer,fileText} from '../vendor/rnl-viewer/edits.js';
 
 const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
@@ -81,7 +82,7 @@ export async function mountStudio({ui:providedUI}={}){
         state.project=project;state.active=null;state.projectLoadState='ready';
         $('studio-project').replaceChildren(new Option('导入网表后开始',''));
         $('studio-project').disabled=true;
-        clearDrawing('尚未导入电路；可从仿真菜单配置新的网表与环境。');
+        clearDrawing('尚未导入电路；在 Simulation 导入网表并配置服务器与 PDK。');
         publishNative();controls();return;
       }
       state.project=project;state.active=project.projects.find(p=>projectId(p)===id)||project.projects.find(p=>projectId(p)===project.active_project)||project.projects[0];
@@ -176,9 +177,12 @@ export async function mountStudio({ui:providedUI}={}){
     }
     ui.slots.waveforms.setVisible(true);return true;
   }
-  const host=Object.freeze({version:1,context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,
-    ...(ui.slots.waveforms?{openOnboardingWaveforms}:{}),getOnboardingSource:()=>snapshotOnboardingSource(doc,{hasBuffer,fileText}),getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
-  window.addEventListener('pagehide',()=>onboarding.disconnect(),{once:true});
+  const getOnboardingSource=()=>snapshotOnboardingSource(doc,{hasBuffer,fileText});
+  const onboardingSync=createOnboardingSync({bridge:onboarding,getSource:getOnboardingSource,openWaveforms:ui.slots.waveforms?openOnboardingWaveforms:undefined});
+  const getSimulationMode=()=>!state.active?.configurations?.length||!!doc&&(!manifest||!doc.path.startsWith('/'+manifest.id+'/'))?'environment':'project';
+  const host=Object.freeze({version:1,context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,onboardingSync,getSimulationMode,
+    ...(ui.slots.waveforms?{openOnboardingWaveforms}:{}),getOnboardingSource,getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
+  window.addEventListener('pagehide',()=>{onboardingSync.destroy();onboarding.disconnect();},{once:true});
   Object.defineProperty(window,'ICRNLStudio',{value:host,writable:false});
   register({id:'project.choose',menu:'project',label:'选择项目…',run:()=>$('studio-project').focus()});
   register({id:'project.source',menu:'project',label:'Canonical 源码…',run:()=>openCanonicalEditor(),enabled:()=>!!state.file});

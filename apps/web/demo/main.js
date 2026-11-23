@@ -16,6 +16,7 @@ import {mountLibraryManager} from '../library/panel.js';
 import {createLibraryClient} from '../library/model.js';
 import {createLibraryBridge} from '../remote/library-bridge.js';
 import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
+import {createOnboardingSync} from '../remote/onboarding-sync.js';
 import {confirmLeave} from '../vendor/rnl-viewer/editor.js';
 import {enterRoot} from '../vendor/rnl-viewer/subcircuits.js';
 
@@ -89,18 +90,35 @@ export async function mountStudio({ui:providedUI}={}) {
     if(generation!==onboardingWaveEpoch){handle?.destroy();return null;}
     waveformMount=handle;return handle;
   };
-  window.addEventListener('pagehide',()=>host.onboarding.disconnect(),{once:true});
-  let environmentRoot=null,environmentDialog=null,environmentMount=null;
-  async function showEnvironment(){
-    if(environmentDialog?.isConnected&&environmentDialog.open){environmentDialog.focus();return;}
-    if(!environmentRoot){environmentRoot=document.createElement('section');environmentRoot.className='ic-sim-panel';const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('../../../modules/simulation/style.css',import.meta.url);document.head.append(style);}
-    environmentDialog=dialog('连接仿真环境',environmentRoot);
-    if(!environmentMount){
-      environmentRoot.textContent='正在打开环境配置…';
-      environmentMount=import('../../../modules/simulation/environment/panel.js').then(({mountEnvironmentWizard})=>mountEnvironmentWizard(environmentRoot,{adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,notify:ui.notify,onRun:job=>ui.notify('仿真请求已登记：'+(job.job_id||job.run_id||'')+'；请在环境页查看原任务进度。')})).catch(error=>{environmentMount=null;environmentRoot.textContent='环境配置加载失败：'+error.message;throw error;});
-    }
-    await environmentMount;
+  host.onboardingSync=createOnboardingSync({bridge:host.onboarding,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms});
+  const simulationShell=document.createElement('section');simulationShell.className='ic-sim-panel';simulationShell.setAttribute('aria-label','仿真配置与任务');
+  const simulationHeading=document.createElement('h2');simulationHeading.textContent='仿真';
+  const simulationNav=document.createElement('nav');simulationNav.className='ic-sim-nav';simulationNav.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';simulationNav.setAttribute('aria-label','仿真工作流');
+  const environmentTab=document.createElement('button'),referenceTab=document.createElement('button');environmentTab.type=referenceTab.type='button';
+  environmentTab.textContent='连接与 PDK';environmentTab.dataset.field='page-environment';referenceTab.textContent='RC 解析参考';referenceTab.dataset.field='page-reference';simulationNav.append(environmentTab,referenceTab);
+  const environmentPage=document.createElement('div'),referencePage=document.createElement('div');environmentPage.className=referencePage.className='ic-sim-page';environmentPage.dataset.page='environment';referencePage.dataset.page='reference';
+  const environmentTitle=document.createElement('h3');environmentTitle.textContent='连接服务器 & 自动匹配 PDK';
+  const libraryInfo=document.createElement('div'),environmentRoot=document.createElement('section');environmentPage.append(environmentTitle,environmentRoot,libraryInfo);
+  simulationShell.append(simulationHeading,simulationNav,environmentPage,referencePage);ui.slots.simulation.element.replaceChildren(simulationShell);
+  const simulationStyle=document.createElement('link');simulationStyle.rel='stylesheet';simulationStyle.href=new URL('../../../modules/simulation/style.css',import.meta.url);document.head.append(simulationStyle);
+  let simulationPage='environment',environmentMount=null,unregisterEnvironment=null;
+  function renderSimulationPage(){
+    environmentPage.hidden=simulationPage!=='environment';referencePage.hidden=simulationPage!=='reference';referenceTab.disabled=!referenceActive();
+    for(const [tab,id] of [[environmentTab,'environment'],[referenceTab,'reference']]){tab.classList.toggle('is-active',simulationPage===id);tab.setAttribute('aria-pressed',String(simulationPage===id));}
   }
+  const environmentLoader=whenVisible(ui.slots.simulation,async()=>{
+    environmentRoot.textContent='正在打开环境配置…';
+    try{const {mountEnvironmentWizard}=await import('../../../modules/simulation/environment/panel.js');
+      environmentMount=mountEnvironmentWizard(environmentRoot,{adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,notify:ui.notify,onRun:job=>ui.notify('仿真请求已登记：'+(job.job_id||job.run_id||'')+'；请在环境页查看原任务进度。')});
+      unregisterEnvironment=host.onboardingSync.register(environmentMount.controller);return environmentMount;
+    }catch(error){environmentRoot.textContent='环境配置加载失败：'+error.message;throw error;}
+  },{onError:error=>ui.notify(error.message,{kind:'error'})});
+  async function showEnvironment(){
+    simulationPage='environment';renderSimulationPage();ui.slots.simulation.setVisible(true);return environmentLoader.ensure();
+  }
+  function showReferenceConfiguration(){if(!referenceActive())return;simulationPage='reference';renderSimulationPage();ui.slots.simulation.setVisible(true);}
+  environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
+  window.addEventListener('pagehide',()=>{environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
     if(waveformMount||!referenceActive()||onboardingWaves)return;
@@ -127,7 +145,8 @@ export async function mountStudio({ui:providedUI}={}) {
   register({id:'project.source',menu:'project',label:'查看 / 下载示例网表',run:()=>showSource()});
   register({id:'simulation.export',menu:'simulation',label:'导出仿真配置 JSON',enabled:()=>referenceActive(),run:()=>exportConfiguration()});
   register({id:'simulation.local',menu:'simulation',label:'如何连接本地仿真',run:()=>showGuide()});
-  register({id:'simulation.environment',menu:'simulation',label:'连接仿真环境…',run:showEnvironment});
+  register({id:'simulation.environment',menu:'simulation',label:'连接服务器与匹配 PDK',run:showEnvironment});
+  register({id:'simulation.reference',menu:'simulation',label:'RC 解析参考配置',enabled:referenceActive,run:showReferenceConfiguration});
   register({id:'window.help.demo',menu:'help',label:'CircuitGit 演示与本地使用',run:()=>showGuide()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&mode!=='none'){setMode('none');ui.notify('已退出探针。');}});
   window.addEventListener('viewer-selection',()=>{
@@ -139,7 +158,7 @@ export async function mountStudio({ui:providedUI}={}) {
     context.selection={kind:mode==='current'?'terminal':'net',name:object.name,terminalName:mode==='current'?'1':null,
       scope:'(top)',viewerSourcePath:PATH,nativeEntryId:'rc-demo',occurrencePath:[]};emit();plotController.onSelection(contextAdapter.getContext());
   });
-  const simulation=section(ui.slots.simulation.element,`<small>RC LOW-PASS · TRANSIENT</small><h2>仿真配置</h2>
+  section(referencePage,`<small>RC LOW-PASS · TRANSIENT</small><h2>仿真配置</h2>
     <p>修改参数可更新解析参考曲线，或导出配置交给本地 Spectre 工作流。</p>
     <div class="demo-fields"><label>电阻 R (Ω)<input id="demo-r" type="number" min="1" max="1000000" value="1000"></label><label>电容 C (pF)<input id="demo-c" type="number" min="0.01" max="1000" step="0.1" value="1"></label><label>终止时间 (ns)<input id="demo-stop" type="number" min="2" max="50" value="12"></label></div>
     <div class="demo-actions"><button id="demo-update" class="primary">更新参考曲线</button><button id="demo-export">导出配置</button></div>
@@ -175,7 +194,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     const heading=document.createElement('strong'),note=document.createElement('p');heading.textContent='此视图尚未关联仿真波形';note.textContent='已清除 RC 解析参考。公开原理图与运行结果分别管理，加载电路不会启动仿真。';empty.append(heading,note);root.append(empty);
   }
   function libraryInformation(value){
-    simulation.remove();const box=document.createElement('section');box.className='cg-library-preview-info';
+    const box=document.createElement('details');box.className='ic-sim-detail';const summary=document.createElement('summary');summary.textContent='当前电路';box.append(summary);
     const title=document.createElement('h2');title.textContent=value.cell.name;const name=document.createElement('p');name.textContent=value.library.name+' / '+value.view.label;
     const evidence=document.createElement('p');evidence.textContent=(value.origin==='working'?'本机原理图快照':'公开原理图预览')+' · '+value.bundle.paths.length+' 个已列出的文件。未关联运行，也未执行仿真。';
     const dependency=document.createElement('p');dependency.textContent=value.cell.requires_external_models?'重放可能需要外部模型。请查看单元说明和已有配置。':'重放要求以单元说明和已有配置为准。';
@@ -183,7 +202,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     const browse=document.createElement('button');browse.type='button';browse.textContent='查看库视图与说明';browse.onclick=()=>libraryManager.show();
     const environment=document.createElement('button');environment.type='button';environment.textContent='连接仿真环境';environment.onclick=()=>void showEnvironment().catch(panelError);
     const back=document.createElement('button');back.type='button';back.textContent='回到 RC 参考';back.onclick=()=>void openReference().catch(e=>ui.notify(e.message,{kind:'error'}));
-    box.append(title,name,evidence,dependency,ai,environment,document.createTextNode(' '),browse,document.createTextNode(' '),back);ui.slots.simulation.element.replaceChildren(box);
+    box.append(title,name,evidence,dependency,ai,environment,document.createTextNode(' '),browse,document.createTextNode(' '),back);libraryInfo.replaceChildren(box);simulationPage='environment';renderSimulationPage();
   }
   async function openLibrary(value){
     if(switching)return false;
@@ -216,7 +235,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
       if(!opened||!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
       activeLibrary=null;context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,loading:false,loadState:'ready',file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{bundleCommit:null,manifestSha256:hash,sourceMatch:true,state:'ready'}};
       $('studio-project').replaceChildren(new Option('RC · 公开示例','rc-demo'));$('studio-entry').replaceChildren(new Option('手工固定布局 · RNL','rc'));$('studio-run').replaceChildren(new Option('解析参考 · 非 Spectre','reference'));
-      ui.slots.simulation.element.replaceChildren(simulation);$('studio-native-note').textContent='公开 RC 示例 · 固定 RNL 布局 · 波形为解析参考';switching=false;emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);return true;
+      libraryInfo.replaceChildren();$('studio-native-note').textContent='公开 RC 示例 · 固定 RNL 布局 · 波形为解析参考';switching=false;simulationPage='reference';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);return true;
     }catch(error){context={...context,run:null,selection:null,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='RC 参考加载失败 · 无关联波形';throw error;}
     finally{switching=false;ui.setNativeState({loading:false,hidden:false});}
   }
@@ -290,6 +309,16 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
   }
   host.libraryBridge.subscribeMutation(event=>{if(activeLibrary?.library.id===event.args.library_id&&activeLibrary?.cell.id===event.args.cell_id)void refreshLoadedLibrary();});
   host.libraryBridge.subscribe(state=>{if(!state.connected)hotController?.abort();});
+  window.addEventListener('viewer-navigate',()=>{
+    if(switching||!doc||doc.path===PATH)return;
+    const openedDoc=doc,snapshot=host.getOnboardingSource();hotController?.abort();loadedWatch?.();loadedWatch=null;activeLibrary=null;
+    ++onboardingWaveEpoch;stopReference();libraryInfo.replaceChildren();
+    context={project:{id:'imported-netlist',sourceCommit:null},run:null,selection:null,loading:false,loadState:'ready',
+      file:{path:openedDoc.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};
+    $('studio-project').replaceChildren(new Option('已导入网表','imported-netlist'));$('studio-entry').replaceChildren(new Option(openedDoc.name||openedDoc.path,openedDoc.path));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
+    $('studio-native-note').textContent='已导入网表 · 在 Simulation 配置服务器与 PDK';emit();void showEnvironment().catch(panelError);
+    if(snapshot)void sha256(snapshot.text).then(hash=>{if(doc===openedDoc&&context.file?.path===openedDoc.path){context={...context,file:{...context.file,currentTextSha256:hash}};emit();}});
+  });
   whenVisible(ui.slots.ai,()=>import('../remote/panel.js').then(module=>module.mountRemoteNode(host)),{onError:panelError});
   const versionLoader=whenVisible(ui.slots.versions,async()=>{const {mountLibraryVersions}=await import('../library/versions.js');libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});return libraryVersions;},{onError:panelError});
   setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});
@@ -305,6 +334,6 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     if(!ready()){const observer=new MutationObserver(()=>{if(ready())observer.disconnect();});referenceObserver=observer;observer.observe(ui.slots.waveforms.element,{subtree:true,childList:true});setTimeout(()=>observer.disconnect(),10000);}
   }
   showReferenceTraces();
-  window.CircuitGitDemo=Object.freeze({getContext:contextAdapter.getContext,get reference(){return !activeLibrary;},getLibrarySelection:()=>activeLibrary?{library:activeLibrary.library.id,cell:activeLibrary.cell.id,view:activeLibrary.view.id,files:[...activeLibrary.bundle.paths]}:null});
+  window.CircuitGitDemo=Object.freeze({getContext:contextAdapter.getContext,get reference(){return referenceActive();},getLibrarySelection:()=>activeLibrary?{library:activeLibrary.library.id,cell:activeLibrary.cell.id,view:activeLibrary.view.id,files:[...activeLibrary.bundle.paths]}:null});
   return host;
 }

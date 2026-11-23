@@ -49,7 +49,7 @@ try{
   await page.waitForTimeout(250);await page.reload();await page.waitForFunction(()=>document.body.dataset.workbenchState==='ready');
   assert.equal(await page.evaluate(()=>ICStudioDock.api.getPanel('simulation').api.isVisible),false);
   assert.equal(await page.evaluate(()=>document.getElementById('demo-update')?.isConnected),true);
-  await page.evaluate(()=>ICStudioDock.open('simulation'));await page.locator('#demo-r').fill('2400');await page.locator('#demo-update').click();
+  await page.evaluate(()=>ICStudioDock.open('simulation'));await page.locator('[data-field="page-reference"]').click();await page.locator('#demo-r').fill('2400');await page.locator('#demo-update').click();
   await page.waitForFunction(()=>document.getElementById('demo-basis').textContent.includes('τ = 2.4 ns'));
   report.checks.push('inactive simulation tab restores without missing onclick controls; editing still rebuilds the circuit');
   await page.evaluate(()=>{ICStudioDock.reset();const api=ICStudioDock.api;api.getPanel('schematic').api.moveTo({group:api.getPanel('waveforms').group,position:'center'});api.getPanel('waveforms').api.setActive();});
