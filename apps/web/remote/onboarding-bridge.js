@@ -176,12 +176,14 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     if(name==='probeHost'&&(!Array.isArray(input.ssh_targets)||!input.ssh_targets.length||!input.ssh_targets.every(opaque)))throw failure('请明确选择需要探测的 SSH 主机。','invalid_input');
     if(name==='runPrepared'&&originalIntake?.state==='pre_dispatch_rejected'&&originalIntake.prepared?.plan_id===input.plan_id)throw failure('此原计划已被拒绝；请明确准备新计划，不得重放原提交。','replay_forbidden');
     if(name==='analyzeExperiment'){
-      const job=originalIntake?.job,operations=['spec_analyze','coherent_fft','sine_fit3','sine_fit4','weight_calibrate','reconstruct_codes','histogram_linearity','tran_metrics'];
+      const job=originalIntake?.job,operations=['spec_analyze','coherent_fft','sine_fit3','sine_fit4','weight_calibrate','reconstruct_codes','histogram_linearity','tran_metrics','ac_metrics','dc_op_metrics'];
       requireValue(job?.job_id===input.job_id&&job.run_id===input.job_id&&job.source_commit===originalIntake.source_commit&&operations.includes(input.operation),
         '分析必须绑定当前已保存任务与明确算法。','analysis_scope_mismatch');
-      const allowed=new Set(job.waveforms?.available_signal_ids||[]);
+      const native=input.dataset_id!==undefined,dataset=native?job.waveforms?.datasets?.find(row=>row.dataset_id===input.dataset_id):null;
+      requireValue(native?dataset&&['ac_metrics','dc_op_metrics'].includes(input.operation):!['ac_metrics','dc_op_metrics'].includes(input.operation),'AC/DC 必须显式选择当前任务的独立数据集。','analysis_scope_mismatch');
+      const allowed=new Set((native?dataset.available_signal_ids:job.waveforms?.available_signal_ids)||[]),devices=new Set(dataset?.available_device_ids||[]);
       requireValue(input.inputs&&typeof input.inputs==='object'&&!Array.isArray(input.inputs)&&Object.entries(input.inputs).every(([key,value])=>
-        value==='@time'?key==='time_s':Array.isArray(value)?value.length>0&&value.every(id=>allowed.has(id)):allowed.has(value)),
+        value==='@time'?!native&&key==='time_s':Array.isArray(value)?value.length>0&&value.every(id=>(key==='devices'?devices:allowed).has(id)):allowed.has(value)),
         '分析输入必须来自此任务的原始信号目录。','analysis_scope_mismatch');
     }
     if(['prepareExperiment','prepareAgentTestbench','runPrepared'].includes(name)){
@@ -199,8 +201,8 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
         intakes.add(result.intake_id);
         selectedIntakeId=result.intake_id;publish();
       }
-      if(['getSession','getAgentTestbench','probeHost','discoverPdk','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared','inspectExperiment'].includes(name)){
-        const advances=['probeHost','discoverPdk','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared'].includes(name);
+      if(['getSession','getAgentTestbench','probeVerilogaHeaders','probeHost','discoverPdk','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared','inspectExperiment'].includes(name)){
+        const advances=['probeVerilogaHeaders','probeHost','discoverPdk','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared'].includes(name);
         if(result?.schema!=='ic.onboarding.session.v1'||result.connection_id!==storeIdentity||result.intake_id!==input.intake_id||!Number.isInteger(result.revision)||result.revision<0||advances&&result.revision!==input.revision+1)throw failure('助手返回了不同的会话或版本；请核对原会话。','invalid_session_identity');
       }
       const rejectionClaim=name==='runPrepared'?(result?.state==='pre_dispatch_rejected'||result?.submission?.dispatch_outcome==='pre_dispatch_rejected'||!!result?.submission?.rejection):
@@ -235,7 +237,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       if(name==='analyzeExperiment')requireValue(result?.schema==='ic.onboarding.analysis.v1'&&result.intake_id===input.intake_id&&
         result.job_id===input.job_id&&result.run_id===input.job_id&&result.source_commit===originalIntake.job.source_commit&&result.original_source_sha256===originalIntake.source_sha256&&
         result.archive_sha256===originalIntake.job.waveforms?.archive_sha256&&hash(result.archive_sha256)&&hash(result.analysis_id)&&
-        result.input?.archive_sha256===result.archive_sha256&&hash(result.input?.csv_sha256)&&result.input.full_resolution===true&&result.input.display_downsampling_used===false&&
+        result.input?.archive_sha256===result.archive_sha256&&(input.dataset_id?result.input?.dataset_id===input.dataset_id&&hash(result.input?.data_sha256):hash(result.input?.csv_sha256))&&result.input.full_resolution===true&&result.input.display_downsampling_used===false&&
         result.request?.operation===input.operation&&result.result?.operation===input.operation,
         '分析结果的源码、任务或数据归档身份不一致。','analysis_scope_mismatch');
       if(name==='analyzeExperiment')try{checkAnalysisResult(result,originalIntake);}catch{throw failure('分析原始数据来源或指标回执不完整。','analysis_scope_mismatch');}
@@ -287,20 +289,23 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     requireValue(mapping&&mapping.source_commit===job.source_commit&&mapping.original_source_sha256===descriptor.original_source_sha256&&
       mapping.compiled_source_sha256===descriptor.compiled_source_sha256&&mapping.source_id===descriptor.compiled_source_path&&
       mapping.transformation===descriptor.transformation,'波形编译记录与已准备实验的源码映射不同。');
-    const identity=['archive_sha256','raw_signature','effective_config_sha256','csv_sha256'];
-    requireValue(identity.every(key=>hash(descriptor[key]))&&Array.isArray(descriptor.available_signal_ids)&&descriptor.available_signal_ids.length>0&&descriptor.available_signal_ids.length<=4096&&
+    const identity=['archive_sha256','raw_signature','effective_config_sha256'];
+    const datasets=descriptor.datasets||[],dataFor=did=>{const row=datasets.find(item=>item.dataset_id===did);requireValue(/^ds_[a-f0-9]{32}$/.test(did)&&row&&hash(row.data_sha256)&&row.data_format==='native_psf_json','请选择此原任务中的保存数据集。');return row;};
+    requireValue(identity.every(key=>hash(descriptor[key]))&&Array.isArray(descriptor.available_signal_ids)&&(descriptor.available_signal_ids.length>0&&hash(descriptor.csv_sha256)||datasets.some(row=>row.available===true&&(row.available_signal_ids?.length||row.available_device_ids?.length)))&&descriptor.available_signal_ids.length<=4096&&
       descriptor.available_signal_ids.every(signalId)&&new Set(descriptor.available_signal_ids).size===descriptor.available_signal_ids.length,
       '波形描述缺少归档、配置或信号身份。');
     const compiledMatches=data=>data?.source_hashes&&typeof data.source_hashes==='object'&&
       (descriptor.compiled_source_path?data.source_hashes[descriptor.compiled_source_path]===descriptor.compiled_source_sha256:Object.values(data.source_hashes).includes(descriptor.compiled_source_sha256));
     requireValue(compiledMatches(descriptor),'波形描述未包含编译后源码的准确身份。');
-    let available=null;
+    const available=new Map();
     const current=()=>requireValue(generation===epoch&&scope===connectionId&&client===transport,'波形连接已变化；未读取其它连接。','connection_changed');
     const checkRun=run=>{current();requireValue(run===job.run_id,'只能读取选中的原始波形任务。');};
     const checkAbort=options=>{if(options?.signal?.aborted)throw new DOMException('Aborted','AbortError');};
-    const nested=data=>{
-      requireValue(data?.schema==='ic.waveforms.v1'&&data.run_id===job.run_id&&data.source_commit===job.source_commit&&
+    const nested=(data,did)=>{
+      requireValue(['ic.waveforms.v1','ic.waveform-map.v1'].includes(data?.schema)&&data.run_id===job.run_id&&data.source_commit===job.source_commit&&
         identity.every(key=>data[key]===descriptor[key])&&compiledMatches(data),'波形内容的源码、归档或配置身份不同。');
+      if(did){const row=dataFor(did);requireValue(data.dataset_id===did&&data.data_sha256===row.data_sha256&&data.data_format===row.data_format&&data.analysis_id===row.analysis?.name&&data.analysis_kind===row.analysis?.kind&&data.native_member_sha256===row.native_member?.sha256,'数据集的内容或原始分析身份已改变。');}
+      else requireValue(data.dataset_id===undefined&&data.csv_sha256===descriptor.csv_sha256,'默认目录数据身份改变。');
       return data;
     };
     async function read(operation,run,params={},options){
@@ -312,23 +317,27 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       requireValue(response?.schema==='ic.onboarding.waveforms.v1'&&response.operation===operation&&fields.every(key=>response[key]===descriptor[key])&&
         response.read_only===true&&response.probe?.enabled===false&&response.probe.current_geometry_context_verified===false,
         '波形响应与原始网表、任务或编译记录不一致。');
+      requireValue(response.dataset_id===params.dataset_id,'返回了其它数据集。');
       return response;
     }
     return Object.freeze({
       async catalog(run,options){
-        const data=nested((await read('catalog',run,{},options)).catalog);
+        const did=options?.dataset_id,query=did?{dataset_id:did}:{};if(did)dataFor(did);
+        const data=nested((await read('catalog',run,query,options)).catalog,did);
         requireValue(Array.isArray(data.signals)&&data.signals.length<=4096&&data.signals.every(row=>signalId(row.id))&&
           new Set(data.signals.map(row=>row.id)).size===data.signals.length,'波形目录的信号身份无效。');
         const ids=new Set(data.signals.filter(row=>row.status==='available').map(row=>row.id));
-        requireValue(ids.size===descriptor.available_signal_ids.length&&descriptor.available_signal_ids.every(id=>ids.has(id)),'波形目录与已检查的可用信号不同。');
-        available=ids;return data;
+        const expected=did?dataFor(did).available_signal_ids:descriptor.available_signal_ids;
+        requireValue(ids.size===expected.length&&expected.every(id=>ids.has(id)),'波形目录与已检查的可用信号不同。');
+        if(!did)requireValue(JSON.stringify(data.datasets||[])===JSON.stringify(datasets),'保存数据集目录改变。');
+        available.set(did||'',ids);return data;
       },
-      async mapping(run,options){return nested((await read('mapping',run,{},options)).mapping);},
+      async mapping(run,options){const did=options?.dataset_id;if(did)dataFor(did);return nested((await read('mapping',run,did?{dataset_id:did}:{},options)).mapping,did);},
       async waveform(run,id,params={},options){
-        checkRun(run);requireValue(available?.has(id)&&signalId(id),'请先从此运行的真实目录中选择可用信号。');
-        requireValue(params&&typeof params==='object'&&!Array.isArray(params)&&Object.keys(params).every(key=>['start','end','limit','cursor_a','cursor_b'].includes(key)),
+        checkRun(run);const did=params.dataset_id;if(did)dataFor(did);requireValue(available.get(did||'')?.has(id)&&signalId(id),'请先从此运行的真实目录中选择可用信号。');
+        requireValue(params&&typeof params==='object'&&!Array.isArray(params)&&Object.keys(params).every(key=>['start','end','limit','cursor_a','cursor_b','dataset_id'].includes(key)),
           '波形窗口参数不受支持。','invalid_input');
-        const query={signal_ids:id};
+        const query={signal_ids:id,...(did?{dataset_id:did}:{})};
         for(const [input,output] of [['start','start'],['end','stop']])if(params[input]!==undefined){requireValue(typeof params[input]==='number'&&Number.isFinite(params[input]),'时间窗必须使用有限秒值。','invalid_input');query[output]=params[input];}
         if(query.start!==undefined&&query.stop!==undefined)requireValue(query.start<query.stop,'时间窗结束值必须晚于开始值。','invalid_input');
         if(params.limit!==undefined){requireValue(Number.isInteger(params.limit)&&params.limit>=4&&params.limit<=10000,'波形显示采样数超出限制。','invalid_input');query.max_points=params.limit;}
@@ -336,9 +345,9 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
         // real service measurement metadata; never measure decimated plot points.
         const response=await read('window',run,query,options);
         requireValue(Array.isArray(response.series)&&response.series.length===1,'波形窗口没有返回唯一的已选信号。');
-        const data=nested(response.series[0]);
-        requireValue(data.signal?.id===id&&Array.isArray(data.points)&&data.points.length<=10000&&
-          data.points.every(point=>Array.isArray(point)&&point.length===2&&point.every(Number.isFinite)),'波形窗口返回了其它信号或无效样本。');
+        const data=nested(response.series[0],did);
+        const points=data.complex_points||data.points,width=data.representation==='complex_real_imag'?3:2;
+        requireValue(data.signal?.id===id&&(did&&data.axis===null&&data.operating_value||Array.isArray(points)&&points.length<=10000&&points.every(point=>Array.isArray(point)&&point.length===width&&Number.isFinite(point[0])&&point.slice(1).every(v=>Number.isFinite(v)||did&&(v===null||data.representation==='string'&&typeof v==='string')))),'波形窗口返回了其它信号或无效样本。');
         return data;
       },
     });

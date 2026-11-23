@@ -111,6 +111,33 @@ class TestbenchWorkflowTest(unittest.TestCase):
         self.assertFalse(inventory['bundles'][0]['source_matches'])
         self.assertEqual(inventory['bundles'][0]['registration_commit'], registered['commit'])
 
+    def test_testbench_helper_bytes_are_reviewed_registered_and_hash_checked(self):
+        args = self.proposal_args()
+        helper = '`include "disciplines.vams"\nmodule stimulus(p,n);\ninout p,n; electrical p,n;\nanalog V(p,n) <+ 1.0;\nendmodule\n'
+        args['manifest']['helper_files'] = {'stimuli/step.va': helper}
+        review = self.workflow.preview_testbench(**args)
+        name = 'lib/demo/gain/testbenches/gain-tran/helpers/stimuli/step.va'
+        self.assertIn(name, review['payload']['files'])
+        self.assertEqual(review['payload']['binding']['helper_sha256'], {'stimuli/step.va': self.sha(helper)})
+        self.assertFalse((self.root / name).exists())
+        self.workflow.confirm(review['review_id'], 'human-reviewed-helper')
+        self.assertEqual(self.git('show', 'HEAD:' + name).decode(), helper)
+        self.assertIn(name, self.workflow._scope('demo', 'gain')['bundle_paths'])
+        self.assertEqual(self.workflow.get_testbenches('demo', 'gain')['bundles'][0]['binding']['helper_sha256'],
+                         {'stimuli/step.va': self.sha(helper)})
+        self.write(name, helper.replace('1.0', '9.0'))
+        self.git('add', name); self.git('commit', '-m', 'Synthetic helper corruption')
+        with self.assertRaises(fixtures.MOD.WorkflowError):
+            self.workflow.get_testbenches('demo', 'gain')
+
+    def test_testbench_helpers_reject_path_collisions_and_standard_header_substitution(self):
+        args = self.proposal_args()
+        for helpers in ({'../escape.va': 'x'}, {'tb.scs': 'x'}, {'a.va': 'x', 'A.va': 'y'},
+                        {'a.va': 'x', 'a.va/other': 'y'}, {'local/disciplines.vams': 'x'}):
+            args['manifest']['helper_files'] = helpers
+            with self.subTest(helpers=list(helpers)), self.assertRaises(fixtures.MOD.WorkflowError):
+                self.workflow.preview_testbench(**args)
+
 
 if __name__ == '__main__':
     suite = unittest.TestSuite(TestbenchWorkflowTest(name) for name in dir(TestbenchWorkflowTest) if name.startswith('test_testbench_'))

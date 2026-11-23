@@ -84,9 +84,20 @@ Application source was extracted from the working IC on GitHub project. Reviewed
 
 ## Development
 
+On macOS or Linux, prepare the project Python environment, build the web/plugin and Pages packages, and run offline health checks with one command:
+
+```bash
+python3 -B tools/dev/setup_env.py
+```
+
+Setup installs the exact SpiceOwl commit in `contracts/spiceowl-integration.lock.json` with its `mcp,adctools` extras and **ADCToolbox 0.9.3**. Matching project environments are reused; global Python packages and active services are unchanged. Node, browsers, Cadence and PDKs are not installed. Use `--plan` to inspect the steps without running them. See the [developer environment guide](docs/dev-environment.md) for interpreter selection, recovery and optional external-link audits.
+
+After setup, individual checks remain available:
+
 ```bash
 python3 -B tools/dev/build.py all
 python3 -B tools/dev/check_structure.py
+python3 -B tools/dev/check_links.py
 node --test tests/demo/*.test.mjs tests/context/*.test.mjs tests/waveforms/*.test.mjs
 node --test tests/remote/*.test.mjs
 python3 -B tests/remote/test_node.py

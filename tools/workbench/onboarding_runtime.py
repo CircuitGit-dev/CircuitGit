@@ -20,15 +20,26 @@ from workspace import Conflict
 
 PREFIX = '/api/simulation/onboarding'
 READS = {'ssh-hosts','session','source','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','agent-tb/draft','agent-tb/review'}
-WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis'}
+WRITES = {'netlist','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis'}
 SCHEMA = 'ic.onboarding.session.v1'
-IN_PROGRESS={'probe','discover-pdk','prepare','agent-tb/draft','agent-tb/prepare','submitting'}
+IN_PROGRESS={'probe','discover-pdk','veriloga-headers','prepare','agent-tb/draft','agent-tb/prepare','submitting'}
 
 
 def save_discovery_observation(path, data):
     """Preserve complete observed JSON without indentation multiplying its size."""
+    return _save_observation(path,data,MAX_RECORD_BYTES)
+
+
+def save_library_observation(path,data):
+    """Private whole-library storage has its own bound, never a public payload."""
+    from spiceowl.onboarding.pdk_discovery import MAX_LIBRARY_RESULT_BYTES,validate_pdk_library
+    validate_pdk_library(data)
+    return _save_observation(path,data,MAX_LIBRARY_RESULT_BYTES)
+
+
+def _save_observation(path,data,limit):
     raw=canonical(data)+b'\n'
-    if len(raw)>MAX_RECORD_BYTES:
+    if len(raw)>limit:
         raise ValueError('Complete discovery evidence exceeds the local record budget; narrow the explicit search scope.')
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     temporary=path.with_name(path.name+'.'+secrets.token_hex(16)+'.tmp')
@@ -45,7 +56,7 @@ def public_session(state):
     allowed={'schema','connection_id','intake_id','revision','source_sha256','source_commit',
         'state','created_at','updated_at','source','input_provenance','probes','discovery',
         'prepared','execution_scope','selection','job','inspection','missing','source_mapping','submission',
-        'recommended_selection','suggested_intent','intent_suggestions','agent_tb','agent_tb_review','mode','support_files','analysis','operation'}
+        'recommended_selection','suggested_intent','intent_suggestions','agent_tb','agent_tb_review','mode','support_files','analysis','operation','veriloga_headers'}
     result={k:copy.deepcopy(v) for k,v in state.items() if k in allowed}
     if 'probes' in result:
         result['probes']=[{k:copy.deepcopy(v) for k,v in row.items() if k in
@@ -217,10 +228,11 @@ class OnboardingRuntime:
             state['operation']={'operation_id':operation_id,'owner':self._operation_owner,'kind':operation,
                 'status':'active','started_at':stamp()}
             with self._mutex:self._active_operations[state['intake_id']]=operation_id
-            if operation in ('probe','discover-pdk','prepare','agent-tb/draft','agent-tb/prepare'):
+            if operation in ('probe','discover-pdk','veriloga-headers','prepare','agent-tb/draft','agent-tb/prepare'):
                 state.pop('agent_tb_review',None)
-            for field in ({'probe':('probes','discovery','prepared','execution_scope','selection','source_mapping','job','submission','recommended_selection','discovery_search_history'),
+            for field in ({'probe':('probes','discovery','prepared','execution_scope','selection','source_mapping','job','submission','recommended_selection','discovery_search_history','veriloga_headers'),
                            'discover-pdk':('discovery','prepared','execution_scope','selection','source_mapping','job','submission','recommended_selection'),
+                           'veriloga-headers':('prepared','execution_scope','job','submission'),
                            'prepare':('prepared','execution_scope','job','submission'),
                            'agent-tb/draft':('prepared','execution_scope','job','submission','source_mapping'),
                            'agent-tb/prepare':('prepared','execution_scope','job','submission')}.get(operation,())):
@@ -275,7 +287,7 @@ class OnboardingRuntime:
         if origin not in ('interactive_client','native_agent','test_harness'):
             raise PermissionError('Unsupported onboarding entry point')
         if not isinstance(args,dict):raise ValueError('Onboarding arguments must be an object')
-        methods={'netlist':self._netlist,'probe':self._probe,'discover-pdk':self._discover,
+        methods={'netlist':self._netlist,'probe':self._probe,'discover-pdk':self._discover,'veriloga-headers':self._veriloga_headers,
                  'prepare':self._prepare,'run':self._run,'inspect':self._inspect,
                  'agent-tb/draft':self._agent_draft,'agent-tb/prepare':self._agent_prepare,'analysis':self._analysis}
         if operation not in methods:raise ValueError('Unknown finite onboarding operation')
@@ -378,7 +390,7 @@ class OnboardingRuntime:
 
     def _discover(self,args,origin):
         required={'intake_id','revision','probe_ids'}
-        if not required<=set(args) or set(args)-required-{'search_paths','cds_lib_hint','search_directory_ids','refresh'}:
+        if not required<=set(args) or set(args)-required-{'search_paths','cds_lib_hint','search_directory_ids','refresh','library_selection'}:
             raise ValueError('Use the explicit probe identities and optional search hints')
         if 'refresh' in args and type(args['refresh']) is not bool:raise ValueError('refresh must be an explicit boolean')
         previous=self._load(args['intake_id']);ids=args['probe_ids']
@@ -388,6 +400,24 @@ class OnboardingRuntime:
         if len(selected)!=len(ids):raise ValueError('Probe does not belong to the current intake revision')
         hints=args.get('search_paths')
         roots_by_probe={}
+        library_selection=args.get('library_selection')
+        if library_selection is not None:
+            if (type(library_selection) is not dict or set(library_selection)!={'probe_id','library_id','library_candidate_id'}
+                    or ids!=[library_selection.get('probe_id')]
+                    or any(not isinstance(library_selection.get(k),str) or not re.fullmatch('[a-f0-9]{64}',library_selection[k])
+                           for k in ('library_id','library_candidate_id'))
+                    or any(args.get(k) for k in ('search_paths','search_directory_ids','cds_lib_hint','refresh'))):
+                raise ValueError('Select one exact returned library entry without new scan hints')
+            previous_id=(previous.get('discovery') or {}).get('discovery_id')
+            if not previous_id:raise ValueError('A bounded library entry query requires previous choices')
+            old=read_json(self._folder(previous['intake_id'])/'discoveries'/(previous_id+'.json'))
+            records=[r for r in old['rows'] if r['probe_id']==library_selection['probe_id']]
+            if len(records)!=1:raise ValueError('Library entry belongs to another probe')
+            cached=records[0].get('lut') or {};choices=cached.get('projection') or cached
+            if (choices.get('library_id')!=library_selection['library_id']
+                    or not any(r['library_candidate_id']==library_selection['library_candidate_id'] for r in choices.get('entry_choices',[]))):
+                raise ValueError('Select only an entry returned by the original library observation')
+            roots_by_probe[library_selection['probe_id']]=records[0].get('lookup_roots',records[0]['search_roots'])
         if 'search_directory_ids' in args:
             requested=args['search_directory_ids']
             if hints or not isinstance(requested,list) or not 1<=len(requested)<=8 or any(not isinstance(x,str) for x in requested) or len(set(requested))!=len(requested):
@@ -411,7 +441,7 @@ class OnboardingRuntime:
             raise ValueError('Use one explicit absolute cds.lib hint')
         folder,state=self._begin(args,'discover-pdk')
         from onboarding_discovery import remote_discovery,public_discovery,record_search_progress
-        from onboarding_lut import lookup_discovery,store_discovery
+        from onboarding_lut import lookup_discovery,store_discovery,store_library
         def discover(probe):
             capture=read_json(folder/'probes'/(probe['probe_id']+'.json'))
             search_roots=roots_by_probe.get(probe['probe_id'],hints)
@@ -420,18 +450,36 @@ class OnboardingRuntime:
                               if row.get('exists')]
             try:
                 cached=lookup_discovery(self.root/'pdk-cache',capture,state['source']['requirements'],
-                    roots=search_roots,refresh=args.get('refresh',False) or bool(args.get('cds_lib_hint')))
-                result=cached['discovery'];lut={**cached['public'],'scan_performed':result is None,'storage':None}
-                if result is None:
-                    result=remote_discovery(probe['ssh_target'],self.config['ssh_config'],capture,
-                        state['source']['requirements'],roots_by_probe.get(probe['probe_id'],hints),args.get('cds_lib_hint'))
-                    try:lut['storage']=store_discovery(self.root/'pdk-cache',capture,result)
+                    roots=search_roots,refresh=args.get('refresh',False) or bool(args.get('cds_lib_hint')),
+                    **({key:library_selection[key] for key in ('library_id','library_candidate_id')} if library_selection else {}))
+                lookup_roots=search_roots
+                result=cached['discovery'];lut={**cached['public'],'scan_performed':False,'storage':None}
+                if result is None and cached['public']['scan_required']:
+                    lut['scan_performed']=True
+                    observed=remote_discovery(probe['ssh_target'],self.config['ssh_config'],capture,
+                        state['source']['requirements'],roots_by_probe.get(probe['probe_id'],hints),args.get('cds_lib_hint'),full_library=True)
+                    is_library=observed.get('schema')=='spiceowl.pdk-library.v1'
+                    if is_library:
+                        lookup_roots=observed['roots']
+                        save_library_observation(folder/'libraries'/(observed['library_id']+'.json'),observed)
+                    else:
+                        # The retained filtered adapter/receipts remain valid;
+                        # they never establish whole-library coverage.
+                        result=observed
+                    try:
+                        lut['storage']=(store_library if is_library else store_discovery)(self.root/'pdk-cache',capture,observed)
+                        if is_library and lut['storage']['status']=='stored':
+                            projected=lookup_discovery(self.root/'pdk-cache',capture,state['source']['requirements'],roots=observed['roots'])
+                            result=projected['discovery']
+                            lut['projection']=projected['public']
                     except Exception as error:
                         atomic(folder/'cache-errors'/(probe['probe_id']+'.json'),{'error':str(error)[:2000]})
                         lut['storage']={'schema':'ic.onboarding.pdk-lut.v1','status':'not_stored',
                             'missing':[{'field':'cache','code':'cache_storage_failed','message':'The new observation is retained in this intake; reusable cache storage failed.'}],
                             'fresh_dependency_audit_required':True,'remote_freshness_verified':False,'ready_to_run':False}
                 return {'probe_id':probe['probe_id'],'result':result,'search_roots':search_roots,
+                        **({'lookup_roots':lookup_roots} if lookup_roots!=search_roots else {}),
+                        **({'error_code':'pdk_library_binding_incomplete'} if result is None else {}),
                         'lut':lut,
                         'platform':(capture.get('private') or {}).get('platform') or (capture.get('public') or {}).get('platform')}
             except Exception as error:
@@ -463,7 +511,35 @@ class OnboardingRuntime:
             recommended_selection=recommended,suggested_intent=values,intent_suggestions=suggestions,
             input_provenance=state['input_provenance']+[{'kind':'pdk_search','origin':origin,
                 'probe_ids':ids,'explicit_search_paths':hints or [],'search_directory_ids':args.get('search_directory_ids',[]),
-                'explicit_cds_lib_hint':args.get('cds_lib_hint'),'explicit_refresh':args.get('refresh',False)}])
+                'explicit_cds_lib_hint':args.get('cds_lib_hint'),'explicit_refresh':args.get('refresh',False),
+                **({'library_selection':copy.deepcopy(library_selection)} if library_selection else {})}])
+
+    def _veriloga_headers(self,args,origin):
+        if set(args)!={'intake_id','revision','probe_id','roots'}:
+            raise ValueError('Select one observed host and explicit standard-header directories')
+        previous=self._load(args['intake_id'])
+        if previous.get('mode')!='agent-tb':raise ValueError('Header inspection requires an agent-TB intake')
+        if any(p.get('dispatch_outcome') in ('attempting','unknown') for p in previous['plans']):
+            raise Conflict('Reconcile the original uncertain submission before changing its dependencies')
+        probes=[p for p in previous.get('probes',[]) if p.get('probe_id')==args['probe_id']]
+        if len(probes)!=1:raise ValueError('Select an exact probe belonging to this intake')
+        probe=probes[0];capture=read_json(self._folder(previous['intake_id'])/'probes'/(probe['probe_id']+'.json'))
+        from onboarding_veriloga import probe_request,remote_headers,freeze_observation,public_headers
+        probe_request(capture,args['roots'])  # Validate before changing the operation state.
+        folder,state=self._begin(args,'veriloga-headers')
+        try:
+            observed=remote_headers(probe['ssh_target'],self.config['ssh_config'],capture,args['roots'])
+            record=freeze_observation(capture,probe['probe_id'],observed)
+            save_discovery_observation(folder/'veriloga-headers'/(record['header_id']+'.json'),record)
+            public=public_headers(record)
+        except Exception as error:
+            atomic(folder/'header-errors'/(probe['probe_id']+'.json'),{'error':str(error)[:2000]})
+            return self._finish(folder,state,state='needs_input',missing=[{'field':'veriloga_headers',
+                'code':'header_probe_incomplete','message':'The explicit header observation did not complete; inspect the selected installation and roots.'}])
+        rows=[row for row in state.get('veriloga_headers',[]) if row['probe_id']!=probe['probe_id']]
+        return self._finish(folder,state,state='headers_observed',veriloga_headers=rows+[public],missing=[],
+            input_provenance=state['input_provenance']+[{'kind':'veriloga_header_observation','origin':origin,
+                'header_id':record['header_id'],'probe_id':probe['probe_id'],'inventory_sha256':observed['observation_id']}])
 
     def _prepare(self,args,origin):
         previous=self._load(args['intake_id'])
@@ -561,15 +637,19 @@ class OnboardingRuntime:
         if not selection:missing.append({'field':'selection','code':'selection_missing','message':'Select the observed PDK and host scope for this testbench.'})
         elif not previous.get('discovery') or previous['discovery']['discovery_id']!=selection['discovery_id']:
             raise Conflict('The draft must select the current PDK discovery')
+        selected=None
+        if not missing:
+            saved=read_json(self._folder(previous['intake_id'])/'discoveries'/(selection['discovery_id']+'.json'))
+            if saved['source_sha256']!=previous['source_sha256']:raise ValueError('Discovery source digest changed')
+            selected=compile_agent_selection(self._folder(previous['intake_id']),previous,saved)
+            missing.extend(selected['missing'])
         folder,state=self._begin(args,'agent-tb/prepare')
         def blocked():
             return self._finish(folder,state,state='needs_input',prepared={
                 'schema':'ic.experiment.plan.v1','state':'blocked','project_id':state['intake_id'],
                 'recipe_id':'agent-testbench','source_commit':None,'plan_id':None,'missing':missing,'submission_key':None})
         if missing:return blocked()
-        saved=read_json(folder/'discoveries'/(selection['discovery_id']+'.json'))
-        if saved['source_sha256']!=state['source_sha256']:raise ValueError('Discovery source digest changed')
-        selected=compile_agent_selection(folder,state,saved);missing.extend(selected['missing']);hosts={};exclusions=[]
+        hosts={};exclusions=[]
         probes={p['ssh_target']:p for p in state.get('probes',[]) if p.get('probe_id')}
         if set(selection['host_ids'])-set(probes):raise ValueError('Select only SSH aliases observed for this intake')
         audit_probe=next((p for p in probes.values() if p['probe_id']==selected['probe_id']),None)
@@ -632,6 +712,7 @@ class OnboardingRuntime:
             'testbench':copy.deepcopy(draft['testbench']),'files':source_files,
             'selection':copy.deepcopy(draft['selection']),'recipe':data['recipe'],
             'dependency_audit':data['dependency_audit'],'dependency_profile_sha256':data['dependency_profile_sha256'],
+            **({'veriloga_header_audit':data['veriloga_header_audit']} if data.get('veriloga_header_audit') else {}),
             'hosts':data['sites'],'environment_pins':data['environment_pins'],'requirements':data['requirements'],
             'bundle_sha256':data['bundle_sha256'],'configuration_sha256':plan['configuration_sha256'],
             'pool_sha256':plan['pool_sha256'],'site_sha256':plan['site_sha256']}

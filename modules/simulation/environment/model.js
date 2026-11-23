@@ -43,7 +43,7 @@ export function onboardingWaveformsAvailable({intake,job:receipt}={}){
   const value=receipt?.waveforms;
   if(!object(intake)||!object(receipt)||value?.schema!=='ic.onboarding.waveform-descriptor.v1'||value.available!==true||value.source_binding_verified!==true||value.read_only!==true)return false;
   if(value.intake_id!==intake.intake_id||value.job_id!==receipt.job_id||value.run_id!==receipt.run_id||receipt.job_id!==receipt.run_id||value.source_commit!==receipt.source_commit||value.source_commit!==intake.source_commit||value.original_source_sha256!==intake.source_sha256)return false;
-  if(!['archive_sha256','original_source_sha256','compiled_source_sha256','raw_signature','effective_config_sha256','csv_sha256'].every(key=>sha(value[key]))||!Array.isArray(value.available_signal_ids)||!value.available_signal_ids.length||!value.available_signal_ids.every(signal=>id(signal)&&signal.startsWith('s_')))return false;
+  if(!['archive_sha256','original_source_sha256','compiled_source_sha256','raw_signature','effective_config_sha256'].every(key=>sha(value[key]))||!Array.isArray(value.available_signal_ids)||!(value.available_signal_ids.length&&sha(value.csv_sha256)||value.datasets?.some(row=>row.available===true&&sha(row.data_sha256)&&/^ds_[a-f0-9]{32}$/.test(row.dataset_id)&&(row.available_signal_ids?.length||row.available_device_ids?.length)))||!value.available_signal_ids.every(signal=>id(signal)&&signal.startsWith('s_')))return false;
   if(!['none','added_explicit_subcircuit_wrapper'].includes(value.transformation)||value.transformation==='none'&&value.original_source_sha256!==value.compiled_source_sha256)return false;
   return id(value.compiled_source_path)&&object(value.source_hashes)&&value.source_hashes[value.compiled_source_path]===value.compiled_source_sha256;
 }
@@ -121,7 +121,7 @@ function pendingRecord(value,connectionId){
 
 export function createEnvironmentController({adapter=null,pendingStore=null,changed=()=>{},onRun=()=>{}}={}){
   let disposed=false,epoch=0,source=null,unsubscribe=null,restoring=null;
-  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),refresh:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,recommendationMode:true,preparation:step(),run:step(),agentSave:step(),agentReview:step(),analysis:step(),analysisCatalog:step(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
+  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),refresh:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,recommendationMode:true,preparation:step(),run:step(),agentSave:step(),agentReview:step(),analysis:step(),analysisCatalog:step(),headerScan:step(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
   const emit=()=>{if(!disposed)changed();};
   const agentEditor=createAgentDraftEditor({changed:emit});
   const has=name=>typeof adapter?.[name]==='function';
@@ -277,21 +277,29 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       const result=adapter.openAgentTestbenchReview({intake_id:state.session.intake_id,revision:state.session.revision,review_id:review.review_id,review_digest:review.review_digest,plan_id:review.plan_id},{event});
       state.agentReview={status:'opened',result,error:null};emit();return result;
     },
-    async readAnalysisCatalog(){
+    async probeVerilogaHeaders(args){
+      editable();requireAdapter('probeVerilogaHeaders');const current=identity(),editor=agentEditor.state;
+      if(editor.dirty||editor.conflict||editor.error||state.headerScan.status==='unknown')throw Error('请先保存并核对测试平台草稿与原头文件请求。');
+      if(!object(args)||Object.keys(args).sort().join(',')!=='intake_id,probe_id,revision,roots'||args.intake_id!==current.intake_id||args.revision!==current.revision||!state.session.probes?.some(row=>row.probe_id===args.probe_id)||!Array.isArray(args.roots)||!args.roots.length||args.roots.length>8||args.roots.some(root=>!text(root,4096)||!root))throw Error('请选择当前 intake 中的主机观察和明确的头文件目录。');
+      let unknown=false;return action('veriloga-headers',state.headerScan,async()=>{try{return acceptSession(session(await guarded(()=>adapter.probeVerilogaHeaders(clone(args))),state.session,{mutating:true}));}catch(error){unknown=error?.data?.code==='transport_unknown';throw error;}},{uncertain:()=>unknown});
+    },
+    async readAnalysisCatalog({dataset_id}={}){
       editable();requireAdapter('waveformApi');const current=state.session,receipt=current?.job;
       if(!receipt)throw Error('请选择已保存的原仿真任务。');const provider=adapter.waveformApi({intake_id:current.intake_id,job:receipt});
-      return action('analysis-catalog',state.analysisCatalog,async()=>{const result=await guarded(()=>provider.catalog(receipt.run_id));
+      return action('analysis-catalog',state.analysisCatalog,async()=>{const result=await guarded(()=>provider.catalog(receipt.run_id,dataset_id?{dataset_id}:undefined));
         if(analysisScope(state.session)!==analysisScope(current))throw Error('分析任务已切换，未采用旧信号目录。');
         if(result?.schema!=='ic.waveforms.v1'||result.run_id!==receipt.run_id||result.source_commit!==receipt.source_commit||!Array.isArray(result.signals)||
-          ['archive_sha256','csv_sha256','raw_signature','effective_config_sha256'].some(key=>result[key]!==receipt.waveforms[key]))throw Error('分析信号目录与原任务数据不一致。');return result;});
+          ['archive_sha256','raw_signature','effective_config_sha256'].some(key=>result[key]!==receipt.waveforms[key]))throw Error('分析信号目录与原任务数据不一致。');
+        const selected=dataset_id?receipt.waveforms.datasets?.find(row=>row.dataset_id===dataset_id):null;
+        if(dataset_id?(!selected||result.dataset_id!==dataset_id||result.data_sha256!==selected.data_sha256):result.csv_sha256!==receipt.waveforms.csv_sha256)throw Error('分析数据集与原任务身份不一致。');return result;});
     },
-    async analyze({operation,inputs,parameters,criteria}={}){
+    async analyze({operation,inputs,parameters,criteria,dataset_id}={}){
       editable();requireAdapter('analyzeExperiment');if(!ANALYSIS_OPERATIONS.includes(operation)||!object(inputs)||!object(parameters))throw Error('请选择明确的分析算法、同任务信号和参数。');
       const current=state.session,receipt=current?.job;if(!receipt)throw Error('尚无可分析的原任务数据。');
-      const input={intake_id:current.intake_id,job_id:receipt.job_id,operation,inputs,parameters,...(criteria===undefined?{}:{criteria})};
+      const input={intake_id:current.intake_id,job_id:receipt.job_id,operation,inputs,parameters,...(dataset_id?{dataset_id}:{}),...(criteria===undefined?{}:{criteria})};
       return action('analysis',state.analysis,async()=>{const result=checkAnalysisResult(await guarded(()=>adapter.analyzeExperiment(input)),current);
         if(analysisScope(state.session)!==analysisScope(current))throw Error('分析任务已切换，旧结果未显示。');
-        if(canonical(result.request.inputs)!==canonical(inputs)||canonical(result.request.parameters)!==canonical(parameters)||criteria!==undefined&&canonical(result.request.criteria)!==canonical(criteria))throw Error('分析结果的信号、参数或判据与提交内容不一致。');return result;});
+        if(result.request.dataset_id!==dataset_id||canonical(result.request.inputs)!==canonical(inputs)||canonical(result.request.parameters)!==canonical(parameters)||criteria!==undefined&&canonical(result.request.criteria)!==canonical(criteria))throw Error('分析结果的信号、参数或判据与提交内容不一致。');return result;});
     },
     receiveAnalysis(value){
       if(disposed||!sameConnection())return {status:'ignored'};const result=checkAnalysisResult(value,state.session);
@@ -305,8 +313,14 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     async probeAndMatch(){await api.probeHost();return api.matchPdk();},
     setHint(key,value){editable();if(!Object.hasOwn(state.hints,key)||!text(value,4000))throw Error('搜索提示格式不符。');state.hints[key]=value;clearDiscovery();emit();},
     selectSearchDirectories(values){editable();const directories=state.discovery.result?.discovery.search_directories||[],probeIds=state.probe.result?.probes.map(probe=>probe.probe_id)||[];if(!Array.isArray(values)||values.length>8||new Set(values).size!==values.length||values.some(value=>!directories.some(directory=>directory.directory_id===value&&probeIds.includes(directory.probe_id))))throw Error('只能选择至多 8 个当前 discovery 中属于所选主机的观察目录。');state.searchDirectoryIds=clone(values);state.searchScopeDirty=true;clearCandidate();emit();},
-    matchPdk({refresh=false}={}){
+    matchPdk({refresh=false,library_selection}={}){
       editable();requireAdapter('discoverPdk');if(state.probe.status!=='complete'||state.setupDirty)throw Error('请先完成当前所选主机与环境配置的探测。');
+      if(library_selection!==undefined){
+        const rows=state.session?.discovery?.lut||[],row=rows.find(row=>row.probe_id===library_selection?.probe_id),scope=row?.projection||row;
+        if(refresh||!object(library_selection)||Object.keys(library_selection).sort().join(',')!=='library_candidate_id,library_id,probe_id'||!sha(library_selection.library_id)||!sha(library_selection.library_candidate_id)||!state.probe.result.probes.some(row=>row.probe_id===library_selection.probe_id)||scope?.library_id!==library_selection.library_id||!scope.entry_choices?.some(choice=>choice.library_candidate_id===library_selection.library_candidate_id))throw Error('请选择当前主机观察所返回的完整模型库条目。');
+        const args={...identity(),probe_ids:[library_selection.probe_id],library_selection:clone(library_selection)};clearDiscovery();
+        return action('pdk',state.discovery,async()=>{const value=acceptSession(discovery(session(await guarded(()=>adapter.discoverPdk(args)),state.session,{mutating:true})));state.recommendationMode=true;return value;});
+      }
       const args={...identity(),probe_ids:state.probe.result.probes.map(probe=>probe.probe_id).filter(id)},selected=clone(state.searchDirectoryIds);
       if(refresh===true)args.refresh=true;
       if(!args.probe_ids.length)throw Error('没有可用主机探测结果；请检查失败原因。');

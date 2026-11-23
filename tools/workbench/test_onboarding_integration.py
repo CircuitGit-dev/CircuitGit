@@ -302,7 +302,7 @@ class OnboardingDiscoveryIntegrationTests(_IntakeFixture):
     def test_late_discovery_reply_cannot_overwrite_a_newer_probe_revision(self):
         state = self.probe(self.new_source())
         evidence = self.synthetic_discovery(state['source']['requirements'])
-        def another_revision(*args):
+        def another_revision(*args,**kwargs):
             current = self.runtime.read('session', {'intake_id': state['intake_id']})
             self.runtime._begin({'intake_id': current['intake_id'], 'revision': current['revision']}, 'probe')
             return evidence

@@ -41,16 +41,16 @@ test('revoked node authorization notifies the host once without replaying',async
   await assert.rejects(client.request('/node/info'),/断开/);
   assert.equal(rejected,1);assert.equal(calls,1);
 });
-test('onboarding permits only the thirteen browser routes, exact verbs and bounded query identity',async()=>{
+test('onboarding permits only the fourteen browser routes, exact verbs and bounded query identity',async()=>{
   const calls=[],client=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async(url,options)=>{calls.push({url,options});return new Response(JSON.stringify({ok:true,data:{observed:true}}));}});
   for(const row of Object.values(ONBOARDING_OPERATIONS)){
     const path='/simulation/onboarding'+row.path+(row.query?'?'+new URLSearchParams(Object.fromEntries(row.query.map(key=>[key,'opaque-original-id']))):'');
     assert.equal(isOnboardingRequest(path,row.method),true);await client.request(path,{method:row.method,...(row.method==='POST'?{body:{}}:{})});
     assert.equal(isOnboardingRequest(path,row.method==='GET'?'POST':'GET'),false);
   }
-  assert.equal(calls.length,13);
+  assert.equal(calls.length,14);
   for(const path of ['/simulation/onboarding/admin','/simulation/onboarding/agent-tb/human-run','/simulation/onboarding/agent-tb/review/confirm','/simulation/onboarding/session','/simulation/onboarding/session?intake_id=a&intake_id=b','/simulation/onboarding/session?intake_id=a&path=secret','/simulation/onboarding/../onboarding/ssh-hosts','/simulation/onboarding/ssh-hosts#fragment'])await assert.rejects(client.request(path),/运行节点/);
-  assert.equal(calls.length,13);
+  assert.equal(calls.length,14);
 });
 test('all onboarding envelopes enforce the simulation 2 MiB bound and retain structured rejection',async()=>{
   const large=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async()=>new Response(' '.repeat(2*1024*1024+1))});

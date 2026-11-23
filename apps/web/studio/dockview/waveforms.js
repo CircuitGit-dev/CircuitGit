@@ -57,7 +57,7 @@ export function mount(host,{api=waveformAPI(),labels={}}={}){
   aside.append($('.wf-legend'));
   const add=document.createElement('button');add.type='button';add.className='wf-add-signals';add.textContent='+ 添加信号';add.title='添加信号 (L)';add.onclick=()=>show(signals);aside.append(add);
   chart.classList.add('wf-chart');
-  for(const node of [...chart.children])if(node!==plot)storage.append(node);
+  for(const node of [...chart.children])if(node!==plot&&!node.classList.contains('wf-native-view'))storage.append(node);
   if($('.wf-top'))storage.append($('.wf-top'));
   const help=dialog('波形快捷键','help');
   const keys=[['O','打开已有运行'],['F','适配全部时间范围'],['Z → 拖选','放大选定时间段'],['Shift+Z / −','缩小'],['+ / 滚轮','缩放'],['← / → / 拖动','平移'],['A / B → 点击','放置 A / B 游标'],['L','添加或搜索信号'],['M','查看测量值与数据详情'],['Delete','移除焦点所在信号'],['Esc','退出拖选 / 关闭对话框'],['?','快捷键帮助']];

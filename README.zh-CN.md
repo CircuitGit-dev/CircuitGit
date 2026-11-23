@@ -48,6 +48,22 @@ python3 -B tools/workbench/launch.py
 
 本公开仓库包含应用源码、构建工具、MCP 插件、通用导出/仿真工具、RC 示例和审核后的用户 ADC 原理图导出。`lib/` 中保留来源哈希及模型依赖说明。PDK 实现、服务器配置、对话和未经整理的运行档案留在原工程中；详见 [发布范围](docs/public-release.md)。
 
+## 开发环境
+
+macOS / Linux 下用一个命令准备项目 Python 环境、构建网页与插件及 Pages，并执行离线健康检查：
+
+```bash
+python3 -B tools/dev/setup_env.py
+```
+
+脚本按 `contracts/spiceowl-integration.lock.json` 安装固定 commit 的 SpiceOwl `[mcp,adctools]` 与 **ADCToolbox 0.9.3**，重复执行会复用匹配的项目环境。它不修改全局 Python、不重启已有服务，也不安装 Node、浏览器、Cadence 或 PDK。可先加 `--plan` 查看步骤。解释器选择、失败恢复和可选外链审计见[开发环境说明](docs/dev-environment.md)。
+
+单独检查仓库文档内链与迁移后的第一方文档 URL：
+
+```bash
+python3 -B tools/dev/check_links.py
+```
+
 ## 致谢
 
 基于 [Rich Netlist](https://github.com/rich-netlist/rnl) 和 Dockview 等开源组件。项目采用 MIT 许可证，第三方代码及字体保留各自许可证和署名，详见 [第三方说明](THIRD_PARTY_NOTICES.md)。

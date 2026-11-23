@@ -12,11 +12,19 @@ Install the exact SpiceOwl revision from the paired dependency lock with its
 `adctoolbox==0.9.3`. Missing dependencies return an error; there is no substitute
 backend. See SpiceOwl `docs/adctools.md` for algorithm definitions and provenance.
 
-The current `WaveformService` exposes a single scalar transient dataset. Analysis
-loads its full CSV and verifies source, archive, CSV and run identity. It never
-uses chart-downsampled data. Generic AC/DC, complex values and multiple transient
-datasets can retain native artifacts without becoming supported analysis inputs.
-No conversion, sample reconstruction or resampling is inferred.
+`WaveformService` preserves the existing scalar transient CSV path and exposes
+independent native PSF ASCII AC, DC sweep and unswept DC operating-point datasets.
+An explicit local derivation verifies the original archive/member inventory,
+uses SpiceOwl's real parser, and saves `waveform-datasets.json` plus per-dataset
+JSON. GET never derives data or observes a remote host. The original source,
+archive, member and data hashes remain bound to the original run.
+
+AC/DC selection requires the exact returned `dataset_id`; no "latest" analysis
+is inferred, and an AC-only run has no default transient dataset. AC uses the
+native frequency axis in Hz and distinct real/imaginary vectors. DC retains its
+saved axis/units or unswept fields, including string/complex values and undefined
+nulls. No AC response is reconstructed from transient samples. Multiple transient
+analyses and multi-dimensional corner/Monte Carlo families remain unsupported.
 
 ## Request contract
 
@@ -54,6 +62,8 @@ calibration; an explicit time selector must be `"@time"`.
 | `reconstruct_codes` | Ordered `decisions` list | Local backend, weights, reference unit and additive offset |
 | `histogram_linearity` | `codes` | Local backend, bits, stimulus distribution and its parameters, endpoint policy, signal unit; optional occupancy threshold/details |
 | `tran_metrics` | `values`; optional `reference`, `voltage`, `current`, `time_s` | Local backend, initial/final levels, step time, absolute settling band/unit; optional hold, crossing fractions, reference levels, current direction and power window |
+| `ac_metrics` | `response`, optional `reference`: exact complex IDs in selected AC dataset | `spiceowl`; explicit `response_kind`, optional loop feedback/phase convention; `return_curves` |
+| `dc_op_metrics` | `devices`: exact `d_<32hex>` IDs in selected unswept DC dataset | `spiceowl`; explicit `device_contracts` keyed by the selected device IDs |
 
 Unsupported backend/option combinations fail explicitly. The local and upstream
 calibrations solve different declared problems: supervised reference fitting
@@ -61,7 +71,32 @@ versus a sine-based unit-gain representation. Upstream output does not establish
 absolute physical gain. Signal units must agree with saved metadata; power
 requires saved V and A signals and an explicit current direction.
 
-The frozen request digest includes operation, selectors, parameters and criteria.
+AC/DC requests add top-level `dataset_id` and use the same value in waveform
+catalog/mapping/window queries. AC response and optional reference must share
+that exact dataset and frequency axis. Units are injected from saved metadata;
+caller-supplied units or vectors are rejected. A same-unit response/reference
+ratio is dimensionless. An unnormalized voltage/current retains dimensional
+magnitude (for example `dB re 1 V`); it is not silently relabelled as gain.
+`dc_gain_db` requires actual saved 0 Hz data; low-frequency gain is reported at
+its own frequency. Bode plots retain 0 Hz using an explicitly labelled linear
+frequency axis. Strictly positive datasets use logarithmic frequency.
+
+`loop_gain` requires an explicit characteristic denominator
+`denominator_1_plus_L` or `denominator_1_minus_T` and `phase_reference_deg`.
+All returned unity/phase crossings remain visible. Ambiguous crossings never
+become a scalar stability claim; `stability_verdict` stays `not_evaluated`.
+
+For DC operating points the selected device IDs define the required scope.
+`device_contracts` keys must be selected IDs; the server maps them to exact saved
+names. Each contract explicitly declares polarity and either a model-specific
+region mapping plus its evidence source, or Vdsat voltage/sign/threshold
+conditions. Raw region codes have no generic mapping. Missing contracts reject
+analysis; missing measured evidence or unmapped codes produce unknown results.
+This adapter does not accept arbitrary supply numbers: DC static power remains
+undefined until a saved voltage/current selector contract is implemented.
+
+The frozen request digest includes operation, selectors, parameters, criteria
+and the explicit native `dataset_id` when selected.
 When the resolver supplies a reviewed digest or criteria, changes are rejected.
 Otherwise the result is labelled `exploratory`. Analysis never changes the
 original simulation's verdict.
@@ -69,9 +104,12 @@ original simulation's verdict.
 ## Result contract
 
 `ic.onboarding.analysis.v1` contains `analysis_id`, exact run/source/archive
-identity, the request and digest, the input CSV/raw signature and sample count,
+identity, the request and digest, the input raw signature and sample count,
 `evaluation_scope`, the `spiceowl.adctools.result.v1` algorithm result, and an
-independent criteria evaluation. Metrics carry value, unit and validity.
+independent criteria evaluation. Transient inputs retain `csv_sha256`; native
+inputs instead carry `data_sha256`, `data_format: native_psf_json`, `dataset_id`,
+original `analysis_id`/`analysis_kind` and `native_member_sha256`. Native JSON is
+never assigned a fabricated CSV digest. Metrics carry value, unit and validity.
 
 `criteria` uses `{metric, op, threshold, unit}` with finite thresholds and exact
 units. Invalid analyses, absent/undefined metrics and unit mismatches return
@@ -83,7 +121,15 @@ never a caller-selected path. The response spectrum is limited to 4096 bins by
 retaining the maximum-power bin in each frequency bucket. Metrics and the saved
 report retain full data. Upstream spectra can have `power_per_bin` and `psd` null;
 `power_db` is then used for display peak selection. Null logarithmic bins remain
-null. This chart operation cannot change a measurement.
+null. AC display curves retain bounded actual magnitude/phase extrema and gaps;
+per-component segment-start metadata prevents lines across omitted null gaps.
+Metrics and persisted reports always use full original real/imaginary vectors.
+These chart operations cannot change a measurement.
+
+Explicit saved-job AC/DC analysis is separate from automatic experiment
+acceptance. The existing reviewed Agent-TB automatic measurement path still
+supports its single scalar transient export; AC/DC analyses here do not qualify
+a PDK, alter the archived job verdict, or silently replace that CI path.
 
 The adapters bound requests, reports and response size. An oversized response
 requires a new summary request; it does not trigger a new simulation.
@@ -124,3 +170,19 @@ also call the pinned upstream implementation when installed, verify known
 harmonic powers, sine fits, transient timing and power, and check full-resolution
 report preservation. These fixtures establish software behavior over synthetic
 data; they contain no real remote simulation evidence.
+
+The [AC/DC fixture](contracts/onboarding-acdc.example.json) runs actual native
+PSF parsing, hash-bound dataset publication, full-resolution AC/DC numerical
+APIs, and report persistence over original synthetic data. Reproduce with:
+
+```bash
+SPICEOWL_SOURCE_DIR=../spiceowl/src PYTHONPATH=../spiceowl/src:tools/workbench ../spiceowl/.venv/bin/python -B -m unittest test_native_datasets
+SPICEOWL_SOURCE_DIR=../spiceowl/src PYTHONPATH=../spiceowl/src:tools/workbench ../spiceowl/.venv/bin/python -B tools/workbench/test_native_datasets.py --write-examples
+node --test tests/studio/native-datasets.test.mjs tests/remote/native-datasets.test.mjs
+node tests/studio/native-datasets.browser.mjs
+```
+
+The browser fixture uses the actual viewer, analysis form and algorithm results;
+it verifies zero-frequency/dimensional Bode charts, responsive resizing,
+independent DC sweep and native operating-point tables, and exact selector
+plumbing. It does not run a simulator or establish a scientific qualification.

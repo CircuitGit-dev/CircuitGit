@@ -1,6 +1,6 @@
 import {createEnvironmentController,onboardingWaveformsAvailable} from './model.js';
 import {appendSimulationReport} from '../report.js';
-import {appendAgentTestbench} from './testbench-panel.js';
+import {appendAgentTestbench,appendVerilogaHeaders} from './testbench-panel.js';
 import {createAnalysisPanel} from './analysis-panel.js';
 import {appendPdkLut} from './lut.js';
 import {recoveryMessage} from './recovery.js';
@@ -11,7 +11,7 @@ const format=value=>value===null||value===undefined?'未知':typeof value==='obj
 
 export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getSource=null,onRun=null,openWaveforms=null,canOpenWaveforms=()=>true,notify=()=>{}}={}){
   const doc=root.ownerDocument,sheet=doc.createElement('link');sheet.rel='stylesheet';sheet.href=new URL('./style.css',import.meta.url).href;doc.head.append(sheet);
-  let controller=null,disposed=false,pasted='',sourceName='',port='',error=null,importMode='agent-tb',supportFiles={};const opened=new Set(),radioGroup='environment-pdk-'+crypto.randomUUID();
+  let controller=null,disposed=false,pasted='',sourceName='',port='',error=null,importMode='agent-tb',supportFiles={};const opened=new Set(),libraryChoiceIds=new Map(),radioGroup='environment-pdk-'+crypto.randomUUID();
   const el=(tag,text,className)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
   const note=(parent,text,warning=false)=>parent.append(el('p',text,warning?'ic-sim-warning':'ic-sim-note'));
   const call=fn=>async()=>{try{error=null;await fn();}catch(reason){error=String(reason?.message||reason);notify(error,{kind:'error'});render();}};
@@ -58,8 +58,8 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     const source=card(root,1,'独立网表',s.source?'字面信息':'导入后读取'),toolbar=el('div',undefined,'ic-sim-toolbar'),label=el('label',undefined,'ic-env-file');label.append(el('span','导入网表'));
     select(source,'测试流程','import-mode',[{value:'agent-tb',label:'Agent 编写测试平台 · 人工审阅'},{value:'legacy',label:'反相器 / RC 参考流程'}],importMode,value=>{importMode=value;render();},locked);
     const importSource=value=>{const {mode:_mode,...source}=value;return controller.importSource({...source,...(importMode==='agent-tb'?{mode:'agent-tb',...(Object.keys(supportFiles).length?{support_files:supportFiles}:{})}:{})});};
-    const file=el('input');file.type='file';file.accept='.scs,.sp,.spice,.cir,.txt';file.disabled=locked;file.setAttribute('aria-label','导入独立网表');file.addEventListener('change',call(async()=>{const selected=file.files?.[0];if(!selected)return;if(selected.size>1024*1024)throw Error('独立网表超过 1 MiB 导入上限。');await importSource({file_name:selected.name,text:await selected.text()});}));label.append(file);toolbar.append(label);if(getSource)toolbar.append(button('导入当前网表',async()=>importSource(await getSource()),locked));source.append(toolbar);
-    if(importMode==='agent-tb'){const supports=detail(source,'support-files','附加 include 文件（可选）'),picker=el('input');picker.type='file';picker.multiple=true;picker.accept='.scs,.sp,.spice,.cir,.txt';picker.disabled=locked;picker.setAttribute('aria-label','附加网表支持文件');picker.addEventListener('change',call(async()=>{const next={};for(const file of picker.files||[]){if(Object.keys(next).length>=64||file.size>1024*1024||Object.hasOwn(next,file.name))throw Error('支持文件重复、数量或大小超出范围。');next[file.name]=await file.text();}supportFiles=next;render();}));supports.append(picker);note(supports,Object.keys(supportFiles).length?Object.keys(supportFiles).join(' · '):'仅导入明确选中的文本；PDK 仍由服务器发现和核对。');}
+    const file=el('input');file.type='file';file.accept='.scs,.sp,.spice,.cir,.txt,.va,.vams';file.disabled=locked;file.setAttribute('aria-label','导入独立网表');file.addEventListener('change',call(async()=>{const selected=file.files?.[0];if(!selected)return;if(selected.size>1024*1024)throw Error('独立网表超过 1 MiB 导入上限。');await importSource({file_name:selected.name,text:await selected.text()});}));label.append(file);toolbar.append(label);if(getSource)toolbar.append(button('导入当前网表',async()=>importSource(await getSource()),locked));source.append(toolbar);
+    if(importMode==='agent-tb'){const supports=detail(source,'support-files','附加 include 文件（可选）'),picker=el('input');picker.type='file';picker.multiple=true;picker.accept='.scs,.sp,.spice,.cir,.txt,.va,.vams';picker.disabled=locked;picker.setAttribute('aria-label','附加网表支持文件');picker.addEventListener('change',call(async()=>{const next={};for(const file of picker.files||[]){if(Object.keys(next).length>=64||file.size>1024*1024||Object.hasOwn(next,file.name))throw Error('支持文件重复、数量或大小超出范围。');next[file.name]=await file.text();}supportFiles=next;render();}));supports.append(picker);note(supports,Object.keys(supportFiles).length?Object.keys(supportFiles).join(' · '):'仅导入明确选中的文本；PDK 仍由服务器发现和核对。');}
     const paste=detail(source,'paste','粘贴网表');field(paste,'文件名','source-name',sourceName,value=>{sourceName=value;},{placeholder:'独立网表文件名',disabled:locked});field(paste,'网表文本','source-text',pasted,value=>{pasted=value;render();},{placeholder:'粘贴独立 Spectre 网表',disabled:locked,multiline:true});paste.append(button('读取粘贴网表',()=>importSource({file_name:sourceName||'imported.scs',text:pasted}),locked||!pasted.trim()));
     const requirements=s.session?.source.requirements;
     if(s.source){
@@ -90,6 +90,17 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
       recommendationBox.append(button(s.recommendationMode?'调整推荐参数':'恢复当前推荐',()=>{if(s.recommendationMode){for(const key of ['pdk-advanced','experiment-advanced']){const disclosure=root.querySelector(`[data-environment-detail="${key}"]`);if(disclosure)disclosure.open=true;opened.add(key);}controller.editRecommendation();}else controller.useRecommendation();},locked||!recommendation.ready_for_prepare));
     }else if(!generic)note(recommendationBox,s.discovery.status==='complete'?'尚无完整推荐，可在高级设置中选择候选和补充参数。':'完成服务器探测后，在这里核对 PDK 与实验条件。');pdkCard.append(recommendationBox);resultError(pdkCard,s.discovery);
     appendPdkLut(pdkCard,s.discovery.result?.discovery.lut,{detail});
+    const libraryRows=(s.session?.discovery?.lut||[]).filter(row=>Array.isArray((row.projection||row).entry_choices)&&(row.projection||row).entry_choices.length),libraryKeys=new Set();
+    if(libraryRows.length){const choices=detail(pdkCard,'pdk-library-choices','选择已有 PDK 索引入口');choices.dataset.pdkLibraryChoices='';note(choices,'选择一个已观察的模型入口，沿用原搜索范围查询已保存索引。实际 PDK 与 Corner 仍需随测试平台确认。');
+      for(const row of libraryRows){const scope=row.projection||row,probe=s.session.probes?.find(item=>item.probe_id===row.probe_id),items=scope.entry_choices;
+        if(!probe||!/^[a-f0-9]{64}$/.test(scope.library_id)||items.some(item=>!item||!/^[a-f0-9]{64}$/.test(item.library_candidate_id)||typeof item.label!=='string'||!Array.isArray(item.section_candidates)||!Number.isSafeInteger(item.covered_model_count)||item.covered_model_count<0)){note(choices,'索引入口缺少本次主机观察或完整身份，请刷新当前实验核对。',true);continue;}
+        const key=JSON.stringify([s.session.connection_id,s.session.intake_id,s.session.revision,row.probe_id,scope.library_id]);libraryKeys.add(key);const selected=libraryChoiceIds.get(key)||'',disabled=locked||!connected||s.setupDirty||s.searchScopeDirty||controller.agentEditor.dirty||controller.agentEditor.conflict;
+        select(choices,probe.ssh_target+' · 已观察入口','pdk-library-'+row.probe_id,[{value:'',label:'明确选择一个入口'},...items.map(item=>({value:item.library_candidate_id,label:item.label+' · '+item.section_candidates.map(value=>value===null?'全局':value).join(' / ')+' · '+item.covered_model_count+' 个型号'}))],selected,value=>{libraryChoiceIds.set(key,value);render();},disabled);
+        const query=button('按所选入口匹配模型',()=>controller.matchPdk({library_selection:{probe_id:row.probe_id,library_id:scope.library_id,library_candidate_id:libraryChoiceIds.get(key)}}),disabled||!items.some(item=>item.library_candidate_id===selected));query.dataset.pdkLibraryQuery=row.probe_id;choices.append(query);
+      }
+    }
+    for(const key of libraryChoiceIds.keys())if(!libraryKeys.has(key))libraryChoiceIds.delete(key);
+    if(generic)appendVerilogaHeaders(pdkCard,{controller,opened,onChange:render,onError:reason=>{error=reason.message;notify(error,{kind:'error'});render();}});
     const pdk=detail(pdkCard,'pdk-advanced','高级：候选、搜索范围与模型接口'),hints=detail(pdk,'pdk-hints','可选搜索提示');field(hints,'搜索路径','search-paths',s.hints.search_paths,value=>controller.setHint('search_paths',value),{disabled:locked,placeholder:'每行一个搜索范围',multiline:true});field(hints,'cds.lib 提示','cds-lib',s.hints.cds_lib_hint,value=>controller.setHint('cds_lib_hint',value),{disabled:locked});pdk.append(button(s.busy==='pdk'?'正在匹配…':'按网表模型匹配 PDK',()=>controller.matchPdk(),locked||!connected||s.probe.status!=='complete'||s.setupDirty||!s.probe.result?.probes.some(probe=>probe.probe_id)));
     const directories=s.discovery.result?.discovery.search_directories||[];
     if(s.discovery.result?.discovery.lut)pdk.append(button('忽略索引并重新扫描',()=>controller.matchPdk({refresh:true}),locked||!connected||s.probe.status!=='complete'||s.setupDirty));

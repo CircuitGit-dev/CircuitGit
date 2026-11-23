@@ -5,7 +5,7 @@ import re
 
 from spiceowl_pool import canonical
 
-from agent_testbench_manifest import MANIFEST_SCHEMA, NAME, validate_manifest
+from agent_testbench_manifest import MANIFEST_SCHEMA, NAME, validate_manifest, helper_files
 
 SELECTION_FIELDS={'discovery_id','candidate_id','sections','tmi_candidate_id','model_contracts','host_ids'}
 
@@ -15,7 +15,9 @@ def digest(value):return hashlib.sha256(canonical(value)).hexdigest()
 
 def validate_selection(value):
     if value is None or value=={}:return None
-    if type(value) is not dict or set(value)!=SELECTION_FIELDS:raise ValueError('Select exact PDK, sections, contracts and host IDs')
+    if type(value) is not dict or not SELECTION_FIELDS<=set(value) or set(value)-SELECTION_FIELDS-{'veriloga_header_id'}:raise ValueError('Select exact PDK, sections, contracts and host IDs')
+    if 'veriloga_header_id' in value and (not isinstance(value['veriloga_header_id'],str) or not re.fullmatch(r'headers_[a-f0-9]{64}',value['veriloga_header_id'])):
+        raise ValueError('Select an exact observed Verilog-A header identity')
     for field in ('discovery_id','candidate_id'):
         if not isinstance(value[field],str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,180}',value[field]):raise ValueError('Invalid PDK selection identity')
     if type(value['sections']) is not list or not 1<=len(value['sections'])<=64 or any(s is not None and (not isinstance(s,str) or not NAME.fullmatch(s)) for s in value['sections']) or len(set(value['sections']))!=len(value['sections']):
@@ -52,19 +54,35 @@ def source_inputs(folder,state):
 def draft_record(folder,state,manifest,selection):
     manifest=validate_manifest(manifest);selection=validate_selection(selection)
     source,support=source_inputs(folder,state)
+    helpers=helper_files(manifest)
+    combined_support(support,helpers)
     binding={'source_sha256':state['source_sha256'],'support_sha256':{name:hashlib.sha256(raw).hexdigest() for name,raw in support.items()},
              'testbench':manifest,'selection':selection}
+    if helpers:binding['helper_sha256']={name:hashlib.sha256(raw).hexdigest() for name,raw in helpers.items()}
     return {'schema':'ic.onboarding.agent-tb.v1','draft_id':digest(binding),'revision':state['revision'],
         'source_sha256':state['source_sha256'],'testbench_sha256':hashlib.sha256(manifest['text'].encode()).hexdigest(),
         'manifest_sha256':digest(manifest),'status':'draft','testbench':manifest,'selection':selection,
-        'support_sha256':binding['support_sha256'],'requires_human_review':True}
+        'support_sha256':binding['support_sha256'],**({'helper_sha256':binding['helper_sha256']} if helpers else {}),
+        'requires_human_review':True}
+
+
+def combined_support(support,helpers):
+    """Preserve the source/TB distinction while checking their shared namespace."""
+    names={name.lower() for name in support}
+    for name in helpers:
+        name=name.lower()
+        if any(name==other or name.startswith(other+'/') or other.startswith(name+'/') for other in names):
+            raise ValueError('Testbench helper conflicts with original supporting source')
+        names.add(name)
+    return {**support,**helpers}
 
 
 def validate_authored_testbench(*, source, testbench_manifest, support_files=None, pdk_binding):
     """Pure source/manifest binding checks shared by onboarding and registered CI."""
     from spiceowl.onboarding.agent_tb import validate_agent_tb
     manifest=validate_manifest(testbench_manifest)
-    validation=validate_agent_tb(source=source,testbench=manifest['text'],support_files=support_files,
+    support=combined_support(support_files or {},helper_files(manifest))
+    validation=validate_agent_tb(source=source,testbench=manifest['text'],support_files=support,
         criteria=manifest,pdk_binding=pdk_binding)
     missing=validation['missing']
     requirements=validation['requirements'];interface=manifest['interface']
@@ -100,6 +118,22 @@ def compile_agent_selection(folder,state,saved):
     binding={'discovery_id':args['discovery_id'],'candidate_id':args['candidate_id'],'sections':args['sections'],
         'model_names':model_names,'pdk_sha256':hashlib.sha256(pdk).hexdigest(),'entry_sha256':candidate['entry_sha256'],'tmi_candidate_id':tmi}
     validation=validate_authored_testbench(source=source,testbench_manifest=manifest,support_files=support,pdk_binding=binding)
+    required_headers={edge['reference'] for edge in validation['requirements'].get('veriloga_external_dependencies',[])}
+    header_profile=None
+    if args.get('veriloga_header_id'):
+        from onboarding_veriloga import verify_record,header_binding
+        from spiceowl_pool import read_json
+        header_id=args['veriloga_header_id']
+        if not any(item['id']==header_id and item['probe_id']==row['probe_id'] for item in state.get('veriloga_headers',[])):
+            raise ValueError('Select headers observed on the same current host as this PDK')
+        record=read_json(folder/'veriloga-headers'/(header_id+'.json'))
+        observation=verify_record(record,header_id,row['probe_id'])
+        selected_headers,aliases=header_binding(observation,required_headers)
+        binding.update(selected_headers)
+        if required_headers:
+            header_profile={'observation':observation,'binding':selected_headers,'aliases':aliases,
+                'spectre':record['spectre']}
+        validation=validate_authored_testbench(source=source,testbench_manifest=manifest,support_files=support,pdk_binding=binding)
     missing.extend(validation['missing'])
     requirements=validation['requirements']
     models=copy.deepcopy(args['model_contracts'])
@@ -115,12 +149,16 @@ def compile_agent_selection(folder,state,saved):
     base='projects/'+state['intake_id']+'/'
     documents={base+'dut.scs':source,base+'tb.scs':manifest['text'].encode(),base+'pdk.scs':pdk,base+'agent-testbench.json':canonical(manifest)}
     documents.update({base+'support/'+name:raw for name,raw in support.items()})
+    helpers=helper_files(manifest)
+    documents.update({base+'helpers/'+name:raw for name,raw in helpers.items()})
     selection={'mode':'agent-tb','source_id':base+'dut.scs','testbench_id':base+'tb.scs','pdk_id':base+'pdk.scs',
-        'support_files':{name:base+'support/'+name for name in support},'manifest_id':base+'agent-testbench.json'}
+        'support_files':{**{name:base+'support/'+name for name in support},**{name:base+'helpers/'+name for name in helpers}},
+        'manifest_id':base+'agent-testbench.json'}
     compiled={'recipe_id':'agent-testbench','documents':documents,'selection':selection,
         'spec':{'schema':'spiceowl.experiment-spec.v1','recipe':'agent-testbench','corner':'selected','criteria':manifest,'pdk_binding':binding},
         'electrical':profile,'source':{'source_id':base+'dut.scs','text':source.decode(),'sha256':state['source_sha256'],'original_sha256':state['source_sha256']},
         'wrapper':{'added':False,'transformation':'none','original_bytes_preserved':True},'validation':validation,'missing':missing}
     if missing:return {'missing':missing,'compiled':compiled,'probe_id':row['probe_id']}
     audit=audit_config_for_candidate(data,candidate['candidate_id'],sections=args['sections'],tmi_relative_library=platforms.get(tmi))
-    return {'missing':[],'compiled':compiled,'probe_id':row['probe_id'],'candidate':candidate,'audit':audit}
+    return {'missing':[],'compiled':compiled,'probe_id':row['probe_id'],'candidate':candidate,'audit':audit,
+        **({'veriloga_headers':header_profile} if header_profile else {})}

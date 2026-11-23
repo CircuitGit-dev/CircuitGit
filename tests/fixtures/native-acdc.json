@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "evidence": "Original synthetic PSF-format records for actual local parser/algorithm integration; no simulator execution.",
+  "sources": {
+    "ac": "HEADER\n\"analysis type\" \"ac\"\n\"analysis name\" \"gain\"\n\"simulator\" \"synthetic-fixture\"\n\"version\" \"fixture-1\"\nTYPE\n\"frequency\" FLOAT DOUBLE PROP(\"units\" \"Hz\")\n\"voltage\" COMPLEX DOUBLE PROP(\"units\" \"V\")\nSWEEP\n\"freq\" \"frequency\"\nTRACE\n\"pair\" GROUP 2\n\"out\" \"voltage\"\n\"reference\" \"voltage\"\nVALUE\n\"freq\" 0\n\"pair\" (20 0) (2 0)\n\"freq\" 10\n\"pair\" (10 -10) (2 0)\n\"freq\" 100\n\"pair\" (0.198019801980198 -1.9801980198019802) (2 0)\nEND\n",
+    "dc": "HEADER\n\"analysis type\" \"dc\"\n\"analysis name\" \"bias\"\nTYPE\n\"voltage\" FLOAT DOUBLE PROP(\"units\" \"V\")\nSWEEP\n\"supply\" \"voltage\"\nTRACE\n\"out\" \"voltage\"\nVALUE\n\"supply\" 0\n\"out\" 0\n\"supply\" 1\n\"out\" 0.5\nEND\n",
+    "dc_op": "HEADER\n\"analysis type\" \"info\"\n\"analysis name\" \"dcOpInfo\"\n\"AnalysisName\" \"bias\"\n\"AnalysisType\" \"dcOp\"\n\"simulator\" \"synthetic-fixture\"\n\"version\" \"fixture-1\"\nTYPE\n\"toy_mos\" STRUCT(\n\"vgs\" FLOAT DOUBLE PROP(\"units\" \"V\")\n\"vds\" FLOAT DOUBLE PROP(\"units\" \"V\")\n\"vth\" FLOAT DOUBLE PROP(\"units\" \"V\")\n\"vdsat\" FLOAT DOUBLE PROP(\"units\" \"V\")\n\"id\" FLOAT DOUBLE PROP(\"units\" \"A\")\n\"gm\" FLOAT DOUBLE PROP(\"units\" \"S\")\n\"gds\" FLOAT DOUBLE PROP(\"units\" \"S\")\n\"region\" INT BYTE\n\"unused_diagnostic\" FLOAT DOUBLE\n) PROP(\"key\" \"inst\")\nVALUE\n\"N1\" \"toy_mos\" (0.7 0.8 0.3 0.2 0.001 0.01 0.0001 2 NaN) PROP(\"model\" \"authored_nmos\")\n\"P1\" \"toy_mos\" (-0.7 -0.8 -0.3 -0.2 -0.001 0.01 0.0001 2 Inf) PROP(\"model\" \"authored_pmos\")\nEND\n"
+  }
+}

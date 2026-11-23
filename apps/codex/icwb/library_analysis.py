@@ -4,7 +4,6 @@ import hashlib
 import json
 from pathlib import Path
 import posixpath
-import re
 
 from .service import check
 
@@ -15,17 +14,6 @@ def _runner():
                             package.parent.parent / 'tools/ci/testbench_bundle.py') if p.is_file()), None)
     check(path is not None, 'The installed Testbench CI runner is unavailable.', 'library_unavailable', 4)
     spec = importlib.util.spec_from_file_location('ic_registered_testbench_analysis', path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def _source_parser():
-    package = Path(__file__).resolve().parents[1]
-    path = next((p for p in (package / 'gateway/library_sources.py',
-                            package.parent.parent / 'tools/workbench/library_sources.py') if p.is_file()), None)
-    check(path is not None, 'The installed electrical source parser is unavailable.', 'library_unavailable', 4)
-    spec = importlib.util.spec_from_file_location('ic_testbench_source_parser', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -46,46 +34,33 @@ def _electrical_support(workflow, scope, primary, source_files):
             check(logical not in aliases or aliases[logical] == physical, 'Ambiguous committed source alias.', 'conflict', 3)
             check(physical in source_files, 'Source alias escaped the registered closure.', 'conflict', 3)
             aliases[logical] = physical
+    from spiceowl.onboarding.agent_tb import inspect_agent_source
     base = posixpath.dirname(primary)
-    result, visited = {}, set()
-    parser = _source_parser()
-
-    def visit(logical, physical, active):
-        check(logical not in active and len(active) < 64, 'Cyclic or excessive electrical include closure.', 'conflict', 3)
-        if logical in visited:
-            return
+    sources, hashes = {}, {}
+    logical_files = {path: path for path in source_files}
+    logical_files.update(aliases)
+    for logical, physical in logical_files.items():
+        if physical == primary or Path(logical).suffix.lower() not in ('.scs', '.sp', '.spice', '.cir', '.va', '.vams'):
+            continue
+        name = posixpath.relpath(logical, base)
+        if name in ('.', '..') or name.startswith('../'):
+            continue
         raw = workflow._blob(scope['head'], physical)
-        check(raw is not None and hashlib.sha256(raw).hexdigest() == source_files.get(physical), 'Registered support source changed.', 'conflict', 3)
-        try:
-            text = raw.decode('utf-8')
-        except UnicodeError:
-            check(False, 'Electrical support is not UTF-8 source.', 'conflict', 3)
-        # Reuse the installed bounded Spectre statement parser: continuations,
-        # quoted strings and comments are handled before include matching.
-        for _, _, statement in parser._statements(text):
-            command = statement.split(None, 1)[0].lower()
-            check(command not in {'ahdl_include', '`include', '.include', '.lib'},
-                  'This authored-testbench runtime does not support this include language.', 'conflict', 3)
-            if command != 'include':
-                continue
-            match = re.fullmatch(r'include\s+"([^"\n]+)"(?:\s+section=\S+)?', statement, re.I)
-            check(match is not None, 'Computed or malformed electrical includes are unsupported.', 'conflict', 3)
-            ref = match[1]
-            if re.fullmatch(r'@EXTERNAL_[A-Z0-9_]+@', ref) or ref in ('constants.vams', 'disciplines.vams'):
-                continue
-            check(not ref.startswith('/') and not any(c in ref for c in '\\:$%?#'), 'Unsupported nonportable electrical include.', 'conflict', 3)
-            target = posixpath.normpath(posixpath.join(posixpath.dirname(logical), ref))
-            name = posixpath.relpath(target, base)
-            check(name not in ('.', '..') and not name.startswith('../'), 'Electrical include escapes the intake support root.', 'conflict', 3)
-            actual = aliases.get(target, target)
-            check(actual in source_files, 'Electrical include is absent from the registered source closure.', 'conflict', 3)
-            check(name not in result or result[name] == source_files[actual], 'Ambiguous logical support source.', 'conflict', 3)
-            result[name] = source_files[actual]
-            visit(target, actual, active | {logical})
-        visited.add(logical)
-
-    visit(primary, primary, set())
-    return result
+        check(raw is not None and hashlib.sha256(raw).hexdigest() == source_files[physical],
+              'Registered support source changed.', 'conflict', 3)
+        check(name not in sources or sources[name] == raw, 'Ambiguous logical support source.', 'conflict', 3)
+        sources[name], hashes[name] = raw, source_files[physical]
+    primary_raw = workflow._blob(scope['head'], primary)
+    check(primary_raw is not None and hashlib.sha256(primary_raw).hexdigest() == source_files[primary],
+          'Registered primary source changed.', 'conflict', 3)
+    # The same owner parser resolves Spectre, ahdl_include and Verilog-A
+    # `include edges. Unreferenced catalogue files are not simulation inputs.
+    inventory = inspect_agent_source(primary_raw, support_files=sources)
+    check(not [row for row in inventory['issues'] if row['code'] != 'unreferenced_supplied_file'],
+          'Registered electrical include closure is incomplete or unsupported.', 'conflict', 3)
+    used = {row['target'] for row in inventory['includes'] if not row.get('external') and row['target'] != 'pdk.scs'}
+    check(used <= set(hashes), 'Electrical include is absent from the registered source closure.', 'conflict', 3)
+    return {name: hashes[name] for name in sorted(used)}
 
 
 def _snapshot_files(snapshot):
@@ -137,6 +112,15 @@ def run(service, workflow, args):
           'The supplied source/support closure differs from this registered cell.', 'conflict', 3)
     frozen_files = _snapshot_files(snapshot)
     runtime_prefix = 'projects/' + args['intake_id'] + '/'
+    helpers = workflow._testbench_helper_files(record['agent_manifest'])
+    helper_hashes = {name: hashlib.sha256(raw).hexdigest() for name, raw in helpers.items()}
+    check(not any(a.lower() == b.lower() or a.lower().startswith(b.lower() + '/') or b.lower().startswith(a.lower() + '/')
+                  for a in helper_hashes for b in expected_support),
+          'Testbench helper conflicts with original source support.', 'conflict', 3)
+    check(bundle['binding'].get('helper_sha256', {}) == helper_hashes
+          and {name[len(runtime_prefix + 'helpers/'):]: sha for name, sha in frozen_files.items()
+               if name.startswith(runtime_prefix + 'helpers/')} == helper_hashes,
+          'The original approved helper files differ from the registered Testbench CI.', 'conflict', 3)
     check(frozen_files.get(runtime_prefix + 'dut.scs') == primary
           and frozen_files.get(runtime_prefix + 'tb.scs') == bundle['binding']['testbench_sha256']
           and {name[len(runtime_prefix + 'support/'):]: sha for name, sha in frozen_files.items()

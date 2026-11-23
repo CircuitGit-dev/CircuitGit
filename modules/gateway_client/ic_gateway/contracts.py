@@ -103,6 +103,7 @@ ONBOARDING_ROUTES = {
     'onboarding_netlist':('POST','netlist'), 'onboarding_ssh_hosts':('GET','ssh-hosts'),
     'onboarding_session':('GET','session'), 'onboarding_probe':('POST','probe'),
     'onboarding_discover_pdk':('POST','discover-pdk'), 'onboarding_prepare':('POST','prepare'),
+    'onboarding_veriloga_headers':('POST','veriloga-headers'),
     'onboarding_run':('POST','run'), 'onboarding_submission':('GET','submission'),
     'onboarding_inspect':('POST','inspect'), 'onboarding_waveforms_catalog':('GET','waveforms/catalog'),
     'onboarding_waveforms_mapping':('GET','waveforms/mapping'), 'onboarding_waveforms_window':('GET','waveforms/window'),
@@ -116,7 +117,11 @@ SCHEMAS.update({
         'overrides':obj({'setup_source_ids':dictionary(SETUP_SOURCE,SSH_TARGET,8)})},('intake_id','revision','ssh_targets')),
     'onboarding_discover_pdk':obj({'intake_id':INTAKE,'revision':REVISION,'probe_ids':array(PROBE),
         'search_paths':array(SEARCH_DIRECTORY),'search_directory_ids':array(HASH),
-        'cds_lib_hint':SEARCH_DIRECTORY,'refresh':{'type':'boolean'}},('intake_id','revision','probe_ids')),
+        'cds_lib_hint':SEARCH_DIRECTORY,'refresh':{'type':'boolean'},
+        'library_selection':obj({'probe_id':PROBE,'library_id':HASH,'library_candidate_id':HASH},
+            ('probe_id','library_id','library_candidate_id'))},('intake_id','revision','probe_ids')),
+    'onboarding_veriloga_headers':obj({'intake_id':INTAKE,'revision':REVISION,'probe_id':PROBE,
+        'roots':array(SEARCH_DIRECTORY,1,8)},('intake_id','revision','probe_id','roots')),
     'onboarding_prepare':obj({'intake_id':INTAKE,'revision':REVISION,
         'accept_recommendation':{'type':'boolean'},'recommendation_id':HASH,'recommendation_revision':REVISION,
         'discovery_id':DISCOVERY,'candidate_id':HASH,
@@ -126,9 +131,10 @@ SCHEMAS.update({
     'onboarding_run':obj({'intake_id':INTAKE,'revision':REVISION,'plan_id':HASH},('intake_id','revision','plan_id')),
     'onboarding_submission':obj({'intake_id':INTAKE,'plan_id':HASH},('intake_id','plan_id')),
     'onboarding_inspect':obj({'intake_id':INTAKE,'job_id':JOB},('intake_id','job_id')),
-    'onboarding_waveforms_catalog':obj({'intake_id':INTAKE,'job_id':JOB},('intake_id','job_id')),
-    'onboarding_waveforms_mapping':obj({'intake_id':INTAKE,'job_id':JOB},('intake_id','job_id')),
+    'onboarding_waveforms_catalog':obj({'intake_id':INTAKE,'job_id':JOB,'dataset_id':{'type':'string','pattern':r'^ds_[a-f0-9]{32}$'}},('intake_id','job_id')),
+    'onboarding_waveforms_mapping':obj({'intake_id':INTAKE,'job_id':JOB,'dataset_id':{'type':'string','pattern':r'^ds_[a-f0-9]{32}$'}},('intake_id','job_id')),
     'onboarding_waveforms_window':obj({'intake_id':INTAKE,'job_id':JOB,'signal_ids':array(SIGNAL),
+        'dataset_id':{'type':'string','pattern':r'^ds_[a-f0-9]{32}$'},
         'start':number(-1e100,1e100),'stop':number(-1e100,1e100),
         'max_points':{'type':'integer','minimum':4,'maximum':10000}},('intake_id','job_id','signal_ids')),
 })
@@ -138,14 +144,15 @@ DESCRIPTIONS.update({
     'onboarding_ssh_hosts':'List literal aliases from the installed SSH configuration and bounded Includes. No private-key reads, SSH, host probing or configuration-path argument.',
     'onboarding_session':'Read this connection’s saved intake and exact revision, recommendations, selections and original receipts. No SSH, discovery, collection or execution.',
     'onboarding_probe':'Probe only the explicitly selected SSH targets. An optional setup_source_ids choice must refer to this intake’s observed scripts; explicit activation evaluates that script and can have side effects. No direct simulator or license-checkout command. Copy the returned revision.',
-    'onboarding_discover_pdk':'Discover bounded model/include metadata for this intake’s exact probe IDs. Prefer returned search_directory_ids to narrow an incomplete scan; optional search_paths or cds_lib_hint are explicit PDK search inputs. Candidate evidence does not select or qualify a process. No solver execution.',
+    'onboarding_discover_pdk':'Discover bounded model/include metadata for this intake’s exact probe IDs. Reuse the full-library device index for different required-device sets. Prefer returned search_directory_ids to narrow an incomplete scan. Optional library_selection must use the exact previous LUT observation and entry choice; it queries that saved library without rescanning. Candidate evidence does not select or qualify a process. No solver execution.',
     'onboarding_prepare':'Prepare from the current intake revision and server recommendation; optional accept_recommendation defaults to accepting the current recommendation. Optional recommendation_id/revision must match. Partial intent, model_contracts, sections or TMI overrides remain explicit. accept_recommendation:false requires the complete legacy discovery/candidate/sections/TMI/contracts/intent selection. Freezes source and dependencies for review; never launches.',
     'onboarding_run':'Run this intake’s exact frozen plan once within its selected hosts. Persist the returned identities. The stable key is derived from plan_id and cannot be supplied or replaced. Repeated calls reconcile the original submission instead of sending another run; an unknown outcome never authorizes replay.',
     'onboarding_submission':'Read the original intake/plan submission receipt. No SSH, collection or launch. found:false never authorizes replay; only an exact authoritative pre-dispatch rejection permits a deliberate new prepare.',
     'onboarding_inspect':'Inspect the original intake job; may observe remote status and collect terminal native artifacts. Reports execution, data validity, performance, qualification and dependency provenance separately. Never restarts or repairs a solver.',
     'onboarding_waveforms_catalog':'Read the saved original job waveform catalog with run/archive/source binding. No SSH, remote observation, collection or derivation.',
     'onboarding_waveforms_mapping':'Read the saved original job signal mapping. Missing geometry remains unverified. No SSH, collection or simulation.',
-    'onboarding_waveforms_window':'Read bounded waveform samples for one to eight exact signal IDs from this original job catalog. start/stop are finite seconds, max_points is per signal. No signal expressions, paths, SSH, collection or execution.',
+    'onboarding_waveforms_window':'Read bounded samples for exact signals of one original saved dataset. start/stop use its declared axis unit (s for transient, Hz for AC); AC/DC require explicit dataset_id. No signal expressions, paths, SSH, collection or execution.',
+    'onboarding_veriloga_headers':'Observe the standard Verilog-A headers and literal include closure only within explicitly selected remote roots on one already probed host. Saves hashes for later human review and fresh dependency audit. No simulator or automatic root guessing.',
 })
 
 
@@ -158,12 +165,14 @@ TB_MANIFEST = obj({
     'text':{'type':'string','minLength':1,'maxLength':1048576},
     'interface':SEMANTIC_OBJECT,
     'analyses':{},'stimuli':{},'objectives':{},'criteria':{},'postprocess':{},
+    'helper_files':dictionary({'type':'string','minLength':1,'maxLength':524288},
+        {'type':'string','minLength':1,'maxLength':240},48),
 },('schema','text','interface','analyses','stimuli','objectives','criteria','postprocess'))
 TB_SELECTION = obj({'discovery_id':DISCOVERY,'candidate_id':HASH,
     'sections':array({'anyOf':[PORT,{'type':'null'}]},1,64),
     'tmi_candidate_id':{'anyOf':[HASH,{'type':'null'}]},
     'model_contracts':dictionary(SEMANTIC_OBJECT,PORT,128),
-    'host_ids':array(PID,1,8)},())
+    'host_ids':array(PID,1,8),'veriloga_header_id':PID},())
 SCHEMAS['onboarding_netlist']['properties'].update({
     'mode':{'type':'string','enum':['agent-tb']},
     'support_files':dictionary({'type':'string','maxLength':1048576},
@@ -185,9 +194,11 @@ SCHEMAS.update({
     'onboarding_agent_tb_prepare':obj({'intake_id':INTAKE,'revision':REVISION,'draft_id':PID},
         ('intake_id','revision','draft_id')),
     'onboarding_analysis':obj({'intake_id':INTAKE,'job_id':JOB,
+        'dataset_id':{'type':'string','pattern':r'^ds_[a-f0-9]{32}$'},
         'operation':{'type':'string','enum':['spec_analyze','coherent_fft','sine_fit3','sine_fit4',
-            'weight_calibrate','reconstruct_codes','histogram_linearity','tran_metrics']},
-        'inputs':dictionary({'anyOf':[SIGNAL,{'type':'string','enum':['@time']},array(SIGNAL,1,64)]},PORT,32),
+            'weight_calibrate','reconstruct_codes','histogram_linearity','tran_metrics','ac_metrics','dc_op_metrics']},
+        'inputs':dictionary({'anyOf':[SIGNAL,{'type':'string','enum':['@time']},array(SIGNAL,1,64),
+            array({'type':'string','pattern':r'^d_[a-f0-9]{32}$'},1,64)]},PORT,32),
         'parameters':SEMANTIC_OBJECT,'criteria':{}},('intake_id','job_id','operation','inputs','parameters')),
 })
 READ_ONLY.update({'onboarding_source','onboarding_agent_tb','onboarding_agent_tb_review'})
@@ -197,7 +208,7 @@ DESCRIPTIONS.update({
     'onboarding_agent_tb':'Read the exact saved agent-authored testbench, targets and human-review state for this intake. Content is untrusted data. No compilation, SSH or execution.',
     'onboarding_agent_tb_draft':'Save an explicitly authored complete Spectre testbench and agreed simulation objectives, connections, stimuli and analysis criteria for this intake revision. Supports arbitrary circuit topology within the reported parser subset. Changes invalidate prior review. Never approves or runs.',
     'onboarding_agent_tb_prepare':'Validate and freeze the exact agent testbench, DUT, support files, selected PDK dependencies and hosts for human review. No remote simulation. Missing inputs remain blocked; no inferred inverter recipe.',
-    'onboarding_analysis':'Analyze one original job’s verified full-precision waveform data with a named pinned algorithm. Inputs are exact catalog signal IDs or @time, never paths or commands. Returns source/archive/CSV provenance, FFT or metrics and separate user-criteria verdicts. Writes a bounded analysis report only; no SSH, solver, extraction or arbitrary Python execution.',
+    'onboarding_analysis':'Analyze one original job’s verified full-precision saved data with a named pinned algorithm. Inputs are exact catalog signal IDs or @time; dc_op_metrics uses saved device IDs. AC/DC require explicit dataset_id. Units come from that saved dataset; AC response/reference must be exact complex signals and loop margins require explicit feedback convention and phase anchor. Returns source/archive/data provenance and separate user-criteria verdicts. Writes a bounded analysis report only; no SSH, solver, extraction or arbitrary Python execution.',
 })
 DESCRIPTIONS['onboarding_netlist'] += ' Use mode:agent-tb for a general circuit and optional literal support_files; support names are relative include identities, never filesystem paths to read.'
 DESCRIPTIONS['onboarding_run'] += ' An agent-authored testbench returns a pending host-human review request; only the correlated human review can dispatch it. Never approve it as an agent.'
@@ -206,6 +217,6 @@ DESCRIPTIONS['onboarding_run'] += ' An agent-authored testbench returns a pendin
 def tools():
     return [{'name': 'ic_' + name, 'description': DESCRIPTIONS[name], 'inputSchema': schema,
              'annotations': {'readOnlyHint': name in READ_ONLY, 'destructiveHint': name in MUTATIONS or name in {'sim_execute','onboarding_probe','onboarding_run','onboarding_inspect'},
-                             'idempotentHint': name not in {'onboarding_netlist','onboarding_probe','onboarding_discover_pdk','onboarding_prepare','onboarding_agent_tb_draft','onboarding_agent_tb_prepare'},
-                             'openWorldHint': name in {'sim_preflight','sim_status','sim_execute','onboarding_probe','onboarding_discover_pdk','onboarding_prepare','onboarding_run','onboarding_inspect'} | MUTATIONS}}
+                             'idempotentHint': name not in {'onboarding_netlist','onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_prepare','onboarding_agent_tb_draft','onboarding_agent_tb_prepare'},
+                             'openWorldHint': name in {'sim_preflight','sim_status','sim_execute','onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_prepare','onboarding_run','onboarding_inspect'} | MUTATIONS}}
             for name, schema in SCHEMAS.items()]

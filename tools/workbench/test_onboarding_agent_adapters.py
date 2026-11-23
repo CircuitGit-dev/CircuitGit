@@ -106,7 +106,7 @@ class AgentAdapterIntegrationTests(_IntakeFixture):
         state=self.discover(self.probe(self.imported()));selection=self.prepare_args(state)
         for key in ('intake_id','revision','intent'):selection.pop(key)
         selection['host_ids']=[HOST];state=self.draft(state,selection)
-        with patch('onboarding_testbench.compile_agent_selection',side_effect=ValueError('synthetic interruption')):
+        with patch('onboarding_prepare.create_child_config',side_effect=ValueError('synthetic interrupted materialization')):
             with self.assertRaises(ValueError):self.runtime.write('agent-tb/prepare',{'intake_id':state['intake_id'],
                 'revision':state['revision'],'draft_id':state['agent_tb']['draft_id']},origin='test_harness')
         current=self.runtime.read('session',{'intake_id':state['intake_id']})

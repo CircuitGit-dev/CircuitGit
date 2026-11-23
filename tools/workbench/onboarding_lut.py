@@ -53,6 +53,7 @@ def _scope(capture, roots=None):
 def _public(status, record=None, missing=()):
     record = record or {}
     result = {'schema':SCHEMA,'status':status,'cache_id':record.get('cache_id'),
+              'library_id':record.get('library_id'),
               'content_fingerprint':record.get('content_fingerprint'),
               'original_discovery_id':record.get('original_discovery_id'),
               'original_source_sha256':record.get('original_source_sha256'),
@@ -65,8 +66,41 @@ def _public(status, record=None, missing=()):
     coverage = record.get('coverage') or {}
     result['coverage'] = {key:copy.deepcopy(coverage[key]) for key in (
         'kind','required_masters','covered_model_names','whole_pdk_inventory',
-        'search_complete','results_omitted','unknown_count','candidate_count') if key in coverage}
+        'search_complete','results_omitted','unknown_count','candidate_count',
+        'complete_within_policy','whole_pdk_qualified','file_count','model_count') if key in coverage}
+    if 'indexed_model_names' in coverage:
+        result['coverage']['indexed_model_count']=len(coverage['indexed_model_names'])
     return result
+
+
+def store_library(cache_root,capture,library,*,observed_at=None):
+    """Store an explicit full-library observation, preserving filtered history."""
+    identity,roots,gaps=_scope(capture,library.get('roots') if isinstance(library,dict) else None)
+    if gaps:return _public('not_stored',missing=gaps)
+    from spiceowl.onboarding.pdk_lut import PdkLut
+    with PdkLut(_cache_path(cache_root)) as cache:
+        record=cache.put_library(library,server_identity=identity,observed_at=observed_at)
+    return _public('stored',record)
+
+
+def _library_result(result,requirements):
+    public=_public(result['status'],result.get('record'),result.get('missing',[]))
+    public['scan_required']=result['scan_required']
+    discovery=result.get('discovery')
+    if discovery:
+        public.update(rebound_source_sha256=requirements['source_sha256'],
+                      rebound_discovery_id=discovery['discovery_id'],binding_mode='per_device_library_query')
+    combination=result.get('combination')
+    if combination:
+        public['combination']={'requires_explicit_selection':True,'combination_verified':False,
+            'entry_count':len(combination['entries']),'covered_model_names':combination['covered_model_names'],
+            'missing':[{key:value for key,value in row.items() if key in ('code','model_names','candidate_id','message')}
+                       for row in combination['missing']],'ready_to_run':False}
+    if result.get('entry_choices'):
+        public['entry_choices']=[{'library_candidate_id':row['library_candidate_id'],
+            'label':PurePosixPath(row['entry_path']).name,'section_candidates':row['section_candidates'],
+            'covered_model_count':row['covered_model_count']} for row in result['entry_choices']]
+    return {'public':public,'discovery':discovery}
 
 
 def store_discovery(cache_root, capture, discovery, *, observed_at=None):
@@ -85,7 +119,8 @@ def store_discovery(cache_root, capture, discovery, *, observed_at=None):
 
 
 def lookup_discovery(cache_root, capture, requirements, *, roots=None,
-                     max_age_s=86400, refresh=False, now=None, content_fingerprint=None):
+                     max_age_s=86400, refresh=False, now=None, content_fingerprint=None,
+                     library_id=None,library_candidate_id=None):
     """Return public cache status and a private, explicitly rebound discovery.
 
     A miss/expiry never starts a scan here. The runtime can choose its existing
@@ -108,6 +143,15 @@ def lookup_discovery(cache_root, capture, requirements, *, roots=None,
         return {'public':_public('miss'),'discovery':None}
     from spiceowl.onboarding.pdk_lut import PdkLut, rebind_discovery
     with PdkLut(cache_path, read_only=True) as cache:
+        library=cache.lookup_library_models(server_identity=identity,roots=selected_roots,
+            required_masters=requirements['required_masters'],requirements=requirements,
+            remote_platform=capture['private'].get('platform'),max_age_s=max_age_s,now=now,
+            content_fingerprint=content_fingerprint,library_id=library_id,library_candidate_id=library_candidate_id)
+        if library_id is not None or library_candidate_id is not None:
+            library['scan_required']=False  # A pinned query can never substitute a new observation.
+            return _library_result(library,requirements)
+        # A known inventory's gaps/age cannot be hidden by older filtered data.
+        if library.get('record') is not None:return _library_result(library,requirements)
         result = cache.lookup(server_identity=identity, roots=selected_roots,
             required_masters=requirements['required_masters'], max_age_s=max_age_s,
             refresh=refresh, now=now, content_fingerprint=content_fingerprint)
@@ -139,6 +183,17 @@ def lookup_model_bindings(cache_root, capture, requirements, *, roots=None,
     private=capture['private']
     from spiceowl.onboarding.pdk_lut import PdkLut
     with PdkLut(path,read_only=True) as cache:
+        library=cache.lookup_library_models(server_identity=identity,roots=selected_roots,
+            required_masters=requirements['required_masters'],max_age_s=max_age_s,now=now,
+            remote_platform=private.get('platform'))
+        if library.get('record') is not None:
+            public=_library_result(library,requirements)['public']
+            recommendation=library.get('recommendation')
+            if recommendation:
+                public['binding']={key:copy.deepcopy(recommendation.get(key)) for key in
+                    ('recommended_candidate_id','selection_confidence','status','complete_binding_available','missing')}
+                public['binding'].update(source_identity='cached_library_observation',requires_source_rebinding=True)
+            return {'public':public,'recommendation':recommendation}
         result=cache.query_best_bindings(server_identity=identity,roots=selected_roots,
             required_masters=requirements['required_masters'],max_age_s=max_age_s,now=now,
             limit=limit,remote_platform=private.get('platform'))

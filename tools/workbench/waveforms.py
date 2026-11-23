@@ -37,6 +37,18 @@ def signal_id(run_id, analysis, name):
     return 's_' + object_hash([run_id, analysis, name])[:32]
 
 
+def run_identity(record, inventory):
+    members = sorted(({'path': row['path'], 'sha256': row['sha256'], 'bytes': row['bytes']}
+                      for row in inventory if row['path'].startswith('./psf/')), key=lambda row: row['path'])
+    plan = record.get('plan', {}); provenance = plan.get('provenance', {})
+    return {'run_id': record['run_id'], 'source_commit': record.get('source_commit'),
+            'source_hashes': provenance.get('materialization', {}).get('source_sha256', {}),
+            'staged_sources': [{k: f.get(k) for k in ('destination', 'source_sha256', 'staged_sha256')} for f in provenance.get('files', [])],
+            'effective_config_sha256': object_hash({'configuration': plan.get('configuration'), 'postprocess': plan.get('postprocess')}),
+            'archive_sha256': (record.get('collection') or {}).get('sha256'), 'raw_signature': object_hash(members),
+            'raw_signature_basis': 'sorted archive inventory of ./psf/ members'}
+
+
 def derived_cache_key(p):
     return object_hash({k:p.get(k) for k in ('run_id','source_commit','raw_signature','analysis','psf_name','window_s','extractor_version','extractor_sha256','data_basis')})
 
@@ -79,6 +91,32 @@ def envelope(points, limit):
     return [points[i] for i in sorted(selected)]
 
 
+def native_display_selection(ids, vectors, limit):
+    """Keep saved endpoints and extrema within budget; gaps use separate breaks."""
+    if len(ids) <= limit:return list(ids), []
+    keep={ids[0],ids[-1]}; extrema={}
+    for name,vector in vectors.items():
+        numeric=[j for j in ids if type(vector[j]) in (int,float)]
+        required={min(numeric,key=lambda j:vector[j]),max(numeric,key=lambda j:vector[j])} if numeric else set()
+        extrema[name]=required
+        if len(keep|required)<=limit:keep.update(required)
+    # Global extrema are never displaced to make room for local buckets.
+    buckets=max(0,(limit-len(keep))//max(1,2*len(vectors)))
+    for bucket in range(buckets):
+        part=ids[1+(len(ids)-2)*bucket//buckets:1+(len(ids)-2)*(bucket+1)//buckets]
+        for vector in vectors.values():
+            numeric=[j for j in part if type(vector[j]) in (int,float)]
+            if numeric:
+                keep.update((min(numeric,key=lambda j:vector[j]),max(numeric,key=lambda j:vector[j])))
+    return sorted(keep), [name for name,required in extrema.items() if not required <= keep]
+
+
+def native_breaks(vector, selected):
+    """Indices in the returned sequence that must start a new drawn segment."""
+    return [i for i in range(1,len(selected))
+            if any(value is None for value in vector[selected[i-1]+1:selected[i]+1])]
+
+
 def finite(value, name):
     if isinstance(value, bool):
         raise WaveformError('invalid_input', name + ' must be finite')
@@ -105,6 +143,105 @@ class WaveformService:
         if record.get('run_id') != rid:
             raise WaveformError('identity_mismatch', 'Run receipt identity mismatch', 409)
         return record
+
+    def _dataset_index(self, rid):
+        record = self._record(rid); root = self.runner.path(rid)
+        path = root / 'waveform-datasets.json'
+        if not path.exists() and not path.is_symlink():
+            return record, None, None
+        raw = bounded_file(path, 4 * 1024**2); index = json.loads(raw)
+        inventory_raw = bounded_file(root / 'archive-files.json', 8 * 1024**2); inventory = json.loads(inventory_raw)
+        rows = index.get('datasets')
+        if (index.get('schema') != 'ic.waveform-datasets.v1' or index.get('run_id') != rid
+                or index.get('source_commit') != record.get('source_commit') or not isinstance(rows, list) or len(rows) > 32):
+            raise WaveformError('identity_mismatch', 'Saved dataset catalog identity differs', 409)
+        hashes = {}
+        for row in rows:
+            did = row.get('dataset_id')
+            if (not isinstance(did, str) or not re.fullmatch('ds_[a-f0-9]{32}', did) or did in hashes
+                    or row.get('data_path') != 'datasets/' + did + '.json' or row.get('data_format') != 'native_psf_json'
+                    or not isinstance(row.get('data_sha256'), str) or not re.fullmatch('[a-f0-9]{64}', row['data_sha256'])
+                    or row.get('analysis', {}).get('kind') not in ('ac', 'dc', 'dc_op')):
+                raise WaveformError('dataset_invalid', 'Saved dataset path or analysis identity is invalid', 422)
+            native = row.get('native_member')
+            if not isinstance(native, dict) or [item for item in inventory if item.get('path') == native.get('path')] != [native]:
+                raise WaveformError('hash_mismatch', 'Saved dataset has no unique original archive member', 409)
+            expected_id = 'ds_' + digest(json.dumps([rid, record['source_commit'], native['path'], native['sha256']], separators=(',', ':')).encode())[:32]
+            if did != expected_id:
+                raise WaveformError('identity_mismatch', 'Dataset ID differs from its original native member', 409)
+            hashes[did] = row['data_sha256']
+        expected = {'schema': 'ic.waveform-dataset-derivation.v1', 'run_id': rid, 'source_commit': record['source_commit'],
+                    'native_archive_sha256': (record.get('collection') or {}).get('sha256'), 'catalog_sha256': digest(raw),
+                    'inventory_sha256': digest(inventory_raw), 'dataset_sha256': hashes}
+        if (record.get('local_dataset_derivation') != expected or index.get('native_archive_sha256') != expected['native_archive_sha256']
+                or not isinstance(expected['native_archive_sha256'], str) or not re.fullmatch('[a-f0-9]{64}', expected['native_archive_sha256'])):
+            raise WaveformError('hash_mismatch', 'Dataset catalog is not bound to this original archive', 409)
+        return record, index, run_identity(record, inventory)
+
+    def _dataset(self, rid, dataset_id):
+        """Read full native values from one explicitly selected saved dataset."""
+        record, index, identity = self._dataset_index(rid)
+        rows = [row for row in (index or {}).get('datasets', []) if row['dataset_id'] == dataset_id]
+        if len(rows) != 1:
+            raise WaveformError('dataset_absent', 'Choose an exact dataset ID from this original run', 404)
+        row = rows[0]; raw = bounded_file(self.runner.path(rid) / row['data_path'])
+        if digest(raw) != row['data_sha256']:
+            raise WaveformError('hash_mismatch', 'Saved full dataset bytes changed', 409)
+        payload = json.loads(raw); data = payload.get('data')
+        if (payload.get('schema') != 'ic.saved-waveform-dataset.v1' or payload.get('dataset_id') != dataset_id
+                or payload.get('run_id') != rid or payload.get('source_commit') != record['source_commit']
+                or payload.get('native_archive_sha256') != identity['archive_sha256'] or payload.get('native_member') != row['native_member']
+                or not isinstance(data, dict) or data.get('schema') != 'spiceowl.spectre-dataset.v1'
+                or data.get('raw_sha256') != row['native_member']['sha256'] or data.get('analysis') != row['analysis']
+                or data.get('sample_count') != row['sample_count'] or type(data.get('sample_count')) is not int
+                or not 1 <= data['sample_count'] <= MAX_ROWS or not isinstance(data.get('signals'), list)
+                or not isinstance(data.get('operating_points'), list) or len(data.get('signals', [])) != row['signal_count']
+                or len(data.get('operating_points', [])) != row['device_count']):
+            raise WaveformError('identity_mismatch', 'Saved dataset payload differs from its frozen index', 409)
+        axis = data.get('axis'); count = data['sample_count']; kind = data['analysis']['kind']
+        if axis is not None:
+            if not isinstance(axis, dict):
+                raise WaveformError('dataset_invalid', 'Saved dataset axis must be an object', 422)
+            xs = axis.get('values')
+            if (not isinstance(xs, list) or len(xs) != count or any(type(v) not in (int, float) or not math.isfinite(v) for v in xs)
+                    or kind == 'ac' and (axis.get('unit') != 'Hz' or any(v < 0 for v in xs) or any(a >= b for a, b in zip(xs, xs[1:])))):
+                raise WaveformError('dataset_invalid', 'Saved dataset axis is invalid', 422)
+            if kind == 'dc' and len(xs) > 1 and not (all(a < b for a,b in zip(xs,xs[1:])) or all(a > b for a,b in zip(xs,xs[1:]))):
+                raise WaveformError('dataset_invalid', 'DC sweep axis must be strictly monotonic', 422)
+        elif count != 1 or kind == 'ac':
+            raise WaveformError('dataset_invalid', 'Only a single unswept operating point may omit its axis', 422)
+        signals = []; seen = set()
+        for native in data['signals']:
+            if not isinstance(native, dict):
+                raise WaveformError('dataset_invalid', 'Saved signal must be an object', 422)
+            name = native.get('name'); value_kind = native.get('value_kind')
+            if not isinstance(name, str) or name in seen or value_kind not in ('real', 'integer', 'complex', 'string'):
+                raise WaveformError('dataset_invalid', 'Saved native signal identity is ambiguous', 422)
+            seen.add(name)
+            for values in [native.get('real'), native.get('imag')] if value_kind == 'complex' else [native.get('values')]:
+                if (not isinstance(values, list) or len(values) != count
+                        or value_kind != 'string' and any(v is not None and (type(v) not in (int, float) or not math.isfinite(v)) for v in values)):
+                    raise WaveformError('dataset_invalid', 'Saved native vector is unaligned or invalid', 422)
+            signals.append({'id': signal_id(rid, dataset_id, name), 'dataset_id': dataset_id, 'psf_name': name, 'label': name,
+                            'analysis': kind, 'analysis_id': data['analysis']['name'], 'value_kind': value_kind,
+                            'representation': 'complex_real_imag' if value_kind == 'complex' else value_kind,
+                            'quantity': {'V': 'voltage', 'A': 'current'}.get(native.get('unit')), 'unit': native.get('unit'),
+                            'x_unit': axis.get('unit') if axis else None, 'status': 'available', 'sample_count': count,
+                            'domain': [min(axis['values']), max(axis['values'])] if axis else None,
+                            'data_basis': 'original_native_PSF_ASCII', 'name_evidence': 'exact name in hash-bound same-run native dataset'})
+        identity.update(dataset_id=dataset_id, analysis_id=data['analysis']['name'], analysis_kind=kind,
+                        data_sha256=row['data_sha256'], data_format=row['data_format'], native_member_sha256=row['native_member']['sha256'])
+        return record, identity, signals, data, 'original_native_PSF_ASCII'
+
+    def dataset_catalog(self, rid, dataset_id):
+        _, identity, signals, data, basis = self._dataset(rid, dataset_id)
+        devices = [{**row, 'id': 'd_' + object_hash([rid, dataset_id, row['name']])[:32], 'dataset_id': dataset_id}
+                   for row in data['operating_points']]
+        return {'schema': VERSION, **identity, 'signals': signals, 'operating_points': devices,
+                'axis': {k: v for k, v in (data.get('axis') or {}).items() if k != 'values'} if data.get('axis') else None,
+                'analyses': [data['analysis']], 'data_basis': basis, 'sample_count': data['sample_count'],
+                'coverage': 'selected_native_dataset', 'full_resolution': True, 'display_downsampling_used': False,
+                'extraction': {'enabled': False, 'state': 'already_saved'}, 'warnings': data.get('warnings', [])}
 
     def _load(self, rid):
         record = self._record(rid)
@@ -230,7 +367,23 @@ class WaveformService:
             found.append((signal,rows,p))
         return found
 
-    def catalog(self, rid):
+    def catalog(self, rid, dataset_id=None):
+        if dataset_id is not None:
+            return self.dataset_catalog(rid, dataset_id)
+        _, index, dataset_identity = self._dataset_index(rid)
+        datasets = []
+        if index is not None:
+            for row in index['datasets']:
+                selected = self.dataset_catalog(rid, row['dataset_id'])
+                datasets.append({**row, **{k: selected[k] for k in ('archive_sha256', 'raw_signature', 'effective_config_sha256', 'source_hashes')},
+                                 'available_signal_ids': [s['id'] for s in selected['signals']],
+                                 'available_device_ids': [d['id'] for d in selected['operating_points']], 'available': True})
+            path = self.runner.path(rid) / 'waveforms.csv'
+            if not path.exists() and not path.is_symlink():
+                return {'schema': VERSION, **dataset_identity, 'signals': [], 'analyses': [d['analysis'] for d in datasets],
+                        'datasets': datasets, 'default_dataset_id': None, 'coverage': 'independent_native_datasets',
+                        'data_basis': 'original_native_PSF_ASCII', 'unsupported_datasets': index.get('unsupported', []),
+                        'extraction': {'enabled': False, 'state': 'already_saved'}}
         _, identity, signals, _, basis = self._load(rid)
         derived=self._derived(rid,identity)
         complete=False
@@ -251,17 +404,21 @@ class WaveformService:
                                     'quantity':None,'unit':None,'status':'saved_needs_extraction',
                                     'type_status':'not_yet_read','catalog_evidence_sha256':p['catalog_sha256']})
         return {'schema':VERSION, **identity, 'analyses':[{'id':'tran','kind':'transient','x_unit':'s','family':False}],
+                **({'datasets': datasets, 'default_dataset_id': None, 'unsupported_datasets': index.get('unsupported', [])} if index is not None else {}),
                 'signals':signals, 'coverage':'saved_catalog_with_exported_subset' if complete else 'exported_subset', 'raw_catalog_complete':complete,
                 'unexported_status':'saved_needs_extraction' if complete else 'saved_state_unknown', 'data_basis':basis,
                 'limits':{'max_display_points':MAX_DISPLAY,'max_csv_rows':MAX_ROWS,'max_signals':MAX_SIGNALS},
                 'unsupported':['ac','complex','dc_sweep','corner_family','monte_carlo_family'],
                 'extraction':{'enabled':False,'state':'requires_coordinator_slot'}}
 
-    def mapping(self, rid):
-        identity=self.catalog(rid);signals=identity['signals']
+    def mapping(self, rid, dataset_id=None):
+        identity=self.catalog(rid,dataset_id);signals=identity['signals']
+        if dataset_id is not None or not signals:
+            return {**identity, 'schema':'ic.waveform-map.v1', 'status':'unmapped', 'objects':[],
+                    'reason':'Saved dataset viewing is independent; no dataset-specific schematic mapping is installed'}
         configured = self.bindings.get(rid)
         if not configured:
-            return {'schema':'ic.waveform-map.v1', **identity, 'status':'unmapped', 'objects':[],
+            return {**identity, 'schema':'ic.waveform-map.v1', 'status':'unmapped', 'objects':[],
                     'reason':'No installed source/geometry-bound mapping; catalog remains independently viewable'}
         manifest = json.loads(bounded_file(Path(configured), 4*1024*1024))
         validate_mapping(manifest, identity, signals)
@@ -341,8 +498,67 @@ class WaveformService:
                 'suffix_bytes':len(expected_suffix),'suffix_sha256':digest(expected_suffix),'proof_sha256':digest(proof_raw)}
         return result
 
-    def waveform(self, rid, sid, analysis='tran', start=None, end=None, limit=1600, cursor_a=None, cursor_b=None):
-        if analysis != 'tran':
+    def dataset_waveform(self, rid, sid, dataset_id, start=None, end=None, limit=1600, analysis=None):
+        _, identity, signals, data, basis = self._dataset(rid, dataset_id)
+        if analysis is not None and analysis != identity['analysis_kind']:
+            raise WaveformError('identity_mismatch', 'Requested analysis differs from the selected saved dataset', 409)
+        if type(limit) is bool or not re.fullmatch(r'\d+', str(limit)) or not 4 <= int(limit) <= MAX_DISPLAY:
+            raise WaveformError('data_limit', 'limit must be 4..10000')
+        limit = int(limit)
+        indexes = [i for i, signal in enumerate(signals) if signal['id'] == sid]
+        if len(indexes) != 1:
+            raise WaveformError('signal_absent', 'Signal does not belong to this exact dataset', 404)
+        i = indexes[0]; signal = signals[i]; native = data['signals'][i]; axis = data.get('axis')
+        if axis is None:
+            return {'schema': VERSION, **identity, 'signal': signal, 'representation': signal['representation'],
+                    'operating_value': {key: native.get(key) for key in ('values', 'real', 'imag', 'unit', 'value_kind') if key in native},
+                    'axis': None, 'data_basis': basis, 'full_resolution': True, 'display_downsampling_used': False}
+        xs = axis['values']; lower, upper = min(xs), max(xs)
+        low = lower if start is None else finite(start, 'start'); high = upper if end is None else finite(end, 'end')
+        if low > high:
+            raise WaveformError('invalid_window', 'Dataset window must increase in its declared axis unit')
+        ids = [j for j, x in enumerate(xs) if low <= x <= high]
+        selected = ids
+        # Scientific measurements use all samples. A small display budget may
+        # not retain every complex component's extrema; report that explicitly.
+        vectors = {'real': native['real'], 'imag': native['imag']} if native['value_kind'] == 'complex' else {'values': native['values']}
+        bode = None
+        if identity['analysis_kind'] == 'ac' and native['value_kind'] == 'complex' and isinstance(native.get('unit'), str):
+            from spiceowl.adctools import ac_metrics
+            try:
+                result = ac_metrics(xs, native['real'], native['imag'], backend='spiceowl', response_kind='transfer', response_unit=native['unit'], return_curves=True)
+            except ValueError:
+                # Preserve saved complex gaps/one-point data even when a Bode
+                # calculation is undefined; the viewer can show raw components.
+                result = {}
+            if result.get('status') == 'valid' and isinstance(result.get('curves'), dict):
+                bode = {**result['curves'], 'response_kind': 'transfer', 'label': signal['label'], 'backend': result['backend'],
+                        'algorithm_version': result['algorithm_version'], 'sample_count': len(xs), 'measurement_uses_full_data': True}
+                vectors.update(magnitude_db=bode['magnitude_db'], phase_deg=bode['phase_deg'])
+        selected, incomplete = native_display_selection(ids, vectors, limit)
+        breaks = {name:native_breaks(vector,selected) for name,vector in vectors.items()}
+        values = {'complex_points': [[xs[j], native['real'][j], native['imag'][j]] for j in selected]} if native['value_kind'] == 'complex' else {
+            'points': [[xs[j], native['values'][j]] for j in selected]}
+        if bode is not None:
+            for key in ('frequency_hz','magnitude_db','phase_deg'):bode[key]=[bode[key][j] for j in selected]
+            bode['break_before_indices']={key:breaks[key] for key in ('magnitude_db','phase_deg')}
+        return {'schema': VERSION, **identity, 'signal': signal, 'representation': signal['representation'], **values,
+                **({'bode': bode} if bode is not None else {}),
+                'axis': {k: v for k, v in axis.items() if k != 'values'},
+                'window': {'requested': [low, high], 'returned': [xs[selected[0]], xs[selected[-1]]] if selected else None,
+                           'clipped': low < lower or high > upper},
+                'display': {'method': 'native_component_extrema_budgeted' if len(selected) < len(ids) else 'native_saved_samples',
+                            'decimated': len(selected) < len(ids), 'input_points': len(ids), 'returned_points': len(selected), 'limit': limit,
+                            'break_before_indices': breaks, 'extrema_preserved': not incomplete,
+                            'unpreserved_extrema_components': incomplete},
+                'data_basis': basis, 'measurement': {'basis': basis, 'cursors': {}, 'delta': None, 'interpolation': 'not_performed'}}
+
+    def waveform(self, rid, sid, analysis=None, start=None, end=None, limit=1600, cursor_a=None, cursor_b=None, dataset_id=None):
+        if dataset_id is not None:
+            if cursor_a is not None or cursor_b is not None:
+                raise WaveformError('analysis_unsupported', 'Transient cursors cannot be applied to another dataset', 422)
+            return self.dataset_waveform(rid, sid, dataset_id, start, end, limit, analysis)
+        if analysis not in (None, 'tran'):
             raise WaveformError('analysis_unsupported', 'Only scalar transient is implemented', 422)
         if isinstance(limit, bool) or not re.fullmatch(r'\d+', str(limit)) or not 4 <= int(limit) <= MAX_DISPLAY:
             raise WaveformError('data_limit', 'limit must be 4..10000')
@@ -456,14 +672,16 @@ def validate_mapping(m, identity, signals):
 
 def dispatch(service, rid, operation, query):
     """HTTP/CLI shared query validation; values use parse_qs(...,keep_blank_values=True)."""
-    allowed = {'signal_id','analysis','start','end','limit','cursor_a','cursor_b'} if operation=='waveform' else set()
+    allowed = {'dataset_id','signal_id','analysis','start','end','limit','cursor_a','cursor_b'} if operation=='waveform' else {'dataset_id'}
     if set(query)-allowed or any(len(v)!=1 or v[0]=='' for v in query.values()):
         raise WaveformError('invalid_input','Unknown, duplicate or blank query parameter')
     q = {k:v[0] for k,v in query.items()}
+    if 'dataset_id' in q and not re.fullmatch(r'ds_[a-f0-9]{32}',q['dataset_id']):
+        raise WaveformError('invalid_input','Select an exact saved dataset ID')
     if operation=='signals':
-        return service.catalog(rid)
+        return service.catalog(rid,**q)
     if operation=='waveform-map':
-        return service.mapping(rid)
+        return service.mapping(rid,**q)
     if operation=='waveform':
         if not q.get('signal_id'):
             raise WaveformError('invalid_input','signal_id is required')

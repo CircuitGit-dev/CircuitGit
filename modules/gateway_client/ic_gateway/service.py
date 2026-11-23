@@ -422,19 +422,21 @@ class Service:
             path+='?'+urlencode(query)
         result=self.gateway.request(path,args if method=='POST' else None,
             onboarding_entry='native_agent',onboarding_connection_id=connection,
-            route_timeout=320 if op=='onboarding_run' else 300 if op in {'onboarding_probe','onboarding_discover_pdk','onboarding_prepare','onboarding_agent_tb_prepare'} else None)
+            route_timeout=320 if op=='onboarding_run' else 300 if op in {'onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_prepare','onboarding_agent_tb_prepare'} else None)
         check(isinstance(result,dict),'Onboarding returned no structured object.','onboarding_response_mismatch',75)
         if 'intake_id' in args:
             check(result.get('intake_id')==args['intake_id'],'Onboarding response belongs to another intake.','onboarding_response_mismatch',75)
         if op in ('onboarding_netlist','onboarding_session','onboarding_probe','onboarding_discover_pdk',
                   'onboarding_prepare','onboarding_run','onboarding_inspect',
-                  'onboarding_agent_tb','onboarding_agent_tb_draft','onboarding_agent_tb_prepare'):
+                  'onboarding_agent_tb','onboarding_agent_tb_draft','onboarding_agent_tb_prepare','onboarding_veriloga_headers'):
             check(result.get('schema')=='ic.onboarding.session.v1' and result.get('connection_id')==connection,
                   'Onboarding response belongs to another connection.','onboarding_response_mismatch',75)
             check(isinstance(result.get('intake_id'),str) and re.fullmatch(r'intake_[a-f0-9]{32}',result['intake_id']),
                   'The intake response has an invalid identity.','onboarding_response_mismatch',75)
         if op.startswith('onboarding_waveforms_'):
             check(result.get('job_id')==args['job_id'],'Waveform response belongs to another job.','onboarding_response_mismatch',75)
+            if 'dataset_id' in args:
+                check(result.get('dataset_id')==args['dataset_id'],'Waveform response belongs to another dataset.','onboarding_response_mismatch',75)
         return result
 
     def _onboarding_record_path(self,connection,intake_id,plan_id):

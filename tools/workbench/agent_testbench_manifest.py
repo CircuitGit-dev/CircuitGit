@@ -7,6 +7,28 @@ import re
 MANIFEST_SCHEMA='ic.agent_testbench.v1'
 FIELDS={'schema','text','interface','analyses','stimuli','objectives','criteria','postprocess'}
 NAME=re.compile(r'[A-Za-z_][A-Za-z0-9_.$:+<>\[\]-]{0,159}')
+HELPER_NAME=re.compile(r'[A-Za-z0-9_.-]{1,128}')
+
+
+def helper_files(value):
+    """Return authored helper bytes with portable, nonoverlapping identities."""
+    helpers=value.get('helper_files',{})
+    if type(helpers) is not dict or len(helpers)>48:
+        raise ValueError('Provide at most 48 explicit testbench helper files')
+    seen={'dut.scs','tb.scs','pdk.scs','agent-testbench.json'}
+    result={}
+    for name,text in helpers.items():
+        if (not isinstance(name,str) or not 1<=len(name)<=240
+                or any(part in ('.','..') or not HELPER_NAME.fullmatch(part) for part in name.split('/'))
+                or name.lower() in seen or name.split('/')[-1].lower() in ('constants.vams','disciplines.vams')
+                or not isinstance(text,str) or not 0<len(text.encode('utf-8'))<=512*1024
+                or any(ord(c)<32 and c not in '\t\n\r' or ord(c)==127 for c in text)):
+            raise ValueError('Helpers need distinct relative names and bounded literal text; standard headers require observed external bindings')
+        lowered=name.lower()
+        if any(lowered.startswith(other+'/') or other.startswith(lowered+'/') for other in seen):
+            raise ValueError('A helper cannot also be a directory')
+        seen.add(lowered);result[name]=text.encode('utf-8')
+    return result
 
 
 def _finite(value,depth=0):
@@ -23,9 +45,10 @@ def _finite(value,depth=0):
 
 
 def validate_manifest(value):
-    if type(value) is not dict or set(value)!=FIELDS or value.get('schema')!=MANIFEST_SCHEMA:
+    if type(value) is not dict or not FIELDS<=set(value) or set(value)-FIELDS-{'helper_files'} or value.get('schema')!=MANIFEST_SCHEMA:
         raise ValueError('Provide the complete ic.agent_testbench.v1 authored draft')
     _finite(value)
+    helper_files(value)
     if not isinstance(value['text'],str) or not 0<len(value['text'].encode('utf-8'))<=512*1024:
         raise ValueError('Provide bounded literal Spectre testbench text')
     interface=value['interface']

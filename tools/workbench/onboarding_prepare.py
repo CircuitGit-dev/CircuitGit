@@ -110,6 +110,11 @@ def create_child_config(folder,state,compiled_selection,hosts):
         'expected_main_sha256':compiled_selection['candidate']['entry_sha256'],
         'audit_host':audit_host,'remote_python':hosts[audit_host]['python'],
         'environment_pins':{host:{'cadence_setup':row['setup_sha256']} for host,row in hosts.items()}}
+    if compiled_selection.get('veriloga_headers'):
+        headers=compiled_selection['veriloga_headers']
+        if hosts[audit_host]['site']['spectre_bin']!=headers['spectre']:
+            raise ValueError('Selected standard headers belong to another Spectre installation')
+        profile['veriloga_headers']=headers
     cfg={'local_only':True,'github_repo':None,'seed_repo':str(seed),'runtime_root':str(root/'runtime'),
         'runtime_branch':'codex/intake','base_branch':'main','site_file':members[0]['site_file'],
         'spiceowl_pool_file':str(root/'pool.json'),'projects':[{'id':project,'source_path':source['source_id'],

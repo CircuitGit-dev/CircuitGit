@@ -50,11 +50,13 @@ class Runtime:
         elif operation == 'pip':
             if self.fail_install:
                 return subprocess.CompletedProcess(command, 1, '', 'Synthetic network unavailable')
-            assert command[-1].startswith('spiceowl[adctools] @ git+')
+            assert command[-1].startswith(('spiceowl[adctools] @ git+', 'spiceowl[adctools,mcp] @ git+'))
             repository, commit = command[-1].split(' @ git+', 1)[1].rsplit('@', 1)
             observation = self.observations[command[0]]
             observation['dependency'] = self.dependency(Path(observation['prefix']), {
                 'repository': repository, 'commit': 'f' * 40 if self.wrong_commit else commit})
+            if command[-1].startswith('spiceowl[adctools,mcp]'):
+                observation['dependency']['modules']['mcp'] = str(Path(observation['prefix'])/'lib/site-packages/mcp/__init__.py')
         else:
             raise AssertionError('Unexpected subprocess: ' + str(command))
         return subprocess.CompletedProcess(command, 0, '', '')
@@ -96,6 +98,35 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(self.ensure(), python)
         self.assertEqual(len(self.runtime.installs), 1)
         self.assertEqual(len(self.progress), 3)
+        self.assertIn('adctoolbox==0.9.3',self.runtime.installs[0])
+
+    def test_developer_mcp_extra_has_separate_verified_environment_and_is_reusable(self):
+        runtime=self.ensure()
+        developer=bootstrap.ensure_python(self.root,run=self.runtime.run,candidates=[self.base],progress=self.progress.append,extras=('mcp','adctools'))
+        self.assertNotEqual(developer,runtime)
+        self.assertIn('spiceowl[adctools,mcp] @ git+',self.runtime.installs[-1][-1])
+        self.assertEqual(bootstrap.ensure_python(self.root,run=self.runtime.run,candidates=[self.base],progress=self.progress.append,extras=('adctools','mcp')),developer)
+        self.assertEqual(self.ensure(),runtime)
+        self.assertEqual(len(self.runtime.installs),2)
+        self.assertEqual(json.loads((developer.parent.parent/'circuitgit-environment.json').read_text())['extras'],['adctools','mcp'])
+
+    def test_launcher_reuses_a_matching_developer_superset_without_second_install(self):
+        developer=bootstrap.ensure_python(self.root,run=self.runtime.run,candidates=[self.base],progress=self.progress.append,extras=('adctools','mcp'))
+        self.assertEqual(self.ensure(),developer);self.assertEqual(len(self.runtime.installs),1)
+
+    def test_missing_or_global_mcp_cannot_satisfy_developer_environment(self):
+        project=self.runtime.add(self.root/'.venv/bin/python',pin=self.pin)
+        self.runtime.observations[str(project)]['dependency']['modules']['mcp']='/global/mcp/__init__.py'
+        selected=bootstrap.ensure_python(self.root,run=self.runtime.run,candidates=[self.base],progress=self.progress.append,extras=('adctools','mcp'))
+        self.assertNotEqual(project,selected)
+        self.assertEqual(self.runtime.observations[str(project)]['dependency']['modules']['mcp'],'/global/mcp/__init__.py')
+        self.assertEqual(len(self.runtime.installs),1)
+
+    def test_unrecognized_extra_cannot_install_arbitrary_dependencies(self):
+        for extras in [('mcp',),('adctools','other'),'adctools']:
+            with self.assertRaises(bootstrap.BootstrapError):
+                bootstrap.ensure_python(self.root,run=self.runtime.run,candidates=[self.base],extras=extras)
+        self.assertEqual(self.runtime.installs,[])
 
     def test_wrong_optional_analysis_version_cannot_be_reused(self):
         project = self.runtime.add(self.root / '.venv/bin/python', pin=self.pin)

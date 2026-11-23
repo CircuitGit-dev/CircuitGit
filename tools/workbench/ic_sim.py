@@ -55,11 +55,18 @@ def prepare(bundle,site):
         if '@EXTERNAL_' in text:fail('Unresolved external alias')
         payload[dst]=text.encode();provenance.append({'source':str(src),'destination':dst,'source_sha256':sha(raw),'staged_sha256':sha(payload[dst])})
     if entry not in payload:fail('Entry point missing from payload')
+    staged_headers={}
+    if b.get('veriloga_header_staging') is not None:
+        from onboarding_veriloga import prepare_header_staging
+        staged_headers=prepare_header_staging(b,site,payload,provenance)
     external=set(site.get('external_files',{}).values())
     # Fail closed on missing include closure; only Cadence builtin VA headers exempted.
     for name,raw in payload.items():
         text=raw.decode()
         for dep in re.findall(r'^\s*(?:include|ahdl_include|`include)\s+"([^"]+)"',text,re.M):
+            if staged_headers:
+                import posixpath
+                if posixpath.normpath(posixpath.join(posixpath.dirname(name),dep)) in staged_headers:continue
             if dep in ['constants.vams','disciplines.vams']:continue
             if dep.startswith('/'):
                 if dep not in external:fail('Unmapped absolute include in '+name+': '+dep)
@@ -92,7 +99,7 @@ def required_aliases(proof,site):
     for path in re.findall(r'^\s*(?:include|ahdl_include|`include)\s+"([^"]+)"',text,re.M):
         used.update(key for key,value in site['external_files'].items() if value==path)
     return used
-def scripts(site,entry,simulator=None):
+def scripts(site,entry,simulator=None,*,veriloga_staging=False):
     sim=simulator or simulator_config({})
     args=[site['spectre_bin'],*sim['args'],PurePosixPath(entry).name,'+escchars','+log','../psf/spectre.out','-format',sim['output_format'],'-raw','../psf','-ahdllibdir','../ahdl','+logstatus']
     env='#!/bin/csh -f\nsource '+site['cadence_cshrc']+'\nif ( $status != 0 ) exit 70\nexec '+' '.join(q(x) for x in args)+'\n'
@@ -140,6 +147,8 @@ mv state.tmp state
 terminal_written=1
 exit "$rc"
 '''
+    if veriloga_staging:
+        job=job.replace('mkdir -p psf ahdl || exit 70','/bin/sh ./veriloga-stage.sh || exit 73\nmkdir -p psf ahdl || exit 70',1)
     return {'cadence.csh':env.encode(),'job.sh':job.encode()}
 def archive(payload):
     stream=io.BytesIO()
@@ -199,7 +208,7 @@ def run(args,site):
     plan['runtime_preflight']=check
     local=args.results/runid;local.mkdir(parents=True,exist_ok=False)
     plan['status']='prepared_not_submitted';write(local/'run.json',plan)
-    payload.update(scripts(site,b['entrypoint'],sim));payload['run.json']=json.dumps(plan,indent=2).encode()
+    payload.update(scripts(site,b['entrypoint'],sim,veriloga_staging=b.get('veriloga_header_staging') is not None));payload['run.json']=json.dumps(plan,indent=2).encode()
     runtime_pins=[(value,site['external_files'][key]) for key,value in pins.items()]+[(check['dependency_sha256']['cadence_setup'],site['cadence_cshrc']),(check['dependency_sha256']['spectre'],site['spectre_bin'])]
     payload['external.sha256']=''.join(h+'  '+p+'\n' for h,p in runtime_pins).encode()
     payload['payload.sha256']=''.join(sha(v)+'  '+k+'\n' for k,v in sorted(payload.items())).encode()

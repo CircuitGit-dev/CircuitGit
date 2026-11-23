@@ -58,7 +58,7 @@ def record_search_progress(public, rows, source_sha256, previous=None):
     return history
 
 
-def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cds_lib_hint=None):
+def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cds_lib_hint=None,*,full_library=False):
     private=capture.get('private')
     if not private:raise ValueError('The selected probe has no remote environment evidence')
     roots=search_paths if search_paths else [r['path'] for r in private.get('pdk_candidates',[]) if r.get('exists')]
@@ -68,8 +68,14 @@ def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cd
     if not python or not re.fullmatch(r'/[A-Za-z0-9_./+-]+',python):raise ValueError('A discovered Python executable is required')
     cds=[r['path'] for r in private.get('scripts',[]) if r.get('kind')=='cds_lib']
     if cds_lib_hint:cds=[cds_lib_hint]
-    script=build_pdk_discovery_script(required_masters=requirements['required_masters'],roots=roots,
-        source_sha256=requirements['source_sha256'],cds_libs=cds[:16])
+    if full_library:
+        from spiceowl.onboarding.pdk_discovery import build_pdk_library_script,validate_pdk_library,MAX_LIBRARY_RESULT_BYTES
+        script=build_pdk_library_script(roots=roots,cds_libs=cds[:16])
+        output_limit=MAX_LIBRARY_RESULT_BYTES+1024  # Framing only; receipt retains its own strict bound.
+    else:
+        script=build_pdk_discovery_script(required_masters=requirements['required_masters'],roots=roots,
+            source_sha256=requirements['source_sha256'],cds_libs=cds[:16])
+        output_limit=2*1024*1024
     nonce=secrets.token_hex(16);begin='SPICEOWL_DISCOVERY_'+nonce+'_BEGIN';end='SPICEOWL_DISCOVERY_'+nonce+'_END'
     identity=private['identity'];q=shlex.quote
     command='set -eu\n[ "$(hostname)" = '+q(identity['hostname'])+' ]\n[ "$(id -un)" = '+q(identity['username'])+' ]\n'
@@ -78,10 +84,10 @@ def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cd
     argv=['/usr/bin/ssh','-T','-F',str(config_path(ssh_config))]
     for option in (*_SSH_OPTIONS,'StdinNull=no'):argv.extend(('-o',option))
     argv.extend(('--',validate_ssh_target(target),'/bin/sh -s'))
-    reply=_transport(argv,command,timeout=60,max_output=2*1024*1024)
+    reply=_transport(argv,command,timeout=60,max_output=output_limit)
     lines=reply.stdout.splitlines();b=begin.encode();e=end.encode()
     prefix=DIRECTORY_SNAPSHOT_PREFIX.encode();snapshots=[line[len(prefix):] for line in lines if line.startswith(prefix)]
-    partial=reply.returncode==124 and lines.count(b)==1 and lines.count(e)==0 and len(snapshots)==1 and len(snapshots[0])<=65536
+    partial=not full_library and reply.returncode==124 and lines.count(b)==1 and lines.count(e)==0 and len(snapshots)==1 and len(snapshots[0])<=65536
     if partial:body=snapshots[0]
     else:
         if reply.returncode or lines.count(b)!=1 or lines.count(e)!=1 or lines.index(b)>=lines.index(e):
@@ -96,6 +102,10 @@ def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cd
         return result
     result=json.loads(body,object_pairs_hook=unique,
         parse_constant=lambda _:(_ for _ in ()).throw(ValueError('Nonfinite discovery value')))
+    if full_library:
+        if len(body)>MAX_LIBRARY_RESULT_BYTES:raise ValueError('Full PDK library observation exceeds its private transport budget')
+        validate_pdk_library(result)
+        return result
     if result.get('source_sha256')!=requirements['source_sha256'] or result.get('required_masters')!=requirements['required_masters']:
         raise ValueError('Discovery source binding differs')
     checksum=result.get('discovery_id');unsigned={k:v for k,v in result.items() if k!='discovery_id'}

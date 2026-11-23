@@ -1,3 +1,4 @@
+import {mountNativeDatasets} from './native.js';
 import {freshness,resolveSelection} from './mapping.js';
 import {displayEnvelope,frameScheduler} from './rendering.js';
 const COLORS=['#58d5ee','#ffbd68','#ca99ff','#6ed8a7','#ff819e','#b6cf62','#9daeff','#ecaeed'];
@@ -16,12 +17,13 @@ export function mountWaveformPanel(root,{contextAdapter,api,maxTraces=16,followS
   // Only constant markup; all external labels are assigned with textContent.
   root.innerHTML=`<div class="wf-top"><h2>Waveforms <small>波形</small></h2><select class="wf-run" aria-label="选择运行"><option value="">选择已保存运行</option></select><button data-action="refresh">刷新运行</button></div>
     <div class="wf-banner" role="status"></div><div class="wf-provenance"></div>
-    <div class="wf-body"><aside><input class="wf-search" type="search" aria-label="搜索信号" placeholder="搜索已导出信号…"><button type="button" data-action="add-all" disabled>绘制已导出波形</button><div class="wf-list"></div><p class="wf-note">目录仅覆盖已导出信号。电压是节点量；电流需器件端口与方向。</p><p class="wf-note">当前支持 transient。AC / 复数 / sweep / corner family 尚不支持。</p></aside>
+    <div class="wf-body"><aside><input class="wf-search" type="search" aria-label="搜索信号" placeholder="搜索已导出信号…"><button type="button" data-action="add-all" disabled>绘制已导出波形</button><div class="wf-list"></div><p class="wf-note">目录仅覆盖已导出信号。电压是节点量；电流需器件端口与方向。</p><p class="wf-note">瞬态信号在此选择；AC / DC 使用图表上方保存数据集选项。</p></aside>
     <div><div class="wf-toolbar"><button data-action="fit">Fit</button><button data-action="zoom-in" aria-label="放大">＋</button><button data-action="zoom-out" aria-label="缩小">−</button><label>开始(s) <input class="wf-start" type="number" step="any"></label><label>结束(s) <input class="wf-end" type="number" step="any"></label><button data-action="window">应用时间窗</button><button data-action="cancel">取消读取</button></div>
     <canvas class="wf-plot" tabindex="0" aria-label="瞬态波形：滚轮缩放、拖动平移、点击设置游标" role="img"></canvas><div class="wf-legend"></div>
     <div class="wf-toolbar"><label>游标 <select class="wf-cursor-mode" aria-label="活动游标"><option>A</option><option>B</option></select></label><label>A(s) <input class="wf-a" type="number" step="any"></label><label>B(s) <input class="wf-b" type="number" step="any"></label><button data-action="measure">读取游标</button></div><div class="wf-cursors"></div><p class="wf-note wf-data-note"></p><p class="wf-layout-note">滚轮以指针为中心缩放 · 拖动平移 · ←/→平移 · ＋/−缩放 · F适配 · V/A分 pane</p></div></div>
     <div class="wf-status" aria-live="polite"></div><div class="wf-choices"></div><details class="wf-proposal" hidden><summary>下次运行保存建议（仅预览）</summary><pre></pre></details>`;
   const $=s=>root.querySelector(s),plot=$('.wf-plot'),run=$('.wf-run');
+  const native=mountNativeDatasets(plot.parentElement,{api,onMode:enabled=>{root.classList.toggle('wf-native-active',enabled);plot.hidden=enabled;}});
   const frames=frameScheduler(draw,requestAnimationFrame,cancelAnimationFrame),drawCache=new WeakMap();
   run.disabled=managedRun;
   let rid='',catalog=null,manifest=null,traces=new Map(),windowRange=null,cursors={a:null,b:null},disposed=false,revision=0,controller=null,lastSelection='',lastContextRun=null,colorIndex=0;
@@ -109,12 +111,12 @@ export function mountWaveformPanel(root,{contextAdapter,api,maxTraces=16,followS
     if(skipped)status(`最多叠加 ${maxTraces} 条；其余 ${skipped} 条请移除已有曲线后选择。`);
   }
   async function setRun(id){
-    const {version,signal}=invalidate();rid=id;run.value=id;traces.clear();catalog=null;manifest=null;windowRange=null;colorIndex=0;
+    const {version,signal}=invalidate();rid=id;run.value=id;traces.clear();catalog=null;manifest=null;windowRange=null;colorIndex=0;native.setCatalog(id,null);
     $('.wf-provenance').textContent='';$('.wf-choices').replaceChildren();$('.wf-proposal').hidden=true;renderList();renderLegend();renderMeasurements();paint();banner();
     if(!rid)return;status('读取该运行的信号库存与映射…');
-    try{const [c,m]=await Promise.all([api.catalog(id,{signal}),api.mapping(id,{signal})]);if(!isActive(version))return;catalog=c;manifest=m;setWindow(...bounds());
+    try{const [c,m]=await Promise.all([api.catalog(id,{signal}),api.mapping(id,{signal})]);if(!isActive(version))return;catalog=c;manifest=m;native.setCatalog(id,c);setWindow(...bounds());
       cursors={a:bounds()[0]+(bounds()[1]-bounds()[0])/3,b:bounds()[0]+2*(bounds()[1]-bounds()[0])/3};$('.wf-a').value=cursors.a;$('.wf-b').value=cursors.b;
-      $('.wf-provenance').textContent=labels.provenance||`${id} · source ${c.source_commit} · CSV SHA256 ${c.csv_sha256}`;banner();renderList();paint();status(labels.catalog||'目录为真实导出子集；选择信号开始查看。');lastSelection='';if(followSelection)void acceptContext(context());
+      $('.wf-provenance').textContent=labels.provenance||`${id} · source ${c.source_commit} · ${c.csv_sha256?'CSV SHA256 '+c.csv_sha256:'独立保存数据集 '+(c.datasets?.length||0)}`;banner();renderList();paint();status(labels.catalog||'目录为真实导出子集；选择信号开始查看。');lastSelection='';if(followSelection)void acceptContext(context());
     }catch(e){if(isActive(version)&&e.name!=='AbortError')status('目录读取失败：'+e.message);}
   }
   async function refreshRuns(){try{const response=await api.jobs();if(disposed)return;const old=rid;run.replaceChildren(new Option('选择已保存运行',''));for(const j of response.jobs||[])run.add(new Option(`${j.associated_project_id||j.project_id||''} · ${j.configuration||''} · ${j.run_id}`,j.run_id));run.value=old;
@@ -189,6 +191,6 @@ export function mountWaveformPanel(root,{contextAdapter,api,maxTraces=16,followS
       if(disposed||JSON.stringify(ctx)!==JSON.stringify(context())||!probeAllowed(ctx))return false;
       lastSelection='';await acceptContext(ctx);return !disposed;
     },
-    destroy(){disposed=true;invalidate();frames.dispose();unsubscribe?.();resize.disconnect();listeners.forEach(f=>f());root.replaceChildren();},
+    destroy(){disposed=true;invalidate();native.destroy();frames.dispose();unsubscribe?.();resize.disconnect();listeners.forEach(f=>f());root.replaceChildren();},
     snapshot(){return {runId:rid,traceCount:traces.size,window:windowRange,cursors,signals:[...traces.values()].map(t=>({id:t.signal.id,label:t.signal.label,visible:t.visible,loaded:!!t.data&&!t.pending})),state:$('.wf-banner').dataset.state};}};
 }

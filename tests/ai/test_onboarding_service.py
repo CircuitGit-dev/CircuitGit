@@ -73,10 +73,10 @@ class OnboardingServiceTests(unittest.TestCase):
 
     def posts(self):return [(p,b) for p,b,_ in self.gateway.calls if b is not None]
 
-    def test_catalog_has_eighteen_strict_independent_tools_and_correct_effect_hints(self):
+    def test_catalog_has_nineteen_strict_independent_tools_and_correct_effect_hints(self):
         names={'ic_'+name for name in ONBOARDING_ROUTES}
         selected={row['name']:row for row in tools() if row['name'] in names}
-        self.assertEqual(len(selected),18)
+        self.assertEqual(len(selected),19)
         for name,row in selected.items():
             self.assertIs(row['inputSchema']['additionalProperties'],False)
             self.assertFalse({'origin','caller_id','commands','url','config_path','idempotency_key'} & set(row['inputSchema']['properties']))
@@ -84,6 +84,8 @@ class OnboardingServiceTests(unittest.TestCase):
                 self.assertTrue(row['annotations']['readOnlyHint'])
                 self.assertFalse(row['annotations']['openWorldHint'])
         self.assertFalse(selected['ic_onboarding_netlist']['annotations']['idempotentHint'])
+        self.assertFalse(selected['ic_onboarding_veriloga_headers']['annotations']['idempotentHint'])
+        self.assertTrue(selected['ic_onboarding_veriloga_headers']['annotations']['openWorldHint'])
         self.assertTrue(selected['ic_onboarding_run']['annotations']['idempotentHint'])
 
     def test_all_routes_use_main_service_with_native_provenance_and_no_legacy_registry(self):
@@ -93,6 +95,7 @@ class OnboardingServiceTests(unittest.TestCase):
             'onboarding_probe':{'intake_id':INTAKE,'revision':3,'ssh_targets':['fixture-host'],
                 'overrides':{'setup_source_ids':{'fixture-host':'source-'+'a'*20}}},
             'onboarding_discover_pdk':{'intake_id':INTAKE,'revision':3,'probe_ids':[PROBE],'search_directory_ids':['a'*64]},
+            'onboarding_veriloga_headers':{'intake_id':INTAKE,'revision':3,'probe_id':PROBE,'roots':['/observed/headers']},
             'onboarding_prepare':{'intake_id':INTAKE,'revision':3},
             'onboarding_run':self.run_args(),'onboarding_submission':{'intake_id':INTAKE,'plan_id':PLAN},
             'onboarding_inspect':{'intake_id':INTAKE,'job_id':JOB},
@@ -112,6 +115,38 @@ class OnboardingServiceTests(unittest.TestCase):
         self.assertFalse((Path(self.temp.name)/'requests').exists())
         run=next(options for path,body,options in self.gateway.calls if path.endswith('/run'))
         self.assertEqual(run['route_timeout'],320)
+        headers=next(options for path,body,options in self.gateway.calls if path.endswith('/veriloga-headers'))
+        self.assertEqual(headers['route_timeout'],300)
+
+    def test_explicit_dataset_identity_is_forwarded_and_checked(self):
+        dataset='ds_'+'e'*32
+        args={'intake_id':INTAKE,'job_id':JOB,'dataset_id':dataset}
+        original=self.gateway.request
+        def reply(path,*rest,**options):
+            result=original(path,*rest,**options)
+            if '/waveforms/' in path:result['dataset_id']=dataset
+            return result
+        self.gateway.request=reply
+        for operation in ('catalog','mapping','window'):
+            with self.subTest(operation=operation):
+                extra={'signal_ids':['s_'+'a'*32]} if operation=='window' else {}
+                result=self.service.call('onboarding_waveforms_'+operation,{**args,**extra})
+                self.assertEqual(result['dataset_id'],dataset)
+                query=parse_qs(urlsplit(self.gateway.calls[-1][0]).query)
+                self.assertEqual(query['dataset_id'],[dataset])
+                self.assertNotIn('analysis',query)
+        self.gateway.request=original
+        with self.assertRaises(Failure) as caught:self.service.call('onboarding_waveforms_catalog',args)
+        self.assertEqual(caught.exception.code,'onboarding_response_mismatch')
+
+    def test_ac_dc_catalog_selectors_are_finite_and_dataset_ids_are_not_paths(self):
+        base={'intake_id':INTAKE,'job_id':JOB,'dataset_id':'ds_'+'e'*32,'parameters':{'backend':'spiceowl'}}
+        validate({**base,'operation':'ac_metrics','inputs':{'response':'s_'+'a'*32,'reference':'s_'+'b'*32}},SCHEMAS['onboarding_analysis'])
+        validate({**base,'operation':'dc_op_metrics','inputs':{'devices':['d_'+'a'*32]}},SCHEMAS['onboarding_analysis'])
+        for dataset in ('/private/dataset.json','ds_'+'x'*32,'ds_'+'a'*31):
+            with self.subTest(dataset=dataset),self.assertRaises(Failure):
+                self.service.call('onboarding_waveforms_catalog',{'intake_id':INTAKE,'job_id':JOB,'dataset_id':dataset})
+        self.assertEqual(self.gateway.calls,[])
 
     def test_prepare_supports_explicit_legacy_and_partial_recommendation_overrides(self):
         for extra in ({},{'accept_recommendation':True,'recommendation_id':'a'*64,'recommendation_revision':2,
@@ -124,6 +159,12 @@ class OnboardingServiceTests(unittest.TestCase):
             self.assertEqual(self.posts()[-1][1],args)
             self.assertEqual(result['next_actions'],self.gateway.session['next_actions'])
 
+    def test_library_choice_preserves_original_observation_without_refresh(self):
+        args={'intake_id':INTAKE,'revision':3,'probe_ids':[PROBE],
+            'library_selection':{'probe_id':PROBE,'library_id':'a'*64,'library_candidate_id':'b'*64}}
+        self.service.call('onboarding_discover_pdk',args)
+        self.assertEqual(self.posts()[-1][1],args)
+
     def test_invalid_types_extra_authority_duplicates_and_paths_stop_before_transport(self):
         cases=[('onboarding_run',{**self.run_args(),'revision':True}),
             ('onboarding_run',{**self.run_args(),'origin':'interactive_client'}),
@@ -135,6 +176,9 @@ class OnboardingServiceTests(unittest.TestCase):
             ('onboarding_probe',{'intake_id':INTAKE,'revision':3,'ssh_targets':['host; command']}),
             ('onboarding_probe',{'intake_id':INTAKE,'revision':3,'ssh_targets':['host'],'overrides':{'command':'evil'}}),
             ('onboarding_discover_pdk',{'intake_id':INTAKE,'revision':3,'probe_ids':[PROBE],'search_paths':['/../private']}),
+            ('onboarding_veriloga_headers',{'intake_id':INTAKE,'revision':3,'probe_id':PROBE,'roots':[]}),
+            ('onboarding_veriloga_headers',{'intake_id':INTAKE,'revision':3,'probe_id':PROBE,'roots':['relative/path']}),
+            ('onboarding_veriloga_headers',{'intake_id':INTAKE,'revision':3,'probe_id':PROBE,'roots':['/x/../private']}),
             ('onboarding_waveforms_window',{'intake_id':INTAKE,'job_id':JOB,'signal_ids':['V(out)']}),
             ('onboarding_ssh_hosts',{'config_path':'/private/config'})]
         for op,args in cases:

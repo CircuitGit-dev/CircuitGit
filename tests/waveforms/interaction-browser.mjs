@@ -11,7 +11,7 @@ const report={scope:'shared panel with delayed synthetic data; no engineering re
 let browser;
 const server=createServer(async(req,res)=>{try{
   if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end('<!doctype html><style>.wf-plot{display:block;width:900px;height:320px}.wf-list{max-height:50px;overflow:auto}</style><main></main>');return;}
-  assert(req.url.startsWith('/modules/waveforms/'));
+  assert(req.url.startsWith('/modules/waveforms/')||req.url==='/modules/simulation/environment/spectrum.js');
   const path=resolve(root,'.'+req.url);assert(path.startsWith(root+sep));
   res.setHeader('Content-Type','text/javascript');res.end(await readFile(path));
 }catch(error){res.writeHead(404);res.end(error.message);}});

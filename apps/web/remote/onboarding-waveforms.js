@@ -35,7 +35,7 @@ export function scopedOnboardingWaveformAPI(scope,provider,{isCurrent=()=>true}=
     jobs:async()=>{checkRun(scope.run_id);return {jobs:[{...scope}]};},
     async catalog(run,options){
       const data=await read('catalog',run,[options]);
-      need(Array.isArray(data.signals)&&data.signals.length<=4096&&hash(data.csv_sha256),'波形信号目录不完整。');
+      need(Array.isArray(data.signals)&&data.signals.length<=4096&&(hash(data.csv_sha256)||hash(data.data_sha256)&&data.dataset_id===options?.dataset_id||Array.isArray(data.datasets)),'波形信号目录不完整。');
       need(data.signals.every(signal=>typeof signal.id==='string'&&signal.id&&typeof signal.label==='string'),'波形信号身份无效。');
       return data;
     },
@@ -48,8 +48,9 @@ export function scopedOnboardingWaveformAPI(scope,provider,{isCurrent=()=>true}=
     },
     async waveform(run,signalId,params={},options){
       const data=await read('waveform',run,[signalId,params,options]);
-      need(data.signal?.id===signalId&&Array.isArray(data.points)&&data.points.length<=10000,'返回的波形信号或采样窗口不匹配。');
-      need(data.points.every(point=>Array.isArray(point)&&point.length===2&&point.every(Number.isFinite)),'波形窗口含无效样本。');
+      const native=!!params.dataset_id,points=data.complex_points||data.points,width=data.representation==='complex_real_imag'?3:2;
+      need(data.signal?.id===signalId&&(!native||data.dataset_id===params.dataset_id&&hash(data.data_sha256)),'返回的波形数据集或信号不匹配。');
+      need(native&&data.axis===null&&data.operating_value||Array.isArray(points)&&points.length<=10000&&points.every(point=>Array.isArray(point)&&point.length===width&&Number.isFinite(point[0])&&point.slice(1).every(v=>Number.isFinite(v)||native&&(v===null||data.representation==='string'&&typeof v==='string'))),'波形窗口含无效样本。');
       return data;
     }
   });
@@ -67,7 +68,7 @@ export async function openOnboardingWaveforms(host,{intake,job}){
   // Read before replacing the old panel. Missing/unavailable data cannot clear a
   // working reference or historical waveform display.
   const [catalog,mapping]=await Promise.all([api.catalog(scope.run_id),api.mapping(scope.run_id)]);
-  need(catalog.signals.some(signal=>signal.status==='available'&&signal.analysis==='tran'),'该运行尚未导出可显示的瞬态信号。');
+  need(catalog.signals.some(signal=>signal.status==='available')||catalog.datasets?.some(row=>row.available===true),'该运行尚无可显示的已保存数据集。');
   const module=await import('../studio/dockview/waveforms.js');
   need(isCurrent(),'连接已变化；未替换波形窗口。');
   await host.prepareOnboardingWaveformSlot({intake:copy(intake),job:copy(job)});
@@ -76,8 +77,8 @@ export async function openOnboardingWaveforms(host,{intake,job}){
   let disposed=false,controller=null;
   const context={version:1,mode:'live',project:{id:scope.project_id,sourceCommit:scope.source_commit},
     run:{runId:scope.run_id},selection:null,geometry:null,file:null};
-  const cached={...api,catalog:(run,options)=>options?.signal?.aborted?api.catalog(run,options):(run===scope.run_id&&isCurrent()?Promise.resolve(copy(catalog)):api.catalog(run,options)),
-    mapping:(run,options)=>options?.signal?.aborted?api.mapping(run,options):(run===scope.run_id&&isCurrent()?Promise.resolve(copy(mapping)):api.mapping(run,options))};
+  const cached={...api,catalog:(run,options)=>options?.dataset_id||options?.signal?.aborted?api.catalog(run,options):(run===scope.run_id&&isCurrent()?Promise.resolve(copy(catalog)):api.catalog(run,options)),
+    mapping:(run,options)=>options?.dataset_id||options?.signal?.aborted?api.mapping(run,options):(run===scope.run_id&&isCurrent()?Promise.resolve(copy(mapping)):api.mapping(run,options))};
   const scopedHost={...host,context:{getContext:()=>copy(context),subscribe:()=>()=>{}},
     getRuns:()=>[copy(job)],refresh:async()=>{need(isCurrent(),'波形连接已断开。');},
     selectRun:async run=>{need(run===scope.run_id&&isCurrent(),'请选择当前独立实验的原始任务。');},
