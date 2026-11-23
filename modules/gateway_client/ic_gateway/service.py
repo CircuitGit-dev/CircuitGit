@@ -4,6 +4,7 @@ import fcntl
 import hashlib
 import http.client
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import re
@@ -78,17 +79,39 @@ class Gateway:
         self.origin = 'http://127.0.0.1:' + str(parsed.port)
         self.port, self.timeout = parsed.port, timeout
 
-    def request(self, path, body=None, *, caller_id=None, authority_key_file=None):
+    def request(self, path, body=None, *, caller_id=None, authority_key_file=None,
+                onboarding_entry=None, onboarding_connection_id=None, route_timeout=None):
         check(path.startswith('/api/'), 'Only gateway API paths are supported')
+        check(route_timeout is None or type(route_timeout) in (int,float) and 1<=route_timeout<=320,
+              'Route timeout must be 1..320 seconds')
+        onboarding = onboarding_connection_id is not None or onboarding_entry is not None
+        if onboarding:
+            check(caller_id is None and path.startswith('/api/simulation/onboarding/'),
+                  'Invalid onboarding transport identity')
+            hexvalue(onboarding_connection_id,32,'onboarding connection')
         headers = {'Origin': self.origin, 'Content-Type': 'application/json'}
         if caller_id is not None:
             check(caller_id in ('paired-helper','native-agent','spiceowl-local'), 'Unknown simulation caller')
             headers['X-IC-Simulation-Caller'] = caller_id
-        if body is not None:
+        if onboarding_entry is not None:
+            check(onboarding_entry=='native_agent' and caller_id is None
+                  and path.startswith('/api/simulation/onboarding/'), 'Invalid onboarding transport identity')
+            # Provenance only. This does not replace Origin or the mutation token
+            # and does not confer the separate registered-project operator grant.
+            headers['X-IC-Onboarding-Entry'] = 'native_agent'
+        if body is not None or onboarding:
             # Process-scoped CSRF value is never persisted or returned to AI.
             health = self.request('/api/health')
-            check(health.get('api_version') == '1' and health.get('mode') == 'live', 'Unsupported gateway')
-            headers['X-Workbench-Token'] = health['mutation_token']
+            check(isinstance(health,dict) and health.get('api_version') == '1' and health.get('mode') == 'live', 'Unsupported gateway')
+            if onboarding:
+                capabilities=health.get('capabilities',{})
+                check(isinstance(capabilities,dict) and capabilities.get('simulation_onboarding') is True
+                      and capabilities.get('simulation_onboarding_api_version')=='1'
+                      and (onboarding_entry is None or capabilities.get('simulation_onboarding_native_entry') is True),
+                      'The configured gateway does not support this onboarding entry.', 'onboarding_unavailable', 4)
+                check(health.get('connection_id')==onboarding_connection_id,
+                      'The configured onboarding connection changed.', 'conflict', 3)
+            if body is not None:headers['X-Workbench-Token'] = health['mutation_token']
         raw = canonical(body).encode() if body is not None else None
         check(raw is None or len(raw) <= 2 * 1024 * 1024, 'Gateway request exceeds 2 MiB')
         if caller_id is not None:
@@ -97,12 +120,13 @@ class Gateway:
                 headers['X-IC-Simulation-Authorization'] = sign(load_key(authority_key_file),caller_id,'POST' if body is not None else 'GET',path,raw or b'')
             except (ImportError, OSError, ValueError, TypeError):
                 raise Failure('simulation_authority_unavailable','Install the pinned SpiceOwl package and configure the private simulation authority key.',4) from None
-        conn = http.client.HTTPConnection('127.0.0.1', self.port, timeout=self.timeout)
+        conn = http.client.HTTPConnection('127.0.0.1', self.port, timeout=route_timeout or self.timeout)
         try:
             conn.request('POST' if body is not None else 'GET', path, body=raw, headers=headers)
             res = conn.getresponse()
-            data = res.read(32 * 1024 * 1024 + 1)
-            check(len(data) <= 32 * 1024 * 1024, 'Gateway response exceeds 32 MiB')
+            limit=2*1024*1024 if onboarding else 32*1024*1024
+            data = res.read(limit + 1)
+            check(len(data) <= limit, 'Gateway response exceeds its size limit','transport_unknown',75)
             parsed = json.loads(data)
             if res.status >= 400 or not parsed.get('ok'):
                 e = parsed.get('error', {})
@@ -119,23 +143,44 @@ class Gateway:
             conn.close()
 
 
-from .contracts import SCHEMAS, MUTATIONS, READ_ONLY, DESCRIPTIONS, IDENTITY, tools
+from .contracts import SCHEMAS, MUTATIONS, READ_ONLY, DESCRIPTIONS, IDENTITY, ONBOARDING_ROUTES, tools
 
 
 def validate(schema, value, label='arguments'):
+    if 'anyOf' in schema:
+        for choice in schema['anyOf']:
+            try:validate(choice,value,label)
+            except Failure:continue
+            return
+        raise Failure('invalid_input',label+' does not match a supported value type')
     typ = schema.get('type')
     check((typ != 'object' or isinstance(value, dict)) and (typ != 'array' or isinstance(value, list))
-          and (typ != 'string' or isinstance(value, str)), label + ' has incorrect type')
+          and (typ != 'string' or isinstance(value, str)) and (typ != 'integer' or type(value) is int)
+          and (typ != 'number' or type(value) in (int,float)) and (typ != 'boolean' or type(value) is bool)
+          and (typ != 'null' or value is None), label + ' has incorrect type')
+    if 'enum' in schema:check(value in schema['enum'],label+' has unsupported value')
     if typ == 'object':
-        check(not set(value) - set(schema['properties']), label + ' contains unsupported fields')
+        check(all(isinstance(k,str) for k in value),label+' keys must be strings')
+        properties=schema.get('properties',{});extra=schema.get('additionalProperties',False)
+        check(extra is not False or not set(value)-set(properties),label+' contains unsupported fields')
+        check(schema.get('minProperties',0)<=len(value)<=schema.get('maxProperties',1000),label+' exceeds field limits')
         check(set(schema.get('required', ())) <= set(value), label + ' misses required fields')
-        for k, v in value.items(): validate(schema['properties'][k], v, label + '.' + k)
+        for k, v in value.items():
+            if 'propertyNames' in schema:validate(schema['propertyNames'],k,label+' key')
+            if k in properties:validate(properties[k],v,label+'.'+k)
+            elif isinstance(extra,dict):validate(extra,v,label+'.'+k)
     elif typ == 'array':
         check(schema.get('minItems', 0) <= len(value) <= schema.get('maxItems', 1000), label + ' exceeds item limits')
         for v in value: validate(schema['items'], v, label + '[]')
+        if schema.get('uniqueItems'):check(len({canonical(v) for v in value})==len(value),label+' contains duplicate values')
     elif typ == 'string':
         check(schema.get('minLength', 0) <= len(value) <= schema.get('maxLength', 2 * 1024 * 1024), label + ' exceeds string limits')
         if 'pattern' in schema: check(re.fullmatch(schema['pattern'], value), label + ' has invalid syntax')
+    elif typ in ('number','integer'):
+        check(math.isfinite(value),label+' must be finite')
+        if 'minimum' in schema:check(value>=schema['minimum'],label+' is below its minimum')
+        if 'maximum' in schema:check(value<=schema['maximum'],label+' exceeds its maximum')
+        if 'exclusiveMinimum' in schema:check(value>schema['exclusiveMinimum'],label+' must exceed its minimum')
 
 
 
@@ -346,11 +391,161 @@ class Service:
             atom(path,record)
             return self.public_receipt(record)
 
+    def _onboarding_health(self):
+        health=self.gateway.request('/api/health')
+        check(isinstance(health,dict),'The configured gateway returned no health object.','onboarding_unavailable',4)
+        capabilities=health.get('capabilities',{})
+        check(isinstance(capabilities,dict),'The configured gateway returned no capability object.','onboarding_unavailable',4)
+        check(health.get('api_version')=='1' and health.get('mode')=='live'
+              and capabilities.get('simulation_onboarding') is True
+              and capabilities.get('simulation_onboarding_native_entry') is True
+              and capabilities.get('simulation_onboarding_api_version')=='1',
+              'The configured gateway does not support native onboarding.','onboarding_unavailable',4)
+        return hexvalue(health.get('connection_id'),32,'onboarding connection')
+
+    def _onboarding_request(self,op,args,connection):
+        method,route=ONBOARDING_ROUTES[op]
+        path='/api/simulation/onboarding/'+route
+        if method=='GET' and args:
+            query={k:','.join(v) if isinstance(v,list) else v for k,v in args.items()}
+            path+='?'+urlencode(query)
+        result=self.gateway.request(path,args if method=='POST' else None,
+            onboarding_entry='native_agent',onboarding_connection_id=connection,
+            route_timeout=320 if op=='onboarding_run' else 300 if op in {'onboarding_probe','onboarding_discover_pdk','onboarding_prepare'} else None)
+        check(isinstance(result,dict),'Onboarding returned no structured object.','onboarding_response_mismatch',75)
+        if 'intake_id' in args:
+            check(result.get('intake_id')==args['intake_id'],'Onboarding response belongs to another intake.','onboarding_response_mismatch',75)
+        if op in ('onboarding_netlist','onboarding_session','onboarding_probe','onboarding_discover_pdk',
+                  'onboarding_prepare','onboarding_run','onboarding_inspect'):
+            check(result.get('schema')=='ic.onboarding.session.v1' and result.get('connection_id')==connection,
+                  'Onboarding response belongs to another connection.','onboarding_response_mismatch',75)
+            check(isinstance(result.get('intake_id'),str) and re.fullmatch(r'intake_[a-f0-9]{32}',result['intake_id']),
+                  'The intake response has an invalid identity.','onboarding_response_mismatch',75)
+        if op.startswith('onboarding_waveforms_'):
+            check(result.get('job_id')==args['job_id'],'Waveform response belongs to another job.','onboarding_response_mismatch',75)
+        return result
+
+    def _onboarding_record_path(self,connection,intake_id,plan_id):
+        return self.state/'onboarding-runs'/(digest([self.gateway.origin,connection,intake_id,plan_id])+'.json')
+
+    @staticmethod
+    def _check_onboarding_submission(receipt,intake_id,plan_id,source_commit=None):
+        key='experiment-'+plan_id
+        check(isinstance(receipt,dict) and receipt.get('intake_id')==intake_id and receipt.get('plan_id')==plan_id
+              and receipt.get('submission_key')==key and receipt.get('replay_permitted') is False
+              and type(receipt.get('found')) is bool,
+              'The original onboarding submission receipt has inconsistent identities.','onboarding_response_mismatch',75)
+        job=receipt.get('job')
+        if receipt['found']:
+            check(isinstance(job,dict) and job.get('plan_id')==plan_id and job.get('project_id')==intake_id
+                  and isinstance(receipt.get('run_id'),str) and job.get('job_id')==receipt['run_id']
+                  and job.get('run_id')==receipt['run_id'] and (source_commit is None or job.get('source_commit')==source_commit),
+                  'The original onboarding job does not match its submission.','onboarding_response_mismatch',75)
+            return 'recorded'
+        check(receipt.get('run_id') is None and job is None,
+              'A missing submission cannot contain a replacement job.','onboarding_response_mismatch',75)
+        if receipt.get('dispatch_outcome')=='pre_dispatch_rejected':
+            rejection=receipt.get('rejection')
+            check(isinstance(rejection,dict) and rejection.get('schema')=='ic.experiment.pre-dispatch-rejection.v1'
+                  and rejection.get('intake_id',intake_id)==intake_id and rejection.get('project_id')==intake_id
+                  and rejection.get('plan_id')==plan_id and rejection.get('submission_key')==key
+                  and rejection.get('phase')=='before_runner_reserve' and rejection.get('launch_attempted') is False
+                  and rejection.get('code')=='resource_or_dependency_preflight_rejected'
+                  and isinstance(rejection.get('source_commit'),str)
+                  and re.fullmatch(r'[a-f0-9]{40}',rejection['source_commit'])
+                  and (source_commit is None or rejection['source_commit']==source_commit),
+                  'The pre-dispatch rejection is not bound to the original plan.','onboarding_response_mismatch',75)
+            return 'pre_dispatch_rejected'
+        return 'unknown'
+
+    def _onboarding_lookup(self,connection,intake_id,plan_id):
+        path=self._onboarding_record_path(connection,intake_id,plan_id)
+        record=None
+        if path.exists():
+            record=json.loads(path.read_text())
+            check(record.get('gateway')==self.gateway.origin and record.get('connection_id')==connection
+                  and record.get('intake_id')==intake_id and record.get('plan_id')==plan_id,
+                  'The saved onboarding request belongs to another connection.','conflict',3)
+        receipt=self._onboarding_request('onboarding_submission',{'intake_id':intake_id,'plan_id':plan_id},connection)
+        state=self._check_onboarding_submission(receipt,intake_id,plan_id,record.get('source_commit') if record else None)
+        if record is not None:
+            record.update(state=state,reconciled_at=time.time())
+            atom(path,record)
+        return receipt
+
+    def _check_onboarding_prepare(self,connection,intake_id):
+        for path in (self.state/'onboarding-runs').glob('*.json'):
+            row=json.loads(path.read_text())
+            if (row.get('gateway')==self.gateway.origin and row.get('connection_id')==connection
+                    and row.get('intake_id')==intake_id and row.get('state') in ('dispatching','unknown')):
+                raise Failure('onboarding_submission_unresolved','Read the original submission before preparing another plan.',75,
+                    {'intake_id':intake_id,'plan_id':row['plan_id'],'submission_key':row['submission_key'],
+                     'next_tool':'ic_onboarding_submission','automatic_retry':False})
+
+    def _onboarding_run(self,args,connection):
+        intake_id,plan_id=args['intake_id'],args['plan_id']
+        path=self._onboarding_record_path(connection,intake_id,plan_id)
+        with self.lock():
+            if path.exists():
+                # Regardless of the former HTTP outcome, this logical run never
+                # sends a second POST. Runner lookup is the execution authority.
+                receipt=self._onboarding_lookup(connection,intake_id,plan_id)
+                session=self._onboarding_request('onboarding_session',{'intake_id':intake_id},connection)
+                return {**session,'submission':receipt,'reconciliation_only':True}
+            self._check_onboarding_prepare(connection,intake_id)
+            session=self._onboarding_request('onboarding_session',{'intake_id':intake_id},connection)
+            prepared=session.get('prepared') or {}
+            check(isinstance(prepared,dict) and session.get('revision')==args['revision'] and prepared.get('plan_id')==plan_id
+                  and prepared.get('submission_key')=='experiment-'+plan_id
+                  and isinstance(prepared.get('source_commit'),str) and re.fullmatch(r'[a-f0-9]{40}',prepared['source_commit']),
+                  'Run requires the current intake revision and its exact frozen plan.','conflict',3)
+            record={'schema':'ic.onboarding.client-run.v1','gateway':self.gateway.origin,'connection_id':connection,
+                'intake_id':intake_id,'plan_id':plan_id,'submission_key':'experiment-'+plan_id,
+                'source_commit':prepared.get('source_commit'),'arguments':dict(args),'entry_origin':'native_agent',
+                'state':'dispatching','created_at':time.time(),'automatic_retry':False}
+            atom(path,record)  # Durable before POST; this is a client journal, not an execution ledger.
+            try:
+                result=self._onboarding_request('onboarding_run',args,connection)
+                if result.get('submission') is not None:
+                    state=self._check_onboarding_submission(result['submission'],intake_id,plan_id,record['source_commit'])
+                else:
+                    job=result.get('job')
+                    check(isinstance(job,dict) and job.get('plan_id')==plan_id and job.get('project_id')==intake_id
+                          and isinstance(job.get('job_id'),str) and job.get('run_id')==job['job_id']
+                          and job.get('source_commit')==record['source_commit'],
+                          'Run did not return a bound original job.','onboarding_response_mismatch',75)
+                    state='recorded'
+                record.update(state=state,completed_at=time.time());atom(path,record)
+                return result
+            except Failure as error:
+                # A generic HTTP rejection is not proof that Runner never
+                # reserved/launched. Only the bound submission receipt above
+                # may clear uncertainty and unlock another prepare.
+                record.update(state='unknown',error_code=error.code,completed_at=time.time());atom(path,record)
+                raise
+
+    def onboarding(self,op,args):
+        """Native adapter entry; its provenance is never accepted from tool input."""
+        connection=self._onboarding_health()
+        if op=='onboarding_run':return self._onboarding_run(args,connection)
+        if op=='onboarding_submission':
+            with self.lock():return self._onboarding_lookup(connection,args['intake_id'],args['plan_id'])
+        if op=='onboarding_prepare':
+            with self.lock():
+                self._check_onboarding_prepare(connection,args['intake_id'])
+                return self._onboarding_request(op,args,connection)
+        return self._onboarding_request(op,args,connection)
+
     def call(self, op, arguments):
         check(op in SCHEMAS, 'Unknown operation')
-        validate(SCHEMAS[op], arguments)
+        try:
+            check(len(canonical(arguments).encode())<=2*1024*1024,'Tool arguments exceed 2 MiB')
+            validate(SCHEMAS[op], arguments)
+        except (ValueError,TypeError,OverflowError,UnicodeError,RecursionError):
+            raise Failure('invalid_input','Tool arguments must be bounded finite JSON') from None
         check(op not in self.disabled, 'Operation disabled by installed policy', 'forbidden', 4)
         a = arguments
+        if op in ONBOARDING_ROUTES:return self.onboarding(op,a)
         if op == 'sim_runtime':
             direct=self.config.get('simulation_direct') or {}
             granted=direct.get('enabled') and 'native-agent' in direct.get('callers',[]) and a['project_id'] in direct.get('projects',[])

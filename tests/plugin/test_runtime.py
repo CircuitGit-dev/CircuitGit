@@ -125,4 +125,102 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(runtime.status()['state'],'suspended')
 
 
+class FreshRuntimeTests(unittest.TestCase):
+    """An explicit empty intake connection never needs a historical project/site."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(prefix='ic-plugin-fresh-runtime-')
+        self.root=Path(self.temp.name);self.listener=None;self.process=None
+        with socket.socket() as sock:
+            sock.bind(('127.0.0.1',0));self.port=sock.getsockname()[1]
+        self.connection='a'*32
+        self.cfg={'local_only':True,'onboarding_only':True,'github_repo':None,
+            'runtime_root':str(self.root/'intake/gateway'),'projects':[],
+            'onboarding':{'enabled':True,'state_root':str(self.root/'intake/intake-store'),
+                          'connection_id':self.connection,'ssh_config':str(self.root/'explicit-ssh-config')}}
+        self.config_path=self.root/'fresh.json';write(self.config_path,self.cfg)
+        self.settings={'schema':'ic.plugin.settings.v1','gateway_url':'http://127.0.0.1:'+str(self.port),
+                      'state_dir':str(self.root/'client-state'),'workbench_config':str(self.config_path)}
+        self.path=self.root/'settings.json';write(self.path,self.settings)
+
+    def tearDown(self):
+        if self.process:self.process.terminate();self.process.wait(timeout=5)
+        if self.listener:self.listener.shutdown();self.listener.server_close()
+        self.temp.cleanup()
+
+    def serve_health(self,health):
+        paths=[]
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(inner):
+                paths.append(inner.path)
+                body=json.dumps({'ok':True,'data':health}).encode()
+                inner.send_response(200 if inner.path=='/api/health' else 404)
+                inner.send_header('Content-Length',str(len(body)));inner.end_headers();inner.wfile.write(body)
+            def log_message(self,*args):pass
+        self.listener=http.server.ThreadingHTTPServer(('127.0.0.1',self.port),Handler)
+        threading.Thread(target=self.listener.serve_forever,daemon=True).start()
+        return paths
+
+    def health(self):
+        return {'api_version':'1','mode':'live','connection_id':self.connection,'mutation_token':'SYNTHETIC-PRIVATE-TOKEN',
+                'capabilities':{'simulation_onboarding':True,'simulation_onboarding_native_entry':True,
+                                'simulation_onboarding_api_version':'1'}}
+
+    def test_fresh_config_and_reuse_do_not_load_site_seed_or_ssh_file(self):
+        runtime=PluginRuntime(self.path)
+        self.assertEqual(runtime.installed_config(),self.cfg)
+        self.assertEqual(runtime.status()['state'],'ready_to_start')
+        paths=self.serve_health(self.health())
+        with patch('subprocess.Popen',side_effect=AssertionError('reuse must not launch a process')):
+            result=runtime.ensure()
+        self.assertFalse(result['gateway_started']);self.assertEqual(result['state'],'connected')
+        self.assertEqual(result['connection_id'],self.connection)
+        self.assertEqual(result['projects'],[]);self.assertIsNone(result['source_commit'])
+        self.assertNotIn('SYNTHETIC-PRIVATE-TOKEN',json.dumps(result))
+        self.assertEqual(set(paths),{'/api/health'})
+        self.assertFalse(Path(self.cfg['onboarding']['ssh_config']).exists())
+
+    def test_other_connection_and_missing_capabilities_are_not_reused_or_replaced(self):
+        health=self.health();paths=self.serve_health(health)
+        runtime=PluginRuntime(self.path)
+        for changes in ({'connection_id':'b'*32},{'capabilities':None},
+                        {'capabilities':{'simulation_onboarding':True,'simulation_onboarding_native_entry':True}}):
+            baseline=dict(health);health.update(changes)
+            with self.subTest(changes=changes),patch('subprocess.Popen',side_effect=AssertionError('do not replace listener')):
+                with self.assertRaises(Failure) as caught:runtime.ensure()
+                self.assertEqual(caught.exception.code,'gateway_conflict')
+                self.assertEqual(runtime.status()['state'],'suspended')
+            health.clear();health.update(baseline)
+        self.assertEqual(set(paths),{'/api/health'})
+
+    def test_fresh_config_rejects_legacy_fields_and_ambiguous_storage(self):
+        cases=[{**self.cfg,'seed_repo':str(self.root/'legacy')},
+               {**self.cfg,'site_file':str(self.root/'legacy.json')},
+               {**self.cfg,'projects':[{'id':'legacy'}]},
+               {**self.cfg,'onboarding':{**self.cfg['onboarding'],'command':'fixture'}},
+               {**self.cfg,'onboarding':{**self.cfg['onboarding'],'connection_id':'bad'}},
+               {**self.cfg,'onboarding':{**self.cfg['onboarding'],'state_root':str(self.root/'other/intake-store')}},
+               {**self.cfg,'onboarding':{**self.cfg['onboarding'],'ssh_config':'../ssh'}},
+               {**self.cfg,'runtime_root':str(self.root/'intake/../gateway')}]
+        for cfg in cases:
+            with self.subTest(cfg=cfg):
+                write(self.config_path,cfg)
+                with self.assertRaises(Failure):PluginRuntime(self.path).installed_config()
+
+    def test_fresh_cold_start_uses_bundled_gateway_and_assets(self):
+        package=self.root/'plugin';build.build('codex',package)
+        runtime=PluginRuntime(self.path)
+        with patch.object(runtime,'gateway_root',return_value=package/'gateway'),\
+             patch('icwb.plugin_runtime.__file__',str(package/'icwb/plugin_runtime.py')):
+            try:result=runtime.ensure()
+            finally:self.process=runtime._owned_process
+            self.assertTrue(result['gateway_started']);self.assertEqual(result['state'],'connected')
+        second=PluginRuntime(self.path)
+        with patch('subprocess.Popen',side_effect=AssertionError('duplicate gateway launch')):
+            self.assertFalse(second.ensure()['gateway_started'])
+        saved=json.loads((runtime.control/'gateway.local.json').read_text())
+        self.assertEqual(saved,self.cfg)
+        self.assertEqual(json.loads(self.config_path.read_text()),self.cfg)
+        self.assertFalse((Path(self.cfg['runtime_root'])/'workspace').exists())
+
+
 if __name__=='__main__':unittest.main(verbosity=2)

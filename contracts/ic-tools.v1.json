@@ -542,6 +542,594 @@
         "idempotentHint": true,
         "openWorldHint": true
       }
+    },
+    {
+      "name": "ic_onboarding_netlist",
+      "description": "Import newly supplied literal Spectre netlist text into a fresh isolated intake. file_name is a display label, never a path to read. No historical project, model, SSH or simulator access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "pattern": "^[^\\x00-\\x1f\\x7f]+$"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1048576
+          }
+        },
+        "required": [
+          "file_name",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_onboarding_ssh_hosts",
+      "description": "List literal aliases from the installed SSH configuration and bounded Includes. No private-key reads, SSH, host probing or configuration-path argument.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_onboarding_session",
+      "description": "Read this connection’s saved intake and exact revision, recommendations, selections and original receipts. No SSH, discovery, collection or execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          }
+        },
+        "required": [
+          "intake_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_onboarding_probe",
+      "description": "Probe only the explicitly selected SSH targets. An optional setup_source_ids choice must refer to this intake’s observed scripts; explicit activation evaluates that script and can have side effects. No direct simulator or license-checkout command. Copy the returned revision.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "ssh_targets": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 320,
+              "pattern": "^(?:[A-Za-z0-9][A-Za-z0-9_.-]{0,95}|[A-Za-z_][A-Za-z0-9_.-]{0,63}@[A-Za-z0-9][A-Za-z0-9.-]{0,252})$"
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true
+          },
+          "overrides": {
+            "type": "object",
+            "properties": {
+              "setup_source_ids": {
+                "type": "object",
+                "properties": {},
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 320,
+                  "pattern": "^(?:[A-Za-z0-9][A-Za-z0-9_.-]{0,95}|[A-Za-z_][A-Za-z0-9_.-]{0,63}@[A-Za-z0-9][A-Za-z0-9.-]{0,252})$"
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^source-[a-f0-9]{20}$"
+                },
+                "maxProperties": 8
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "intake_id",
+          "revision",
+          "ssh_targets"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "ic_onboarding_discover_pdk",
+      "description": "Discover bounded model/include metadata for this intake’s exact probe IDs. Prefer returned search_directory_ids to narrow an incomplete scan; optional search_paths or cds_lib_hint are explicit PDK search inputs. Candidate evidence does not select or qualify a process. No solver execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "probe_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^probe_[a-f0-9]{32}$"
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true
+          },
+          "search_paths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^/(?!.*\\.\\.)[A-Za-z0-9_./ +\\-]+$"
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true
+          },
+          "search_directory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true
+          },
+          "cds_lib_hint": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^/(?!.*\\.\\.)[A-Za-z0-9_./ +\\-]+$"
+          }
+        },
+        "required": [
+          "intake_id",
+          "revision",
+          "probe_ids"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "ic_onboarding_prepare",
+      "description": "Prepare from the current intake revision and server recommendation; optional accept_recommendation defaults to accepting the current recommendation. Optional recommendation_id/revision must match. Partial intent, model_contracts, sections or TMI overrides remain explicit. accept_recommendation:false requires the complete legacy discovery/candidate/sections/TMI/contracts/intent selection. Freezes source and dependencies for review; never launches.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "accept_recommendation": {
+            "type": "boolean"
+          },
+          "recommendation_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "recommendation_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "discovery_id": {
+            "type": "string",
+            "pattern": "^discovery_[a-f0-9]{32}$"
+          },
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 64,
+            "uniqueItems": true
+          },
+          "tmi_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_contracts": {
+            "type": "object",
+            "properties": {},
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "polarity": {
+                  "type": "string",
+                  "enum": [
+                    "n",
+                    "p"
+                  ]
+                },
+                "terminals": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "d",
+                      "g",
+                      "s",
+                      "b"
+                    ]
+                  },
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "polarity",
+                "terminals"
+              ],
+              "additionalProperties": false
+            },
+            "maxProperties": 128
+          },
+          "intent": {
+            "type": "object",
+            "properties": {
+              "supply_v": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1000
+              },
+              "frequency_hz": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1e+100
+              },
+              "temperature_c": {
+                "type": "number",
+                "minimum": -272.15,
+                "maximum": 1726.85
+              },
+              "nominal_temperature_c": {
+                "type": "number",
+                "minimum": -272.15,
+                "maximum": 1726.85
+              },
+              "input_port": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+              },
+              "output_port": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+              },
+              "vdd_port": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+              },
+              "vss_port": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+              },
+              "cycles": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "load_f": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "rise_s": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1000000.0
+              },
+              "fall_s": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1000000.0
+              },
+              "points_per_period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 199999
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "intake_id",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "ic_onboarding_run",
+      "description": "Run this intake’s exact frozen plan once within its selected hosts. Persist the returned identities. The stable key is derived from plan_id and cannot be supplied or replaced. Repeated calls reconcile the original submission instead of sending another run; an unknown outcome never authorizes replay.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "plan_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "intake_id",
+          "revision",
+          "plan_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "ic_onboarding_submission",
+      "description": "Read the original intake/plan submission receipt. No SSH, collection or launch. found:false never authorizes replay; only an exact authoritative pre-dispatch rejection permits a deliberate new prepare.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "plan_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "intake_id",
+          "plan_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_onboarding_inspect",
+      "description": "Inspect the original intake job; may observe remote status and collect terminal native artifacts. Reports execution, data validity, performance, qualification and dependency provenance separately. Never restarts or repairs a solver.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "job_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,160}$"
+          }
+        },
+        "required": [
+          "intake_id",
+          "job_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "ic_onboarding_waveforms_catalog",
+      "description": "Read the saved original job waveform catalog with run/archive/source binding. No SSH, remote observation, collection or derivation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "job_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,160}$"
+          }
+        },
+        "required": [
+          "intake_id",
+          "job_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_onboarding_waveforms_mapping",
+      "description": "Read the saved original job signal mapping. Missing geometry remains unverified. No SSH, collection or simulation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "job_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,160}$"
+          }
+        },
+        "required": [
+          "intake_id",
+          "job_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_onboarding_waveforms_window",
+      "description": "Read bounded waveform samples for one to eight exact signal IDs from this original job catalog. start/stop are finite seconds, max_points is per signal. No signal expressions, paths, SSH, collection or execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "job_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,160}$"
+          },
+          "signal_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^s_[a-f0-9]{32}$"
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true
+          },
+          "start": {
+            "type": "number",
+            "minimum": -1e+100,
+            "maximum": 1e+100
+          },
+          "stop": {
+            "type": "number",
+            "minimum": -1e+100,
+            "maximum": 1e+100
+          },
+          "max_points": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "intake_id",
+          "job_id",
+          "signal_ids"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
     }
   ]
 }
