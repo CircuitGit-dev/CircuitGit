@@ -142,11 +142,17 @@ class Handler(BaseHTTPRequestHandler):
                     after=max(int(get('after') or 0),int(self.headers.get('Last-Event-ID','0')))
                     return self.app.ai.stream(self,after,qs.get('session_id',['default'])[0])
                 return self.response(self.app.ai.get(path,qs))
-            if path=='/api/health':return self.response({'api_version':'1','mode':'live','mutation_token':self.app.token,
-                'connection_id':self.app.onboarding.connection_id,
-                'ai_activity':{'running_summaries':self.app.ai.commit_summary_activity()['running_count'] if self.app.ai else 0},
-                'capabilities':{'git':not self.app.cfg.get('onboarding_only',False),'runner':True,'publish':not self.app.cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'simulation_onboarding':self.app.onboarding.enabled,'simulation_onboarding_api_version':'1' if self.app.onboarding.enabled else None,'viewer':(self.app.web/'viewer-adapter/index.js').exists()}})
+            if path=='/api/health':
+                cfg=getattr(self.app,'cfg',{})
+                onboarding=getattr(self.app,'onboarding',None)
+                onboarding_enabled=getattr(onboarding,'enabled',False)
+                return self.response({'api_version':'1','mode':'live','mutation_token':self.app.token,
+                    'connection_id':getattr(onboarding,'connection_id',None),
+                    'ai_activity':{'running_summaries':self.app.ai.commit_summary_activity()['running_count'] if self.app.ai else 0},
+                    'capabilities':{'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
             if path.startswith('/api/simulation/onboarding/'):
+                if len(u.query)>4096:raise ValueError('Onboarding query exceeds its bound')
+                qs=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=8) if u.query else {}
                 if any(len(v)!=1 for v in qs.values()):raise ValueError('Onboarding query fields must be unique')
                 return self.response(self.app.onboarding.read(path[len('/api/simulation/onboarding/'):],{k:v[0] for k,v in qs.items()}))
             if path=='/api/project':
@@ -246,6 +252,7 @@ class Handler(BaseHTTPRequestHandler):
                 if set(b)!={'project_id'}:raise ValueError('Only project_id is accepted')
                 return self.response(self.app.simulation.scan(b['project_id'],self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
             if path.startswith('/api/simulation/onboarding/'):
+                if urlsplit(self.path).query:raise ValueError('Onboarding writes do not accept query parameters')
                 return self.response(self.app.onboarding.write(path[len('/api/simulation/onboarding/'):],b))
             if path=='/api/simulation/control':
                 if set(b)-{'operation','arguments','idempotency_key'} or not {'operation','arguments'}.issubset(b):raise ValueError('Invalid finite simulation command')

@@ -18,6 +18,11 @@ from runner import atomic, filehash, locked, stamp, TERMINAL
 from spiceowl_pool import ResourcePool, read_json, canonical
 
 
+class PreDispatchRejected(ValueError):
+    """Trusted control-flow proof: no Runner reservation was attempted."""
+    code = 'resource_or_dependency_preflight_rejected'
+
+
 def identifier(value):
     if not isinstance(value,str) or not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}',value):
         raise ValueError('Invalid experiment identity')
@@ -202,6 +207,7 @@ class ExperimentWorkflow:
               'bundle_path':str(bundle_path),'bundle_sha256':filehash(bundle_path),'recipe':recipe,
               'source':compiled['source'],'qualification_scope':qualification if checks else None,
               'dependency_audit':audit,'dependency_profile_sha256':digest(profile),'sites':sites,
+              'environment_pins':profile.get('environment_pins',{}),
               'requirements':pool.requirements,'spiceowl_data_dir':pool.data_dir}
         plan_id=self._save_plan(data)
         return {'schema':'ic.experiment.plan.v1','state':'prepared','project_id':project,'recipe_id':recipe_id,
@@ -234,22 +240,27 @@ class ExperimentWorkflow:
                         and previous.get('configuration_id')==identity['configuration'] and previous.get('state') in
                         {'queued','preflight','staging_outcome_unknown','launch_outcome_unknown','reconcile_required'}):
                     raise ValueError('An unresolved equivalent experiment exists; inspect its original job')
-            pool=self._pool(plan_id,data)
-            hosts=[host for host in pool.members if host in self.runtime.scope['hosts']]
-            # Filter model-incompatible nodes before the resource ranking. This is
-            # a new bounded preflight, not a scheduler reservation or model copy.
-            def verify(host):
-                try:
-                    site=data['sites'][host];probe=core.doctor(site)
-                    b=json.loads(Path(data['bundle_path']).read_text())
-                    core.check_external(b,site,probe)
-                    return host if probe['identity_ok'] and probe['all_references_readable'] and probe['all_tools_available'] and not probe['exit_code'] else None
-                except Exception:return None
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as workers:
-                eligible=[host for host in workers.map(verify,hosts) if host]
-            if not eligible:raise ValueError('No authorized host matches the frozen model and tool dependencies')
-            prepared=pool.prepare(self.app.runner,Path(data['bundle_path']),identity,host_ids=eligible)
-            context=pool.resolve(prepared['execution_plan_id'],Path(data['bundle_path']),identity)
+            try:
+                pool=self._pool(plan_id,data)
+                hosts=[host for host in pool.members if host in self.runtime.scope['hosts']]
+                # Filter model-incompatible nodes before the resource ranking. This is
+                # a new bounded preflight, not a scheduler reservation or model copy.
+                def verify(host):
+                    try:
+                        site=data['sites'][host];probe=core.doctor(site)
+                        b=json.loads(Path(data['bundle_path']).read_text())
+                        core.check_external(b,site,probe)
+                        for name,checksum in data.get('environment_pins',{}).get(host,{}).items():
+                            if probe['dependency_sha256'].get(name)!=checksum:return None
+                        return host if probe['identity_ok'] and probe['all_references_readable'] and probe['all_tools_available'] and not probe['exit_code'] else None
+                    except Exception:return None
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as workers:
+                    eligible=[host for host in workers.map(verify,hosts) if host]
+                if not eligible:raise ValueError('No authorized host matches the frozen model and tool dependencies')
+                prepared=pool.prepare(self.app.runner,Path(data['bundle_path']),identity,host_ids=eligible)
+                context=pool.resolve(prepared['execution_plan_id'],Path(data['bundle_path']),identity)
+            except Exception as error:
+                raise PreDispatchRejected('Resource or dependency preflight rejected this request before Runner reservation.') from error
             run,new=self.app.runner.reserve(data['bundle_path'],key,identity['source_commit'],project,identity['configuration'],context)
             if new:
                 run['experiment']={'plan_id':plan_id,'manifest_sha256':data['qualification_scope']['manifest_sha256'] if data['qualification_scope'] else digest(data['recipe'])}
