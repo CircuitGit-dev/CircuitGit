@@ -302,14 +302,20 @@ class Service:
               and operation in scope.get('operations', []) and isinstance(arguments, dict)
               and arguments.get('project_id') in scope.get('projects', []),
               'Simulation operation is outside the installed connection grant', 'forbidden', 4)
-        expected = {'project_id'} if operation in ('runtime','resources_scan') else set(IDENTITY) | ({'run_id'} if operation in ('status','collect','watch','unwatch') else set())
-        check(operation in ('runtime','resources_scan','submit','status','collect','watch','unwatch') and set(arguments) == expected,
+        expected = {'prepare':{'project_id','recipe_id','source_commit'},'run':{'project_id','plan_id'},'inspect':{'project_id','job_id'}}.get(operation)
+        if expected is None:expected = {'project_id'} if operation in ('runtime','resources_scan') else set(IDENTITY) | ({'run_id'} if operation in ('status','collect','watch','unwatch') else set())
+        check(operation in ('runtime','resources_scan','submit','status','collect','watch','unwatch','prepare','run','inspect') and set(arguments) == expected,
               'Exact finite simulation identity is required')
-        for key in ('project_id','configuration','run_id'):
+        for key in ('project_id','configuration','run_id','job_id','recipe_id'):
             if key in arguments: identifier(arguments[key])
         if 'source_commit' in arguments: hexvalue(arguments['source_commit'],40,'source commit')
+        if 'plan_id' in arguments:hexvalue(arguments['plan_id'],64,'experiment plan')
         body = {'operation': operation, 'arguments': arguments}
-        if operation not in ('submit','collect'):
+        if operation=='run':
+            derived='experiment-'+arguments['plan_id']
+            check(idempotency_key is None or idempotency_key==derived,'Run uses the stable key derived from its plan')
+            idempotency_key=derived
+        if operation not in ('submit','collect','run'):
             return self.gateway.request('/api/simulation/control', body, caller_id=caller_id, authority_key_file=scope.get('authority_key_file'))
         check(isinstance(idempotency_key,str) and 8 <= len(idempotency_key) <= 160 and idempotency_key.isprintable(), 'A stable simulation action key is required')
         body['idempotency_key'] = idempotency_key
@@ -351,6 +357,8 @@ class Service:
             result=self.gateway.request('/api/simulation/runtime?' + urlencode({'project_id': a['project_id']}), **({'caller_id':'native-agent','authority_key_file':direct.get('authority_key_file')} if granted else {}))
             if not granted:
                 result={**result,'capabilities':{name:False for name in ('scan','monitor','direct_submit','direct_collect')}}
+                if isinstance(result.get('experiments'),dict):
+                    result['experiments']={**result['experiments'],**{name:False for name in ('prepare','run','inspect')}}
             return result
         if op == 'sim_execute': return self.execute_simulation(a['operation'],a['arguments'],a.get('idempotency_key'),caller_id='native-agent')
         if op == 'projects': return self.gateway.request('/api/project')

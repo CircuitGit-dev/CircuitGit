@@ -609,3 +609,34 @@ class Workspace:
             # the selected execution site. Materialization only reads local inputs.
             self.require_compilation_base(commit)
             return dest/'bundle.json'
+
+    def freeze_experiment(self,pid,recipe_id,commit,files,bundle,sources,compiler_sha256):
+        """Sign deterministic recipe output after checking its registered source identity."""
+        self.require_compilation_base(commit)
+        project=self.projects[pid]
+        if not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}',recipe_id):
+            raise ValueError('invalid experiment recipe identity')
+        for path,expected in sources.items():
+            if core.sha(self.compiler_blob(commit,path))!=expected:
+                raise Conflict('experiment source changed during preparation')
+        if not files or len(files)>128:raise ValueError('experiment payload exceeds file limit')
+        for name,raw in files.items():
+            core.relpath(name)
+            if not isinstance(raw,bytes):raise ValueError('compiled experiment files must be bytes')
+            validate_text(name,raw.decode())
+        fingerprint=core.sha(json.dumps({'project':pid,'recipe':recipe_id,'commit':commit,
+            'bundle':bundle,'sources':sources,'compiler':compiler_sha256},sort_keys=True,allow_nan=False).encode())
+        dest=self.frozen/('experiment-'+fingerprint)
+        with locked(self.runtime/'experiment-compile.lock'):
+            if not dest.exists():
+                temp=self.frozen/('.experiment-'+uuid.uuid4().hex);temp.mkdir(mode=0o700)
+                for name,raw in files.items():
+                    target=temp/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
+                atomic(temp/'bundle.json',bundle)
+                data={'source_commit':commit,'project_id':pid,**project_metadata(project),
+                    'configuration':recipe_id,'source_sha256':sources,'compiler_sha256':compiler_sha256,
+                    'bundle_sha256':filehash(temp/'bundle.json')}
+                signature=hmac.new(self.key,json.dumps(data,sort_keys=True).encode(),hashlib.sha256).hexdigest()
+                atomic(temp/'materialization.json',{'data':data,'signature':signature});temp.rename(dest)
+            self.require_compilation_base(commit)
+        return dest/'bundle.json'

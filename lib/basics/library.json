@@ -49,9 +49,57 @@
           "label": "Evidence and dependencies"
         }
       ]
+    },
+    {
+      "id": "cmos-inverter",
+      "name": "CMOS 反相器 · 从电路开始",
+      "description": "Two public-source MOS devices with readable geometry. Configure your own model and experiment before simulation.",
+      "kind": "circuit",
+      "directory": "lib/basics/cmos-inverter",
+      "readme": "lib/basics/cmos-inverter/README.md",
+      "project_id": null,
+      "requires_external_models": true,
+      "views": [
+        {
+          "id": "schematic",
+          "label": "反相器原理图",
+          "kind": "rnl",
+          "entry": "lib/basics/cmos-inverter/schematic/cmos-inverter.scs",
+          "level": "CMOS_INVERTER",
+          "files": [
+            "lib/basics/cmos-inverter/schematic/cmos-inverter.scs",
+            "lib/_shared/rnl/382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a/eda-symbol.rnl",
+            "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl"
+          ],
+          "aliases": {
+            "lib/basics/cmos-inverter/schematic/eda-symbol.rnl": "lib/_shared/rnl/382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a/eda-symbol.rnl",
+            "lib/basics/cmos-inverter/schematic/eda-style.rnl": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl"
+          }
+        },
+        {
+          "id": "netlist",
+          "label": "仅电路网表",
+          "kind": "spectre",
+          "entry": "lib/basics/cmos-inverter/schematic/cmos-inverter.scs",
+          "files": [
+            "lib/basics/cmos-inverter/schematic/cmos-inverter.scs"
+          ]
+        },
+        {
+          "id": "docs",
+          "label": "开始配置环境",
+          "kind": "markdown",
+          "entry": "lib/basics/cmos-inverter/README.md",
+          "files": [
+            "lib/basics/cmos-inverter/README.md",
+            "lib/basics/cmos-inverter/docs/provenance.json",
+            "lib/THIRD_PARTY_NOTICES.md"
+          ]
+        }
+      ]
     }
   ],
-  "description": "Existing primitive-only RC smoke project; no ADC performance claim.",
+  "description": "RC reference and an independent two-device inverter starting point.",
   "id": "basics",
   "name": "基础电路",
   "schema": "circuitgit.library.v1"

@@ -1,0 +1,54 @@
+{
+  "schema": "circuitgit.extracted-circuit.v1",
+  "source_commit": "090412560f2f324f54fe614421a357ae7815d90f",
+  "source_path": "lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/RS9_L5_9bit_Bootstrap.scs",
+  "source_sha256": "9b879b2fb1c6918606317875f3bfc1370f2c6380b34c747c013a3cc9ff5f78b6",
+  "source_subcircuit": "RS9_L5_9bit_Bootstrap",
+  "target_subcircuit": "CMOS_INVERTER",
+  "target_ports": [
+    "CLK",
+    "CLKN",
+    "VDD",
+    "VSS"
+  ],
+  "instances": [
+    {
+      "name": "M9",
+      "original_statement_sha256": "0a759333fee1f27b43ddd39ed19ef28115460f7313218bb7a8fd6a2f510619ad",
+      "statement_preserved_byte_for_byte": true
+    },
+    {
+      "name": "M10",
+      "original_statement_sha256": "f8c9c7eb85747f8eecc05520c138ff2ba237d681322a7f17fccbba6834fdb5c2",
+      "statement_preserved_byte_for_byte": true
+    }
+  ],
+  "external_models": [
+    "nch_ulvt_mac",
+    "pch_ulvt_mac"
+  ],
+  "drawing_dependencies": [
+    {
+      "path": "lib/_shared/rnl/382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a/eda-symbol.rnl",
+      "sha256": "382e4b3f831ed39c335518251554643e574f0e13aecf4a3d95d0a2a6ec2d1f2a"
+    },
+    {
+      "path": "lib/_shared/rnl/e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d/eda-style.rnl",
+      "sha256": "e80ce64128f088c9a9abd2034d4d7fc31348a5b8b224ad4c6a899e2a6782453d"
+    }
+  ],
+  "transformations": [
+    "Select M9 and M10 only, preserving complete instance statements, terminal order and parameters.",
+    "Wrap the pair as CMOS_INVERTER and expose existing internal node CLKN as an output port; retain CLK, VDD and VSS node names.",
+    "Add independently authored minimal RNL placement/wiring using the public shared EDA drawing packages."
+  ],
+  "native_geometry_reproduction": false,
+  "environment_supplied": false,
+  "testbench_supplied": false,
+  "simulation_performed": false,
+  "limitations": [
+    "External model names do not include model implementations or a process/section selection.",
+    "No supply value, input waveform, timing, load, analysis or simulator/server configuration is inferred.",
+    "The extracted inverter has not been simulated independently; original full-circuit results are not evidence for it."
+  ]
+}

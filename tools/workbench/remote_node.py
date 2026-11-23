@@ -347,7 +347,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise PermissionError('Configure the local simulation scope before submitting')
                 body = self.body(65536)
                 if (qs or set(body) - {'operation', 'arguments', 'idempotency_key'}
-                        or body.get('operation') not in ('submit', 'status', 'collect', 'watch', 'unwatch', 'resources_scan', 'runtime')
+                        or body.get('operation') not in ('submit', 'status', 'collect', 'watch', 'unwatch', 'resources_scan', 'runtime', 'prepare', 'run', 'inspect')
                         or not isinstance(body.get('arguments'), dict)
                         or body.get('idempotency_key') is not None and not isinstance(body['idempotency_key'], str)):
                     raise ValueError('Finite simulation operation, arguments and optional stable key required')

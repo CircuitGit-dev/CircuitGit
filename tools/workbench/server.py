@@ -49,7 +49,7 @@ class Application:
         return {k:r.get(k) for k in ['job_id','run_id','source_commit','project_id','created_at','updated_at','submitted_at','remote_state','simulator_exit_code','error','status_error','operation_error']}|{k:r[k] for k in ('library_id','cell_id') if k in r}|({'execution_target':target} if target is not None else {})|{'associated_project_id':associated,'association_basis':'recorded plan.design_id; original project_id preserved','state':state,'configuration':r.get('configuration_id'),'receipt':r['run_id']+'/run.json','collection':self.results(r)['collection'],'publication':self.publication_view(r)}
     def results(self,r):
         c=r.get('collection');rid=r['run_id'];artifacts=[]
-        for name in ['full-results.tar.gz','result-summary.json','archive-files.json','latest-status.log','waveforms.csv','waveforms.json','waveforms.png']:
+        for name in ['full-results.tar.gz','result-summary.json','archive-files.json','latest-status.log','waveforms.csv','waveforms.json','waveforms.png','simulation-report.json','experiment-result.json']:
             p=self.runner.path(rid)/name
             if p.exists():artifacts.append({'name':name,'bytes':p.stat().st_size,'url':'/api/jobs/'+rid+'/artifacts/'+name,'sha256':c['sha256'] if name=='full-results.tar.gz' and c else None})
         summary=c.get('summary',{}) if c else {}
@@ -57,7 +57,8 @@ class Application:
         waveform_status=('local PSF ASCII derivation from this run native archive' if wave_data.get('producer')=='spiceowl.psf-ascii' else 'actual OCEAN export from this run PSFXL') if waves else r.get('postprocess_error','native results retained; supported waveform export not yet complete')
         metrics=list(r.get('scientific_metrics',[]))
         if r.get('simulator_exit_code') is not None:metrics.append({'name':'simulator_exit_code','value':r['simulator_exit_code'],'unit':'code','scope':'execution'})
-        return {'job_id':rid,'state':'collected' if c else 'not_collected','collection':{k:v for k,v in c.items() if k!='archive'} if c else None,'metrics':metrics,'summary':summary,'waveforms':waves,'waveform_status':waveform_status,'artifacts':artifacts,'publication':self.publication_view(r)}
+        report=self.simulation.saved_report(r) if hasattr(self,'simulation') else None
+        return {'job_id':rid,'state':'collected' if c else 'not_collected','collection':{k:v for k,v in c.items() if k!='archive'} if c else None,'metrics':metrics,'summary':summary,'waveforms':waves,'waveform_status':waveform_status,'artifacts':artifacts,'publication':self.publication_view(r),**({'report':report} if report is not None else {})}
     def collect_with_postprocess(self,rid):
         r=self.runner.status(rid)
         if r.get('remote_state')=='simulator_complete_pending_measurements':
@@ -99,6 +100,11 @@ class Handler(BaseHTTPRequestHandler):
             if self.headers.get('Content-Type','').split(';')[0]!='application/json':raise ValueError('JSON Content-Type required')
     def send(self,status,data,ctype='application/json',headers=None):
         raw=data if isinstance(data,bytes) else json.dumps(data,ensure_ascii=False).encode() if ctype=='application/json' else data
+        if (ctype=='application/json' and unquote(urlsplit(self.path).path).startswith('/api/simulation/')
+                and len(raw)>2*1024*1024):
+            status=503
+            raw=json.dumps({'ok':False,'error':{'code':'response_size_limit',
+                'message':'Simulation response exceeds the 2 MiB JSON limit.','details':{}}}).encode('utf-8')
         # A rejected POST may still have unread body bytes. Do not interpret them
         # as the next request after a token/Origin/size error.
         if status>=400:self.close_connection=True
@@ -187,7 +193,7 @@ class Handler(BaseHTTPRequestHandler):
             if m:
                 r=self.app.runner.read(m[1])
                 if m[3]:
-                    if m[3] not in ['full-results.tar.gz','result-summary.json','archive-files.json','latest-status.log','waveforms.csv','waveforms.json','waveforms.png']:raise FileNotFoundError('unknown artifact')
+                    if m[3] not in ['full-results.tar.gz','result-summary.json','archive-files.json','latest-status.log','waveforms.csv','waveforms.json','waveforms.png','simulation-report.json','experiment-result.json']:raise FileNotFoundError('unknown artifact')
                     p=self.app.runner.path(m[1])/m[3]
                     self.send_response(200);self.send_header('Content-Type','application/octet-stream');self.send_header('Content-Length',str(p.stat().st_size));self.send_header('Content-Disposition','attachment; filename="'+p.name+'"');self.end_headers()
                     with p.open('rb') as f:

@@ -463,7 +463,7 @@
     },
     {
       "name": "ic_sim_execute",
-      "description": "Execute a finite standalone Spectre operation only under an explicitly installed native-agent simulation grant. Stable keys required for submit/collect; existing manual requests are never approved or promoted. No arbitrary command, credentials or scope argument.",
+      "description": "Use an installed simulation grant: prepare(project_id,recipe_id,source_commit) freezes a registered experiment; run(project_id,plan_id) selects a host and launches once; inspect(project_id,job_id) observes and collects terminal native results with five independent verdicts. Legacy submit/collect require stable keys; run derives its stable key from plan_id. Unknown actions are never replayed or approved. No arbitrary command, path, credentials or scope argument.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -476,7 +476,10 @@
               "watch",
               "unwatch",
               "resources_scan",
-              "runtime"
+              "runtime",
+              "prepare",
+              "run",
+              "inspect"
             ]
           },
           "arguments": {
@@ -497,6 +500,20 @@
                 "pattern": "^[a-f0-9]{40}$"
               },
               "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              },
+              "recipe_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              },
+              "plan_id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "job_id": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 180

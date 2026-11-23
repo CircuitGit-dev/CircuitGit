@@ -4,6 +4,8 @@ CircuitGit's optional simulation runtime uses the separately installed, pinned S
 
 This path runs the remote Spectre executable without starting Virtuoso, ADE or OCEAN. Model files, license setup and external aliases remain on the execution server. Local source editing and configuration preview do not require local PDK files. A real launch still requires a registered source bundle, exact source commit, selected site's alias mappings, model pins and successful remote preflight. A testbench lacking a source bundle is not runnable merely because its schematic is visible.
 
+For registered test recipes, use the [deterministic experiment workflow](deterministic-experiments.md). It adds prepare, run and inspect over this same Runner, with model dependencies pinned before launch and five independent report dimensions. Its private experiment_workflow configuration and additional operation grants are described separately; the existing report panel displays the resulting saved reports.
+
 ## Configure one authorized connection
 
 First configure the [explicit resource pool](spiceowl-resource-submission.md) and install the exact SpiceOwl commit in [the integration lock](../contracts/spiceowl-integration.lock.json) in the gateway's Python environment. Add this object to the private gateway configuration, substituting registered project and host IDs:
@@ -54,6 +56,8 @@ The user-authorized direct path creates ordinary durable Service receipts with `
 `runtime` and `resources_scan` accept only `project_id`. `submit` requires `project_id`, `configuration`, `source_commit`. `status`, `watch`, `unwatch` and `collect` additionally require the original `run_id`. Submit/collect require a stable key. Shell commands, model output, browser-selected caller IDs and approval flags are not accepted.
 
 The [runtime schema](../contracts/spiceowl-runtime.v1.json) is separately versioned from [passive supervision](../contracts/spiceowl-supervision.v1.json). Five-second visible-panel refresh reads stored evidence; it does not scan servers. A resource scan is an explicit operation, and submission performs its own fresh selection and same-host recheck. Cached resource timestamps are displayed as observations, not reservations.
+
+Registered experiments use prepare(project_id, recipe_id, source_commit), run(project_id, plan_id) and inspect(project_id, job_id). Run also requires the watch grant; inspect also requires collect because a terminal inspection may collect and validate native artifacts. The fixed submission key is derived from plan_id. See [identity and uncertainty](deterministic-experiments.md#preserve-uncertainty-and-identity) before continuing an interrupted workflow.
 
 SpiceOwl has an independent entrypoint after its private `spiceowl.live-client.v1` configuration points to the gateway:
 

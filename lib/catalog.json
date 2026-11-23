@@ -22,7 +22,7 @@
     {
       "id": "basics",
       "name": "基础电路",
-      "description": "Existing primitive-only RC smoke project; no ADC performance claim.",
+      "description": "RC reference and an independent two-device inverter starting point.",
       "manifest": "lib/basics/library.json"
     }
   ]

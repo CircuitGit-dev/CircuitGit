@@ -133,4 +133,51 @@ class Tests(unittest.TestCase):
         self.server.node.simulation=None
         self.assertEqual(self.call('/api/simulation/execute','POST',body,prefix='',headers=headers)[0],403)
 
+    def test_paired_experiment_operations_preserve_identity_and_server_owned_scope(self):
+        calls=[]
+        self.server.node=node.Node(self.routes,TOKEN,[ORIGIN],'local-test',self.base)
+        def simulate(operation, arguments, key, *, caller_id):
+            calls.append((operation,arguments,key,caller_id))
+            return {'operation':operation,'state':'synthetic','automatic_retry':False}
+        self.server.node.simulation=simulate
+        rid,csrf=self.server.node.pairing.create(ORIGIN,'p'*32)
+        code=self.server.node.pairing.decide(rid,csrf,True)['accessCode']
+        headers={'Authorization':'Bearer '+code}
+        plan='b'*64
+        bodies=[
+            {'operation':'prepare','arguments':{'project_id':'fixture','recipe_id':'inverter-tran','source_commit':'a'*40}},
+            {'operation':'run','arguments':{'project_id':'fixture','plan_id':plan}},
+            {'operation':'run','arguments':{'project_id':'fixture','plan_id':plan},'idempotency_key':'experiment-'+plan},
+            {'operation':'inspect','arguments':{'project_id':'fixture','job_id':'original-job'}},
+        ]
+        for body in bodies:
+            with self.subTest(operation=body['operation'],key=body.get('idempotency_key')):
+                before=len(calls)
+                self.assertEqual(self.call('/api/simulation/execute','POST',body,prefix='')[0],403)
+                for extra in ({'caller_id':'native-agent'},{'approved':True}):
+                    self.assertEqual(self.call('/api/simulation/execute','POST',{**body,**extra},prefix='',headers=headers)[0],400)
+                self.assertEqual(self.call('/api/simulation/execute?replay=1','POST',body,prefix='',headers=headers)[0],400)
+                self.assertEqual(len(calls),before)
+                status,_,result=self.call('/api/simulation/execute','POST',body,prefix='',headers=headers)
+                self.assertEqual(status,200)
+                self.assertEqual(result['data']['operation'],body['operation'])
+                self.assertEqual(calls[before:],[(body['operation'],body['arguments'],body.get('idempotency_key'),'paired-helper')])
+        self.assertEqual(self.routes.calls,[])
+
+    def test_paired_experiment_unknown_outcome_does_not_retry_or_replace_key(self):
+        calls=[]
+        self.server.node=node.Node(self.routes,TOKEN,[ORIGIN],'local-test',self.base)
+        def simulate(operation, arguments, key, *, caller_id):
+            calls.append((operation,arguments,key,caller_id))
+            raise TimeoutError('Synthetic lost owner response')
+        self.server.node.simulation=simulate
+        rid,csrf=self.server.node.pairing.create(ORIGIN,'p'*32)
+        code=self.server.node.pairing.decide(rid,csrf,True)['accessCode']
+        headers={'Authorization':'Bearer '+code}
+        plan='b'*64
+        body={'operation':'run','arguments':{'project_id':'fixture','plan_id':plan},'idempotency_key':'experiment-'+plan}
+        self.assertGreaterEqual(self.call('/api/simulation/execute','POST',body,prefix='',headers=headers)[0],400)
+        self.assertEqual(calls,[('run',body['arguments'],body['idempotency_key'],'paired-helper')])
+        self.assertEqual(self.routes.calls,[])
+
 if __name__ == '__main__':unittest.main()
