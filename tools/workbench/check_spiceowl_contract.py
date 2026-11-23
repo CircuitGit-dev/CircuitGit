@@ -13,6 +13,8 @@ LOCK_PATH = 'contracts/spiceowl-integration.lock.json'
 ADAPTER_PATH = 'src/spiceowl/integrations/circuitgit_pool.py'
 LOCK_SCHEMA = 'circuitgit.spiceowl-integration.v1'
 CONTRACT_VERSION = '1.2.0'
+RUNTIME_VERSIONS = {'1.0.0', '1.1.0'}
+REPORT_VERSION = '1.0.0'
 MAX_BYTES = 2 * 1024 * 1024
 
 
@@ -78,12 +80,47 @@ def git(root, *args):
     return result.stdout
 
 
+def embedded_report(report):
+    """Rebase local report references when nesting it in the runtime schema."""
+    def rebase(value):
+        if isinstance(value, list):
+            return [rebase(item) for item in value]
+        if not isinstance(value, dict):
+            return value
+        result = {}
+        for key, item in value.items():
+            if key == '$ref' and isinstance(item, str) and item.startswith('#/'):
+                result[key] = '#/$defs/simulation_report' + item[1:]
+            else:
+                result[key] = rebase(item)
+        return result
+    return rebase({key: value for key, value in report.items() if key != '$id'})
+
+
+def check_paired_schema(record, root, external, commit, versions, label):
+    require(isinstance(record, dict) and set(record) == {'path', 'upstream_path', 'version', 'sha256'}
+            and isinstance(record['version'], str) and record['version'] in versions
+            and isinstance(record['sha256'], str) and re.fullmatch('[a-f0-9]{64}', record['sha256']),
+            'invalid_lock', 'The ' + label + ' contract needs exact paths, version and SHA-256.')
+    own = read_bytes(local_path(root, record['path']), 'contract_missing')
+    other = read_bytes(local_path(external, record['upstream_path']), 'upstream_contract_missing')
+    require(own == other, 'contract_drift', 'The ' + label + ' contracts differ byte for byte.')
+    require(hashlib.sha256(own).hexdigest() == record['sha256'],
+            'digest_mismatch', 'The ' + label + ' contract differs from the locked SHA-256.')
+    schema = parse_json(own)
+    require(schema.get('x-contract-version') == record['version'],
+            'version_mismatch', 'The ' + label + ' schema version differs from its lock.')
+    require(git(external, 'show', commit + ':' + record['upstream_path']) == other,
+            'uncommitted_contract', 'The ' + label + ' contract is not the content saved at the locked commit.')
+    return schema
+
+
 def check(spiceowl_root, root=ROOT):
     root = Path(root).resolve()
     external = Path(spiceowl_root).resolve()
     lock = parse_json(read_bytes(local_path(root, LOCK_PATH), 'lock_missing'))
     fields = {'schema', 'spiceowl', 'contract', 'resource_selection_profile', 'related_pull_requests'}
-    require(fields <= set(lock) and not set(lock) - fields - {'runtime_contract'}
+    require(fields <= set(lock) and not set(lock) - fields - {'runtime_contract', 'simulation_report_contract'}
             and lock['schema'] == LOCK_SCHEMA, 'invalid_lock', 'Unsupported integration lock structure or schema.')
     upstream, contract = lock['spiceowl'], lock['contract']
     require(isinstance(upstream, dict) and set(upstream) == {'repository', 'commit', 'contract_path', 'contract_sha256'}
@@ -118,21 +155,28 @@ def check(spiceowl_root, root=ROOT):
     require(adapter.is_file(), 'adapter_missing', 'The local SpiceOwl CircuitGit resource adapter is missing.')
     git(external, 'cat-file', '-e', upstream['commit'] + ':' + ADAPTER_PATH)
     runtime = lock.get('runtime_contract')
+    report = lock.get('simulation_report_contract')
+    runtime_schema = None
     if runtime is not None:
-        require(isinstance(runtime, dict) and set(runtime) == {'path', 'upstream_path', 'version', 'sha256'}
-                and runtime['version'] == '1.0.0' and isinstance(runtime['sha256'], str)
-                and re.fullmatch('[a-f0-9]{64}', runtime['sha256']),
-                'invalid_lock', 'The runtime contract needs exact paths, version and SHA-256.')
-        own = read_bytes(local_path(root, runtime['path']), 'contract_missing')
-        other = read_bytes(local_path(external, runtime['upstream_path']), 'upstream_contract_missing')
-        require(own == other, 'contract_drift', 'The runtime contracts differ byte for byte.')
-        require(hashlib.sha256(own).hexdigest() == runtime['sha256'], 'digest_mismatch', 'The runtime contract differs from the locked SHA-256.')
-        require(parse_json(own).get('x-contract-version') == runtime['version'], 'version_mismatch', 'The runtime schema version differs from its lock.')
-        require(git(external, 'show', upstream['commit'] + ':' + runtime['upstream_path']) == other,
-                'uncommitted_contract', 'The runtime contract is not the content saved at the locked commit.')
+        runtime_schema = check_paired_schema(runtime, root, external, upstream['commit'], RUNTIME_VERSIONS, 'runtime')
+        require(runtime['version'] != '1.1.0' or report is not None,
+                'invalid_lock', 'Runtime 1.1.0 requires an exact simulation report contract pin.')
+    if report is not None:
+        report_schema = check_paired_schema(report, root, external, upstream['commit'], {REPORT_VERSION}, 'simulation report')
+        require(runtime_schema is not None and runtime['version'] == '1.1.0',
+                'version_mismatch', 'The simulation report contract requires runtime version 1.1.0.')
+        definitions = runtime_schema.get('$defs', {})
+        require(isinstance(definitions, dict) and definitions.get('simulation_report') == embedded_report(report_schema),
+                'embedded_report_drift', 'The runtime report definition differs from the pinned standalone report schema.')
+        run = definitions.get('run', {})
+        require(isinstance(run, dict) and isinstance(run.get('properties'), dict)
+                and run['properties'].get('report') == {'$ref': '#/$defs/simulation_report'},
+                'embedded_report_drift', 'Runtime runs must reference the pinned embedded report definition.')
     return {'status': 'passed', 'schema': LOCK_SCHEMA, 'spiceowl_commit': head,
             'contract_sha256': actual, 'contract_version': contract['version'],
             'runtime_contract_version': runtime['version'] if runtime else None,
+            'simulation_report_contract_version': report['version'] if report else None,
+            'simulation_report_contract_sha256': report['sha256'] if report else None,
             'resource_selection_profile': lock['resource_selection_profile'], 'adapter': ADAPTER_PATH}
 
 

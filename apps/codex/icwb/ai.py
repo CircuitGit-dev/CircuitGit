@@ -801,7 +801,7 @@ class AiSession:
                 result = library_call(self.service, 'ic_' + op, arguments)
             else:
                 result = self.service.call(op, arguments)
-            if op == 'sim_execute' and arguments.get('operation') in ('submit', 'collect'):
+            if op == 'sim_execute' and arguments.get('operation') in ('submit', 'collect', 'run', 'inspect'):
                 state = result.get('state') if isinstance(result, dict) else None
                 inner = result.get('result', {}) if isinstance(result, dict) else {}
                 inner_state = inner.get('state', inner.get('status')) if isinstance(inner, dict) else None

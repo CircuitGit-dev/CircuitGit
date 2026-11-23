@@ -32,7 +32,8 @@ import runner
 import spiceowl_pool
 import ic_sim
 import workspace
-for module in (server, runner, spiceowl_pool, ic_sim, workspace):
+import experiment_workflow
+for module in (server, runner, spiceowl_pool, ic_sim, workspace, experiment_workflow):
     assert Path(module.__file__).resolve().is_relative_to(package.resolve()), module.__file__
 site = {'schema': 'ic.sim.site.v1', 'ssh_target': 'fixture-route',
         'remote_runs_root': '/fixture/ic_on_github_runs', 'cadence_cshrc': '/fixture/setup',
@@ -59,6 +60,9 @@ with patch.object(server, 'Workspace', return_value=fake_workspace), \
     app = server.Application(config, package / 'gateway-web')
     try:
         assert isinstance(app.runner, runner.Runner)
+        workflow = experiment_workflow.ExperimentWorkflow(app.simulation)
+        assert workflow.runtime is app.simulation
+        assert not workflow.root.exists()
         if mode == 'pool':
             assert isinstance(app.resource_pool, spiceowl_pool.ResourcePool)
             assert app.runner.resource_recheck.__self__ is app.resource_pool
@@ -101,8 +105,11 @@ class GatewayPoolPackagingTests(unittest.TestCase):
     def test_gateway_allowlist_includes_adapter_without_packaging_local_tests(self):
         self.assertEqual(self.report['kind'], 'codex')
         self.assertTrue((self.package / 'gateway/spiceowl_pool.py').is_file())
+        self.assertTrue((self.package / 'gateway/experiment_workflow.py').is_file())
         self.assertFalse((self.package / 'gateway/test_spiceowl_pool.py').exists())
         self.assertFalse((self.package / 'gateway/test_spiceowl_http.py').exists())
+        self.assertFalse((self.package / 'gateway/test_experiment_workflow.py').exists())
+        self.assertFalse((self.package / 'gateway/test_experiment_evidence.py').exists())
 
     def test_packaged_fixed_site_constructs_without_optional_spiceowl(self):
         self.assertEqual(self.construct('fixed'), {'mode': 'fixed', 'constructed': True, 'external_spiceowl_loaded': False})

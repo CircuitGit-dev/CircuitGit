@@ -12,7 +12,7 @@ from pathlib import Path
 from runner import atomic, locked, stamp, TERMINAL
 from supervision import execution_target
 
-OPERATIONS = {'submit', 'status', 'collect', 'watch', 'unwatch', 'resources_scan', 'runtime'}
+OPERATIONS = {'submit', 'status', 'collect', 'watch', 'unwatch', 'resources_scan', 'runtime', 'prepare', 'run', 'inspect'}
 CALLERS = {'paired-helper', 'local-studio', 'native-agent', 'spiceowl-local'}
 IDENTITY = {'project_id', 'configuration', 'source_commit'}
 
@@ -63,6 +63,7 @@ class SimulationRuntime:
         self._mutex = threading.RLock()
         self._scan = None
         self._monitor = None
+        self._experiments = None
         # Construction never starts probes, a worker, or an external dependency.
 
     def caller(self, headers, method, path, raw=b''):
@@ -146,6 +147,25 @@ class SimulationRuntime:
         if self._monitor is not None:
             self._monitor.stop(timeout=1)
 
+    def saved_report(self,record):
+        """Read a bound stored report; no SSH, collection or scientific inference."""
+        path=self.app.runner.path(record['run_id'])/'simulation-report.json'
+        if not path.is_file() or path.is_symlink() or path.stat().st_size>512*1024:return None
+        try:
+            if record.get('experiment'):
+                from runner import filehash
+                receipt_path=path.parent/'experiment-inspection.json'
+                receipt=json.loads(receipt_path.read_text())
+                if (receipt.get('state')!='complete' or receipt.get('run_id')!=record['run_id']
+                        or receipt.get('report_sha256')!=filehash(path)):
+                    return None
+            data=json.loads(path.read_text())
+            if (data.get('run_id')!=record['run_id'] or data.get('source_commit')!=record.get('source_commit')
+                    or not data.get('native_archive_sha256') or data['native_archive_sha256']!=(record.get('collection') or {}).get('sha256')):return None
+            report=data.get('report')
+            return report if isinstance(report,dict) and report.get('schema')=='spiceowl.simulation-report.v1' and report.get('run_id')==record['run_id'] else None
+        except (OSError,ValueError,TypeError):return None
+
     def pool_snapshot(self):
         path = self.root / 'pool.json'
         if path.is_file() and not path.is_symlink() and path.stat().st_size <= 65536:
@@ -206,6 +226,13 @@ class SimulationRuntime:
             raise ValueError('Unsupported finite simulation operation')
         project = args.get('project_id')
         self.authorize(caller, operation, project)
+        if operation in ('prepare','run','inspect'):
+            if key is not None and (operation!='run' or key!='experiment-'+str(args.get('plan_id',''))):
+                raise ValueError('Experiment execution uses the stable key derived from its frozen plan')
+            if self._experiments is None:
+                from experiment_workflow import ExperimentWorkflow
+                self._experiments=ExperimentWorkflow(self)
+            return getattr(self._experiments,operation)(args,caller)
         if operation in ('runtime', 'resources_scan'):
             if set(args) != {'project_id'}:
                 raise ValueError('Only project_id is accepted for this operation')
@@ -373,6 +400,13 @@ class SimulationRuntime:
                 diagnosis = {'schema':'spiceowl.spectre-diagnostics.v1','observed_context':{'available':False},'diagnostics':[],
                              'scientific_acceptance':{'execution':state,'data_validity':'unknown','specification':'unknown'},
                              'agent_proposal':None,'advisory_only':True}
+            report=self.saved_report(record)
+            if report is None:
+                try:
+                    build_report=importlib.import_module('spiceowl.integrations.spectre_report').build_spectre_report
+                    report=build_report(bounded_log,execution_state=state,exit_code=observed['execution']['exit_code'],
+                                        acceptance=acceptance,log_complete=False,run_id=rid)
+                except (ImportError,ValueError,UnboundLocalError):pass
             monitor = None
             if self._monitor is not None:
                 monitor = self._monitor.snapshot(rid)
@@ -393,8 +427,15 @@ class SimulationRuntime:
                          'monitor': {'state': monitoring_state, 'last_attempt_at': observation.get('last_attempt_at'),
                                      'last_success_at': observation.get('last_success_at'), 'next_check_at': observation.get('next_check_at') if worker_running else None,
                                      'failures': observation.get('consecutive_failures', 0)},
-                         'diagnostics': diagnosis, 'acceptance': diagnosis['scientific_acceptance'] if diagnosis else {'execution': state, 'data_validity': 'unknown', 'specification': 'unknown'}})
+                         'diagnostics': diagnosis, 'acceptance': diagnosis['scientific_acceptance'] if diagnosis else {'execution': state, 'data_validity': 'unknown', 'specification': 'unknown'},
+                         **({'report':report} if report is not None else {})})
+        registered=[{'recipe_id':row['id'],'template':row.get('spec',{}).get('recipe','unknown')}
+                    for row in (self.app.cfg.get('experiment_workflow') or {}).get('recipes',[])
+                    if row.get('project_id')==project and isinstance(row.get('id'),str)]
         return {'schema': 'ic.simulation.runtime.v1', 'project_id': project, 'read_at': stamp(), 'pool': self.pool_snapshot(), 'runs': rows,
+                'experiments':{'configured':bool(registered),'recipes':registered,
+                    'prepare':self.permitted(caller,'prepare',project),'run':self.permitted(caller,'run',project) and self.permitted(caller,'watch',project),
+                    'inspect':self.permitted(caller,'inspect',project) and self.permitted(caller,'collect',project)},
                 'capabilities': {'scan': self.permitted(caller, 'resources_scan', project) and self.app.resource_pool is not None,
                                  'monitor': self.permitted(caller, 'watch', project), 'direct_submit': self.permitted(caller, 'submit', project),
                                  'direct_collect': self.permitted(caller, 'collect', project)}}

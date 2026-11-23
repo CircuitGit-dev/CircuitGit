@@ -8,6 +8,8 @@ CircuitGit brings schematics, text netlists, simulation configurations, waveform
 
 The optional [SpiceOwl simulation runtime](docs/standalone-simulation-runtime.md) selects an eligible registered server, runs standalone Spectre through the existing Runner, monitors disconnections, and derives supported waveforms from collected native results. CLI, local web and native-agent operations share an explicit operator grant. Install the paired pinned packages to use this path; the public static demo does not execute remote simulations.
 
+[Deterministic experiments](docs/deterministic-experiments.md) add registered prepare → run → inspect recipes: freeze the source, conditions and model dependencies before launch, then read five separate evidence dimensions in the existing report view. The guide includes a disabled synthetic configuration example for operators.
+
 The interface builds on [Rich Netlist](https://github.com/rich-netlist/rnl), with movable, closable Dockview panels for schematics, simulation, waveforms, AI, and version history.
 
 ## Try it

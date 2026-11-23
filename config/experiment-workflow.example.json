@@ -1,0 +1,239 @@
+{
+  "example_only": true,
+  "simulation_direct": {
+    "enabled": false,
+    "projects": [
+      "example-inverter"
+    ],
+    "hosts": [
+      "example-node-a"
+    ],
+    "callers": [
+      "spiceowl-local"
+    ],
+    "operations": [
+      "runtime",
+      "prepare",
+      "run",
+      "watch",
+      "inspect",
+      "collect"
+    ],
+    "authority_key_file": "/opt/example/private/simulation-authority.key",
+    "resume_monitors": false
+  },
+  "experiment_workflow": {
+    "profiles": {
+      "example_model": {
+        "audit_host": "example-node-a",
+        "remote_python": "/usr/bin/python3",
+        "expected_main_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "electrical": {
+          "schema": "spiceowl.experiment-model-profile.v1",
+          "id": "example_model",
+          "models": {
+            "example_n": {
+              "kind": "mos",
+              "polarity": "n",
+              "terminals": [
+                "d",
+                "g",
+                "s",
+                "b"
+              ]
+            },
+            "example_p": {
+              "kind": "mos",
+              "polarity": "p",
+              "terminals": [
+                "d",
+                "g",
+                "s",
+                "b"
+              ]
+            }
+          },
+          "corners": {
+            "TT": [
+              {
+                "alias": "PDK_MAIN",
+                "section": "typical"
+              }
+            ]
+          }
+        },
+        "dependencies": {
+          "roots": [
+            "/opt/example/models",
+            "/opt/example/simulator"
+          ],
+          "main": "/opt/example/models/synthetic-main.scs",
+          "sections": [
+            "typical"
+          ],
+          "required_masters": [
+            "example_n",
+            "example_p"
+          ],
+          "tmi_relative_library": "RH_64/libTMImodel.so",
+          "profile_dependencies": [
+            {
+              "path": "/opt/example/simulator/lib/libexample_cmi.so",
+              "kind": "file",
+              "role": "dynamic_library"
+            },
+            {
+              "path": "/opt/example/simulator/etc/spectre.cfg",
+              "kind": "file",
+              "role": "tool_config"
+            }
+          ],
+          "limits": {
+            "max_files": 64,
+            "max_file_bytes": 268435456,
+            "max_total_bytes": 536870912,
+            "max_sections": 1024,
+            "max_edges": 8192,
+            "max_directives": 32768,
+            "max_line_bytes": 65536,
+            "max_logical_line_bytes": 2097152,
+            "max_issues": 256
+          }
+        }
+      }
+    },
+    "recipes": [
+      {
+        "id": "example_inverter_tran",
+        "project_id": "example-inverter",
+        "model_profile": "example_model",
+        "host_ids": [
+          "example-node-a"
+        ],
+        "source_paths": [
+          "projects/example-inverter/source.scs"
+        ],
+        "selection": {
+          "mode": "instances",
+          "source_id": "projects/example-inverter/source.scs",
+          "subcircuit": "ExampleGate",
+          "instances": [
+            "MN",
+            "MP"
+          ],
+          "ports": [
+            "IN",
+            "OUT",
+            "VDD",
+            "VSS"
+          ]
+        },
+        "spec": {
+          "schema": "spiceowl.experiment-spec.v1",
+          "recipe": "inverter-tran",
+          "roles": {
+            "inputs": [
+              "IN"
+            ],
+            "outputs": [
+              "OUT"
+            ],
+            "vdd": "VDD",
+            "vss": "VSS"
+          },
+          "supply": {
+            "positive_v": 1.0,
+            "negative_v": 0.0
+          },
+          "temperature_k": 300.15,
+          "nominal_temperature_k": 300.15,
+          "corner": "TT",
+          "parameters": {},
+          "stimuli": [
+            {
+              "port": "IN",
+              "type": "pulse",
+              "low_v": 0.0,
+              "high_v": 1.0,
+              "delay_s": 1e-09,
+              "rise_s": 1e-10,
+              "fall_s": 1e-10,
+              "width_s": 4.8e-09,
+              "period_s": 1e-08
+            }
+          ],
+          "loads": [
+            {
+              "port": "OUT",
+              "capacitance_f": 2e-15
+            }
+          ],
+          "analysis": {
+            "stop_s": 2e-08,
+            "max_step_s": 1e-11,
+            "strobe_period_s": 1e-11
+          },
+          "acceptance": {
+            "required_units": {
+              "time": "s",
+              "IN": "V",
+              "OUT": "V",
+              "VDD": "V",
+              "VSS": "V"
+            },
+            "sample_count": 2001,
+            "coverage": {
+              "start_s": 0.0,
+              "end_s": 2e-08,
+              "tolerance_s": 1e-18
+            },
+            "max_sample_gap_s": 1.01e-11,
+            "voltage_bounds_v": [
+              -0.05,
+              1.05
+            ],
+            "supply_tolerance_v": 0.0001,
+            "logic": {
+              "low_max_v": 0.1,
+              "high_min_v": 0.9,
+              "crossing_v": 0.5,
+              "windows": [
+                {
+                  "kind": "input_high_output_low",
+                  "start_s": 2e-09,
+                  "end_s": 4e-09,
+                  "minimum_samples": 180
+                },
+                {
+                  "kind": "input_low_output_high",
+                  "start_s": 7e-09,
+                  "end_s": 9e-09,
+                  "minimum_samples": 180
+                },
+                {
+                  "kind": "input_high_output_low",
+                  "start_s": 1.2e-08,
+                  "end_s": 1.4e-08,
+                  "minimum_samples": 180
+                },
+                {
+                  "kind": "input_low_output_high",
+                  "start_s": 1.7e-08,
+                  "end_s": 1.9e-08,
+                  "minimum_samples": 180
+                }
+              ]
+            }
+          }
+        },
+        "qualification_checks": [
+          "soa_voltage",
+          "soa_current",
+          "model_parameter_range",
+          "model_bin",
+          "scale_override"
+        ]
+      }
+    ]
+  }
+}

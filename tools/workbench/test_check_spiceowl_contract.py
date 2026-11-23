@@ -1,5 +1,6 @@
 """Offline integration lock fixtures; Git operations only touch temporary repos."""
 import contextlib
+import copy
 import hashlib
 import importlib.util
 import io
@@ -60,6 +61,30 @@ class ContractCheckTests(unittest.TestCase):
         with self.assertRaises(checker.ContractError) as error:
             self.check()
         self.assertEqual(error.exception.code, code)
+
+    def add_report_runtime(self):
+        report = {'$schema': 'https://json-schema.org/draft/2020-12/schema',
+                  '$id': 'urn:fixture:report', 'x-contract-version': '1.0.0',
+                  'type': 'object', 'properties': {'scope': {'$ref': '#/$defs/scope'}},
+                  '$defs': {'scope': {'type': 'object'}}}
+        runtime = {'x-contract-version': '1.1.0', 'type': 'object',
+                   'properties': {'experiments': {'type': 'object'}},
+                   '$defs': {'simulation_report': checker.embedded_report(report),
+                             'run': {'properties': {'report': {'$ref': '#/$defs/simulation_report'}}}}}
+        for key, schema, name in [('runtime_contract', runtime, 'runtime'),
+                                  ('simulation_report_contract', report, 'report')]:
+            own = self.local / ('contracts/' + name + '.json')
+            other = self.external / ('docs/contracts/' + name + '.json')
+            raw = (json.dumps(schema, indent=2) + '\n').encode()
+            own.write_bytes(raw); other.write_bytes(raw)
+            self.lock[key] = {'path': own.relative_to(self.local).as_posix(),
+                              'upstream_path': other.relative_to(self.external).as_posix(),
+                              'version': schema['x-contract-version'],
+                              'sha256': hashlib.sha256(raw).hexdigest()}
+        self.git('add', '.'); self.commit('runtime report contracts')
+        self.lock['spiceowl']['commit'] = self.git('rev-parse', 'HEAD')
+        self.write_lock()
+        return runtime, report
 
     def test_matching_pinned_checkout_passes_without_importing_adapter(self):
         result = self.check()
@@ -153,6 +178,64 @@ class ContractCheckTests(unittest.TestCase):
         self.assert_error('digest_mismatch')
         self.lock['runtime_contract']['sha256'] = hashlib.sha256(raw+b' ').hexdigest()
         self.write_lock(); self.assert_error('uncommitted_contract')
+
+    def test_runtime_110_and_report_pin_pass_with_rebased_embedded_references(self):
+        runtime, report = self.add_report_runtime()
+        result = self.check()
+        self.assertEqual(result['runtime_contract_version'], '1.1.0')
+        self.assertEqual(result['simulation_report_contract_version'], '1.0.0')
+        self.assertEqual(result['simulation_report_contract_sha256'],
+                         self.lock['simulation_report_contract']['sha256'])
+        self.assertEqual(runtime['$defs']['simulation_report']['properties']['scope']['$ref'],
+                         '#/$defs/simulation_report/$defs/scope')
+        self.assertNotIn('$id', runtime['$defs']['simulation_report'])
+        self.assertEqual(report['$id'], 'urn:fixture:report')
+
+    def test_runtime_110_requires_report_pin(self):
+        self.add_report_runtime()
+        self.lock.pop('simulation_report_contract')
+        self.write_lock()
+        self.assert_error('invalid_lock')
+
+    def test_report_drift_hash_and_dirty_content_are_checked(self):
+        self.add_report_runtime()
+        own = self.local / self.lock['simulation_report_contract']['path']
+        other = self.external / self.lock['simulation_report_contract']['upstream_path']
+        raw = own.read_bytes()
+        own.write_bytes(raw + b' ')
+        self.assert_error('contract_drift')
+        other.write_bytes(raw + b' ')
+        self.assert_error('digest_mismatch')
+        self.lock['simulation_report_contract']['sha256'] = hashlib.sha256(raw + b' ').hexdigest()
+        self.write_lock()
+        self.assert_error('uncommitted_contract')
+
+    def test_stale_embedded_report_is_rejected_even_if_all_three_contracts_are_pinned(self):
+        runtime, _ = self.add_report_runtime()
+        for mutation in ('definition', 'run_reference'):
+            with self.subTest(mutation=mutation):
+                changed = copy.deepcopy(runtime)
+                if mutation == 'definition':
+                    changed['$defs']['simulation_report']['$defs']['scope']['type'] = 'string'
+                else:
+                    changed['$defs']['run']['properties']['report'] = {'type': 'object'}
+                raw = (json.dumps(changed, indent=2) + '\n').encode()
+                own = self.local / self.lock['runtime_contract']['path']
+                other = self.external / self.lock['runtime_contract']['upstream_path']
+                own.write_bytes(raw); other.write_bytes(raw)
+                self.git('add', '.'); self.commit('committed inconsistent runtime')
+                self.lock['spiceowl']['commit'] = self.git('rev-parse', 'HEAD')
+                self.lock['runtime_contract']['sha256'] = hashlib.sha256(raw).hexdigest()
+                self.write_lock()
+                self.assert_error('embedded_report_drift')
+
+    def test_unsupported_runtime_version_and_report_lock_shape_are_rejected(self):
+        self.add_report_runtime()
+        self.lock['runtime_contract']['version'] = '1.2.0'
+        self.write_lock(); self.assert_error('invalid_lock')
+        self.lock['runtime_contract']['version'] = '1.1.0'
+        self.lock['simulation_report_contract']['mutable_revision'] = 'main'
+        self.write_lock(); self.assert_error('invalid_lock')
 
 
 if __name__ == '__main__':

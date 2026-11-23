@@ -236,10 +236,30 @@ class DirectSimulationTests(unittest.TestCase):
 
     def test_unsigned_native_reader_cannot_inherit_browser_action_capabilities(self):
         self.service.config['simulation_direct'] = scope(callers=['local-studio'])
-        self.gateway.request = Mock(return_value={'capabilities':{'scan':True,'direct_submit':True}})
+        self.gateway.request = Mock(return_value={'capabilities':{'scan':True,'direct_submit':True},
+            'experiments':{'configured':True,'recipes':[],'prepare':True,'run':True,'inspect':True}})
         result = self.service.call('sim_runtime', {'project_id':'demo'})
         self.assertTrue(all(value is False for value in result['capabilities'].values()))
+        self.assertTrue(all(result['experiments'][name] is False for name in ('prepare','run','inspect')))
         self.gateway.request.assert_called_once_with('/api/simulation/runtime?project_id=demo')
+
+    def test_experiment_tools_preserve_native_identity_and_derived_launch_key(self):
+        self.service.config['simulation_direct']['operations'] += ['prepare','run','inspect']
+        plan='a'*64
+        self.service.call('sim_execute',{'operation':'prepare','arguments':{
+            'project_id':'demo','recipe_id':'gate-tran','source_commit':COMMIT}})
+        args={'operation':'run','arguments':{'project_id':'demo','plan_id':plan}}
+        first=self.service.call('sim_execute',args)
+        self.assertEqual(self.service.call('sim_execute',args),first)
+        self.service.call('sim_execute',{'operation':'inspect','arguments':{
+            'project_id':'demo','job_id':'fixture-run'}})
+        calls=self.gateway.controls()
+        self.assertEqual([row[1]['operation'] for row in calls],['prepare','run','inspect'])
+        self.assertEqual(calls[1][1]['idempotency_key'],'experiment-'+plan)
+        self.assertEqual(calls[2][1]['arguments']['job_id'],'fixture-run')
+        with self.assertRaises(Failure):
+            self.service.call('sim_execute',{**args,'idempotency_key':'different-launch-key'})
+        self.assertEqual(len(self.gateway.controls()),3)
 
     def test_missing_optional_signer_is_a_bounded_failure_before_control_transport(self):
         gateway = Gateway('http://127.0.0.1:1')

@@ -10,6 +10,8 @@ CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管
 
 可选的 [SpiceOwl 仿真运行服务](docs/standalone-simulation-runtime.md) 会检查已注册服务器的资源，通过同一个 Runner 执行独立 Spectre、监控断线并从原生结果解析受支持的波形。CLI、本地网页和 Agent 使用操作员明确配置的权限；需安装配套固定版本，公开静态演示页本身不会执行远端仿真。
 
+[确定性实验流程](docs/deterministic-experiments.md) 提供已注册的 prepare → run → inspect 配方：运行前固定源码、条件与模型依赖，之后在已有报告视图中分别查看五个证据维度。文档附有默认禁用、只含虚构数据的操作员配置示例。
+
 - **电路作为代码管理**：按 `lib / cell` 查看源码差异与历史；保存前后检查点、提交、创建或更新 PR、选择 TB CI，并将历史版本恢复为新修改。详见[电路版本流程](docs/circuit-libraries.md#cell-version-workflow)。
 - **保留原理图布局**：导入包含位置、方向和走线的几何数据，避免只靠网表自动排版。
 - **可复现的仿真流程**：配置 → 审阅 → 计划与预检查 → Spectre 提交 → 收集结果 → GitHub 归档。
