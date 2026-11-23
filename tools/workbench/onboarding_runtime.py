@@ -15,7 +15,7 @@ import secrets
 import threading
 
 from runner import atomic, locked, stamp, filehash
-from spiceowl_pool import read_json, canonical
+from spiceowl_pool import read_json, canonical, MAX_RECORD_BYTES
 from workspace import Conflict
 
 PREFIX = '/api/simulation/onboarding'
@@ -24,18 +24,34 @@ WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect'}
 SCHEMA = 'ic.onboarding.session.v1'
 
 
+def save_discovery_observation(path, data):
+    """Preserve complete observed JSON without indentation multiplying its size."""
+    raw=canonical(data)+b'\n'
+    if len(raw)>MAX_RECORD_BYTES:
+        raise ValueError('Complete discovery evidence exceeds the local record budget; narrow the explicit search scope.')
+    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+    temporary=path.with_name(path.name+'.'+secrets.token_hex(16)+'.tmp')
+    try:
+        with temporary.open('xb') as stream:
+            os.chmod(temporary,0o600);stream.write(raw);stream.flush();os.fsync(stream.fileno())
+        os.replace(temporary,path)
+    finally:
+        if temporary.exists():temporary.unlink()
+
+
 def public_session(state):
     """Private captures/configuration never enter the browser session."""
     allowed={'schema','connection_id','intake_id','revision','source_sha256','source_commit',
         'state','created_at','updated_at','source','input_provenance','probes','discovery',
-        'prepared','execution_scope','selection','job','inspection','missing','source_mapping','submission'}
+        'prepared','execution_scope','selection','job','inspection','missing','source_mapping','submission',
+        'recommended_selection','suggested_intent','intent_suggestions'}
     result={k:copy.deepcopy(v) for k,v in state.items() if k in allowed}
     if 'probes' in result:
         result['probes']=[{k:copy.deepcopy(v) for k,v in row.items() if k in
             {'probe_id','ssh_target','observed_at','environment'}} for row in state['probes']]
         environment_fields={'schema','alias','observed_at','state','transport','identity','session_kind',
             'tools','licenses','resources','setup_candidates','pdk_candidates','library_root_count',
-            'warnings','coverage','simulation_started','simulator_invoked_by_probe','selection_basis','error','activation'}
+            'warnings','coverage','simulation_started','simulator_invoked_by_probe','selection_basis','error','activation','platform'}
         for row in result['probes']:
             row['environment']={k:v for k,v in row.get('environment',{}).items() if k in environment_fields}
     # Plans retain enough identity to revisit an original job, never a child
@@ -43,6 +59,8 @@ def public_session(state):
     result['plans']=[{k:copy.deepcopy(v) for k,v in row.items() if k in
         {'plan_id','source_commit','project_id','recipe_id','submission_key','job_id','dispatch_outcome'}}
         for row in state.get('plans',[])]
+    from onboarding_guidance import next_actions
+    result['next_actions']=next_actions(result)
     return result
 
 
@@ -159,8 +177,8 @@ class OnboardingRuntime:
             if type(args.get('revision')) is not int or state['revision']!=args['revision']:
                 raise Conflict('Intake changed; read its latest session before continuing')
             state['revision']+=1;state['state']=operation;state['updated_at']=stamp()
-            for field in ({'probe':('probes','discovery','prepared','execution_scope','selection','source_mapping','job','submission'),
-                           'discover-pdk':('discovery','prepared','execution_scope','selection','source_mapping','job','submission'),
+            for field in ({'probe':('probes','discovery','prepared','execution_scope','selection','source_mapping','job','submission','recommended_selection','discovery_search_history'),
+                           'discover-pdk':('discovery','prepared','execution_scope','selection','source_mapping','job','submission','recommended_selection'),
                            'prepare':('prepared','execution_scope','job','submission')}.get(operation,())):
                 state.pop(field,None)
             atomic(folder/'session.json',state)
@@ -171,7 +189,10 @@ class OnboardingRuntime:
             current=self._load(snapshot['intake_id'])
             if current['revision']!=snapshot['revision']:
                 raise Conflict('This discovery reply is stale for the current intake')
-            current.update(updates,updated_at=stamp());atomic(folder/'session.json',current)
+            current.update(updates,updated_at=stamp())
+            from onboarding_recommendations import bound_session_recommendations
+            bound_session_recommendations(current,public_session)
+            atomic(folder/'session.json',current)
         return public_session(current)
 
     def read(self,operation,args,*,origin='interactive_client'):
@@ -207,6 +228,8 @@ class OnboardingRuntime:
             raise ValueError('Invalid input display name')
         from spiceowl.onboarding.pdk_discovery import inspect_netlist
         requirements=inspect_netlist(text,source_id=name)
+        from onboarding_recommendations import source_intent
+        suggested_intent,intent_suggestions=source_intent(requirements)
         intake_id='intake_'+secrets.token_hex(16);folder=self._folder(intake_id)
         folder.mkdir(parents=True,mode=0o700)
         source=folder/'source.scs';source.write_text(text,encoding='utf-8');source.chmod(0o600)
@@ -216,7 +239,8 @@ class OnboardingRuntime:
             'source':{'file_name':name,'source_sha256':requirements['source_sha256'],
                       'source_commit':None,'requirements':requirements},
             'input_provenance':[{'kind':'netlist','origin':origin,'sha256':requirements['source_sha256']}],
-            'plans':[]}
+            'plans':[],'suggested_intent':suggested_intent,'intent_suggestions':intent_suggestions,
+            'recommended_selection':None}
         atomic(folder/'session.json',state)
         return public_session(state)
 
@@ -302,34 +326,63 @@ class OnboardingRuntime:
         if args.get('cds_lib_hint') is not None and (not isinstance(args['cds_lib_hint'],str) or not args['cds_lib_hint'].startswith('/') or len(args['cds_lib_hint'])>4096):
             raise ValueError('Use one explicit absolute cds.lib hint')
         folder,state=self._begin(args,'discover-pdk')
-        from onboarding_discovery import remote_discovery,public_discovery
+        from onboarding_discovery import remote_discovery,public_discovery,record_search_progress
         def discover(probe):
             capture=read_json(folder/'probes'/(probe['probe_id']+'.json'))
+            search_roots=roots_by_probe.get(probe['probe_id'],hints)
+            if not search_roots:
+                search_roots=[row['path'] for row in (capture.get('private') or {}).get('pdk_candidates',[])
+                              if row.get('exists')]
             try:
                 result=remote_discovery(probe['ssh_target'],self.config['ssh_config'],capture,
                     state['source']['requirements'],roots_by_probe.get(probe['probe_id'],hints),args.get('cds_lib_hint'))
-                return {'probe_id':probe['probe_id'],'result':result}
+                return {'probe_id':probe['probe_id'],'result':result,'search_roots':search_roots,
+                        'platform':(capture.get('private') or {}).get('platform') or (capture.get('public') or {}).get('platform')}
             except Exception as error:
                 atomic(folder/'discovery-errors'/(probe['probe_id']+'.json'),{'error':str(error)[:2000]})
-                return {'probe_id':probe['probe_id'],'result':None,'error_code':'pdk_discovery_incomplete'}
+                return {'probe_id':probe['probe_id'],'result':None,'search_roots':search_roots,
+                        'error_code':'pdk_discovery_incomplete'}
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as workers:rows=list(workers.map(discover,selected))
         discovery_id='discovery_'+secrets.token_hex(16)
-        atomic(folder/'discoveries'/(discovery_id+'.json'),{'rows':rows,'source_sha256':state['source_sha256']})
+        save_discovery_observation(folder/'discoveries'/(discovery_id+'.json'),
+                                   {'rows':rows,'source_sha256':state['source_sha256']})
         public=public_discovery(rows,discovery_id)
+        search_history=record_search_progress(public,rows,state['source_sha256'],
+                                               state.get('discovery_search_history'))
+        from onboarding_recommendations import attach_recommendations,source_intent
+        public=attach_recommendations(public,rows,state)
+        recommended=public['recommended_selection']
+        values,suggestions=source_intent(state['source']['requirements'])
+        if recommended:
+            values=recommended['intent']
+            suggestions={'preset':recommended['provenance']['preset'],
+                'fields':recommended['provenance']['fields']['intent'],'requires_acceptance':True,
+                'scientific_intent_discovered':False}
         return self._finish(folder,state,state='models_discovered',discovery=public,
+            discovery_search_history=search_history,
+            recommended_selection=recommended,suggested_intent=values,intent_suggestions=suggestions,
             input_provenance=state['input_provenance']+[{'kind':'pdk_search','origin':origin,
                 'probe_ids':ids,'explicit_search_paths':hints or [],'search_directory_ids':args.get('search_directory_ids',[]),
                 'explicit_cds_lib_hint':args.get('cds_lib_hint')}])
 
     def _prepare(self,args,origin):
-        required={'intake_id','revision','discovery_id','candidate_id','sections','tmi_candidate_id','model_contracts','intent'}
-        if set(args)!=required:raise ValueError('Provide the complete discovered selection and explicit experiment intent')
         previous=self._load(args['intake_id'])
-        if (previous.get('discovery') or {}).get('discovery_id')!=args['discovery_id']:
-            raise Conflict('Select the current discovery for this intake')
+        if not previous.get('discovery'):
+            raise ValueError('Discover models for this intake before preparing an experiment')
         if any(p.get('dispatch_outcome') in ('attempting','unknown') for p in previous['plans']):
             raise Conflict('Reconcile the original uncertain submission before preparing another experiment')
+        from onboarding_recommendations import resolve_preparation
+        supplied_model_contracts=copy.deepcopy(args.get('model_contracts'))
+        resolved,selection_missing,selection_provenance=resolve_preparation(previous,args)
         folder,state=self._begin(args,'prepare')
+        if selection_missing:
+            prepared={'schema':'ic.experiment.plan.v1','state':'blocked','project_id':state['intake_id'],
+                'recipe_id':'inverter-tran','source_commit':None,'plan_id':None,'missing':selection_missing,'submission_key':None}
+            selection={k:copy.deepcopy(resolved[k]) for k in ('discovery_id','candidate_id','sections','tmi_candidate_id','model_contracts','intent')} if resolved else None
+            return self._finish(folder,state,state='needs_input',prepared=prepared,selection=selection,
+                input_provenance=state['input_provenance']+[{'kind':'experiment_selection','origin':origin,
+                    'recommendation':selection_provenance}])
+        args=resolved
         from onboarding_prepare import compile_selection,observed_site,create_child_config
         saved=read_json(folder/'discoveries'/(args['discovery_id']+'.json'))
         if saved['source_sha256']!=state['source_sha256']:raise ValueError('Discovery source digest changed')
@@ -344,10 +397,14 @@ class OnboardingRuntime:
             if probe['probe_id']==selected['probe_id']:missing.extend(gaps)
         if not hosts and not missing:missing.append({'field':'hosts','code':'no_preparable_host','message':'No selected host has a complete observed environment.'})
         selection={k:copy.deepcopy(args[k]) for k in ('discovery_id','candidate_id','sections','tmi_candidate_id','model_contracts','intent')}
+        effective_models=(selected.get('compiled',{}).get('electrical') or {}).get('models')
+        if effective_models is not None:
+            selection['model_contracts']=copy.deepcopy(effective_models)
         provenance=state['input_provenance']+[{'kind':'experiment_selection','origin':origin,
             'discovery_id':args['discovery_id'],'candidate_id':args['candidate_id'],'intent':copy.deepcopy(args['intent']),
             'sections':copy.deepcopy(args['sections']),'tmi_candidate_id':args['tmi_candidate_id'],
-            'explicit_model_contracts':copy.deepcopy(args['model_contracts'])}]
+            'explicit_model_contracts':supplied_model_contracts,
+            'recommendation':selection_provenance}]
         scope={'selected_ssh_targets':[p['ssh_target'] for p in state.get('probes',[])],
             'candidate_host_ids':list(hosts),'selection_mode':'automatic_within_selected_hosts',
             'resource_check_at_run':True,'excluded_before_preparation':exclusions}
