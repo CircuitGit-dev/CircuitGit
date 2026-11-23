@@ -93,16 +93,22 @@ try{
   await page.getByRole('button',{name:'打开对话',exact:true}).click();await active().getByRole('textbox',{name:'发送给电路助手的消息'}).waitFor();
   await page.waitForFunction(()=>document.querySelector('.ic-ai-session-panel:not([hidden]) .ic-ai-model')?.options.length>0);
   const input=active().getByRole('textbox',{name:'发送给电路助手的消息'});
+  assert.equal(await page.evaluate(()=>fixtureHost.onboarding.getSessionState().revision),1);
+  const readsBeforeSend=calls.filter(row=>row.path==='/api/simulation/onboarding/session').length;
+  saved={...saved,revision:2};
   await input.fill('Synthetic test: inspect the current netlist.');await input.press('Enter');
   await page.waitForFunction(()=>document.querySelector('.ic-ai-session-panel:not([hidden]) .ic-ai-delivery')?.textContent==='已提交');
   assert.equal(turnPosts().length,1);const sent=turnPosts()[0].body.context;
-  assert.equal(sent.project.id,'onboarding:'+initial.intake_id);assert.equal(sent.file.path,source.file_name);assert.equal(sent.file.persistedSha256,sourceHash);assert.equal(sent.onboarding.revision,1);
+  assert.equal(sent.project.id,'onboarding:'+initial.intake_id);assert.equal(sent.file.path,source.file_name);assert.equal(sent.file.persistedSha256,sourceHash);assert.equal(sent.onboarding.revision,2);
   assert.equal(calls.some(row=>row.path==='/api/ai/context'),false);
   report.checks.push('current-netlist choice sends the same source hash, intake, connection and revision as Simulation without a registered project');
+  assert(calls.filter(row=>row.path==='/api/simulation/onboarding/session').length>readsBeforeSend);
+  assert.equal(await page.evaluate(()=>fixtureHost.onboarding.getSessionState().revision),2);
+  report.checks.push('sending refreshes cached revision 1 against backend revision 2 and uses revision 2 in the exact intake context');
 
   for(const [index,patch]of [{connection_id:'foreign-store'},{intake_id:'foreign-intake'},{source_sha256:'d'.repeat(64)}].entries())emit('tool/result',{tool:'ic_onboarding_pdk',call_id:'foreign-'+index,result:{ok:true,data:{...recommendation,...patch}}});
   await page.waitForFunction(()=>[...document.querySelectorAll('.ic-ai-steps summary')].filter(node=>node.textContent.includes('工具返回 ic_onboarding_pdk')).length===3);
-  assert.equal(await page.evaluate(()=>fixtureHost.onboarding.getSessionState().revision),1);assert.doesNotMatch(await wizard.locator('[data-environment-recommendation]').innerText(),/Synthetic PDK candidate/);
+  assert.equal(await page.evaluate(()=>fixtureHost.onboarding.getSessionState().revision),2);assert.doesNotMatch(await wizard.locator('[data-environment-recommendation]').innerText(),/Synthetic PDK candidate/);
   report.checks.push('foreign connection, intake and source tool results leave the current experiment unchanged');
 
   saved=structuredClone(recommendation);emit('tool/result',{tool:'ic_onboarding_pdk',call_id:'same-intake-pdk',result:{ok:true,data:saved}});
@@ -139,6 +145,22 @@ try{
   await page.waitForFunction(()=>[...document.querySelectorAll('.ic-ai-steps summary')].filter(node=>node.textContent.includes('工具返回 ic_onboarding_pdk')).length===5);
   assert.equal(await page.evaluate(()=>fixtureHost.onboarding.getSessionState().revision),5);
   report.checks.push('changing the displayed source removes the old AI choice, blocks stale sends and ignores late old-source results');
+
+  await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});saved=structuredClone(initial);events.length=0;sequence=0;
+  Object.assign(history,{state:'idle',cursor:0,messages:[],turns:[]});delete history.active_request_key;delete history.active_turn_id;
+  const beforeCanvas=calls.length;await page.reload();await page.waitForFunction(()=>window.fixtureHost&&document.body.dataset.workbenchState==='ready');await openSource();
+  await page.getByRole('button',{name:'AI连接设置',exact:true}).click();const secondPair=page.waitForEvent('popup');
+  await page.getByRole('button',{name:'连接本机 Codex',exact:true}).click();await(await secondPair).locator('#allow').click();
+  await page.getByRole('button',{name:'打开对话',exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>fixtureHost.onboarding.getState().selectedIntakeId),null);
+  assert.equal(calls.slice(beforeCanvas).some(row=>row.path==='/api/simulation/onboarding/netlist'),false);
+  await page.getByRole('button',{name:'使用当前电路',exact:true}).click();await active().getByRole('textbox',{name:'发送给电路助手的消息'}).waitFor();
+  const canvasCalls=calls.slice(beforeCanvas),canvasImports=canvasCalls.filter(row=>row.path==='/api/simulation/onboarding/netlist');
+  assert.equal(canvasImports.length,1);assert.deepEqual(canvasImports[0].body,source);
+  assert.equal(await page.evaluate(()=>fixtureHost.onboarding.getSessionState().source_sha256),sourceHash);
+  assert.equal(await page.locator('select[aria-label="运行节点项目"]').inputValue(),'onboarding:'+initial.intake_id);
+  assert.equal(canvasCalls.some(row=>row.path==='/api/ai/context'||row.path==='/api/ai/turn'),false);
+  report.checks.push('first-use current-circuit button imports the displayed source and opens AI with an empty catalog without a fallback circuit or model call');
 
   assert.equal(calls.filter(row=>row.method==='POST'&&!['/api/ai/turn','/api/simulation/onboarding/netlist'].includes(row.path)).length,0);
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);report.status='passed';
