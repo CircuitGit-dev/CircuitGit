@@ -143,22 +143,29 @@ class ExperimentWorkflow:
         sites={host:core.site_load(Path(pool.members[host]['site_file'])) for host in hosts}
         audit_config=profile.get('dependencies')
         if not isinstance(audit_config,dict):return blocked(project,recipe_id,commit,[{'field':'dependencies','code':'dependency_profile_missing','message':'Register the remote model roots, sections and dynamic library profile.'}])
+        recipe=compiled['recipe'];electrical=profile['electrical']
+        from spiceowl.integrations.model_dependencies import validate_audit_config
+        normalized=validate_audit_config(audit_config)
+        includes=recipe['external_includes']
+        if not includes or any(item['alias']!='PDK_MAIN' or item['section'] not in normalized['sections'] for item in includes):
+            return blocked(project,recipe_id,commit,[{'field':'external_includes','code':'include_profile_mismatch','message':'Recipe model includes must select authorized PDK_MAIN sections.'}])
+        # The profile may authorize several corners. Only this recipe's actual
+        # entry sections establish its model closure; other corners cannot supply
+        # missing masters. The scanner still follows global/transitive includes.
+        audit_config={**audit_config,'sections':list(dict.fromkeys(item['section'] for item in includes)),
+                      'required_masters':list(dict.fromkeys([*normalized['required_masters'],*recipe['used_models']]))}
         audit=self._audit(sites[audit_host],audit_config,profile.get('remote_python','/usr/bin/python'))
         if audit.get('status')!='complete_for_supported_static_syntax':
             return blocked(project,recipe_id,commit,[{'field':'dependencies','code':'dependency_audit_incomplete','message':'The bounded model audit found missing or unsupported dependencies.'}])
         self._validate_audit(audit,audit_config)
         # Bind the compiler's actual masters and include sections to the audited
         # model, rather than trusting an independently configured scanner list.
-        recipe=compiled['recipe'];electrical=profile['electrical']
         declarations=audit.get('master_declarations',[])
         for master in recipe['used_models']:
             found=[row for row in declarations if row.get('name')==master]
             count=len(electrical['models'][master]['terminals'])
             if not found or any(row.get('port_count')!=count for row in found):
                 return blocked(project,recipe_id,commit,[{'field':'models','code':'model_terminal_contract_unverified','message':'An actual recipe master is absent from the audited model or has a different terminal count.'}])
-        if any(item['alias']!='PDK_MAIN' or item['section'] not in audit_config.get('sections',[])
-               for item in recipe['external_includes']):
-            return blocked(project,recipe_id,commit,[{'field':'external_includes','code':'include_profile_mismatch','message':'Recipe model includes must use the audited PDK_MAIN entry and sections.'}])
         files=audit.get('files',[])
         main=audit_config['main'];main_row=next((row for row in files if row['path']==main),None)
         if not main_row or main_row['sha256']!=profile.get('expected_main_sha256'):

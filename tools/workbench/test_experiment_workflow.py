@@ -1,7 +1,9 @@
 """Real workspace/Runner/runtime with synthetic Git and mocked remote boundaries."""
 import concurrent.futures
+import contextlib
 import copy
 import hashlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -235,6 +237,59 @@ class ExperimentWorkflowIntegrationTests(unittest.TestCase):
         self.cfg['experiment_workflow']['profiles'].clear()
         self.assertEqual(self.prepare()['missing'][0]['code'], 'model_profile_missing')
         self.reserve.assert_not_called(); self.ssh.assert_not_called()
+
+    def local_model_audit(self, files):
+        """Run the real static scanner only over authored temporary fixtures."""
+        from spiceowl.integrations.model_dependencies import build_model_audit_script
+        root=self.root/'synthetic-models';root.mkdir()
+        for name,text in files.items():
+            (root/name).write_text(text)
+        self.dependencies.update(roots=[str(root)],main=str(root/'main.scs'))
+        self.profile['expected_main_sha256']=hashlib.sha256((root/'main.scs').read_bytes()).hexdigest()
+        def inspect(_site,config,_python):
+            output=io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exec(build_model_audit_script(config),{})
+            return json.loads(output.getvalue())
+        self.audit_call.side_effect=inspect
+
+    def test_recipe_audit_cannot_borrow_models_from_another_corner(self):
+        self.dependencies.update(sections=['typical','slow'],required_masters=[])
+        self.local_model_audit({'main.scs':
+            'section typical\nendsection typical\nsection slow\n'
+            'subckt device_alpha d g s b\nends device_alpha\n'
+            'subckt device_beta d g s b\nends device_beta\nendsection slow\n'})
+        registered=copy.deepcopy(self.profile)
+        result=self.prepare()
+        self.assertEqual(result['state'],'blocked')
+        self.assertIsNone(result['plan_id'])
+        self.assertEqual(result['missing'][0]['code'],'dependency_audit_incomplete')
+        actual=self.audit_call.call_args.args[1]
+        self.assertEqual(actual['sections'],['typical'])
+        self.assertEqual(set(actual['required_masters']),{'device_alpha','device_beta'})
+        self.assertEqual(self.profile,registered)
+        self.reserve.assert_not_called();self.ssh.assert_not_called()
+
+    def test_recipe_audit_keeps_transitive_sections_and_global_models(self):
+        self.dependencies.update(sections=['typical','slow'],required_masters=[])
+        self.local_model_audit({
+            'main.scs':'include "global.scs"\nsection typical\ninclude "devices.scs" section=mos\n'
+                       'endsection typical\nsection slow\ninclude "not-selected.scs"\nendsection slow\n',
+            'global.scs':'subckt device_alpha d g s b\nends device_alpha\n',
+            'devices.scs':'section mos\nsubckt device_beta d g s b\nends device_beta\nendsection mos\n',
+        })
+        registered=copy.deepcopy(self.profile)
+        result=self.prepare()
+        self.assertEqual(result['state'],'prepared')
+        actual=self.audit_call.call_args.args[1]
+        self.assertEqual(actual['sections'],['typical'])
+        self.assertEqual(set(actual['required_masters']),{'device_alpha','device_beta'})
+        plan=self.workflow.plan(result['plan_id'],PROJECT)
+        declarations={row['name']:row['section'] for row in plan['dependency_audit']['master_declarations']}
+        self.assertEqual(declarations,{'device_alpha':None,'device_beta':'mos'})
+        self.assertEqual(len(plan['dependency_audit']['files']),3)
+        self.assertEqual(self.profile,registered)
+        self.reserve.assert_not_called();self.ssh.assert_not_called()
 
     def test_forged_complete_audit_coverage_or_outside_root_is_rejected(self):
         baseline = copy.deepcopy(self.audit)

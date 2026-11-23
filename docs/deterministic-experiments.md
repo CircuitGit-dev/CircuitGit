@@ -45,7 +45,7 @@ Merge the `experiment_workflow` object into the existing private gateway configu
 | `audit_host` | One host in both the recipe's configured pool members and the current connection grant |
 | `remote_python` | Absolute installed remote Python executable for the bounded read-only audit; the generated script supports Python 2.7 and 3 |
 
-The current workflow accepts model includes through the `PDK_MAIN` alias. Every section selected by `electrical.corners` must also appear in `dependencies.sections`; `dependencies.main` is the file that becomes `PDK_MAIN`. `dependencies.required_masters` should list the actual masters used by the recipe. Preparation checks those masters against the audited declarations and the electrical profile.
+The current workflow accepts model includes through the `PDK_MAIN` alias. Every section selected by `electrical.corners` must also appear in `dependencies.sections`; `dependencies.main` is the file that becomes `PDK_MAIN`. Preparation audits only the entry sections actually included by the chosen recipe, retaining their global and transitive includes; another authorized corner cannot supply missing model declarations. `dependencies.required_masters` is supplemented with the actual masters used by the recipe. Preparation checks those masters against the audited declarations and the electrical profile.
 
 `experiment_workflow.recipes` is a list of registered recipe objects:
 
