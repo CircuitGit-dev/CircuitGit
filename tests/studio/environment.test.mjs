@@ -1,10 +1,60 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createEnvironmentController,inspectLiteralNetlist,onboardingWaveformsAvailable} from '../../modules/simulation/environment/model.js';
-import {environmentFixture,source,intent} from './environment.fixture.mjs';
+import {validatePreDispatchRejection} from '../../modules/simulation/environment/submission.js';
+import {environmentFixture,preDispatchSubmission,source,intent} from './environment.fixture.mjs';
 
 async function setup(options={}){const fixture=environmentFixture(),controller=createEnvironmentController({adapter:fixture.adapter,...options});await controller.ready;return {fixture,controller};}
 async function ready(controller){await controller.importSource(source);controller.setTargets(['synthetic-host']);await controller.probeHost();await controller.matchPdk();controller.selectCandidate('synthetic-candidate');controller.selectSections(['synthetic-section']);for(const [key,value]of Object.entries(intent))controller.setIntent(key,value);controller.confirmIntent(true);}
+
+test('typed rejection validator requires complete original identities and exact no-launch proof',async()=>{
+  const {controller}=await setup();await ready(controller);await controller.prepare();
+  const intake=controller.state.session,plan=intake.prepared,submission=preDispatchSubmission(intake);
+  const connectionId=controller.state.connection.connectionId,pending={schema:'ic.onboarding.pending.v1',phase:'run',connectionId,intake_id:intake.intake_id,revision:intake.revision,plan_id:plan.plan_id,submission_key:plan.submission_key};
+  const context={intake,plan,pending,connectionId};
+  assert.deepEqual(validatePreDispatchRejection(submission,context),submission);
+  const malformed=[
+    value=>{delete value.rejection;},value=>{value.intake_id='foreign';},value=>{value.plan_id='d'.repeat(64);},value=>{value.submission_key='experiment-foreign';},
+    value=>{value.found=true;},value=>{value.job={};},value=>{value.run_id='foreign';},value=>{value.dispatch_outcome='unknown';},value=>{value.replay_permitted=true;},value=>{value.unexpected=true;},
+    ...Object.keys(submission.rejection).map(key=>value=>{delete value.rejection[key];}),
+    ...Object.entries({schema:'foreign',plan_id:'d'.repeat(64),project_id:'foreign',source_commit:'d'.repeat(40),submission_key:'experiment-foreign',phase:'after_runner_reserve',code:'generic_error',launch_attempted:true,recorded_at:'invalid'}).map(([key,value])=>receipt=>{receipt.rejection[key]=value;}),
+    value=>{value.rejection.unexpected=true;}
+  ];
+  for(const mutate of malformed){const value=structuredClone(submission);mutate(value);assert.throws(()=>validatePreDispatchRejection(value,context),/原 intake/);}
+  for(const [field,value]of Object.entries({schema:'foreign',connectionId:'foreign',intake_id:'foreign',revision:intake.revision+1,phase:'prepare',plan_id:'d'.repeat(64),submission_key:'experiment-foreign'}))assert.throws(()=>validatePreDispatchRejection(submission,{...context,pending:{...pending,[field]:value}}),/原 intake/);
+  for(const patch of [{source_commit:'d'.repeat(40)},{prepared:{...plan,project_id:'foreign'}},{prepared:{...plan,recipe_id:'foreign'}},{source_sha256:'bad'},{revision:0}])assert.throws(()=>validatePreDispatchRejection(submission,{...context,intake:{...intake,...patch}}),/原 intake/);
+  assert.throws(()=>validatePreDispatchRejection(submission,{...context,plan:{...plan,plan_id:'short'}}),/原 intake/);
+});
+
+test('complete pre-dispatch rejection releases only its original pending and never creates a job',async()=>{
+  const notified=[],{fixture,controller}=await setup({onRun:value=>notified.push(value)});await ready(controller);await controller.prepare();fixture.adapter.runPrepared=fixture.reject;
+  const receipt=await controller.runPrepared();assert.equal(receipt.dispatch_outcome,'pre_dispatch_rejected');assert.equal(controller.state.run.status,'rejected');assert.equal(controller.state.run.result,null);assert.deepEqual(controller.state.run.rejection,receipt);assert.deepEqual(controller.state.pending,[]);assert.deepEqual(fixture.records,[]);assert.deepEqual(notified,[]);assert.equal(controller.locked,false);
+  await assert.rejects(controller.runPrepared(),/已有请求/);assert.equal(fixture.calls.filter(call=>call.method==='runPrepared').length,1);
+  await controller.prepare();assert.equal(controller.state.run.status,'idle');assert.ok(controller.state.rejectedSubmissionKeys.includes(receipt.submission_key));await assert.rejects(controller.runPrepared(),/已拒绝计划/);assert.equal(fixture.calls.filter(call=>call.method==='runPrepared').length,1);
+});
+
+test('saved rejected intake restores without replay and a newly prepared key can be explicitly submitted',async()=>{
+  const {fixture,controller}=await setup();await ready(controller);await controller.prepare();fixture.adapter.runPrepared=fixture.reject;await controller.runPrepared();controller.destroy();fixture.setConnection({selectedIntakeId:fixture.saved.intake_id});fixture.calls.length=0;
+  const resumed=createEnvironmentController({adapter:fixture.adapter});await resumed.ready;await resumed.restoreSelected();assert.deepEqual(fixture.calls.map(call=>call.method),['getSession']);assert.equal(resumed.state.run.status,'rejected');assert.equal(resumed.state.run.result,null);assert.equal(resumed.state.intentConfirmed,false);await assert.rejects(resumed.runPrepared());await assert.rejects(resumed.prepare(),/确认完整/);
+  const prepare=fixture.adapter.prepareExperiment;
+  fixture.adapter.prepareExperiment=async args=>{const value=await prepare(args);value.prepared.plan_id='d'.repeat(64);value.prepared.submission_key='experiment-'+value.prepared.plan_id;fixture.saved=value;return value;};
+  resumed.confirmIntent(true);await resumed.prepare();assert.equal(resumed.state.run.status,'idle');assert.notEqual(resumed.state.preparation.result.prepared.submission_key,resumed.state.rejectedSubmissionKeys[0]);await resumed.runPrepared();assert.equal(resumed.state.run.rejection.plan_id,'d'.repeat(64));assert.equal(fixture.calls.filter(call=>call.method==='runPrepared').length,1);
+});
+
+test('lost rejection response reconciles by original intake and key without replay after reload',async()=>{
+  const notified=[],{fixture,controller}=await setup({onRun:value=>notified.push(value)});await ready(controller);await controller.prepare();fixture.adapter.runPrepared=args=>{fixture.reject(args);throw Error('Synthetic lost rejection response');};await assert.rejects(controller.runPrepared(),/lost rejection/);const pending=structuredClone(fixture.records[0]);controller.destroy();fixture.calls.length=0;fixture.adapter.readSubmission=args=>{fixture.calls.push({method:'readSubmission',args});return structuredClone(fixture.saved.submission);};
+  const restored=createEnvironmentController({adapter:fixture.adapter,onRun:value=>notified.push(value)});await restored.ready;await restored.restore(pending);assert.equal(restored.state.run.status,'rejected');assert.equal(restored.state.run.result,null);assert.deepEqual(fixture.records,[]);assert.deepEqual(notified,[]);assert.deepEqual(fixture.calls.map(call=>call.method),['getSession','readSubmission','remove']);assert.equal(restored.state.intentConfirmed,false);await assert.rejects(restored.runPrepared());
+});
+
+test('malformed immediate rejection retains the exact pending record and cannot replay',async()=>{
+  const mutations=[value=>{value.source_sha256='d'.repeat(64);},value=>{value.connection_id='foreign';},value=>{value.state='submitted';},value=>{value.job={};},value=>{value.prepared.source_commit='d'.repeat(40);},value=>{value.submission.intake_id='foreign';},value=>{value.submission.rejection.launch_attempted=true;},value=>{delete value.submission.rejection;}];
+  for(const mutate of mutations){const {fixture,controller}=await setup();await ready(controller);await controller.prepare();fixture.adapter.runPrepared=args=>{const value=fixture.reject(args);mutate(value);return value;};await assert.rejects(controller.runPrepared());const pending=structuredClone(fixture.records[0]);assert.equal(controller.state.run.status,'unknown');assert.equal(controller.state.run.result,null);assert.deepEqual(controller.state.pending,[pending]);await assert.rejects(controller.runPrepared(),/暂停/);assert.deepEqual(fixture.records,[pending]);assert.equal(fixture.calls.filter(call=>call.method==='runPrepared').length,1);}
+});
+
+test('foreign and contradictory readback rejection retain original pending and no new POST',async()=>{
+  const mutations=[value=>{value.submission.intake_id='foreign';},value=>{value.submission.rejection.source_commit='e'.repeat(40);},value=>{value.submission.rejection.launch_attempted=true;},value=>{value.prepared.project_id='foreign';},value=>{value.prepared.plan_id='e'.repeat(64);},value=>{value.source_sha256='e'.repeat(64);},value=>{value.connection_id='foreign';},value=>{value.state='submitted';},value=>{value.job={};}];
+  for(const mutate of mutations){const {fixture,controller}=await setup();await ready(controller);await controller.prepare();fixture.adapter.runPrepared=args=>{fixture.reject(args);throw Error('Synthetic lost response');};await assert.rejects(controller.runPrepared());const pending=structuredClone(fixture.records[0]),value=structuredClone(fixture.saved);mutate(value);fixture.saved=value;fixture.adapter.readSubmission=()=>structuredClone(fixture.saved.submission);await assert.rejects(controller.restore(pending));assert.equal(controller.state.run.status,'unknown');assert.deepEqual(controller.state.pending,[pending]);assert.deepEqual(fixture.records,[pending]);assert.equal(fixture.calls.filter(call=>call.method==='runPrepared').length,1);}
+});
 
 test('clean onboarding is idle and literal dimensions preserve multiport source order',async()=>{
   const {fixture,controller}=await setup();assert.deepEqual(fixture.calls,[]);assert.deepEqual(controller.state.targets,[]);assert.deepEqual(controller.state.sections,[]);assert.ok(Object.values(controller.state.intent).every(value=>value===''));

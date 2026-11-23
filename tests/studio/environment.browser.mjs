@@ -7,7 +7,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
-const files=['modules/simulation/environment/model.js','modules/simulation/environment/panel.js','modules/simulation/environment/style.css','modules/simulation/style.css','modules/simulation/report.js','modules/schematic/netlist.js','modules/schematic/instance-properties.js','tests/studio/environment.fixture.mjs'];
+const files=['modules/simulation/environment/model.js','modules/simulation/environment/submission.js','modules/simulation/environment/panel.js','modules/simulation/environment/style.css','modules/simulation/style.css','modules/simulation/report.js','modules/schematic/netlist.js','modules/schematic/instance-properties.js','tests/studio/environment.fixture.mjs'];
 const assets=new Map(await Promise.all(files.map(async path=>['/'+path,await readFile(resolve(root,path),'utf8')])));
 const html=`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/modules/simulation/style.css"><style>body{margin:0}.ic-sim-panel{padding:10px;box-sizing:border-box;min-width:0}input,select,textarea{box-sizing:border-box}button{max-width:100%}</style><div class="ic-sim-panel"><div id="environment"></div></div><script type="module">
 import {mountEnvironmentWizard} from '/modules/simulation/environment/panel.js';
@@ -46,5 +46,21 @@ test('environment wizard explicitly chooses source, hosts, PDK and complete inte
     await page.evaluate(()=>{fixture.saved={...fixture.saved,job:fixture.job()};sessionStorage.setItem('synthetic-session',JSON.stringify(fixture.saved));});await page.reload();await button('恢复上次网表与实验').waitFor();assert.deepEqual(await page.evaluate(()=>fixture.calls),[]);await button('恢复上次网表与实验').click();await page.waitForFunction(()=>wizard.controller.state.intake.status==='complete');assert.deepEqual(await page.evaluate(()=>fixture.calls.map(call=>call.method)),['getSession']);assert.equal(await button('提交仿真任务').isDisabled(),true);assert.equal(await field('intent-supply_v').inputValue(),'0.8');assert.equal(await field('intent-nominal_temperature_c').inputValue(),'27');
     await button('更新进度与结果').click();await page.waitForFunction(()=>wizard.controller.state.run.result.inspection_state==='pending');
     await page.evaluate(()=>wizard.destroy());assert.equal(await page.evaluate(()=>fixture.listenerCount),0);assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
+  }finally{await browser.close();}
+});
+
+test('typed rejection is visible, remains closed to replay after reload, and allows explicit fresh preparation',async()=>{
+  const browser=await chromium.launch({headless:true,channel:process.env.BROWSER_CHANNEL||'chrome'}),page=await browser.newPage({viewport:{width:340,height:1000}}),errors=[],unexpected=[];
+  page.setDefaultTimeout(5000);page.on('pageerror',error=>errors.push(error.message));
+  await page.route('**/*',async route=>{const url=new URL(route.request().url());if(url.origin!=='https://environment.test'||url.pathname!=='/'&&!assets.has(url.pathname)){unexpected.push(url.href);return route.abort();}await route.fulfill({contentType:url.pathname==='/'?'text/html':url.pathname.endsWith('.css')?'text/css':'text/javascript',body:url.pathname==='/'?html:assets.get(url.pathname)});});
+  const button=label=>page.getByRole('button',{name:label,exact:true});
+  try{
+    await page.goto('https://environment.test/');await button('导入当前网表').waitFor();
+    await page.evaluate(async()=>{const c=wizard.controller;await c.ready;await c.importSource(source);c.setTargets(['synthetic-host']);await c.probeHost();await c.matchPdk();c.selectCandidate('synthetic-candidate');c.selectSections(['synthetic-section']);for(const[key,value]of Object.entries(intent))c.setIntent(key,value);c.confirmIntent(true);await c.prepare();fixture.adapter.runPrepared=fixture.reject;});
+    await button('提交仿真任务').click();await page.locator('[data-environment-rejection]').waitFor();assert.match(await page.locator('[data-environment-rejection]').innerText(),/尚未启动仿真/);assert.equal(await button('提交仿真任务').isDisabled(),true);assert.equal(await button('准备实验').isEnabled(),true);assert.equal(await button('查看波形').count(),0);assert.equal(await button('更新进度与结果').count(),0);assert.deepEqual(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('synthetic-pending'))),[]);
+    await page.getByText('拒绝回执',{exact:true}).click();assert.match(await page.locator('[data-environment-rejection]').innerText(),/resource_or_dependency_preflight_rejected/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    await page.evaluate(()=>sessionStorage.setItem('synthetic-session',JSON.stringify(fixture.saved)));await page.reload();await button('恢复上次网表与实验').click();await page.locator('[data-environment-rejection]').waitFor();assert.equal(await button('提交仿真任务').isDisabled(),true);assert.equal(await button('准备实验').isDisabled(),true);assert.deepEqual(await page.evaluate(()=>fixture.calls.map(call=>call.method)),['getSession']);
+    await page.locator('[data-environment-field="confirm-intent"]').check();await page.evaluate(()=>{const prepare=fixture.adapter.prepareExperiment;fixture.adapter.prepareExperiment=async args=>{const value=await prepare(args);value.prepared.plan_id='d'.repeat(64);value.prepared.submission_key='experiment-'+value.prepared.plan_id;fixture.saved=value;return value;};});await button('准备实验').click();await page.waitForFunction(()=>wizard.controller.state.run.status==='idle');assert.equal(await page.locator('[data-environment-rejection]').count(),0);assert.equal(await button('提交仿真任务').isEnabled(),true);assert.equal(await page.evaluate(()=>fixture.calls.some(call=>call.method==='runPrepared')),false);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    await page.evaluate(()=>wizard.destroy());assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
   }finally{await browser.close();}
 });

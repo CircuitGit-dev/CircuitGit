@@ -1,6 +1,7 @@
 // Onboarding owns a transport and receipt scope independently of any AI session.
-import {createNodeClient,ONBOARDING_OPERATIONS} from './client.js';
+import {createNodeClient,ONBOARDING_OPERATIONS,onboardingRequestTimeout} from './client.js';
 import {pairLocal,LOCAL_CONNECTOR} from './pair.js';
+import {validatePreDispatchRejection} from '../../../modules/simulation/environment/submission.js';
 
 const PREFIX='/simulation/onboarding',PENDING_KEY='circuitgit.onboarding.pending.v1';
 const clone=value=>structuredClone(value);
@@ -98,17 +99,19 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     const operation=ONBOARDING_OPERATIONS[name];
     if(!transport||!connectionId)throw failure('请先连接仿真环境。','onboarding_disconnected');
     const generation=epoch,scope=connectionId,client=transport,input=clone(args||{});
+    const originalIntake=clone(sessions.get(input.intake_id));let originalPending=null;
     if(typeof input!=='object'||Array.isArray(input))throw failure('环境操作参数无效。','invalid_input');
     if(!['inspectNetlist','listSshAliases'].includes(name)&&!intakes.has(input.intake_id))throw failure('此网表不属于当前连接中已导入或恢复的会话。','intake_scope_mismatch');
-    let path=PREFIX+operation.path,options={method:operation.method};
+    let path=PREFIX+operation.path,options={method:operation.method,timeout:onboardingRequestTimeout(name,input,sessions.get(input.intake_id))};
     if(operation.query){if(Object.keys(input).length!==operation.query.length||operation.query.some(key=>!opaque(input[key])))throw failure('请提供原始请求身份。','invalid_input');path+='?'+new URLSearchParams(input);}
     else if(operation.method==='GET'){if(Object.keys(input).length)throw failure('本地 SSH 列表不接受过滤或路径参数。','invalid_input');}
     else options.body=input;
     if(name==='probeHost'&&(!Array.isArray(input.ssh_targets)||!input.ssh_targets.length||!input.ssh_targets.every(opaque)))throw failure('请明确选择需要探测的 SSH 主机。','invalid_input');
+    if(name==='runPrepared'&&originalIntake?.state==='pre_dispatch_rejected'&&originalIntake.prepared?.plan_id===input.plan_id)throw failure('此原计划已被拒绝；请明确准备新计划，不得重放原提交。','replay_forbidden');
     if(['prepareExperiment','runPrepared'].includes(name)){
       const phase=name==='runPrepared'?'run':'prepare',record=checkedPending({schema:'ic.onboarding.pending.v1',connectionId:scope,intake_id:input.intake_id,revision:input.revision,phase,plan_id:phase==='run'?input.plan_id:null,submission_key:phase==='run'?'experiment-'+input.plan_id:null,createdAt:new Date().toISOString()});
       const key=pendingKey(record);if(attempted.has(key))throw failure('此操作已有原请求；请读取原会话或提交回执，不能重新发送。','replay_forbidden');
-      await pendingStore.put(record);if(generation!==epoch||scope!==connectionId)throw failure('连接已变化；原请求保留，未发送。','connection_changed');attempted.add(key);
+      originalPending=await pendingStore.put(record);if(generation!==epoch||scope!==connectionId)throw failure('连接已变化；原请求保留，未发送。','connection_changed');attempted.add(key);
     }
     try{
       const result=await client.request(path,options);
@@ -124,7 +127,26 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
         const advances=['probeHost','discoverPdk','prepareExperiment','runPrepared'].includes(name);
         if(result?.schema!=='ic.onboarding.session.v1'||result.connection_id!==storeIdentity||result.intake_id!==input.intake_id||!Number.isInteger(result.revision)||result.revision<0||advances&&result.revision!==input.revision+1)throw failure('助手返回了不同的会话或版本；请核对原会话。','invalid_session_identity');
       }
-      if(['runPrepared','inspectExperiment'].includes(name)){
+      const rejectionClaim=name==='runPrepared'?(result?.state==='pre_dispatch_rejected'||result?.submission?.dispatch_outcome==='pre_dispatch_rejected'||!!result?.submission?.rejection):
+        name==='readSubmission'&&(result?.dispatch_outcome==='pre_dispatch_rejected'||!!result?.rejection);
+      if(rejectionClaim){
+        try{
+          if(name==='runPrepared'&&(result.state!=='pre_dispatch_rejected'||result.job!==null||result.source_sha256!==originalIntake?.source_sha256))throw Error('Unexpected run rejection envelope');
+          if(name==='readSubmission'){
+            const rows=await pendingStore.load({connectionId:scope});
+            if(generation!==epoch||scope!==connectionId)throw failure('连接已变化；原请求继续保留。','connection_changed');
+            originalPending=rows.find(row=>row.phase==='run'&&row.intake_id===input.intake_id&&row.plan_id===input.plan_id)||null;
+          }
+          const submission=name==='runPrepared'?result.submission:result;
+          const verification={intake:originalIntake,plan:originalIntake?.prepared,pending:originalPending,connectionId:scope};
+          validatePreDispatchRejection(submission,verification);
+          if(name==='runPrepared')validatePreDispatchRejection(submission,{...verification,intake:result});
+          if(originalPending)attempted.add(pendingKey(originalPending));
+        }catch(problem){
+          const unknown=failure('提交前拒绝回执尚未通过原计划核对；继续保留原请求，不得重新提交。','transport_unknown');unknown.cause=problem;throw unknown;
+        }
+      }
+      if(['runPrepared','inspectExperiment'].includes(name)&&!rejectionClaim){
         const job=result.job;
         if(job?.schema!=='ic.experiment.job.v1'||!opaque(job.job_id)||job.job_id!==job.run_id||
            name==='runPrepared'&&job.plan_id!==input.plan_id||name==='inspectExperiment'&&job.job_id!==input.job_id)
@@ -183,7 +205,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     async function read(operation,run,params={},options){
       checkRun(run);checkAbort(options);
       const query=new URLSearchParams({intake_id,job_id:job.job_id,...params});
-      const response=await client.request(PREFIX+'/waveforms/'+operation+'?'+query,{method:'GET'});
+      const response=await client.request(PREFIX+'/waveforms/'+operation+'?'+query,{method:'GET',timeout:20000});
       current();checkAbort(options);
       const fields=['intake_id','job_id','run_id','source_commit','archive_sha256','original_source_sha256','compiled_source_sha256','compiled_source_path','transformation'];
       requireValue(response?.schema==='ic.onboarding.waveforms.v1'&&response.operation===operation&&fields.every(key=>response[key]===descriptor[key])&&

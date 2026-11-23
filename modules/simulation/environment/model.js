@@ -2,6 +2,7 @@
 // No URL construction, historical configuration, SSH or model call lives here.
 import {indexSpectre} from '../../schematic/netlist.js';
 import {literalDimensions} from '../../schematic/instance-properties.js';
+import {validatePreDispatchRejection} from './submission.js';
 
 const clone=value=>structuredClone(value);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
@@ -16,6 +17,7 @@ const numerics=['supply_v','frequency_hz','temperature_c','nominal_temperature_c
 export const intentFields=[...ports,...numerics];
 const emptyIntent=()=>Object.fromEntries(intentFields.map(key=>[key,'']));
 const endpoint=value=>text(value,240)&&value.length>0&&value.trim()===value&&!/[\s\0]/.test(value)&&!value.startsWith('-');
+const rejectionTagged=value=>value?.dispatch_outcome==='pre_dispatch_rejected'||object(value)&&Object.hasOwn(value,'rejection');
 
 export function onboardingWaveformsAvailable({intake,job:receipt}={}){
   const value=receipt?.waveforms;
@@ -99,7 +101,7 @@ function pendingRecord(value,connectionId){
 
 export function createEnvironmentController({adapter=null,pendingStore=null,changed=()=>{},onRun=()=>{}}={}){
   let disposed=false,epoch=0,source=null,unsubscribe=null,restoring=null;
-  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,preparation:step(),run:step(),pending:[],storageError:null,storageReady:false,busy:null};
+  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,preparation:step(),run:step(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
   const emit=()=>{if(!disposed)changed();};
   const has=name=>typeof adapter?.[name]==='function';
   const connected=()=>state.connection.connected&&id(state.connection.connectionId);
@@ -107,6 +109,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   const store=()=>pendingStore||adapter?.pendingStore;
   const requireAdapter=name=>{if(!has(name)||!sameConnection())throw Error('请连接原环境服务；当前连接不能使用这份 intake。');};
   const notifyRun=async receipt=>{try{await onRun(receipt);}catch(error){state.run.notificationError=message(error);}};
+  const rememberRejection=receipt=>{if(!state.rejectedSubmissionKeys.includes(receipt.submission_key))state.rejectedSubmissionKeys.push(receipt.submission_key);};
   const locked=()=>!!state.busy||!!state.pending.length||!!state.storageError||(connected()&&!state.storageReady)||state.preparation.status==='unknown'||state.run.status==='unknown';
   const editable=()=>{if(disposed||locked())throw Error('请先核对原请求；当前输入与重复提交已暂停。');};
   const clearPrepared=()=>{state.intentConfirmed=false;state.preparation=step();state.run=step();};
@@ -136,7 +139,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   async function action(name,target,fn,{uncertain=false}={}){
     if(disposed||state.busy)throw Error('已有步骤正在处理。');
     const ticket=epoch,connectionId=state.connection.connectionId;state.busy=name;target.status='loading';target.error=null;emit();
-    try{const value=await fn();if(disposed||ticket!==epoch||connectionId!==state.connection.connectionId)throw Error('连接已变化，响应不能用于当前向导。');target.result=value;target.status='complete';return value;}
+    try{const value=await fn();if(disposed||ticket!==epoch||connectionId!==state.connection.connectionId)throw Error('连接已变化，响应不能用于当前向导。');if(target===state.run&&value?.dispatch_outcome==='pre_dispatch_rejected'){target.result=null;target.rejection=value;target.status='rejected';}else{target.result=value;target.status='complete';}return value;}
     catch(error){if(!disposed&&ticket===epoch){target.status=(typeof uncertain==='function'?uncertain():uncertain)?'unknown':'error';target.error=message(error);}throw error;}
     finally{if(!disposed&&ticket===epoch){state.busy=null;emit();}}
   }
@@ -174,7 +177,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     requireAdapter(record.phase==='run'?'readSubmission':'getSession');pendingRecord(record,state.connection.connectionId);
     if(!state.pending.some(item=>JSON.stringify(item)===JSON.stringify(record)))throw Error('仅能恢复此连接保存的原请求。');
     if(state.session&&state.session.intake_id!==record.intake_id)throw Error('请使用原 intake 对应的向导，不能替换当前网表。');
-    const target=record.phase==='run'?state.run:state.preparation;
+    const target=record.phase==='run'?state.run:state.preparation,cachedIntake=state.session,cachedPlan=state.preparation.result?.prepared||cachedIntake?.prepared;
     return action('reconcile',target,async()=>{
       const current=session(await guarded(()=>adapter.getSession({intake_id:record.intake_id})),state.session);
       if(current.intake_id!==record.intake_id||current.revision<record.revision)throw Error('保存的会话与原请求身份不一致。');
@@ -185,6 +188,13 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       }
       const lookup=await guarded(()=>adapter.readSubmission({intake_id:record.intake_id,plan_id:record.plan_id}));
       if(lookup?.submission_key!==record.submission_key||lookup.replay_permitted!==false)throw Error('原提交映射身份不一致。');
+      if(rejectionTagged(lookup)){
+        if(current.state!=='pre_dispatch_rejected'||current.job!==null)throw Error('原请求的提交前拒绝回执与保存状态不一致。');
+        prepared(current);const plan=cachedPlan||current.prepared;
+        const receipt=validatePreDispatchRejection(lookup,{intake:cachedIntake||current,plan,pending:record,connectionId:state.connection.connectionId});
+        validatePreDispatchRejection(receipt,{intake:current,plan,pending:record,connectionId:state.connection.connectionId});
+        state.preparation={status:'complete',result:current,error:null};hydrate(current);await resolved(record);rememberRejection(receipt);return receipt;
+      }
       if(!lookup.found)throw Error('尚未找到原提交映射；保留原键，禁止重新提交。');
       prepared(current);if(current.prepared.plan_id!==record.plan_id||current.prepared.submission_key!==record.submission_key)throw Error('保存计划不是原提交计划。');
       const receipt=job(lookup.job,current.prepared,null,current.execution_scope);
@@ -225,11 +235,20 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     async prepare(){
       editable();requireAdapter('prepareExperiment');if(!candidate()||!state.intentConfirmed||!api.intentReady||(candidate().available_sections.length&&!state.sections.length))throw Error('请明确选择 PDK、section 并确认完整实验条件。');
       const args={...identity(),discovery_id:state.discovery.result.discovery.discovery_id,candidate_id:state.candidateId,sections:clone(state.sections),tmi_candidate_id:state.tmiCandidateId,model_contracts:clone(state.modelContracts),intent:intentValue()};
-      return action('prepare',state.preparation,async()=>{const record=await persist('prepare');const result=prepared(session(await guarded(()=>adapter.prepareExperiment(args)),state.session,{mutating:true}),state.targets);acceptSession(result);await resolved(record);return result;},{uncertain:()=>state.pending.some(record=>record.phase==='prepare')});
+      return action('prepare',state.preparation,async()=>{const record=await persist('prepare');const result=prepared(session(await guarded(()=>adapter.prepareExperiment(args)),state.session,{mutating:true}),state.targets);acceptSession(result);await resolved(record);state.run=step();return result;},{uncertain:()=>state.pending.some(record=>record.phase==='prepare')});
     },
     async runPrepared(){
-      editable();requireAdapter('runPrepared');const plan=state.preparation.result?.prepared;if(state.run.status!=='idle'||state.preparation.status!=='complete'||plan?.state!=='prepared'||!state.intentConfirmed)throw Error('请先准备实验；已有请求不会重复提交。');
-      const args={...identity(),plan_id:plan.plan_id};return action('run',state.run,async()=>{const record=await persist('run');const response=session(await guarded(()=>adapter.runPrepared(args)),state.session,{mutating:true});const receipt=job(response.job,plan,null,state.preparation.result.execution_scope);acceptSession(response);await resolved(record);await notifyRun(receipt);return receipt;},{uncertain:()=>state.pending.some(record=>record.phase==='run')});
+      editable();requireAdapter('runPrepared');const plan=state.preparation.result?.prepared;if(state.run.status!=='idle'||state.preparation.status!=='complete'||plan?.state!=='prepared'||!state.intentConfirmed||state.rejectedSubmissionKeys.includes(plan.submission_key))throw Error('请先准备实验；已有请求或已拒绝计划不会重复提交。');
+      const args={...identity(),plan_id:plan.plan_id},cachedIntake=clone(state.session);return action('run',state.run,async()=>{
+        const record=await persist('run'),response=session(await guarded(()=>adapter.runPrepared(args)),state.session,{mutating:true});
+        if(response.state==='pre_dispatch_rejected'||rejectionTagged(response.submission)){
+          if(response.state!=='pre_dispatch_rejected'||response.job!==null)throw Error('提交前拒绝响应与完整 session 状态不一致。');
+          const receipt=validatePreDispatchRejection(response.submission,{intake:cachedIntake,plan,pending:record,connectionId:state.connection.connectionId});
+          validatePreDispatchRejection(receipt,{intake:response,plan,pending:record,connectionId:state.connection.connectionId});
+          acceptSession(response);await resolved(record);rememberRejection(receipt);return receipt;
+        }
+        const receipt=job(response.job,plan,null,state.preparation.result.execution_scope);acceptSession(response);await resolved(record);await notifyRun(receipt);return receipt;
+      },{uncertain:()=>state.pending.some(record=>record.phase==='run')});
     },
     restore,loadPending,
     restoreSelected(){
@@ -238,8 +257,12 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       return action('restore',state.intake,async()=>{
         const current=session(await guarded(()=>adapter.getSession({intake_id:selected})),state.session);if(current.intake_id!==selected)throw Error('返回的会话不是当前连接选中的 intake。');
         if(current.prepared)prepared(current);if(current.job)job(current.job,current.prepared,null,current.execution_scope);
+        let rejection=null;if(current.state==='pre_dispatch_rejected'||rejectionTagged(current.submission)){
+          if(current.state!=='pre_dispatch_rejected'||current.job!==null)throw Error('保存的提交前拒绝状态不完整。');
+          rejection=validatePreDispatchRejection(current.submission,{intake:current,plan:current.prepared});
+        }
         state.session=current;state.boundConnectionId=state.connection.connectionId;hydrate(current);
-        state.preparation=current.prepared?{status:'complete',result:current,error:null}:step();state.run=current.job?{status:'complete',result:clone(current.job),error:null}:step();
+        state.preparation=current.prepared?{status:'complete',result:current,error:null}:step();state.run=rejection?{status:'rejected',result:null,error:null,rejection}:current.job?{status:'complete',result:clone(current.job),error:null}:step();if(rejection)rememberRejection(rejection);
         return current;
       });
     },
