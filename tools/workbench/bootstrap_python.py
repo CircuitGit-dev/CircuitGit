@@ -24,6 +24,9 @@ REQUIRED_MODULES = (
     'spiceowl.onboarding.pdk_discovery',
     'spiceowl.onboarding.environment',
     'spiceowl.onboarding.ssh_discovery',
+    'spiceowl.onboarding.agent_tb',
+    'spiceowl.onboarding.pdk_lut',
+    'adctoolbox', 'numpy', 'scipy',
     'spiceowl.experiments',
     'spiceowl.integrations.circuitgit_pool',
 )
@@ -43,7 +46,7 @@ if sys.version_info[:2] >= (3, 11) and sys.prefix != sys.base_prefix:
             modules[name] = str(pathlib.Path(module.__file__).resolve())
         out['dependency'] = {'direct_url': direct,
             'location': str(pathlib.Path(dist.locate_file('')).resolve()),
-            'modules': modules}
+            'modules': modules, 'adctoolbox_version': importlib.metadata.version('adctoolbox')}
     except Exception as error:
         out['dependency_error'] = type(error).__name__
 print(json.dumps(out))
@@ -123,6 +126,7 @@ def pinned(observation, environment, pin):
                 and direct.get('url') == pin['repository']
                 and vcs.get('vcs') == 'git' and vcs.get('commit_id') == pin['commit']
                 and vcs.get('requested_revision') == pin['commit']
+                and dependency.get('adctoolbox_version') == '0.9.3'
                 and within(dependency['location'], prefix)
                 and all(within(dependency['modules'][name], prefix)
                         for name in REQUIRED_MODULES))
@@ -236,7 +240,7 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None):
         progress('安装锁定的 SpiceOwl ' + pin['commit'][:12] + '（首次需要网络）…')
         checked([python, '-I', '-B', '-m', 'pip', 'install', '--no-input',
                  '--disable-pip-version-check', '--no-cache-dir', '--force-reinstall',
-                 'git+' + pin['repository'] + '@' + pin['commit']],
+                 'spiceowl[adctools] @ git+' + pin['repository'] + '@' + pin['commit']],
                 '安装 SpiceOwl', run, root, 900)
         if not pinned(probe(python, run), environment, pin):
             raise BootstrapError('安装后校验失败：Python、SpiceOwl commit 或必需模块与锁定值不符；未启动应用。')

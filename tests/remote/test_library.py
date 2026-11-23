@@ -52,7 +52,7 @@ class DirectAuthorizationTests(unittest.TestCase):
         self.assertEqual(self.library.activity()['running_actions'],0)
         self.assertEqual(self.library.tickets,{})
         capability=self.library.read('capability',{},self.token,self.origin)
-        self.assertEqual(capability['human_review'],'not-required')
+        self.assertEqual(capability['human_review'],'required-for-testbench-registration')
         self.assertIn('save_files',capability['execute_operations'])
         self.assertIn('catalog',capability['operations'])
 

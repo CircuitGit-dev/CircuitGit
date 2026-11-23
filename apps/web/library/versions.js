@@ -8,6 +8,7 @@ export const receiptReleased=value=>['complete','completed','succeeded','rejecte
 export function writable(description,scope,operation){return !!scope&&description?.library_id===scope.library_id&&description?.cell_id===scope.cell_id&&description?.capabilities?.[operation]===true;}
 export function publishedCell(value,scope){return value?.cells?.find(cell=>cell.library_id===scope.library_id&&cell.cell_id===scope.cell_id&&cell.directory===scope.directory)||null;}
 export function commitDraft(scope,changes){const paths=(changes||[]).map(item=>item.path);return {title:`更新 ${scope.cell||scope.cell_id}${paths.length?' · '+paths.length+' 个文件':''}`,body:paths.map(path=>'• '+path).join('\n')};}
+export const testbenchExecutionLabel=status=>({passed:'已运行命名分析并满足验收条件',failed:'已运行命名分析，未满足验收条件',invalid:'分析或验收数据无效',unknown:'分析结果尚未确认；保留原请求，未自动重跑',not_run:'尚未运行 CI'}[status]||'CI 状态尚未确认');
 export function createPublishedHistoryLoader({fetcher=fetch,url=new URL('../library-files/lib/history.json',import.meta.url)}={}){return async(scope,{signal}={})=>{const response=await fetcher(url,{signal,credentials:'omit',redirect:'error'});if(!response.ok)throw Error('当前发布尚未包含电路历史。');const data=await response.json();return publishedCell(data,scope);};}
 
 export function textDiff(before,after){
@@ -34,7 +35,7 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
   const css=node('link');css.rel='stylesheet';css.href=new URL('./versions.css',import.meta.url).href;document.head.append(css);
   const root=node('section',undefined,'cg-cell-versions');root.setAttribute('aria-label','电路版本管理');element.replaceChildren(root);
   let scope=null,generation=0,fileGeneration=0,disposed=false,abort=null,loading=false,busy=false,tab='files',description=null,current=null,history=[],checkpoints=[],ci=null,published=null,detail=null,editor=null,error='',message='',unknown=null;
-  let activated=!deferLoad,activating=false;
+  let activated=!deferLoad,activating=false,reviewLink=null;
   const drafts=new Map(),pending=createPendingStore(pendingStorage);let unwatch=null,lastFingerprint=null;let title='',body='',lastPR=null,lastPRBranch='',remotePR=null;
   const connected=()=>bridge?.getState?.()?.connected===true;
   const allowed=operation=>connected()&&!unknown&&writable(description,scope,operation);
@@ -104,13 +105,27 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
   async function checkPR(){const ticket=generation,branch=lastPRBranch;if(busy||!branch)return;busy=true;render();try{const result=await read('pr_status',{branch});if(ticket===generation)remotePR=result;}catch(e){if(ticket===generation)error=e.message;}finally{if(ticket===generation){busy=false;render();}}}
   function renderCI(){
     if(!ci){root.append(note(connected()?'当前节点未返回此单元的 CI 配置。':'连接本机节点后可查看和配置此单元的 Testbench CI。'));return;}
+    if((ci.testbenches||[]).length){
     const selected=new Set(ci.config?.testbench_ids||[]),enabled=node('input');enabled.type='checkbox';enabled.checked=ci.config?.enabled===true;enabled.disabled=busy||!allowed('ci');const label=node('label',undefined,'cg-cv-check');label.append(enabled,document.createTextNode('启用 Testbench CI'));root.append(label);
     const choices=[];for(const tb of ci.testbenches||[]){const input=node('input');input.type='checkbox';input.value=tb.id;input.checked=selected.has(tb.id);input.disabled=busy||!allowed('ci')||tb.available===false;choices.push(input);const line=node('label',undefined,'cg-cv-check');line.append(input,document.createTextNode(tb.label||tb.id));root.append(line,note([tb.engine,tb.configuration_path,tb.workflow_path,tb.requires_external_models?'需要外部模型':null,tb.available===false?'当前不可用':null].filter(Boolean).join(' · ')));}
     if(!choices.length)root.append(note('此单元尚未注册可选 Testbench。'));
     root.append(button('保存 CI 配置',()=>execute('ci',{enabled:enabled.checked,testbench_ids:choices.filter(x=>x.checked).map(x=>x.value),base_sha256:ci.sha256??null}),busy||!allowed('ci')),
       note('这里保存 Testbench 与工作流配置。保存配置不会证明仿真或 CI 已运行。'));
+    }
     if(ci.status||ci.runs)root.append(pre(JSON.stringify({status:ci.status,runs:ci.runs},null,2),'CI 状态'));
+    renderAgentTestbenches(ci.agent_testbenches);
   }
+  function digestDetails(binding){const box=node('details');box.append(node('summary','核对版本与内容摘要'));const labels={source_commit:'电路基线提交',source_sha256:'电路内容',testbench_sha256:'Testbench',analysis_sha256:'分析脚本',manifest_sha256:'实验配置',criteria_sha256:'验收条件'};for(const [name,label]of Object.entries(labels)){const value=binding?.[name];if(value)box.append(note(label),node('code',value,'cg-cv-digest'));}return box;}
+  function renderAgentTestbenches(data){
+    root.append(node('strong','Agent Testbench CI'),note('Agent 提供完整测试电路、分析脚本和验收条件；审阅后注册为当前单元的 Git 版本。注册不会提交远端仿真。'));
+    if(!data){root.append(note('当前节点尚未提供 Agent Testbench CI。'));return;}
+    for(const tb of data.bundles||[]){const card=node('section',undefined,'cg-cv-testbench');card.append(node('strong',tb.title||tb.id),note(`${tb.id} · 注册提交 ${short(tb.registration_commit)}`),note(tb.source_matches?'源电路与审阅版本一致':'源电路已变化，需要重新审阅此测试包',tb.source_matches?'cg-cv-note':'cg-cv-error'),note(testbenchExecutionLabel(tb.execution_status)),digestDetails(tb.binding));if(tb.latest_result){const result=node('details');result.append(node('summary',`结果 · ${tb.latest_result.job_id||''}`),pre(JSON.stringify(tb.latest_result.evaluation,null,2),'CI 验收结果'),note(`分析 ${tb.latest_result.analysis_id||'—'} · 结果 ${tb.latest_result.result_id||'—'}`));card.append(result);}card.append(note('分析采用已注册的 SpiceOwl 算法；Python 脚本保留供审阅，不作为任意命令执行。'));root.append(card);}
+    if(!(data.bundles||[]).length)root.append(note('此单元尚未注册 Agent 测试包。'));
+    for(const proposal of data.proposals||[]){if(['complete','completed'].includes(proposal.state))continue;const card=node('section',undefined,'cg-cv-testbench');card.append(node('strong',proposal.title||proposal.id),note(`待审阅 · ${proposal.id} · ${short(proposal.base_commit)}`),digestDetails(proposal.binding));for(const file of proposal.per_file_diffs||[]){const detail=node('details');detail.append(node('summary',file.path),pre(file.diff,'测试包文件差异 '+file.path));card.append(detail);}card.append(button('打开完整审阅',()=>reviewTestbench(proposal),busy||!allowed('testbench_review')||proposal.source_matches!==true));if(proposal.source_matches!==true)card.append(note('源电路或基线已更新，请 Agent 重新生成审阅。','cg-cv-error'));root.append(card);}
+    if(reviewLink){const a=node('a','前往人工审阅页面 ↗');a.href=reviewLink.url;a.target='_blank';a.rel='noopener';root.append(row(a,button('核对审阅结果',checkTestbenchReview,busy)));}
+  }
+  async function reviewTestbench(proposal){const ticket=generation;busy=true;error='';render();try{const result=await bridge.request('review_testbench',{...args(),review_id:proposal.review_id});if(ticket!==generation||disposed)return;const url=new URL(result.url);if(!['http:','https:'].includes(url.protocol)||!['localhost','127.0.0.1','[::1]'].includes(url.hostname)||url.pathname!=='/library/review'||typeof result.ticket!=='string')throw Error('审阅页面身份无效。');reviewLink={ticket:result.ticket,url:url.href};message='完整冻结差异已准备，请在人工审阅页面确认。';}catch(e){if(ticket===generation)error=e.message;}finally{if(ticket===generation){busy=false;render();}}}
+  async function checkTestbenchReview(){if(!reviewLink||busy)return;const ticket=generation;busy=true;error='';render();try{const result=await bridge.request('review_status',{ticket:reviewLink.ticket});if(ticket!==generation||disposed)return;if(['complete','completed'].includes(result.state)){reviewLink=null;message='Testbench CI 已注册并保存为电路 Git 版本；尚未运行仿真。';busy=false;await refresh({liveOnly:true});}else message=({pending:'仍在等待人工审阅。',denied:'本次注册已取消。',expired:'审阅已过期，请重新打开完整审阅。',unknown:'注册结果尚未确认，保留原审阅请求。',running:'正在注册，请稍后核对原请求。'}[result.state]||'审阅结果尚未确认。');}catch(e){if(ticket===generation)error=e.message;}finally{if(ticket===generation){busy=false;render();}}}
   async function openFile(path,{discard=false}={}){
     if(busy||!scope)return;repositoryPath(path);if(!files().some(file=>file.path===path))throw Error('文件不在当前单元清单内。');
     const ticket=generation,fileTicket=++fileGeneration;loading=true;error='';render();
@@ -175,7 +190,7 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
     }else{description=null;current=null;checkpoints=[];ci=null;}
     unknown=pending.find(scope,description?.repository);lastFingerprint=current?.fingerprint||current?.revision||lastFingerprint;loading=false;render();if(tab==='files'){const path=editor?.path||scope.entry;if(files().some(file=>file.path===path))await openFile(path);}
   }
-  function change(){const next=getSelection();if(key(next)===key(scope))return;scope=next;generation++;abort?.abort();description=current=published=detail=editor=ci=null;history=[];checkpoints=[];unknown=pending.find(scope);lastPR=null;lastPRBranch='';remotePR=null;title=body=error=message='';busy=loading=false;render();watchScope();if(scope&&activated)void refresh();}
+  function change(){const next=getSelection();if(key(next)===key(scope))return;scope=next;generation++;abort?.abort();reviewLink=null;description=current=published=detail=editor=ci=null;history=[];checkpoints=[];unknown=pending.find(scope);lastPR=null;lastPRBranch='';remotePR=null;title=body=error=message='';busy=loading=false;render();watchScope();if(scope&&activated)void refresh();}
   const offSelection=subscribeSelection(change),offBridge=bridge?.subscribe?.(()=>{description=null;current=null;editor=null;detail=null;generation++;busy=false;unknown=pending.find(scope);if(activated)void refresh();else render();});
   const offMutation=bridge?.subscribeMutation?.(event=>{if(scope?.library_id!==event.args.library_id||scope?.cell_id!==event.args.cell_id||disposed)return;void onSourceChange(event);if(!busy&&!loading&&activated)void refresh({liveOnly:true});});change();render();
   async function activate(){if(activated||activating||disposed)return;activating=true;try{await onActivate();if(disposed)return;activated=true;change();watchScope();if(scope&&!loading)await refresh();}catch(e){fail(e);}finally{activating=false;}}

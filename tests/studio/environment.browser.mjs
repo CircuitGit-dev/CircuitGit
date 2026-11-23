@@ -2,12 +2,12 @@
 // real PDK, model request, HTTP listener or historical runtime data is used.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,mkdir} from 'node:fs/promises';
+import {readFile,mkdir,readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
-const files=['modules/simulation/environment/model.js','modules/simulation/environment/submission.js','modules/simulation/environment/panel.js','modules/simulation/environment/style.css','modules/simulation/style.css','modules/simulation/report.js','modules/schematic/netlist.js','modules/schematic/instance-properties.js','tests/studio/environment.fixture.mjs'];
+const files=[...(await readdir(resolve(root,'modules/simulation/environment'))).filter(file=>/\.(js|css)$/.test(file)).map(file=>'modules/simulation/environment/'+file),'modules/simulation/style.css','modules/simulation/report.js','modules/schematic/netlist.js','modules/schematic/instance-properties.js','tests/studio/environment.fixture.mjs'];
 const assets=new Map(await Promise.all(files.map(async path=>['/'+path,await readFile(resolve(root,path),'utf8')])));
 const html=`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/modules/simulation/style.css"><style>body{margin:0}.ic-sim-panel{padding:10px;box-sizing:border-box;min-width:0}input,select,textarea{box-sizing:border-box}button{max-width:100%}</style><div class="ic-sim-panel"><div id="environment"></div></div><script type="module">
 import {mountEnvironmentWizard} from '/modules/simulation/environment/panel.js';
@@ -27,7 +27,7 @@ test('environment wizard explicitly chooses source, hosts, PDK and complete inte
   const button=label=>page.getByRole('button',{name:label,exact:true}),field=key=>page.locator(`[data-environment-field="${key}"]`);
   const change=async(key,value)=>{await field(key).fill(value);await field(key).press('Tab');};
   try{
-    await page.goto('https://environment.test/');await button('导入当前网表').waitFor();
+    await page.goto('https://environment.test/');await button('导入当前网表').waitFor();await field('import-mode').selectOption('legacy');
     assert.equal(await page.evaluate(()=>currentSourceReads),0);assert.deepEqual(await page.evaluate(()=>fixture.calls),[]);assert.equal(await field('intent-supply_v').inputValue(),'');assert.equal(await field('intent-nominal_temperature_c').inputValue(),'');
     await button('导入当前网表').click();await page.waitForFunction(()=>wizard.controller.state.intake.status==='complete');assert.equal(await page.evaluate(()=>currentSourceReads),1);
     await page.locator('summary').filter({hasText:'器件、尺寸与连接节点'}).click();assert.match(await page.locator('.ic-env-devices').innerText(),/\(W\*2\)/);assert.match(await page.locator('.ic-env-devices').innerText(),/LVAR/);
@@ -71,7 +71,7 @@ test('compact recommendation confirms one preparation and run while advanced cho
   await page.route('**/*',async route=>{const url=new URL(route.request().url());if(url.origin!=='https://environment.test'||url.pathname!=='/'&&!assets.has(url.pathname)){unexpected.push(url.href);return route.abort();}await route.fulfill({contentType:url.pathname==='/'?'text/html':url.pathname.endsWith('.css')?'text/css':'text/javascript',body:url.pathname==='/'?html:assets.get(url.pathname)});});
   const button=label=>page.getByRole('button',{name:label,exact:true});
   try{
-    await page.goto('https://environment.test/?recommend=1');await button('导入当前网表').click();await page.locator('[data-environment-field="ssh-targets"]').fill('synthetic-host');await page.locator('[data-environment-field="ssh-targets"]').press('Tab');await button('探测并匹配 PDK').click();await page.waitForFunction(()=>wizard.controller.state.discovery.status==='complete');
+    await page.goto('https://environment.test/?recommend=1');await page.locator('[data-environment-field="import-mode"]').selectOption('legacy');await button('导入当前网表').click();await page.locator('[data-environment-field="ssh-targets"]').fill('synthetic-host');await page.locator('[data-environment-field="ssh-targets"]').press('Tab');await button('探测并匹配 PDK').click();await page.waitForFunction(()=>wizard.controller.state.discovery.status==='complete');
     assert.equal(await button('确认并运行').isEnabled(),true);assert.match(await page.locator('[data-environment-recommendation]').innerText(),/Synthetic PDK candidate/);assert.equal(await page.locator('input[type="radio"]:checked').count(),0);assert.equal(await page.locator('[data-environment-detail="pdk-advanced"]').getAttribute('open'),null);assert.equal(await page.locator('[data-environment-detail="experiment-advanced"]').getAttribute('open'),null);assert.equal(await page.locator('.ic-env-candidate').isVisible(),false);assert.equal(await page.evaluate(()=>fixture.calls.some(call=>['prepareExperiment','runPrepared'].includes(call.method))),false);
     for(const width of [260,340,640]){await page.setViewportSize({width,height:1000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));if(process.env.EVIDENCE_DIR){await mkdir(process.env.EVIDENCE_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.EVIDENCE_DIR,`recommendation-${width}.png`),fullPage:true});}}
     await button('调整推荐参数').click();assert.equal(await page.locator('[data-environment-detail="pdk-advanced"]').getAttribute('open'),'');assert.equal(await page.locator('[data-environment-detail="experiment-advanced"]').getAttribute('open'),'');assert.equal(await page.locator('[data-environment-field="intent-supply_v"]').inputValue(),'0.8');await page.locator('[data-environment-field="intent-supply_v"]').fill('0.9');await page.locator('[data-environment-field="intent-supply_v"]').press('Tab');assert.equal(await page.evaluate(()=>wizard.controller.state.recommendationMode),false);await button('恢复当前推荐').click();assert.equal(await page.evaluate(()=>wizard.controller.state.recommendationMode),true);

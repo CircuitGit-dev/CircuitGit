@@ -2,6 +2,8 @@
 import {createNodeClient,ONBOARDING_OPERATIONS,onboardingRequestTimeout} from './client.js';
 import {pairLocal,LOCAL_CONNECTOR} from './pair.js';
 import {validatePreDispatchRejection} from '../../../modules/simulation/environment/submission.js';
+import {checkAnalysisResult} from '../../../modules/simulation/environment/analysis.js';
+import {onboardingRecovery,recoveryMessage} from '../../../modules/simulation/environment/recovery.js';
 
 const PREFIX='/simulation/onboarding',PENDING_KEY='circuitgit.onboarding.pending.v1';
 const clone=value=>structuredClone(value);
@@ -166,13 +168,23 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     const originalIntake=clone(sessions.get(input.intake_id));let originalPending=null;
     if(typeof input!=='object'||Array.isArray(input))throw failure('环境操作参数无效。','invalid_input');
     if(!['inspectNetlist','listSshAliases'].includes(name)&&!intakes.has(input.intake_id))throw failure('此网表不属于当前连接中已导入或恢复的会话。','intake_scope_mismatch');
+    if(onboardingRecovery(originalIntake)&&operation.method==='POST')throw failure(recoveryMessage(originalIntake),'recovery_required');
     let path=PREFIX+operation.path,options={method:operation.method,timeout:onboardingRequestTimeout(name,input,sessions.get(input.intake_id))};
     if(operation.query){if(Object.keys(input).length!==operation.query.length||operation.query.some(key=>!opaque(input[key])))throw failure('请提供原始请求身份。','invalid_input');path+='?'+new URLSearchParams(input);}
     else if(operation.method==='GET'){if(Object.keys(input).length)throw failure('本地 SSH 列表不接受过滤或路径参数。','invalid_input');}
     else options.body=input;
     if(name==='probeHost'&&(!Array.isArray(input.ssh_targets)||!input.ssh_targets.length||!input.ssh_targets.every(opaque)))throw failure('请明确选择需要探测的 SSH 主机。','invalid_input');
     if(name==='runPrepared'&&originalIntake?.state==='pre_dispatch_rejected'&&originalIntake.prepared?.plan_id===input.plan_id)throw failure('此原计划已被拒绝；请明确准备新计划，不得重放原提交。','replay_forbidden');
-    if(['prepareExperiment','runPrepared'].includes(name)){
+    if(name==='analyzeExperiment'){
+      const job=originalIntake?.job,operations=['spec_analyze','coherent_fft','sine_fit3','sine_fit4','weight_calibrate','reconstruct_codes','histogram_linearity','tran_metrics'];
+      requireValue(job?.job_id===input.job_id&&job.run_id===input.job_id&&job.source_commit===originalIntake.source_commit&&operations.includes(input.operation),
+        '分析必须绑定当前已保存任务与明确算法。','analysis_scope_mismatch');
+      const allowed=new Set(job.waveforms?.available_signal_ids||[]);
+      requireValue(input.inputs&&typeof input.inputs==='object'&&!Array.isArray(input.inputs)&&Object.entries(input.inputs).every(([key,value])=>
+        value==='@time'?key==='time_s':Array.isArray(value)?value.length>0&&value.every(id=>allowed.has(id)):allowed.has(value)),
+        '分析输入必须来自此任务的原始信号目录。','analysis_scope_mismatch');
+    }
+    if(['prepareExperiment','prepareAgentTestbench','runPrepared'].includes(name)){
       const phase=name==='runPrepared'?'run':'prepare',record=checkedPending({schema:'ic.onboarding.pending.v1',connectionId:scope,intake_id:input.intake_id,revision:input.revision,phase,plan_id:phase==='run'?input.plan_id:null,submission_key:phase==='run'?'experiment-'+input.plan_id:null,createdAt:new Date().toISOString()});
       const key=pendingKey(record);if(attempted.has(key))throw failure('此操作已有原请求；请读取原会话或提交回执，不能重新发送。','replay_forbidden');
       originalPending=await pendingStore.put(record);if(generation!==epoch||scope!==connectionId)throw failure('连接已变化；原请求保留，未发送。','connection_changed');attempted.add(key);
@@ -187,8 +199,8 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
         intakes.add(result.intake_id);
         selectedIntakeId=result.intake_id;publish();
       }
-      if(['getSession','probeHost','discoverPdk','prepareExperiment','runPrepared','inspectExperiment'].includes(name)){
-        const advances=['probeHost','discoverPdk','prepareExperiment','runPrepared'].includes(name);
+      if(['getSession','getAgentTestbench','probeHost','discoverPdk','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared','inspectExperiment'].includes(name)){
+        const advances=['probeHost','discoverPdk','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared'].includes(name);
         if(result?.schema!=='ic.onboarding.session.v1'||result.connection_id!==storeIdentity||result.intake_id!==input.intake_id||!Number.isInteger(result.revision)||result.revision<0||advances&&result.revision!==input.revision+1)throw failure('助手返回了不同的会话或版本；请核对原会话。','invalid_session_identity');
       }
       const rejectionClaim=name==='runPrepared'?(result?.state==='pre_dispatch_rejected'||result?.submission?.dispatch_outcome==='pre_dispatch_rejected'||!!result?.submission?.rejection):
@@ -220,15 +232,40 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
           result.submission_key!=='experiment-'+input.plan_id||result.replay_permitted!==false||typeof result.found!=='boolean'||
           result.found&&(result.job?.schema!=='ic.experiment.job.v1'||result.job.job_id!==result.run_id||result.job.run_id!==result.run_id||result.job.plan_id!==input.plan_id)))
         throw failure('提交回执与原会话或计划不一致。','invalid_submission_identity');
+      if(name==='analyzeExperiment')requireValue(result?.schema==='ic.onboarding.analysis.v1'&&result.intake_id===input.intake_id&&
+        result.job_id===input.job_id&&result.run_id===input.job_id&&result.source_commit===originalIntake.job.source_commit&&result.original_source_sha256===originalIntake.source_sha256&&
+        result.archive_sha256===originalIntake.job.waveforms?.archive_sha256&&hash(result.archive_sha256)&&hash(result.analysis_id)&&
+        result.input?.archive_sha256===result.archive_sha256&&hash(result.input?.csv_sha256)&&result.input.full_resolution===true&&result.input.display_downsampling_used===false&&
+        result.request?.operation===input.operation&&result.result?.operation===input.operation,
+        '分析结果的源码、任务或数据归档身份不一致。','analysis_scope_mismatch');
+      if(name==='analyzeExperiment')try{checkAnalysisResult(result,originalIntake);}catch{throw failure('分析原始数据来源或指标回执不完整。','analysis_scope_mismatch');}
       if(result?.schema==='ic.onboarding.session.v1'){sessions.set(result.intake_id,clone(result));publish();}
       return result;
     }catch(problem){
       if(generation!==epoch||scope!==connectionId)throw failure(operation.method==='POST'?'连接已变化；请用原身份核对结果，未重发。':'连接已变化；旧响应已丢弃。',operation.method==='POST'?'transport_unknown':'connection_changed');
+      if(name==='analyzeExperiment'&&problem.data?.code==='analysis_scope_mismatch')throw problem;
       if(operation.method==='POST'&&(!problem.status||problem.code==='response_size_limit'||problem.data?.code==='response_size_limit')&&!['replay_forbidden','connection_changed'].includes(problem.data?.code)){
         const unknown=failure('操作结果尚未确认；请在原连接中核对原会话或提交回执，不要重新发送。','transport_unknown');unknown.cause=problem;throw unknown;
       }
       throw problem;
     }
+  }
+  /** Human review is a separate local page; no approval decision is exposed as an agent operation. */
+  function openAgentTestbenchReview({intake_id,revision,review_id,review_digest,plan_id},{event}={}){
+    requireValue(event?.isTrusted===true,'请直接点击人工审阅按钮打开本机确认页面。','human_gesture_required');
+    const session=sessions.get(intake_id),review=session?.agent_tb_review;
+    requireValue(transport&&selectedIntakeId===intake_id&&session?.connection_id===storeIdentity&&session.revision===revision&&
+      review?.state==='pending'&&review.requires_human===true&&review.revision===revision&&review.review_id===review_id&&
+      review.review_digest===review_digest&&review.plan_id===plan_id&&session.prepared?.plan_id===plan_id,
+      '人工审阅计划已变化，请刷新并重新准备。','review_binding_changed');
+    const expected='/agent-tb/review?'+new URLSearchParams({intake_id,review_id});
+    requireValue(review.review_path===expected,'人工审阅路径与冻结身份不一致。','invalid_review_url');
+    requireValue(mode==='same-origin'||typeof review.review_url==='string','本机助手尚未提供审阅服务的完整地址。','invalid_review_url');
+    let url;try{url=new URL(review.review_url||review.review_path,endpoint);}catch{throw failure('本机人工审阅地址无效。','invalid_review_url');}
+    requireValue(url.protocol==='http:'&&url.hostname==='127.0.0.1'&&!url.username&&!url.password&&!url.hash&&url.pathname+url.search===expected,
+      '人工审阅仅能打开此计划的本机确认页面。','invalid_review_url');
+    const popup=win.open('about:blank','_blank');requireValue(popup,'请允许弹窗后重新打开人工审阅页面。','popup_blocked');
+    popup.opener=null;popup.location.replace(url.href);return {opened:true,intake_id,review_id,plan_id};
   }
   function waveformApi({intake_id,job}={}){
     requireValue(transport&&connectionId,'请先连接此实验原来的仿真环境。','onboarding_disconnected');
@@ -307,6 +344,6 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     });
   }
   const methods=Object.fromEntries(Object.keys(ONBOARDING_OPERATIONS).map(name=>[name,args=>request(name,args)]));
-  return Object.freeze({...methods,waveformApi,getState,connect,bindClient,unbindClient,adoptIntake,disconnect,pendingStore,
+  return Object.freeze({...methods,openAgentTestbenchReview,waveformApi,getState,connect,bindClient,unbindClient,adoptIntake,disconnect,pendingStore,
     getSessionState:()=>clone(sessions.get(selectedIntakeId)||null),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}});
 }

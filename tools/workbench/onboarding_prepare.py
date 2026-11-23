@@ -82,15 +82,19 @@ def create_child_config(folder,state,compiled_selection,hosts):
     """Write a new explicit source Git snapshot, local-only config and host pool."""
     root=folder/'prepared'/str(state['revision']);root.mkdir(parents=True,mode=0o700)
     seed=root/'source';seed.mkdir(mode=0o700)
-    compiled=compiled_selection['compiled'];source=compiled['source'];project=state['intake_id'];recipe='inverter-tran'
-    path=seed/source['source_id'];path.parent.mkdir(parents=True);path.write_text(source['text']);path.chmod(0o600)
+    compiled=compiled_selection['compiled'];source=compiled['source'];project=state['intake_id'];recipe=compiled.get('recipe_id','inverter-tran')
+    documents=compiled.get('documents') or {source['source_id']:source['text'].encode('utf-8')}
+    for name,raw in documents.items():
+        if not isinstance(name,str) or not name.startswith('projects/'+project+'/') or '..' in Path(name).parts or Path(name).is_absolute():
+            raise ValueError('Prepared source must belong to this explicit intake')
+        path=seed/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw);path.chmod(0o600)
     def git(*args):
         p=subprocess.run(['git','-c','core.hooksPath=/dev/null','-c','commit.gpgsign=false','-C',str(seed),*args],
             capture_output=True,timeout=20)
         if p.returncode:raise ValueError('New intake source snapshot could not be created')
         return p.stdout.decode().strip()
-    git('init','-b','main');git('add','--',source['source_id'])
-    git('-c','user.name=SpiceOwl local intake','-c','user.email=intake@localhost','commit','-m','Freeze explicitly supplied inverter source')
+    git('init','-b','main');git('add','--',*documents)
+    git('-c','user.name=SpiceOwl local intake','-c','user.email=intake@localhost','commit','-m','Freeze explicitly supplied circuit and experiment sources')
     commit=git('rev-parse','HEAD')
     from spiceowl.hosts import HostRegistry
     registry=HostRegistry(root/'resource-observations');members=[]
@@ -108,15 +112,17 @@ def create_child_config(folder,state,compiled_selection,hosts):
         'environment_pins':{host:{'cadence_setup':row['setup_sha256']} for host,row in hosts.items()}}
     cfg={'local_only':True,'github_repo':None,'seed_repo':str(seed),'runtime_root':str(root/'runtime'),
         'runtime_branch':'codex/intake','base_branch':'main','site_file':members[0]['site_file'],
-        'spiceowl_pool_file':str(root/'pool.json'),'projects':[{'id':project,'source_path':source['source_id'],'configurations':[]}],
+        'spiceowl_pool_file':str(root/'pool.json'),'projects':[{'id':project,'source_path':source['source_id'],
+            'read_paths':[name for name in documents if name!=source['source_id']],'configurations':[]}],
         'simulation_direct':{'enabled':True,'projects':[project],'hosts':list(hosts),'callers':['local-studio'],
             'operations':['prepare','run','inspect','runtime','watch','collect','status'],'resume_monitors':False},
-        'experiment_workflow':{'recipes':[{'id':recipe,'project_id':project,'source_paths':[source['source_id']],
+        'experiment_workflow':{'recipes':[{'id':recipe,'project_id':project,'source_paths':list(documents),
             'selection':compiled['selection'],'spec':compiled['spec'],'model_profile':'intake-model',
-            'host_ids':list(hosts),'qualification_checks':['soa_voltage','model_parameter_range']}],
+            'host_ids':list(hosts),'qualification_checks':['soa_voltage','model_parameter_range'] if recipe=='inverter-tran' else []}],
             'profiles':{'intake-model':profile}}}
     atomic(root/'configuration.json',cfg)
     atomic(root/'source-mapping.json',{'source_id':source['source_id'],'original_source_sha256':source['original_sha256'],
         'compiled_source_sha256':source['sha256'],'transformation':compiled['wrapper']['transformation'],
-        'wrapper':compiled['wrapper'],'source_commit':commit})
+        'wrapper':compiled['wrapper'],'source_commit':commit,
+        **({'file_sha256':{name:hashlib.sha256(raw).hexdigest() for name,raw in documents.items()}} if recipe=='agent-testbench' else {})})
     return cfg,root,commit

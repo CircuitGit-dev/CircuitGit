@@ -5,7 +5,7 @@ import re
 from .service import check
 
 READ_OPERATIONS = frozenset(('onboarding_ssh_hosts', 'onboarding_session', 'onboarding_submission',
-    'onboarding_waveforms_catalog', 'onboarding_waveforms_mapping', 'onboarding_waveforms_window'))
+    'onboarding_waveforms_catalog', 'onboarding_waveforms_mapping', 'onboarding_waveforms_window', 'onboarding_agent_tb', 'onboarding_source', 'onboarding_agent_tb_review'))
 BINDING_FIELDS = ('schema', 'connection_id', 'intake_id', 'revision', 'source_sha256')
 
 

@@ -6,7 +6,7 @@ import re
 import threading
 
 from .library_contracts import ARGS, READS, WRITES, SCHEMAS
-from .service import Failure, canonical, check
+from .service import Failure, canonical, check, validate
 
 CONFIG_KEYS = {'library_workspace', 'library_repository', 'library_access', 'library_state_dir',
                'library_base_branch', 'library_testbench_registry'}
@@ -111,6 +111,20 @@ class LibraryAdapter:
     def call(self, name, payload):
         try:
             check(name in SCHEMAS and isinstance(payload, dict), 'Unknown library tool')
+            if name == 'ic_library_analyze_testbench':
+                validate(SCHEMAS[name], payload)
+                owner, binding = self.owner()
+                check(binding['access'] == 'direct', 'Recording a Testbench CI result requires operator library access', 'library_read_only', 4)
+                from .library_analysis import run
+                return run(self.service, owner, payload)
+            if name == 'ic_library_propose_testbench':
+                check(len(canonical(payload).encode()) <= 2 * 1024 * 1024, 'Testbench proposal exceeds its bound')
+                validate(SCHEMAS[name], payload)
+                owner, binding = self.owner()
+                check(binding['access'] == 'direct', 'Preparing a Testbench CI proposal requires operator library access', 'library_read_only', 4)
+                result = owner.preview_testbench(**payload)
+                return {**result, 'human_review_required': True, 'registration_status': 'pending_review',
+                        'next_action': 'Review this exact proposal in the cell Testbench CI panel.'}
             execute = name == 'ic_library_execute'
             required = {'operation', 'arguments', 'idempotency_key'} if execute else {'operation', 'arguments'}
             check(set(payload) == required, 'Library tools require exact fields; no root/access/approval overrides')

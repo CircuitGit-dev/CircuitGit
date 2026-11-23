@@ -10,6 +10,8 @@ The optional [SpiceOwl simulation runtime](docs/standalone-simulation-runtime.md
 
 [Deterministic experiments](docs/deterministic-experiments.md) add registered prepare → run → inspect recipes: freeze the source, conditions and model dependencies before launch, then read five separate evidence dimensions in the existing report view. The guide includes a disabled synthetic configuration example for operators.
 
+[Agent-authored testbenches](docs/agent-testbenches.md) add general DUT/TB imports, full human review before execution, host-bound PDK lookup and saved-data FFT/ADC analysis. Reviewed cell bundles can be versioned under `lib/<library>/<cell>/testbenches/` and evaluated against an exactly matching run. Analysis uses an explicit SpiceOwl or pinned ADCToolbox backend; the supported automatic data path is a single scalar transient dataset.
+
 The interface builds on [Rich Netlist](https://github.com/rich-netlist/rnl), with movable, closable Dockview panels for schematics, simulation, waveforms, AI, and version history.
 
 ## Try it
@@ -24,7 +26,7 @@ Open **Libraries / 电路库** to browse library → cell → view. The publishe
 
 For real AI conversations, choose **连接本机 Codex** in the AI panel and approve the local connection window. The connector checks Codex's existing login and reports the account/plan only when Codex supplies it. If Codex requires sign-in, a separate button opens the official login URL returned by Codex. No address or access code is needed in this flow.
 
-Start the local helper once per computer session: on macOS, double-click **Start CircuitGit.command** in the downloaded repository (requires Python 3.11+, Git and Codex). On first use, the launcher installs the repository-pinned SpiceOwl dependency into a project-local Python environment; it does not change your global Python packages. The helper stays on your computer while you use the lightweight website. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md).
+Start the local helper once per computer session: on macOS, double-click **Start CircuitGit.command** in the downloaded repository (requires Python 3.11+, Git and Codex). On first use, the launcher installs the repository-pinned SpiceOwl dependency with its `adctools` extra (NumPy, SciPy and ADCToolbox 0.9.3) into a project-local Python environment; it does not change your global Python packages. The helper stays on your computer while you use the lightweight website. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md).
 
 Connection, account, project and model controls are grouped in the chat's **settings gear**. Choose **当前网表** to share the imported source and simulation intake with AI; results refresh that exact intake in the Simulation panel. Other selected node projects retain their own identities. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Existing circuit and manual simulation requests retain their human-review workflow; the optional standalone runtime requires a separately installed connection grant.
 

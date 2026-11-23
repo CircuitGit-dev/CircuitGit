@@ -1,4 +1,6 @@
 import {sha256} from '../core.js';
+import {checkAnalysisResult} from '../../../modules/simulation/environment/analysis.js';
+import {onboardingRecovery} from '../../../modules/simulation/environment/recovery.js';
 
 const clone=value=>structuredClone(value);
 const validSession=s=>s?.schema==='ic.onboarding.session.v1'&&typeof s.intake_id==='string'&&
@@ -22,6 +24,7 @@ export function createOnboardingSync({bridge,getSource,openWaveforms,hashText=sh
       after?.file_name===source.file_name&&hash===session.source_sha256;
   }
   function schedule(){
+    if(onboardingRecovery(bridge.getSessionState())){if(timer!==null)clearTimer(timer);timer=null;return;}
     if(disposed||timer!==null||!controllers.size)return;
     timer=setTimer(()=>{timer=null;void refresh().catch(()=>{}).finally(schedule);},interval);
     timer?.unref?.();
@@ -48,7 +51,7 @@ export function createOnboardingSync({bridge,getSource,openWaveforms,hashText=sh
       if(signature!==lastIdentity){lastIdentity=signature;notify();}
       const job=session.job,descriptor=job?.waveforms;
       const waveKey=JSON.stringify([session.connection_id,session.intake_id,job?.job_id,descriptor?.archive_sha256]);
-      if(!deferred&&openWaveforms&&descriptor?.available===true&&descriptor.source_binding_verified===true&&
+      if(!onboardingRecovery(session)&&!deferred&&openWaveforms&&descriptor?.available===true&&descriptor.source_binding_verified===true&&
          job?.plan_id===session.prepared?.plan_id&&waveKey!==lastWaveform){
         await openWaveforms({intake:session,job});
         if(await matches(session)&&request===generation)lastWaveform=waveKey;
@@ -76,6 +79,12 @@ export function createOnboardingSync({bridge,getSource,openWaveforms,hashText=sh
     if(disposed||!/^ic_onboarding_/.test(tool||''))return {status:'ignored'};
     // Accept both the web Service result and the native MCP structured envelope.
     const session=result?.structuredContent?.data??(result?.ok===true?result.data:result);
+    if(tool==='ic_onboarding_analysis'&&session?.schema==='ic.onboarding.analysis.v1'){
+      const current=bridge.getSessionState();if(!await matches(current))return {status:'ignored'};
+      let checked;try{checked=checkAnalysisResult(session,current);}catch{return {status:'ignored'};}
+      for(const controller of controllers){if(!await matches(current))return {status:'ignored'};controller.receiveAnalysis?.(checked);}
+      return {status:'updated',analysisId:checked.analysis_id};
+    }
     if(!validSession(session))return {status:'ignored'};
     const state=bridge.getState();
     if(!state.connected||state.storeIdentity!==session.connection_id)return {status:'ignored'};

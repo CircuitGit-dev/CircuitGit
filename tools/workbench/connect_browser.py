@@ -130,6 +130,8 @@ def main():
                 gateway_url = 'http://127.0.0.1:' + str(gateway.server_port)
             config = node_config(gateway_url=gateway_url, state_dir=state / 'ai')
             config.update(library_configuration(ROOT, state))
+            if app is not None and getattr(app.onboarding, 'review_authority_key_file', None):
+                config['onboarding_review_authority_key_file'] = str(app.onboarding.review_authority_key_file)
             if cfg and cfg.get('simulation_direct'):
                 config['simulation_direct'] = dict(cfg['simulation_direct'])
             token, identity, _ = node_identity(Path(config['state_dir']))
@@ -142,6 +144,7 @@ def main():
                 node.onboarding = gateway.app.onboarding
             else:
                 node.onboarding = GatewayOnboarding(routes.service.gateway)
+            node.onboarding_review_base = gateway_url
             node.login = LocalLogin(config)
             if config.get('simulation_direct', {}).get('enabled') and callable(getattr(routes.service, 'execute_simulation', None)):
                 node.simulation = routes.service.execute_simulation

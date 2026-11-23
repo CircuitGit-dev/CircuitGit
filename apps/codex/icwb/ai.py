@@ -91,6 +91,21 @@ Do not claim automatic placement/routing; preserve existing annotations and expl
 Current/voltage waveform APIs belong to a separate component.
 Treat unsaved editor text as a draft and ask the user to save/review first; do not silently replace their draft.
 Answer in the user's language, citing the source commit/hash and concrete tool evidence concisely.'''
+INSTRUCTIONS += """
+For general circuits, first agree simulation objectives, conditions and pass/fail criteria with the user.
+Author the complete Spectre testbench yourself; do not assume a two-transistor inverter or infer the user's acceptance criteria.
+Use onboarding_netlist mode=agent-tb and read the exact DUT/support bytes with ic_onboarding_source before authoring. Save the complete ic.agent_testbench.v1 draft with ic_onboarding_agent_tb_draft,
+and prepare its frozen source/TB/PDK/host review. Every edit invalidates the previous review.
+Only a human can approve the Testbench review and run it; never call an approval endpoint or forge a review signature.
+PDK LUT hits are observed host-bound metadata, not permission to run and not proof that dependencies are still valid.
+Use ic_onboarding_analysis on exact saved job/catalog signal IDs for named FFT, sine-fit, calibration, linearity or transient metrics.
+Analysis uses full-precision verified artifacts; UI downsampled curves are not measurement input. Report algorithm/backend/version,
+units and input/run/archive identity; distinguish invalid measurements from failed user specifications and unknown qualification.
+For library CI, ic_library_propose_testbench creates a pending proposal containing testbench, analysis source and manifest.
+The user registers that exact bundle through the Testbench CI review window. A proposal or registration is not a simulation pass.
+Use ic_library_analyze_testbench with an explicit registration_commit, intake_id and job_id to evaluate that registered recipe.
+Use an explicit backend (spiceowl or adctoolbox) and criteria [{metric,op,threshold,unit}]; the archived analysis.py is review/reproduction material, while automatic CI runs the manifest's finite named-analysis calls.
+"""
 INSTRUCTIONS += '''\nEach turn includes a host-generated workbench permission mode. The service enforces it for that turn.
 read_only permits existing project/source/result/request/library reads and the local simulation job list, never library_execute.
 manual retains simulation approvals and permits configured direct library actions; neither mode grants native shell or file actions.
@@ -808,7 +823,7 @@ class AiSession:
                 check_tool_input(op, arguments, onboarding_binding, self.context or {})
             if op in MUTATIONS and self.session_id != 'default' and 'idempotency_key' in arguments:
                 arguments['idempotency_key'] = self.session_id + '-' + digest(arguments['idempotency_key'])
-            if op in ('library_read', 'library_execute'):
+            if op in ('library_read', 'library_execute', 'library_propose_testbench', 'library_analyze_testbench'):
                 check(self.turns.get(self.request_key, {}).get('library_binding') is not None
                       and self.turns[self.request_key]['library_binding'] == library_binding(self.service.config),
                       'Configured library scope changed during this turn; start a new turn with refreshed context', 'library_changed', 4)
@@ -830,7 +845,7 @@ class AiSession:
                                    'request_id': result.get('request_id') if isinstance(result, dict) else None,
                                    'automatic_retry': False})
             self.event('tool/result', {'tool': p['tool'], 'result': result, 'call_id': p.get('callId')})
-            if op in MUTATIONS and result.get('state') == 'pending_approval':
+            if (op in MUTATIONS or op == 'onboarding_run') and result.get('state') == 'pending_approval':
                 token = result['request_id']
                 pending = {'kind': 'workbench', 'rpc_id': rid, 'method': msg['method'], 'params': p,
                            'request': result, 'status': 'pending', 'request_key': self.request_key, 'can_approve': True,
@@ -842,7 +857,7 @@ class AiSession:
         except Failure as e:
             suspend = (e.code in ('read_only_denial', 'library_read_only', 'library_changed', 'library_incomplete', 'simulation_incomplete', 'onboarding_context_changed')
                        or op.startswith('onboarding_') and op not in ONBOARDING_READS
-                       or op in ('library_read', 'library_execute') and e.code in ('out_of_scope', 'library_unavailable')
+                       or op in ('library_read', 'library_execute', 'library_propose_testbench', 'library_analyze_testbench') and e.code in ('out_of_scope', 'library_unavailable')
                        or op == 'sim_execute' and e.code in ('forbidden', 'unresolved_prior_request', 'gateway_unavailable'))
             if suspend:
                 # Suspend before replying or doing network work. Even a late terminal
@@ -885,6 +900,32 @@ class AiSession:
                 and self.thread_id is not None and self.turn_id is not None
                 and receipt.get('thread_id') in (None, self.thread_id) and receipt.get('turn_id') in (None, self.turn_id))
 
+    def _suspend_onboarding_approval(self, approval_id, pending, result):
+        """Keep one unresolved reviewed submission and stop dependent model work."""
+        reason='onboarding_submission_unconfirmed'
+        error=Failure(reason,'The reviewed simulation request is not confirmed. Inspect its original receipt and submission; do not replay it.',75,
+            {'request_id':pending['request']['request_id'],'state':result.get('state'),
+             'plan_id':pending['request'].get('arguments',{}).get('plan_id'),'automatic_retry':False})
+        with self.lock:
+            # Close the local gate before any RPC reply can trigger another tool.
+            pending.update(status='suspended',can_approve=False,resolution=copy.deepcopy(result))
+            self.state='suspended';self.suspension_reason=reason
+            turn=self.turns.get(self.request_key)
+            if turn is not None:
+                turn.update(state='suspended',error_record=safe_error_record(error),error=str(error))
+                atom(self.service.state/'ai-turns'/(digest(turn['key'])+'.json'),turn)
+            self._persist(force=True)
+        self.event('approval/resolved',{'approval_id':approval_id,'decision':'approve','result':result,
+            'status':'suspended','automatic_retry':False})
+        self.event('session/error',{'message':str(error),'error':safe_error_record(error),'automatic_retry':False})
+        try:
+            self._tool_reply(pending['rpc_id'],False,result)
+        finally:
+            try:self.interrupt(reason)
+            except Exception:self._persist(force=True)
+        return {'approval_id':approval_id,'status':'suspended','request_id':pending['request']['request_id'],
+            'automatic_retry':False}
+
     @session_operation
     def approve(self, approval_id, decision):
         check(decision in ('approve', 'deny'), 'Decision must be approve or deny')
@@ -899,6 +940,14 @@ class AiSession:
             if pending['kind'] == 'workbench':
                 r = pending['request']
                 result = self.service.resolve(r['request_id'], decision, r['fingerprint'])
+                inner=result.get('result') if isinstance(result.get('result'),dict) else {}
+                submission=inner.get('submission') if isinstance(inner.get('submission'),dict) else {}
+                incomplete={'unknown','uncertain','partial','rejected','failed','outcome_unknown','pending_approval',
+                    'submission_uncertain','pre_dispatch_rejected','recovery_required','operation_interrupted','stalled','needs_input'}
+                if (r.get('operation')=='onboarding_agent_tb_run' and decision=='approve'
+                        and (result.get('state')!='accepted' or inner.get('state') in incomplete
+                             or submission.get('dispatch_outcome') in {'attempting','unknown','pre_dispatch_rejected'})):
+                    return self._suspend_onboarding_approval(approval_id,pending,result)
                 self._tool_reply(pending['rpc_id'], result['state'] == 'accepted', result)
             else:
                 method = pending['method']

@@ -14,6 +14,8 @@ sys.path.insert(0, str(TRUSTED / 'tools/dev'))
 sys.path.insert(0, str(TRUSTED / 'tools/workbench'))
 from build_library import collect, path_at, view_aliases
 from configuration import load_configuration
+from agent_testbench_manifest import validate_manifest
+from testbench_bundle import digest as bundle_digest
 
 ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\Z')
 SHA = re.compile(r'[a-f0-9]{40}\Z')
@@ -91,6 +93,62 @@ def selections(root, cells, benches):
                            'selection_source': 'rc_source_default' if tids else 'not_configured'})
         selected.extend(tids)
     return selected, states
+
+
+def registered_bundles(root, cells, affected):
+    """Check reviewed bundle data without importing or executing candidate code."""
+    result = []
+    for identity in sorted(affected):
+        cell = cells[identity]
+        index_name = cell['directory'] + '/testbenches/index.json'
+        path = root / index_name
+        if not path.exists() and not path.is_symlink():
+            continue
+        value = read_json(path_at(root, index_name))
+        require(value.get('schema') == 'ic.testbench_ci_index.v1'
+                and (value.get('library_id'), value.get('cell_id')) == identity
+                and isinstance(value.get('testbenches'), list) and len(value['testbenches']) <= 64, 'Invalid cell Testbench CI index')
+        seen = set()
+        for item in value['testbenches']:
+            require(isinstance(item, dict) and isinstance(item.get('id'), str) and ID.fullmatch(item['id'])
+                    and '..' not in item['id'] and item['id'] not in seen and type(item.get('enabled')) is bool, 'Invalid or duplicate reviewed testbench ID')
+            seen.add(item['id'])
+            prefix = cell['directory'] + '/testbenches/' + item['id'] + '/'
+            require(item.get('manifest_path') == prefix + 'manifest.json', 'Reviewed testbench escaped its cell')
+            raw = path_at(root, item['manifest_path']).read_bytes()
+            require(hashlib.sha256(raw).hexdigest() == item.get('manifest_sha256'), 'Reviewed testbench manifest digest differs')
+            record = read_json(path_at(root, item['manifest_path']))
+            require(record.get('schema') == 'ic.testbench_ci.v1' and record.get('id') == item['id']
+                    and (record.get('library_id'), record.get('cell_id')) == identity
+                    and record.get('execution') == 'spiceowl_named_algorithm' and record.get('arbitrary_script_execution') is False,
+                    'Reviewed testbench identity/execution differs')
+            manifest = validate_manifest(record.get('agent_manifest'))
+            binding = record.get('binding', {})
+            require(bundle_digest(manifest) == binding.get('manifest_sha256')
+                    and bundle_digest(manifest['criteria']) == binding.get('criteria_sha256'), 'Reviewed manifest/criteria digest differs')
+            expected = {cell['readme']} | {p for view in cell['views'] for p in view['files']}
+            source_hashes = {p: hashlib.sha256(path_at(root, p).read_bytes()).hexdigest() for p in sorted(expected)}
+            require(record.get('source', {}).get('files') == source_hashes and bundle_digest(source_hashes) == binding.get('source_sha256'),
+                    'Cell source changed since Testbench CI registration; review a new version')
+            require(bundle_digest(cell) == binding.get('source_inventory_sha256'), 'Cell source aliases/inventory changed since Testbench CI registration')
+            for name, field in (('testbench.scs', 'testbench_sha256'), ('analysis.py', 'analysis_sha256')):
+                name = prefix + name
+                # Python is accepted at this one fixed bundle path, never as a
+                # library view or an executable input to the trusted checker.
+                file = root / name
+                require(not any(p.is_symlink() for p in [file, *file.parents] if p != root and root in p.parents)
+                        and file.is_file() and file.stat().st_size <= 1024 * 1024, 'Unsafe reviewed testbench file')
+                content = file.read_bytes()
+                require(hashlib.sha256(content).hexdigest() == binding.get(field), 'Reviewed testbench file digest differs')
+                if name.endswith('testbench.scs'):
+                    require(content.decode('utf-8') == manifest['text'], 'Literal testbench differs from reviewed manifest')
+                else:
+                    compile(content.decode('utf-8'), 'reviewed-analysis.py', 'exec', dont_inherit=True)
+            result.append({'id': item['id'], 'library_id': identity[0], 'cell_id': identity[1], 'enabled': item['enabled'],
+                           'status': 'passed', 'check_kind': 'reviewed-bundle-source-check', 'binding': binding,
+                           'analysis_status': 'not_run', 'simulation_started': False, 'script_executed': False,
+                           'note': 'Reviewed byte integrity only; electrical and named-algorithm CI has not run.'})
+    return result
 
 
 def closure(root, files, aliases=None, entry=None):
@@ -178,6 +236,11 @@ def run(root, registry_path=None, base=None, head=None):
               'source_commit': head, 'base_commit': base, 'simulation_started': False,
               'changed_paths': sorted(paths) if paths is not None else None, 'libraries': inventory['libraries'],
               'cells': inventory['cells'], 'selections': states, 'testbenches': [], 'rnl_views': [], 'errors': []}
+    try:
+        report['registered_testbenches'] = registered_bundles(root, cells, affected)
+    except (ValueError, OSError, KeyError, SyntaxError) as error:
+        report['registered_testbenches'] = []
+        report['errors'].append(str(error))
     for identity in sorted(affected):
         cell = cells[identity]
         for view in cell['views']:

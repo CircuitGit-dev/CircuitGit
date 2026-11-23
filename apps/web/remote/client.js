@@ -6,6 +6,8 @@ export const ONBOARDING_OPERATIONS=Object.freeze({
   discoverPdk:{path:'/discover-pdk',method:'POST'},prepareExperiment:{path:'/prepare',method:'POST'},
   runPrepared:{path:'/run',method:'POST'},readSubmission:{path:'/submission',method:'GET',query:['intake_id','plan_id']},
   inspectExperiment:{path:'/inspect',method:'POST'},
+  saveAgentTestbench:{path:'/agent-tb/draft',method:'POST'},getAgentTestbench:{path:'/agent-tb',method:'GET',query:['intake_id']},
+  prepareAgentTestbench:{path:'/agent-tb/prepare',method:'POST'},analyzeExperiment:{path:'/analysis',method:'POST'},
 });
 const ONBOARDING_PREFIX='/simulation/onboarding';
 // These budgets cover the finite synchronous backend work, never a solver run.
@@ -14,7 +16,8 @@ const ONBOARDING_PREFIX='/simulation/onboarding';
 // Git calls capped at 20s and a 60s audit. Run reserves after two host checks
 // (30s doctor + 30s version/10s resources) and one 30s selected-host preflight.
 const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,getSession:20000,
-  probeHost:290000,discoverPdk:250000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000});
+  probeHost:290000,discoverPdk:250000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000,
+  saveAgentTestbench:20000,getAgentTestbench:20000,prepareAgentTestbench:150000,analyzeExperiment:120000});
 const boundedHostCount=rows=>Array.isArray(rows)&&rows.length>=1&&rows.length<=8?rows.length:8;
 export function onboardingRequestTimeout(name,input={},session=null){
   if(!Object.hasOwn(ONBOARDING_TIMEOUT_LIMITS,name))throw Error('Unknown onboarding operation');

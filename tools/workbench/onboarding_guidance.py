@@ -2,16 +2,17 @@
 import copy
 
 
-TOOLS = {'ssh-hosts': 'ssh_hosts', 'session': 'session', 'probe': 'probe',
+TOOLS = {'ssh-hosts': 'ssh_hosts', 'source':'source', 'session': 'session', 'probe': 'probe',
          'discover-pdk': 'discover_pdk', 'prepare': 'prepare', 'run': 'run',
          'submission': 'submission', 'inspect': 'inspect',
          'waveforms/catalog': 'waveforms_catalog', 'waveforms/mapping': 'waveforms_mapping',
-         'waveforms/window': 'waveforms_window'}
+         'waveforms/window': 'waveforms_window', 'agent-tb':'agent_tb',
+         'agent-tb/draft':'agent_tb_draft','agent-tb/prepare':'agent_tb_prepare'}
 
 
 def action(operation, arguments, *, ready=True, missing=(), reason, description):
     read = operation in {'ssh-hosts', 'session', 'submission', 'waveforms/catalog',
-                         'waveforms/mapping', 'waveforms/window'}
+                         'waveforms/mapping', 'waveforms/window', 'agent-tb', 'source'}
     return {'id': operation, 'tool': 'ic_onboarding_' + TOOLS[operation], 'operation': operation,
             'kind': 'read' if read else 'execution' if operation in {'run', 'inspect'} else 'configuration',
             'ready': ready, 'arguments': copy.deepcopy(arguments), 'missing': copy.deepcopy(list(missing)),
@@ -32,7 +33,7 @@ def next_actions(state):
         return [action('submission', {**identity, 'plan_id': p['plan_id']}, reason='original_submission_unresolved',
                        description='Read the original submission receipt. Do not create another plan or replay run.')
                 for p in unresolved]
-    if state.get('state') in {'probe', 'discover-pdk', 'prepare', 'submitting'}:
+    if state.get('state') in {'probe', 'discover-pdk', 'prepare', 'agent-tb/draft', 'agent-tb/prepare', 'submitting'}:
         return [action('session', identity, reason='operation_in_progress',
                        description='Read this intake after the current operation finishes; do not start another mutation.')]
     job = state.get('job')
@@ -51,9 +52,29 @@ def next_actions(state):
                            description='Read the completed report and its explicit waveform availability limitation.')]
         return [action('inspect', bound, reason='original_job_pending',
                        description='Observe the original job and collect its terminal results. This does not submit another job.')]
+    agent_mode = state.get('mode') == 'agent-tb'
+    draft = state.get('agent_tb') or {}
+    if agent_mode and not draft:
+        return [action('source', identity, reason='exact_source_required', description='Read the literal DUT and every supplied support source before authoring its testbench.'),
+                action('agent-tb/draft', current, ready=False,
+                       missing=[missing('testbench', 'agent_authored_testbench_required',
+                           'Discuss objectives and criteria with the user, then provide the complete authored testbench manifest.')],
+                       reason='agent_testbench_draft_required',
+                       description='Author the testbench, port bindings, stimuli, analyses and acceptance criteria for this exact circuit. No inverter topology or scientific intent is inferred.'),
+                action('ssh-hosts', {}, reason='ssh_alias_inventory_needed',
+                       description='List local SSH aliases without contacting a server.')]
     prepared = state.get('prepared') or {}
     if prepared.get('state') == 'prepared' and prepared.get('plan_id'):
         plan = next((p for p in plans if p['plan_id'] == prepared['plan_id']), {})
+        if agent_mode and plan.get('dispatch_outcome') not in {'recorded','attempting','unknown','pre_dispatch_rejected'}:
+            item = action('run', {**current, 'plan_id': prepared['plan_id']}, reason='human_testbench_review_required',
+                description='Request host-human review of this exact frozen source, testbench, PDK and criteria. The agent cannot approve or dispatch it. In the browser use the Simulation review window.')
+            item.update(kind='human_review', requires_human_review=True)
+            return [item]
+        if agent_mode and plan.get('dispatch_outcome') == 'pre_dispatch_rejected':
+            return [action('agent-tb/prepare', {**current, 'draft_id': draft['draft_id']}, ready=False,
+                missing=[missing('preflight','preflight_condition_unresolved','Resolve the recorded condition before preparing and reviewing a new plan.')],
+                reason='previous_request_rejected_before_reservation', description='Preserve the rejected plan and deliberately prepare a new human review after resolving its condition.')]
         if plan.get('dispatch_outcome') == 'pre_dispatch_rejected':
             return [action('prepare', {**current, 'accept_recommendation': True},
                            ready=False, missing=[missing('preflight', 'preflight_condition_unresolved',
@@ -67,6 +88,15 @@ def next_actions(state):
         return [action('run', {**current, 'plan_id': prepared['plan_id']}, reason='frozen_plan_ready',
                        description='Submit this exact frozen plan once after checking resources in the selected host range.')]
     discovery = state.get('discovery')
+    if agent_mode and discovery:
+        selection = draft.get('selection') or {}
+        gaps = list(state.get('missing') or [])
+        if not selection:
+            gaps.append(missing('selection','explicit_pdk_selection_required','Choose the observed PDK entry, sections and host range, then save the complete draft again.'))
+            return [action('agent-tb/draft', current, ready=False, missing=gaps,
+                reason='agent_testbench_selection_required', description='Use observed LUT/discovery evidence to bind this draft; do not infer inverter ports or stimulus.')]
+        return [action('agent-tb/prepare', {**current, 'draft_id': draft['draft_id']}, ready=not gaps, missing=gaps,
+            reason='agent_testbench_prepare_required', description='Validate the literal agent-authored testbench and selected dependencies, then freeze them for human review. No simulation is launched.')]
     if discovery:
         recommended = state.get('recommended_selection') or discovery.get('recommended_selection')
         if recommended:

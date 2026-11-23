@@ -9,6 +9,7 @@ import concurrent.futures
 import hashlib
 import hmac
 import json
+import math
 from pathlib import Path
 import re
 import tarfile
@@ -392,10 +393,26 @@ class ExperimentWorkflow:
                 if manifest!=[checksum+'  '+path] or matching!=[path+': OK']:
                     raise ValueError('Native prelaunch dependency verification differs')
             log=read('psf/spectre.out',1024*1024).decode(errors='replace')
-            transients=[name for name in members if name.endswith('.tran')]
-            psf=read(transients[0],16*1024*1024).decode() if len(transients)==1 else ''
+            agent_artifacts=None
+            if data['recipe'].get('recipe')=='agent-testbench':
+                agent_artifacts={};total=0
+                for analysis in data['recipe'].get('analyses',[]):
+                    expected=analysis['name']+'.'+analysis['kind']
+                    matches=[name for name in members if Path(name).name==expected]
+                    row={'name':analysis['name'],'kind':analysis['kind'],'matches':len(matches)}
+                    if len(matches)==1:
+                        size=members[matches[0]].size;total+=size
+                        if size<=16*1024*1024 and total<=64*1024*1024:
+                            raw=read(matches[0],16*1024*1024)
+                            row.update(path=matches[0],sha256=hashlib.sha256(raw).hexdigest(),raw=raw)
+                        else:row['limit_exceeded']=True
+                    agent_artifacts[analysis['name']]=row
+            else:
+                transients=[name for name in members if name.endswith('.tran')]
+                psf=read(transients[0],16*1024*1024).decode() if len(transients)==1 else ''
         execution='completed' if record.get('simulator_exit_code')==0 and record.get('remote_state')=='simulator_complete_pending_measurements' else 'failed'
-        measured=measure_psf_ascii(psf,data['recipe'],execution_state=execution,exit_code=record.get('simulator_exit_code'))
+        measured=(self._measure_agent_artifacts(agent_artifacts,data['recipe'],execution,record.get('simulator_exit_code'))
+            if agent_artifacts is not None else measure_psf_ascii(psf,data['recipe'],execution_state=execution,exit_code=record.get('simulator_exit_code')))
         audit=audit_read_log(log,pinned_paths={alias:site['external_files'][alias] for alias in bundle['external_sha256']},pinned_sha256=bundle['external_sha256'],
                              native_payload=payload,builtin_profile=[{**row,'phase':'prelaunch'} for row in data['dependency_audit'].get('directories',[])])
         dependency=self._report_dependencies(audit,data,record)
@@ -404,6 +421,41 @@ class ExperimentWorkflow:
             acceptance=acceptance,log_complete=True,qualification_scope=data['qualification_scope'],dependency_audit=dependency,run_id=rid)
         return {'schema':'ic.experiment-result.v1','run_id':rid,'source_commit':record['source_commit'],
                 'native_archive_sha256':record['collection']['sha256'],'report':report,'measurements':measured}
+
+    @staticmethod
+    def _measure_agent_artifacts(artifacts,recipe,execution,exit_code):
+        """Validate named data independently; authored objectives are not inverter rules."""
+        from spiceowl.integrations.spectre_results import parse_psf_ascii,PsfError
+        rows=[]
+        for artifact in artifacts.values():
+            row={k:v for k,v in artifact.items() if k!='raw'}
+            row.update(data_validity='unknown',specification='unknown')
+            raw=artifact.get('raw')
+            if raw is None:row['reason']='named_artifact_missing_ambiguous_or_over_limit'
+            elif artifact['kind']!='tran':row['reason']='named_analysis_requires_supported_postprocessor'
+            else:
+                try:
+                    data=parse_psf_ascii(raw.decode('utf-8'));values=data['values'];times=values['time']
+                    valid=(len(times)>=2 and data['units'].get('time')=='s'
+                        and all(len(series)==len(times) and all(math.isfinite(v) for v in series) for series in values.values())
+                        and all(b>a for a,b in zip(times,times[1:])))
+                    row.update(data_validity='valid' if valid else 'invalid',sample_count=len(times),
+                        units=data['units'],signal_names=list(values),time_span_s=[times[0],times[-1]] if times else None,
+                        reason='parsed_named_scalar_time_data' if valid else 'invalid_scalar_time_data')
+                except PsfError as error:
+                    row.update(data_validity='unknown' if error.code in ('psf_missing','psf_unsupported','psf_limit') else 'invalid',
+                        reason=error.code)
+                except UnicodeError:row.update(data_validity='unknown',reason='psf_encoding_unsupported')
+            rows.append(row)
+        validity=('invalid' if any(r['data_validity']=='invalid' for r in rows) else
+            'valid' if rows and all(r['data_validity']=='valid' for r in rows) else 'unknown')
+        return {'schema':'ic.agent-tb.measurement.v1','recipe_sha256':recipe['recipe_sha256'],
+            'execution':{'state':execution,'exit_code':exit_code},'data_validity':validity,'specification':'unknown',
+            'scientific_evaluation':'not_evaluated','analyses':rows,'overall_qualified_acceptance':None,
+            'authored_objectives':recipe['spec']['criteria']['objectives'],
+            'authored_criteria':recipe['spec']['criteria']['criteria'],
+            'missing':[{'field':'postprocess','code':'named_analysis_required',
+                'message':'Use the verified original-job analysis endpoint and explicit criteria to evaluate scientific objectives.'}]}
 
     @staticmethod
     def _measurement_acceptance(measured):

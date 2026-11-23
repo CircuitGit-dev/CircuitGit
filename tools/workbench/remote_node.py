@@ -29,8 +29,8 @@ POST_ROUTES = {'sessions', 'sessions/rename', 'sessions/delete', 'connect',
 LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/review-request', '/api/library/execute'}
 SIMULATION_ROUTE = '/api/simulation/execute'
 ONBOARDING_PREFIX = '/api/simulation/onboarding/'
-ONBOARDING_READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window'}
-ONBOARDING_WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect'}
+ONBOARDING_READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','source','agent-tb/review'}
+ONBOARDING_WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis'}
 
 def onboarding_entry_origin(headers):
     # This header is provenance only. The bearer/pairing guards run first.
@@ -74,7 +74,7 @@ class GatewayOnboarding:
             raise PermissionError('Onboarding is unavailable on this connection')
         path=ONBOARDING_PREFIX+operation
         if not write and args:path+='?'+urlencode(args)
-        timeout=320 if operation=='run' else 300 if operation in ('probe','discover-pdk','prepare') else 45 if operation=='inspect' else 20
+        timeout=320 if operation=='run' else 300 if operation in ('probe','discover-pdk','prepare','agent-tb/prepare') else 45 if operation=='inspect' else 20
         data=self.gateway.request(path,args if write else None,
             onboarding_entry='native_agent' if origin=='native_agent' else None,
             onboarding_connection_id=self.connection_id,route_timeout=timeout)
@@ -82,7 +82,7 @@ class GatewayOnboarding:
             raise Failure('onboarding_response_mismatch','Onboarding response must be an object; do not replay mutations',75)
         if 'intake_id' in args and data.get('intake_id')!=args['intake_id']:
             raise Failure('onboarding_response_mismatch','Onboarding response belongs to another intake; do not replay mutations',75)
-        if operation in ('netlist','session','probe','discover-pdk','prepare','run','inspect'):
+        if operation in ('netlist','session','probe','discover-pdk','prepare','run','inspect','agent-tb','agent-tb/draft','agent-tb/prepare'):
             if data.get('schema')!='ic.onboarding.session.v1' or data.get('connection_id')!=self.connection_id:
                 raise Failure('onboarding_response_mismatch','Onboarding response belongs to another connection; do not replay mutations',75)
         return data
@@ -162,6 +162,25 @@ class Node:
         self.library = None
         self.simulation = None
         self.onboarding = None
+        self.onboarding_review_base = getattr(getattr(getattr(routes, 'service', None), 'gateway', None), 'origin', None)
+
+    def onboarding_result(self, data):
+        if not isinstance(data, dict) or data.get('schema') != 'ic.onboarding.session.v1':
+            return data
+        review = data.get('agent_tb_review')
+        if not isinstance(review, dict) or not review.get('review_path') or not self.onboarding_review_base:
+            return data
+        target = urlsplit(self.onboarding_review_base)
+        path = urlsplit(review['review_path'])
+        if (target.scheme != 'http' or target.hostname != '127.0.0.1' or not target.port
+                or target.path not in ('','/') or target.username or target.password
+                or path.scheme or path.netloc or path.path != '/agent-tb/review' or path.fragment):
+            raise ValueError('Invalid installed human-review address')
+        query = parse_qs(path.query, strict_parsing=True)
+        if (set(query) != {'intake_id','review_id'} or any(len(v) != 1 for v in query.values())
+                or query['intake_id'][0] != data.get('intake_id') or query['review_id'][0] != review.get('review_id')):
+            raise ValueError('Human-review link does not match this intake')
+        return {**data, 'agent_tb_review': {**review, 'review_url': self.onboarding_review_base.rstrip('/') + review['review_path']}}
 
     def info(self):
         if isinstance(self.onboarding,GatewayOnboarding):self.onboarding.refresh()
@@ -372,7 +391,7 @@ class Handler(BaseHTTPRequestHandler):
                 data = self.node.info()
             elif path.startswith(ONBOARDING_PREFIX) and path[len(ONBOARDING_PREFIX):] in ONBOARDING_READS:
                 if self.node.onboarding is None:raise PermissionError('Onboarding is unavailable on this connection')
-                data=self.node.onboarding.read(path[len(ONBOARDING_PREFIX):],{k:v[0] for k,v in qs.items()},origin=onboarding_entry_origin(self.headers))
+                data=self.node.onboarding_result(self.node.onboarding.read(path[len(ONBOARDING_PREFIX):],{k:v[0] for k,v in qs.items()},origin=onboarding_entry_origin(self.headers)))
             elif path.startswith('/api/ai/') and path[8:] in GET_ROUTES:
                 if self.node.routes is None:raise PermissionError('This connection has no chat or login service')
                 if path == '/api/ai/auth/status':
@@ -424,7 +443,7 @@ class Handler(BaseHTTPRequestHandler):
                 if self.node.onboarding is None:raise PermissionError('Onboarding is unavailable on this connection')
                 if qs:raise ValueError('Onboarding writes have no query fields')
                 entry_origin=onboarding_entry_origin(self.headers)
-                data=self.node.onboarding.write(path[len(ONBOARDING_PREFIX):],self.body(2*1024*1024),origin=entry_origin)
+                data=self.node.onboarding_result(self.node.onboarding.write(path[len(ONBOARDING_PREFIX):],self.body(2*1024*1024),origin=entry_origin))
                 self.send(200,{'ok':True,'data':data});return
             if path == SIMULATION_ROUTE:
                 token, browser_origin = self.browser_identity()

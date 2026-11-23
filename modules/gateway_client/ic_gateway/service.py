@@ -80,7 +80,7 @@ class Gateway:
         self.port, self.timeout = parsed.port, timeout
 
     def request(self, path, body=None, *, caller_id=None, authority_key_file=None,
-                onboarding_entry=None, onboarding_connection_id=None, route_timeout=None):
+                onboarding_entry=None, onboarding_connection_id=None, route_timeout=None, human_review_key_file=None):
         check(path.startswith('/api/'), 'Only gateway API paths are supported')
         check(route_timeout is None or type(route_timeout) in (int,float) and 1<=route_timeout<=320,
               'Route timeout must be 1..320 seconds')
@@ -114,6 +114,10 @@ class Gateway:
             if body is not None:headers['X-Workbench-Token'] = health['mutation_token']
         raw = canonical(body).encode() if body is not None else None
         check(raw is None or len(raw) <= 2 * 1024 * 1024, 'Gateway request exceeds 2 MiB')
+        if human_review_key_file is not None:
+            from .agent_testbench import human_signature
+            check(onboarding and onboarding_entry == 'native_agent' and caller_id is None, 'Invalid human review transport')
+            headers['X-IC-Human-Review'] = human_signature(human_review_key_file, path, raw)
         if caller_id is not None:
             try:
                 from spiceowl.integrations.authority import load_key, sign
@@ -326,15 +330,22 @@ class Service:
                 atom(self.state / 'requests' / (request_id + '.json'), r)
                 return self.public_receipt(r)
             check(r['operation'] not in self.disabled, 'Operation disabled by installed policy', 'forbidden', 4)
+            if r['operation'] == 'onboarding_agent_tb_run':
+                check('onboarding_run' not in self.disabled, 'Operation disabled by installed policy', 'forbidden', 4)
             r.update(state='dispatching', approved_at=time.time())
             path = self.state / 'requests' / (request_id + '.json')
             atom(path, r)  # Durable BEFORE POST. A crash here is uncertain, never safe to replay.
             try:
-                result = self.gateway.request(r['route'], r['body'])
+                if r['operation'] == 'onboarding_agent_tb_run':
+                    from .agent_testbench import dispatch_reviewed
+                    result = dispatch_reviewed(self, r)
+                else:
+                    result = self.gateway.request(r['route'], r['body'])
                 r.update(state='accepted', result=result, resolved_at=time.time())
             except Failure as e:
                 # 5xx may occur after writes. Transport/500/unknown outcomes MUST NOT retry.
-                uncertain = e.exit_code == 75 or e.details.get('http_status', 0) >= 500
+                uncertain = (e.exit_code == 75 or e.details.get('http_status', 0) >= 500
+                    or r['operation'] == 'onboarding_agent_tb_run' and e.details.get('review_dispatch_attempted') is True)
                 r.update(state='uncertain' if uncertain else 'rejected', error=e.record(), resolved_at=time.time())
             atom(path, r)
             return self.public_receipt(r)
@@ -411,12 +422,13 @@ class Service:
             path+='?'+urlencode(query)
         result=self.gateway.request(path,args if method=='POST' else None,
             onboarding_entry='native_agent',onboarding_connection_id=connection,
-            route_timeout=320 if op=='onboarding_run' else 300 if op in {'onboarding_probe','onboarding_discover_pdk','onboarding_prepare'} else None)
+            route_timeout=320 if op=='onboarding_run' else 300 if op in {'onboarding_probe','onboarding_discover_pdk','onboarding_prepare','onboarding_agent_tb_prepare'} else None)
         check(isinstance(result,dict),'Onboarding returned no structured object.','onboarding_response_mismatch',75)
         if 'intake_id' in args:
             check(result.get('intake_id')==args['intake_id'],'Onboarding response belongs to another intake.','onboarding_response_mismatch',75)
         if op in ('onboarding_netlist','onboarding_session','onboarding_probe','onboarding_discover_pdk',
-                  'onboarding_prepare','onboarding_run','onboarding_inspect'):
+                  'onboarding_prepare','onboarding_run','onboarding_inspect',
+                  'onboarding_agent_tb','onboarding_agent_tb_draft','onboarding_agent_tb_prepare'):
             check(result.get('schema')=='ic.onboarding.session.v1' and result.get('connection_id')==connection,
                   'Onboarding response belongs to another connection.','onboarding_response_mismatch',75)
             check(isinstance(result.get('intake_id'),str) and re.fullmatch(r'intake_[a-f0-9]{32}',result['intake_id']),
@@ -466,14 +478,34 @@ class Service:
             check(record.get('gateway')==self.gateway.origin and record.get('connection_id')==connection
                   and record.get('intake_id')==intake_id and record.get('plan_id')==plan_id,
                   'The saved onboarding request belongs to another connection.','conflict',3)
+        from .agent_testbench import request_identity, existing_request
+        request_id=request_identity(self,{'intake_id':intake_id,'plan_id':plan_id},connection)
+        review_path=self.state/'requests'/(request_id+'.json')
+        reviewed=existing_request(self,{'intake_id':intake_id,'plan_id':plan_id},connection)
+        expected_commit=(record or reviewed or {}).get('source_commit')
         receipt=self._onboarding_request('onboarding_submission',{'intake_id':intake_id,'plan_id':plan_id},connection)
-        state=self._check_onboarding_submission(receipt,intake_id,plan_id,record.get('source_commit') if record else None)
+        state=self._check_onboarding_submission(receipt,intake_id,plan_id,expected_commit)
         if record is not None:
             record.update(state=state,reconciled_at=time.time())
             atom(path,record)
+        if reviewed is not None and state in ('recorded','pre_dispatch_rejected'):
+            reviewed=self.saved('requests',request_id)
+            if reviewed.get('operation')=='onboarding_agent_tb_run' and reviewed.get('state') in ('dispatching','uncertain'):
+                reviewed.update(state='accepted' if state=='recorded' else 'rejected',
+                    reconciliation=receipt,reconciled_at=time.time())
+                atom(review_path,reviewed)
         return receipt
 
     def _check_onboarding_prepare(self,connection,intake_id):
+        for path in (self.state/'requests').glob('*.json'):
+            row=json.loads(path.read_text())
+            if (row.get('gateway')==self.gateway.origin and row.get('connection_id')==connection
+                    and row.get('operation')=='onboarding_agent_tb_run'
+                    and row.get('body',{}).get('intake_id')==intake_id
+                    and row.get('state') in ('dispatching','uncertain')):
+                raise Failure('onboarding_submission_unresolved','Reconcile the original reviewed submission before preparing another plan.',75,
+                    {'intake_id':intake_id,'plan_id':row['body']['plan_id'],'request_id':row['request_id'],
+                     'next_tool':'ic_onboarding_submission','automatic_retry':False})
         for path in (self.state/'onboarding-runs').glob('*.json'):
             row=json.loads(path.read_text())
             if (row.get('gateway')==self.gateway.origin and row.get('connection_id')==connection
@@ -486,6 +518,9 @@ class Service:
         intake_id,plan_id=args['intake_id'],args['plan_id']
         path=self._onboarding_record_path(connection,intake_id,plan_id)
         with self.lock():
+            from .agent_testbench import existing_request, is_agent_plan, prepare_request
+            prior=existing_request(self,args,connection)
+            if prior is not None:return prior
             if path.exists():
                 # Regardless of the former HTTP outcome, this logical run never
                 # sends a second POST. Runner lookup is the execution authority.
@@ -494,6 +529,8 @@ class Service:
                 return {**session,'submission':receipt,'reconciliation_only':True}
             self._check_onboarding_prepare(connection,intake_id)
             session=self._onboarding_request('onboarding_session',{'intake_id':intake_id},connection)
+            if is_agent_plan(session):
+                return prepare_request(self, args, connection, session)
             prepared=session.get('prepared') or {}
             check(isinstance(prepared,dict) and session.get('revision')==args['revision'] and prepared.get('plan_id')==plan_id
                   and prepared.get('submission_key')=='experiment-'+plan_id
@@ -530,7 +567,7 @@ class Service:
         if op=='onboarding_run':return self._onboarding_run(args,connection)
         if op=='onboarding_submission':
             with self.lock():return self._onboarding_lookup(connection,args['intake_id'],args['plan_id'])
-        if op=='onboarding_prepare':
+        if op in ('onboarding_prepare','onboarding_agent_tb_prepare'):
             with self.lock():
                 self._check_onboarding_prepare(connection,args['intake_id'])
                 return self._onboarding_request(op,args,connection)

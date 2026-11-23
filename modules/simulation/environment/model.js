@@ -3,6 +3,9 @@
 import {indexSpectre} from '../../schematic/netlist.js';
 import {literalDimensions} from '../../schematic/instance-properties.js';
 import {validatePreDispatchRejection} from './submission.js';
+import {createAgentDraftEditor,checkAgentTestbench,agentReviewIdentity} from './agent-testbench.js';
+import {checkAnalysisResult,ANALYSIS_OPERATIONS} from './analysis.js';
+import {onboardingRecovery,recoveryMessage} from './recovery.js';
 
 const clone=value=>structuredClone(value);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
@@ -60,7 +63,7 @@ function session(value,previous=null,{initial=false,mutating=false}={}){
   if(previous&&(value.connection_id!==previous.connection_id||value.intake_id!==previous.intake_id||value.source_sha256!==previous.source_sha256||value.revision<previous.revision||(mutating&&value.revision<=previous.revision)))throw Error('环境响应过期或属于另一份网表。');
   const requirements=value.source?.requirements;
   if(!object(requirements)||!Array.isArray(requirements.instances)||!Array.isArray(requirements.interfaces)||!Array.isArray(requirements.required_masters)||requirements.required_masters.some(name=>!id(name))||!Array.isArray(requirements.issues))throw Error('网表响应缺少字面器件、端口和模型需求。');
-  recommended(value);return clone(value);
+  recommended(value);checkAgentTestbench(value);if(value.agent_tb_review)agentReviewIdentity(value);return clone(value);
 }
 function aliases(value){
   if(!object(value)||!Array.isArray(value.hosts)||value.hosts.length>256||value.network_operations!==0||value.hosts.some(host=>!endpoint(host?.alias)||!Number.isSafeInteger(host.source_count)))throw Error('本机 SSH 别名响应格式不符。');
@@ -118,8 +121,9 @@ function pendingRecord(value,connectionId){
 
 export function createEnvironmentController({adapter=null,pendingStore=null,changed=()=>{},onRun=()=>{}}={}){
   let disposed=false,epoch=0,source=null,unsubscribe=null,restoring=null;
-  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),refresh:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,recommendationMode:true,preparation:step(),run:step(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
+  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),refresh:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,recommendationMode:true,preparation:step(),run:step(),agentSave:step(),agentReview:step(),analysis:step(),analysisCatalog:step(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
   const emit=()=>{if(!disposed)changed();};
+  const agentEditor=createAgentDraftEditor({changed:emit});
   const has=name=>typeof adapter?.[name]==='function';
   const connected=()=>state.connection.connected&&id(state.connection.connectionId);
   const sameConnection=()=>connected()&&(!state.boundConnectionId||state.boundConnectionId===state.connection.connectionId);
@@ -127,16 +131,19 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   const requireAdapter=name=>{if(!has(name)||!sameConnection())throw Error('请连接原环境服务；当前连接不能使用这份 intake。');};
   const notifyRun=async receipt=>{try{await onRun(receipt);}catch(error){state.run.notificationError=message(error);}};
   const rememberRejection=receipt=>{if(!state.rejectedSubmissionKeys.includes(receipt.submission_key))state.rejectedSubmissionKeys.push(receipt.submission_key);};
-  const locked=()=>!!state.busy||!!state.pending.length||!!state.storageError||(connected()&&!state.storageReady)||state.preparation.status==='unknown'||state.run.status==='unknown';
-  const editable=()=>{if(disposed||locked())throw Error('请先核对原请求；当前输入与重复提交已暂停。');};
+  const requestLocked=()=>!!state.busy||!!state.pending.length||!!state.storageError||(connected()&&!state.storageReady)||state.preparation.status==='unknown'||state.run.status==='unknown';
+  const locked=()=>requestLocked()||!!onboardingRecovery(state.session);
+  const editable=()=>{if(onboardingRecovery(state.session))throw Error(recoveryMessage(state.session));if(disposed||locked())throw Error('请先核对原请求；当前输入与重复提交已暂停。');};
   const clearPrepared=()=>{state.intentConfirmed=false;state.preparation=step();state.run=step();};
   const clearCandidate=()=>{state.candidateId='';state.sections=[];state.tmiCandidateId=null;state.modelContracts={};clearPrepared();};
   const clearDiscovery=()=>{state.discovery=step();state.searchDirectoryIds=[];state.searchScopeDirty=false;clearCandidate();};
   const candidate=()=>state.discovery.result?.discovery.candidates.find(item=>item.candidate_id===state.candidateId)||null;
   const recommendation=()=>state.session&&state.discovery.result?.discovery&&!state.setupDirty&&!state.searchScopeDirty&&state.discovery.result.discovery.discovery_id===state.session.discovery?.discovery_id?recommended(state.session):null;
-  const formSnapshot=()=>canonical([state.targets,state.setupSourceIds,state.hints,state.searchDirectoryIds,state.candidateId,state.sections,state.tmiCandidateId,state.modelContracts,state.intent,state.intentConfirmed,state.recommendationMode]);
+  const formSnapshot=()=>canonical([state.targets,state.setupSourceIds,state.hints,state.searchDirectoryIds,state.candidateId,state.sections,state.tmiCandidateId,state.modelContracts,state.intent,state.intentConfirmed,state.recommendationMode,agentEditor.state]);
   const identity=()=>{if(!state.session)throw Error('请先核对独立网表。');return {intake_id:state.session.intake_id,revision:state.session.revision};};
-  const acceptSession=(value,options={})=>{const next=session(value,state.session,options);state.session=next;state.intake={status:'complete',result:next,error:null};return next;};
+  const analysisScope=value=>canonical([value?.connection_id,value?.intake_id,value?.source_sha256,value?.job?.job_id,value?.job?.source_commit,value?.job?.waveforms]);
+  const invalidateAnalysis=next=>{if(analysisScope(next)!==analysisScope(state.session)){state.analysis=step();state.analysisCatalog=step();}};
+  const acceptSession=(value,options={})=>{const next=session(value,state.session,options);invalidateAnalysis(next);state.session=next;agentEditor.observe(next);state.intake={status:'complete',result:next,error:null};return next;};
   function hydrate(current){
     const selection=current.selection||{},choice=current.discovery?.candidates.find(item=>item.candidate_id===selection.candidate_id);
     state.targets=clone(current.execution_scope?.selected_ssh_targets||current.probes?.map(probe=>probe.ssh_target)||[]);
@@ -154,7 +161,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       if(current.state!=='pre_dispatch_rejected'||current.job!==null)throw Error('保存的提交前拒绝状态不完整。');
       rejection=validatePreDispatchRejection(current.submission,{intake:current,plan:current.prepared});
     }
-    state.session=current;state.boundConnectionId=state.connection.connectionId;
+    invalidateAnalysis(current);state.session=current;state.boundConnectionId=state.connection.connectionId;agentEditor.observe(current);if(state.agentSave.status==='unknown')state.agentSave=step();
     if(!preserveDraft){hydrate(current);state.recommendationMode=!(current.prepared&&current.selection);state.preparation=current.prepared?{status:'complete',result:current,error:null}:step();}
     else if(state.preparation.status==='complete')state.preparation.result=current;
     state.intake={status:'complete',result:current,error:null};state.run=rejection?{status:'rejected',result:null,error:null,rejection}:current.job?{status:'complete',result:clone(current.job),error:null}:step();if(rejection)rememberRejection(rejection);
@@ -201,7 +208,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   }
   async function inspectSource(){
     editable();requireAdapter('inspectNetlist');if(!source)throw Error('请先导入独立网表。');
-    return action('intake',state.intake,async()=>{const value=session(await guarded(()=>adapter.inspectNetlist({file_name:source.name,text:source.text})),null,{initial:true});state.session=value;state.boundConnectionId=state.connection.connectionId;return value;});
+    return action('intake',state.intake,async()=>{const value=session(await guarded(()=>adapter.inspectNetlist({file_name:source.name,text:source.text,...(source.mode?{mode:source.mode}:{}),...(source.support_files?{support_files:source.support_files}:{})})),null,{initial:true});state.session=value;agentEditor.observe(value);state.boundConnectionId=state.connection.connectionId;return value;});
   }
   async function restore(record){
     requireAdapter(record.phase==='run'?'readSubmission':'getSession');pendingRecord(record,state.connection.connectionId);
@@ -213,6 +220,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       if(current.intake_id!==record.intake_id||current.revision<record.revision)throw Error('保存的会话与原请求身份不一致。');
       state.session=current;state.boundConnectionId=record.connectionId;state.intake={status:'complete',result:current,error:null};
       if(record.phase==='prepare'){
+        if(onboardingRecovery(current))throw Error(recoveryMessage(current));
         prepared(current,state.targets.length?state.targets:null);if(current.revision<=record.revision)throw Error('尚未确认原准备请求，继续保留并等待核对。');
         hydrate(current);await resolved(record);return current;
       }
@@ -236,11 +244,59 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   const api={
     get state(){return clone(state);},has,get candidate(){return clone(candidate());},get recommendation(){return clone(recommendation());},get intentReady(){return !!intentValue()&&!!contractsReady();},get locked(){return locked();},
     get currentBinding(){return state.session?{connectionId:state.connection.connectionId,intakeId:state.session.intake_id,sourceSha256:state.session.source_sha256,revision:state.session.revision}:null;},
+    get agentEditor(){return agentEditor.state;},get recoveryRequired(){return onboardingRecovery(state.session);},
     get connected(){return !!sameConnection();},get ready(){return restoring?.promise||Promise.resolve();},
     connect(options){if(!has('connect'))throw Error('本机连接入口尚未接入。');return adapter.connect(options);},
     disconnect(){if(state.busy)throw Error('请等待当前步骤完成。');return adapter?.disconnect?.();},
     setAdapter(value){editable();if(state.session)throw Error('已有 intake，不能替换其连接适配器。');connectAdapter(value);emit();},
-    async importSource(value){editable();const inventory=inspectLiteralNetlist(value);epoch++;source={name:inventory.name,text:value.text};state.source=inventory;state.session=null;state.boundConnectionId=null;state.intake=step();state.refresh=step();state.recommendationMode=true;state.targets=[];state.setupSourceIds={};state.setupDirty=false;state.probe=step();state.hints={search_paths:'',cds_lib_hint:''};state.intent=emptyIntent();clearDiscovery();emit();if(sameConnection()&&has('inspectNetlist'))await inspectSource();return inventory;},
+    async importSource(value){editable();const inventory=inspectLiteralNetlist(value);if(value.mode!==undefined&&value.mode!=='agent-tb')throw Error('未知测试平台导入模式。');if(value.support_files!==undefined&&(!object(value.support_files)||Object.keys(value.support_files).length>64||Object.entries(value.support_files).some(([path,body])=>!path||path.startsWith('/')||path.split('/').some(part=>!part||part==='.'||part==='..')||path.includes('\\')||typeof body!=='string'||new TextEncoder().encode(body).length>1024*1024)))throw Error('支持文件必须是相对路径与字面文本。');epoch++;source={name:inventory.name,text:value.text,...(value.mode?{mode:value.mode}:{}),...(value.support_files?{support_files:clone(value.support_files)}:{})};state.source={...inventory,...(value.mode?{mode:value.mode}:{})};state.session=null;agentEditor.reset();state.agentSave=step();state.agentReview=step();state.analysis=step();state.analysisCatalog=step();state.boundConnectionId=null;state.intake=step();state.refresh=step();state.recommendationMode=true;state.targets=[];state.setupSourceIds={};state.setupDirty=false;state.probe=step();state.hints={search_paths:'',cds_lib_hint:''};state.intent=emptyIntent();clearDiscovery();emit();if(sameConnection()&&has('inspectNetlist'))await inspectSource();return inventory;},
+    editAgentTestbench(field,value){editable();agentEditor.edit(field,value);state.agentReview=step();},
+    resetAgentTestbench(){editable();agentEditor.reset(state.session);state.agentSave=step();state.agentReview=step();},
+    async saveAgentTestbench(){
+      editable();requireAdapter('saveAgentTestbench');if(state.agentSave.status==='unknown')throw Error('上次草稿保存结果未知，请先刷新原实验核对。');
+      const input=agentEditor.read(state.session);let unknown=false;
+      return action('agent-save',state.agentSave,async()=>{
+        try{const next=session(await guarded(()=>adapter.saveAgentTestbench(input)),state.session,{mutating:true}),draft=checkAgentTestbench(next);
+          if(!draft||canonical(draft.testbench)!==canonical(input.testbench)||canonical(draft.selection)!==canonical(input.selection)||next.agent_tb_review&&next.agent_tb_review.state!=='stale')throw Error('保存结果没有保留完整草稿或仍持有旧审阅。');
+          acceptSession(next);agentEditor.accept(next);state.agentReview=step();state.preparation=step();state.run=step();return next;
+        }catch(error){unknown=error?.data?.code==='transport_unknown';throw error;}
+      },{uncertain:()=>unknown});
+    },
+    async prepareAgentTestbench(){
+      editable();requireAdapter('prepareAgentTestbench');const draft=checkAgentTestbench(state.session),editor=agentEditor.state;
+      if(!draft||editor.dirty||editor.conflict||editor.error||state.agentSave.status==='unknown')throw Error('请先保存并核对当前测试平台草稿。');
+      const input={...identity(),draft_id:draft.draft_id};
+      return action('agent-prepare',state.preparation,async()=>{const record=await persist('prepare'),next=prepared(session(await guarded(()=>adapter.prepareAgentTestbench(input)),state.session,{mutating:true}));
+        if(next.agent_tb?.draft_id!==draft.draft_id||next.prepared.recipe_id!=='agent-testbench'||next.prepared.state==='prepared'&&!agentReviewIdentity(next))throw Error('审阅计划不属于当前测试平台草稿。');
+        acceptSession(next);hydrate(next);await resolved(record);state.run=step();state.agentReview=step();return next;
+      },{uncertain:()=>state.pending.some(record=>record.phase==='prepare')});
+    },
+    openAgentTestbenchReview(event){
+      editable();requireAdapter('openAgentTestbenchReview');const editor=agentEditor.state,review=agentReviewIdentity(state.session);
+      if(editor.dirty||editor.conflict||editor.error||!review||review.state!=='pending'||review.revision!==state.session.revision)throw Error('请先保存草稿并生成当前版本的人工审阅计划。');
+      const result=adapter.openAgentTestbenchReview({intake_id:state.session.intake_id,revision:state.session.revision,review_id:review.review_id,review_digest:review.review_digest,plan_id:review.plan_id},{event});
+      state.agentReview={status:'opened',result,error:null};emit();return result;
+    },
+    async readAnalysisCatalog(){
+      editable();requireAdapter('waveformApi');const current=state.session,receipt=current?.job;
+      if(!receipt)throw Error('请选择已保存的原仿真任务。');const provider=adapter.waveformApi({intake_id:current.intake_id,job:receipt});
+      return action('analysis-catalog',state.analysisCatalog,async()=>{const result=await guarded(()=>provider.catalog(receipt.run_id));
+        if(analysisScope(state.session)!==analysisScope(current))throw Error('分析任务已切换，未采用旧信号目录。');
+        if(result?.schema!=='ic.waveforms.v1'||result.run_id!==receipt.run_id||result.source_commit!==receipt.source_commit||!Array.isArray(result.signals)||
+          ['archive_sha256','csv_sha256','raw_signature','effective_config_sha256'].some(key=>result[key]!==receipt.waveforms[key]))throw Error('分析信号目录与原任务数据不一致。');return result;});
+    },
+    async analyze({operation,inputs,parameters,criteria}={}){
+      editable();requireAdapter('analyzeExperiment');if(!ANALYSIS_OPERATIONS.includes(operation)||!object(inputs)||!object(parameters))throw Error('请选择明确的分析算法、同任务信号和参数。');
+      const current=state.session,receipt=current?.job;if(!receipt)throw Error('尚无可分析的原任务数据。');
+      const input={intake_id:current.intake_id,job_id:receipt.job_id,operation,inputs,parameters,...(criteria===undefined?{}:{criteria})};
+      return action('analysis',state.analysis,async()=>{const result=checkAnalysisResult(await guarded(()=>adapter.analyzeExperiment(input)),current);
+        if(analysisScope(state.session)!==analysisScope(current))throw Error('分析任务已切换，旧结果未显示。');
+        if(canonical(result.request.inputs)!==canonical(inputs)||canonical(result.request.parameters)!==canonical(parameters)||criteria!==undefined&&canonical(result.request.criteria)!==canonical(criteria))throw Error('分析结果的信号、参数或判据与提交内容不一致。');return result;});
+    },
+    receiveAnalysis(value){
+      if(disposed||!sameConnection())return {status:'ignored'};const result=checkAnalysisResult(value,state.session);
+      state.analysis={status:'complete',result,error:null};emit();return {status:'updated',analysisId:result.analysis_id};
+    },
     inspectSource,
     loadAliases(){requireAdapter('listSshAliases');return action('aliases',state.aliases,async()=>aliases(await guarded(()=>adapter.listSshAliases())));},
     setTargets(values){editable();if(!Array.isArray(values)||values.length>8||values.some(value=>!endpoint(value)))throw Error('请填写至多 8 个 SSH alias 或 user@host。');state.targets=[...new Set(values)];state.setupSourceIds={};state.setupDirty=false;state.probe=step();clearDiscovery();emit();},
@@ -249,9 +305,10 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     async probeAndMatch(){await api.probeHost();return api.matchPdk();},
     setHint(key,value){editable();if(!Object.hasOwn(state.hints,key)||!text(value,4000))throw Error('搜索提示格式不符。');state.hints[key]=value;clearDiscovery();emit();},
     selectSearchDirectories(values){editable();const directories=state.discovery.result?.discovery.search_directories||[],probeIds=state.probe.result?.probes.map(probe=>probe.probe_id)||[];if(!Array.isArray(values)||values.length>8||new Set(values).size!==values.length||values.some(value=>!directories.some(directory=>directory.directory_id===value&&probeIds.includes(directory.probe_id))))throw Error('只能选择至多 8 个当前 discovery 中属于所选主机的观察目录。');state.searchDirectoryIds=clone(values);state.searchScopeDirty=true;clearCandidate();emit();},
-    matchPdk(){
+    matchPdk({refresh=false}={}){
       editable();requireAdapter('discoverPdk');if(state.probe.status!=='complete'||state.setupDirty)throw Error('请先完成当前所选主机与环境配置的探测。');
       const args={...identity(),probe_ids:state.probe.result.probes.map(probe=>probe.probe_id).filter(id)},selected=clone(state.searchDirectoryIds);
+      if(refresh===true)args.refresh=true;
       if(!args.probe_ids.length)throw Error('没有可用主机探测结果；请检查失败原因。');
       if(selected.length){const directories=state.discovery.result?.discovery.search_directories||[],rows=selected.map(value=>directories.find(directory=>directory.directory_id===value));if(rows.some(row=>!row||!args.probe_ids.includes(row.probe_id))||args.probe_ids.some(probeId=>!rows.some(row=>row.probe_id===probeId)))throw Error('请为每个选中主机选择本次观察到的目录。');args.search_directory_ids=selected;}
       else{const paths=state.hints.search_paths.split('\n').map(path=>path.trim()).filter(Boolean);if(paths.length)args.search_paths=paths;}
@@ -303,12 +360,12 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       };
       const replacing=current?.intake_id!==binding?.intakeId;
       if(!matches()||!Number.isSafeInteger(binding.revision)||binding.revision<0||!replacing&&binding.revision<current.revision)return {status:'ignored',reason:'binding_or_revision_changed'};
-      if(locked()||state.refresh.status==='loading')return {status:'deferred',reason:'request_pending'};
+      if(requestLocked()||state.refresh.status==='loading')return {status:'deferred',reason:'request_pending'};
       requireAdapter('getSession');const inputs=formSnapshot();state.refresh={status:'loading',result:null,error:null};emit();
       try{
         const raw=await adapter.getSession({intake_id:binding.intakeId});
         if(!matches()||formSnapshot()!==inputs)return {status:'ignored',reason:'source_or_draft_changed'};
-        if(locked())return {status:'deferred',reason:'request_pending'};
+        if(requestLocked())return {status:'deferred',reason:'request_pending'};
         if(current&&raw?.connection_id!==current.connection_id||raw?.intake_id!==binding.intakeId||raw?.source_sha256!==binding.sourceSha256||raw?.revision<Math.max(binding.revision,replacing?0:state.session.revision))return {status:'ignored',reason:'response_binding_changed'};
         const next=session(raw,replacing?null:state.session);
         if(!replacing&&canonical(next)===canonical(state.session))return {status:'unchanged',session:clone(state.session)};
@@ -321,7 +378,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       }catch(error){if(matches())state.refresh={status:'error',result:null,error:message(error)};throw error;}
       finally{if(!disposed&&ticket===epoch){if(state.refresh.status==='loading')state.refresh=step();emit();}}
     },
-    inspect(){requireAdapter('inspectExperiment');if(!state.run.result?.job_id||state.pending.length)throw Error('请先核对原提交回执。');const previous=state.run.result,plan=state.preparation.result?.prepared||state.session?.prepared,scope=state.preparation.result?.execution_scope||state.session?.execution_scope;return action('inspect',state.run,async()=>{const response=session(await guarded(()=>adapter.inspectExperiment({intake_id:state.session.intake_id,job_id:previous.job_id})),state.session),receipt=job(response.job,plan,previous,scope);acceptSession(response);await notifyRun(receipt);return receipt;});},
+    inspect(){requireAdapter('inspectExperiment');if(onboardingRecovery(state.session))throw Error(recoveryMessage(state.session));if(!state.run.result?.job_id||state.pending.length)throw Error('请先核对原提交回执。');const previous=state.run.result,plan=state.preparation.result?.prepared||state.session?.prepared,scope=state.preparation.result?.execution_scope||state.session?.execution_scope;return action('inspect',state.run,async()=>{const response=session(await guarded(()=>adapter.inspectExperiment({intake_id:state.session.intake_id,job_id:previous.job_id})),state.session),receipt=job(response.job,plan,previous,scope);acceptSession(response);await notifyRun(receipt);return receipt;});},
     destroy(){if(disposed)return;disposed=true;epoch++;unsubscribe?.();}
   };
   connectAdapter(adapter);return api;
