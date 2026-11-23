@@ -59,7 +59,10 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
             result = await session.list_tools()
             expected = core_tools()+view_tools()+review_tools()+PluginRuntime.tools(None)
             self.assertEqual([wire(t) for t in result.tools], expected)
-            self.assertEqual(len(result.tools),31)
+            names={tool.name for tool in result.tools}
+            self.assertTrue({'ic_sim_runtime','ic_sim_execute'} <= names)
+            self.assertFalse({'ic_library_read','ic_library_execute'} & names)
+            self.assertEqual(len(names),len(result.tools))
             status = await session.call_tool('ic_plugin_status', {})
             self.assertEqual(status.structured_content['data']['ensures'],0)
             resources = await session.list_resources()
@@ -155,9 +158,12 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
         config=self.root/'client.json'
         config.write_text(json.dumps({'gateway_url':'http://127.0.0.1:1','state_dir':str(self.root/'client-state')}))
         settings=self.root/'missing-settings.json'
-        for flag,path,count in [('--config',config,29),('--settings',settings,31)]:
+        for flag,path in [('--config',config),('--settings',settings)]:
             async with self.client(command=[str(ROOT/'apps/mcp/server.py'),flag,str(path)]) as (session,_):
-                self.assertEqual(len((await session.list_tools()).tools),count)
+                listed=(await session.list_tools()).tools
+                expected=core_tools()+view_tools()+review_tools()+(PluginRuntime.tools(None) if flag=='--settings' else [])
+                self.assertEqual([wire(tool) for tool in listed],expected)
+                self.assertFalse({'ic_library_read','ic_library_execute'} & {tool.name for tool in listed})
                 self.assertEqual(len((await session.list_resources()).resources),4)
                 if flag=='--settings':
                     status=await session.call_tool('ic_plugin_status',{})

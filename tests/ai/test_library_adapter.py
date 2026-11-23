@@ -141,6 +141,27 @@ class Tests(unittest.TestCase):
               {'path':self.seed.path,'base_sha256':self.seed.sha(self.seed.before),'content':self.seed.after}]},'idempotency_key':'partial-library'})
         self.assertFalse(reply['result']['success']);self.assertEqual(session.state,'suspended')
         self.assertIn('a'*64,str(reply));self.assertIn('partial',str(reply));self.assertEqual((self.root/self.seed.path).read_text(),self.seed.before)
+
+    def test_direct_simulation_permission_denial_suspends_without_manual_fallback(self):
+        session=self.session();self.service.call.side_effect=Failure('forbidden','Missing installed simulation grant',4)
+        args={'operation':'submit','arguments':{'project_id':'runtime','configuration':'TRAN','source_commit':'a'*40},'idempotency_key':'original-simulation-key'}
+        reply=self.tool(session,'ic_sim_execute',args)
+        self.assertFalse(reply['result']['success']);self.assertEqual(session.state,'suspended')
+        self.assertEqual(session.suspension_reason,'forbidden');self.assertEqual(self.service.call.call_count,1)
+        reply=self.tool(session,'ic_sim_submit',args['arguments'])
+        self.assertFalse(reply['result']['success']);self.assertEqual(self.service.call.call_count,1)
+
+    def check_incomplete_simulation(self, value):
+        session=self.session();self.service.call.side_effect=None;self.service.call.return_value=value
+        reply=self.tool(session,'ic_sim_execute',{'operation':'submit','arguments':{'project_id':'runtime'},'idempotency_key':'original-simulation-key'})
+        self.assertFalse(reply['result']['success']);self.assertEqual(session.state,'suspended')
+        self.assertIn(value['request_id'],str(reply));self.assertEqual(session.suspension_reason,'simulation_incomplete')
+
+    def test_uncertain_direct_simulation_preserves_receipt_and_suspends(self):
+        self.check_incomplete_simulation({'state':'uncertain','request_id':'a'*64})
+
+    def test_accepted_but_partial_direct_simulation_suspends(self):
+        self.check_incomplete_simulation({'state':'accepted','request_id':'b'*64,'result':{'state':'partial'}})
     def test_existing_ai_turn_replay_keeps_frozen_library_profile_after_configuration_change(self):
         session=self.session();context=source_context(self.service,'library:demo/gain');before=copy.deepcopy(session.turns['library-turn-key'])
         self.service.config['library_access']='invalid'

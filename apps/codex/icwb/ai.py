@@ -801,6 +801,15 @@ class AiSession:
                 result = library_call(self.service, 'ic_' + op, arguments)
             else:
                 result = self.service.call(op, arguments)
+            if op == 'sim_execute' and arguments.get('operation') in ('submit', 'collect'):
+                state = result.get('state') if isinstance(result, dict) else None
+                inner = result.get('result', {}) if isinstance(result, dict) else {}
+                inner_state = inner.get('state', inner.get('status')) if isinstance(inner, dict) else None
+                if state != 'accepted' or inner_state in ('unknown', 'uncertain', 'partial', 'rejected', 'failed', 'outcome_unknown', 'pending_approval'):
+                    raise Failure('simulation_incomplete', 'Simulation action is not confirmed; inspect its original receipt and stop dependent work', 75,
+                                  {'state': state, 'result_state': inner_state,
+                                   'request_id': result.get('request_id') if isinstance(result, dict) else None,
+                                   'automatic_retry': False})
             self.event('tool/result', {'tool': p['tool'], 'result': result, 'call_id': p.get('callId')})
             if op in MUTATIONS and result.get('state') == 'pending_approval':
                 token = result['request_id']
@@ -812,8 +821,9 @@ class AiSession:
                 return  # No tool response until HUMAN decision. Model cannot self-resolve.
             self._tool_reply(rid, True, result)
         except Failure as e:
-            suspend = (e.code in ('read_only_denial', 'library_read_only', 'library_changed', 'library_incomplete')
-                       or op in ('library_read', 'library_execute') and e.code in ('out_of_scope', 'library_unavailable'))
+            suspend = (e.code in ('read_only_denial', 'library_read_only', 'library_changed', 'library_incomplete', 'simulation_incomplete')
+                       or op in ('library_read', 'library_execute') and e.code in ('out_of_scope', 'library_unavailable')
+                       or op == 'sim_execute' and e.code in ('forbidden', 'unresolved_prior_request', 'gateway_unavailable'))
             if suspend:
                 # Suspend before replying or doing network work. Even a late terminal
                 # model failure cannot turn this denial into resumable model recovery.

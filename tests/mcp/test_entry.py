@@ -14,6 +14,13 @@ sys.path.insert(0,str(ROOT/'apps/mcp'))
 from mcp import ClientSession,StdioServerParameters
 from mcp.client.stdio import stdio_client
 from smoke import probe
+from icwb.service import tools as core_tools
+from icwb.view_contracts import tools as view_tools
+from icwb.elicitation import tools as review_tools
+
+
+def expected_tools():
+    return core_tools()+view_tools()+review_tools()
 
 
 class EntryTests(unittest.IsolatedAsyncioTestCase):
@@ -39,7 +46,9 @@ class EntryTests(unittest.IsolatedAsyncioTestCase):
             async with stdio_client(StdioServerParameters(command=sys.executable,args=['-B',str(package/'server.py'),'--config',str(self.config())]),errlog=log) as streams:
                 async with ClientSession(*streams,read_timeout_seconds=5) as session:
                     await session.initialize()
-                    tools=await session.list_tools();self.assertEqual(len(tools.tools),29)
+                    tools=await session.list_tools()
+                    self.assertEqual([tool.model_dump(by_alias=True,exclude_none=True,exclude_unset=True) for tool in tools.tools],expected_tools())
+                    self.assertFalse({'ic_library_read','ic_library_execute'} & {tool.name for tool in tools.tools})
                     resources=await session.list_resources();self.assertEqual(len(resources.resources),4)
                     for resource in resources.resources:
                         result=await session.read_resource(resource.uri)
@@ -47,7 +56,9 @@ class EntryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_smoke_function_is_callable_against_actual_entry(self):
         report=await probe(ROOT/'apps/mcp/server.py',config=self.config())
-        self.assertEqual(report['tool_count'],29)
+        self.assertEqual(report['tools'],[tool['name'] for tool in expected_tools()])
+        self.assertEqual(report['tool_count'],len(expected_tools()))
+        self.assertFalse({'ic_library_read','ic_library_execute'} & set(report['tools']))
         self.assertFalse(report['writes_requested'])
         self.assertFalse(report['model_started'])
 
