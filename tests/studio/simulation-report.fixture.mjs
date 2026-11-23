@@ -11,5 +11,5 @@ export function simulationReport(runId='run-1'){
     measurement_validity:{status:'valid',scope:{kind:'caller_summary'},evidence:[evidence('measurement_valid','acceptance')]},
     functional_performance:{status:'pass',scope:{kind:'caller_summary'},evidence:[evidence('functional_pass','acceptance')]},
     operating_qualification:{status:'violations_detected',scope:{kind:'declared_operating_checks',scope_id:'synthetic-operating-scope',manifest_sha256:'a'.repeat(64),frozen_before_execution:true,checks:['soa_voltage'],log_complete:true},evidence:[evidence('spectre_soa_voltage','spectre_log',{line_numbers:[1]})]},
-    dependency_provenance:{status:'incomplete',scope:{kind:'declared_dependency_inventory',scope_id:'synthetic-dependencies',manifest_sha256:'b'.repeat(64),run_bound:true,inventory_complete:true},evidence:[evidence('unregistered_runtime_tmi_library','dependency_audit',{dependency_id:'synthetic-tmi',sha256:'c'.repeat(64)})]}};
+    dependency_provenance:{status:'incomplete',scope:{kind:'observed_files_with_directory_references',scope_id:'synthetic-dependencies',manifest_sha256:'b'.repeat(64),run_bound:true,inventory_complete:true},evidence:[evidence('unregistered_runtime_tmi_library','dependency_audit',{dependency_id:'synthetic-tmi',sha256:'c'.repeat(64)})]}};
 }

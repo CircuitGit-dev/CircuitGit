@@ -11,13 +11,14 @@ const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)
 const fail=()=>{throw Error('仿真验收报告的格式或运行身份不符。');};
 const id=value=>typeof value==='string'&&/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}$/.test(value);
 const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
+const boundedText=(value,size)=>{if(typeof value!=='string')return false;let length=0;for(const character of value)if(++length>size)return false;return true;};
 const only=(value,keys)=>Object.keys(value).every(key=>keys.includes(key));
 const sources={execution_receipt:'执行回执',acceptance:'验收记录',spectre_log:'Spectre 日志',qualification_scope:'工作条件检查范围',dependency_audit:'依赖核查'};
 const checks={soa_voltage:'电压 SOA',soa_current:'电流 SOA',model_parameter_range:'模型参数范围',model_bin:'模型分档',scale_override:'尺寸缩放覆盖'};
-const kinds={caller_execution_receipt:'执行回执',caller_summary:'已提供的验收摘要',caller_measurements:'已提供的测量记录',declared_operating_checks:'声明的工作条件检查',declared_dependency_inventory:'声明的依赖清单'};
+const kinds={caller_execution_receipt:'执行回执',caller_summary:'已提供的验收摘要',caller_measurements:'已提供的测量记录',declared_operating_checks:'声明的工作条件检查',declared_dependency_inventory:'声明的依赖清单',observed_files_with_directory_references:'已观测文件及登记的目录引用'};
 const evidenceLabels={unregistered_runtime_tmi_library:'TMI 未在运行前登记',pre_pinned_dependency_verified:'运行前已固定的依赖核验一致',dependency_hash_mismatch:'依赖哈希不一致',dependency_hash_unverified:'依赖哈希尚未核验',dependency_audit_missing:'尚无依赖核查记录',suppressed_warning_coverage_gap:'被抑制警告造成证据缺口',complete_log_not_declared:'未声明完整日志覆盖',frozen_qualification_scope_missing:'缺少运行前固定的检查范围'};
 function validateScope(scope){
-  if(!object(scope)||typeof scope.kind!=='string'||scope.kind.length>100||!only(scope,['kind','scope_id','manifest_sha256','frozen_before_execution','checks','log_complete','run_bound','inventory_complete']))fail();
+  if(!object(scope)||!boundedText(scope.kind,100)||!only(scope,['kind','scope_id','manifest_sha256','frozen_before_execution','checks','log_complete','run_bound','inventory_complete']))fail();
   if(scope.scope_id!==undefined&&scope.scope_id!==null&&!id(scope.scope_id))fail();
   if(scope.manifest_sha256!==undefined&&scope.manifest_sha256!==null&&!sha(scope.manifest_sha256))fail();
   for(const key of ['frozen_before_execution','log_complete','run_bound','inventory_complete'])if(scope[key]!==undefined&&typeof scope[key]!=='boolean')fail();
@@ -41,10 +42,22 @@ export function simulationReportView(report,runId){
     const value=report[d.key];
     if(!object(value)||!only(value,['status','scope','evidence'])||!Object.hasOwn(d.states,value.status)||!Array.isArray(value.evidence)||value.evidence.length<1||value.evidence.length>258)fail();
     validateScope(value.scope);value.evidence.forEach(validateEvidence);
+    // These are report-schema preconditions, not frontend diagnostic judgments.
+    if(d.key==='operating_qualification'&&value.status==='passed_within_scope'){
+      const scope=value.scope;
+      if(scope.kind!=='declared_operating_checks'||!id(scope.scope_id)||!sha(scope.manifest_sha256)
+        ||scope.frozen_before_execution!==true||!scope.checks?.length||scope.log_complete!==true)fail();
+    }
+    if(d.key==='dependency_provenance'&&value.status==='verified_within_scope'){
+      const scope=value.scope;
+      if(scope.kind!=='observed_files_with_directory_references'||!id(scope.scope_id)||!sha(scope.manifest_sha256)
+        ||scope.run_bound!==true||scope.inventory_complete!==true||!id(report.run_id))fail();
+    }
     return {key:d.key,label:d.label,status:value.status,value:d.states[value.status],
       tone:positive.has(value.status)?'positive':negative.has(value.status)?'negative':value.status==='unknown'?'unknown':'pending',
       scope:value.scope,evidence:value.evidence};
   });
+  if(['pass','fail'].includes(report.functional_performance.status)&&report.measurement_validity.status!=='valid')fail();
   return {available:true,runId:report.run_id,dimensions:rows};
 }
 
@@ -75,7 +88,7 @@ export function appendSimulationReport(parent,{report,runId,detail}){
     section.append(el('h4',row.label+' · '+row.value));
     const scope=el('dl',undefined,'ic-report-scope');
     const add=(label,value)=>scope.append(el('dt',label),el('dd',value));
-    add('范围',kinds[row.scope.kind]||row.scope.kind||'未记录');
+    add('范围',(Object.hasOwn(kinds,row.scope.kind)?kinds[row.scope.kind]:row.scope.kind)||'未记录');
     if(row.scope.scope_id!==undefined)add('范围标识',row.scope.scope_id||'未记录');
     if(row.scope.checks!==undefined)add('检查项',row.scope.checks.map(key=>checks[key]).join('、')||'未声明');
     for(const [key,label]of [['frozen_before_execution','运行前已固定'],['log_complete','日志覆盖完整'],['run_bound','已绑定运行'],['inventory_complete','依赖清单完整']])if(row.scope[key]!==undefined)add(label,row.scope[key]?'是':'否');
@@ -83,8 +96,8 @@ export function appendSimulationReport(parent,{report,runId,detail}){
     section.append(scope);
     const list=el('ul',undefined,'ic-report-evidence-list');
     for(const item of row.evidence){
-      const line=el('li');line.append(el('code',evidenceLabels[item.code]||item.code));
-      if(evidenceLabels[item.code])line.title=item.code;
+      const known=Object.hasOwn(evidenceLabels,item.code),line=el('li');line.append(el('code',known?evidenceLabels[item.code]:item.code));
+      if(known)line.title=item.code;
       line.append(el('span',sources[item.source]+(item.line_numbers.length?' · 行 '+item.line_numbers.join(', '):'')));
       if(item.dependency_id!==undefined)line.append(el('span','依赖：'+item.dependency_id));
       if(item.sha256!==undefined)line.append(el('span','SHA-256：'+item.sha256));

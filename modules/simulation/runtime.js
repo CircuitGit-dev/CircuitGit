@@ -2,7 +2,8 @@
 import {simulationReportView,appendSimulationReport} from './report.js';
 const COMMIT=/^[a-f0-9]{40}$/, PLAN=/^[a-f0-9]{64}$/, ID=/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}$/;
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-const text=(value,size=240)=>typeof value==='string'&&value.length<=size;
+// JSON Schema maxLength counts Unicode code points, not UTF-16 code units.
+const text=(value,size=240)=>{if(typeof value!=='string')return false;let length=0;for(const character of value)if(++length>size)return false;return true;};
 const nullableText=(value,size)=>value===null||text(value,size);
 const number=(value,min=0,max=Number.MAX_SAFE_INTEGER)=>value===null||typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max;
 const timestamp=value=>value===null||text(value,80)&&/(?:Z|[+-]\d{2}:\d{2})$/.test(value)&&Number.isFinite(Date.parse(value));
@@ -18,7 +19,7 @@ function validateDiagnostics(value){
     &&value.agent_proposal===null&&object(value.observed_context)&&Array.isArray(value.diagnostics)&&value.diagnostics.length<=32);
   validateAcceptance(value.scientific_acceptance);
   for(const finding of value.diagnostics){
-    requireValid(object(finding)&&text(finding.category,80)&&text(finding.code,80)
+    requireValid(object(finding)&&text(finding.category,180)&&text(finding.code,180)
       &&['error','warning','info'].includes(finding.severity)&&text(finding.redacted_excerpt,1024)
       &&Array.isArray(finding.evidence_line_numbers)&&finding.evidence_line_numbers.length<=32
       &&finding.evidence_line_numbers.every(line=>Number.isSafeInteger(line)&&line>=1)
@@ -38,7 +39,7 @@ export function normalizeRuntimeSnapshot(value,projectId){
     requireValid(object(host)&&typeof host.host_id==='string'&&ID.test(host.host_id)&&!hosts.has(host.host_id)
       &&text(host.label,160)&&[true,false,null].includes(host.reachable)&&number(host.cpu_busy_percent,0,100)
       &&number(host.load_1m)&&number(host.cpu_count,1)&&number(host.memory_available_bytes)&&number(host.memory_total_bytes)
-      &&timestamp(host.observed_at)&&nullableText(host.error_code,120));
+      &&timestamp(host.observed_at)&&nullableText(host.error_code,180));
     requireValid(host.cpu_count===null||Number.isSafeInteger(host.cpu_count));
     requireValid(host.memory_available_bytes===null||host.memory_total_bytes===null||host.memory_available_bytes<=host.memory_total_bytes);
     hosts.add(host.host_id);
@@ -48,7 +49,7 @@ export function normalizeRuntimeSnapshot(value,projectId){
   for(const run of value.runs){
     requireValid(object(run)&&typeof run.run_id==='string'&&ID.test(run.run_id)&&!runs.has(run.run_id)
       &&(run.source_commit===null||typeof run.source_commit==='string'&&COMMIT.test(run.source_commit))
-      &&nullableText(run.configuration,180)&&object(run.execution)&&text(run.execution.state,80)
+      &&nullableText(run.configuration,180)&&object(run.execution)&&text(run.execution.state,180)
       &&(run.execution.exit_code===null||Number.isSafeInteger(run.execution.exit_code)));
     requireValid(run.collectable===undefined||typeof run.collectable==='boolean');
     if(run.execution_target!==null){
@@ -58,7 +59,7 @@ export function normalizeRuntimeSnapshot(value,projectId){
       requireValid(target.mode==='fixed_site'?target.host_id===null&&target.plan_id===null:
         typeof target.host_id==='string'&&ID.test(target.host_id)&&typeof target.plan_id==='string'&&PLAN.test(target.plan_id));
     }
-    requireValid(object(run.monitor)&&text(run.monitor.state,80)&&timestamp(run.monitor.last_attempt_at)
+    requireValid(object(run.monitor)&&text(run.monitor.state,180)&&timestamp(run.monitor.last_attempt_at)
       &&timestamp(run.monitor.last_success_at)&&timestamp(run.monitor.next_check_at)
       &&Number.isSafeInteger(run.monitor.failures)&&run.monitor.failures>=0);
     validateDiagnostics(run.diagnostics);validateAcceptance(run.acceptance);
@@ -67,6 +68,7 @@ export function normalizeRuntimeSnapshot(value,projectId){
     for(const key of Object.keys(acceptanceStates))requireValid(run.acceptance[key]===run.diagnostics.scientific_acceptance[key]);
     runs.add(run.run_id);
   }
+  // Keep the existing bounded browser budget until the transport byte limit is agreed.
   requireValid(JSON.stringify(value).length<=1024*1024);
   return freeze(structuredClone(value));
 }
