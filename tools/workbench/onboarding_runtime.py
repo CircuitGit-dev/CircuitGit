@@ -418,11 +418,11 @@ class OnboardingRuntime:
         folder=self._folder(args['intake_id'])
         with locked(folder/'submission.lock'):
             state=self._load(args['intake_id']);plan=self._plan_row(state,args['plan_id'])
+            if (state.get('prepared') or {}).get('plan_id')!=plan['plan_id']:
+                raise Conflict('This is a historical plan; use original-key lookup and saved waveform reads without changing the current intake')
             if plan.get('dispatch_outcome')!='not_requested':
                 receipt=self._submission({'intake_id':state['intake_id'],'plan_id':plan['plan_id']})
                 return {**public_session(self._load(state['intake_id'])),'job':receipt['job'],'submission':receipt}
-            if (state.get('prepared') or {}).get('plan_id')!=plan['plan_id']:
-                raise Conflict('Only the current frozen plan can receive its first run request')
             folder,state=self._begin(args,'submitting');plan=self._plan_row(state,plan['plan_id'])
             # Persist before entering Runner. A crash before reservation is still
             # ambiguous to a remote client and never authorizes an automatic replay.

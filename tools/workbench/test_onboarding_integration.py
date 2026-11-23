@@ -505,6 +505,11 @@ class OnboardingPreparedIntegrationTests(_IntakeFixture):
               patch.object(child_b.simulation, 'control') as control_b,
               patch.object(child_a.runner, 'status') as status_a,
               patch.object(child_a.runner, 'collect') as collect_a):
+            with patch.object(self.runtime, '_submission') as historical_lookup:
+                with self.assertRaises(Conflict):
+                    self.runtime.write('run', {'intake_id':plan_a['intake_id'],
+                        'revision':current_b['revision'],'plan_id':plan_a['prepared']['plan_id']},origin='test_harness')
+                historical_lookup.assert_not_called()
             with self.assertRaises(Conflict) as caught:
                 self.runtime.write('inspect', {'intake_id': plan_a['intake_id'], 'job_id': job_a},
                     origin='test_harness')
@@ -581,9 +586,12 @@ class OnboardingPreparedIntegrationTests(_IntakeFixture):
         self.assertNotEqual(next_plan['prepared']['plan_id'], prepared['prepared']['plan_id'])
         self.assertNotIn('submission', next_plan)
         with patch.object(child.simulation, 'control') as control:
-            old = self.submit_intake(prepared)
-            self.assertEqual(old['submission']['rejection'], rejection)
-            self.assertFalse(old['submission']['replay_permitted'])
+            with self.assertRaises(Conflict):
+                self.submit_intake(prepared)
+            old = self.runtime.read('submission', {'intake_id':prepared['intake_id'],
+                'plan_id':prepared['prepared']['plan_id']})
+            self.assertEqual(old['rejection'], rejection)
+            self.assertFalse(old['replay_permitted'])
             control.assert_not_called()
         self.reserve.assert_not_called()
         self.ssh.assert_not_called()
