@@ -86,6 +86,7 @@ class ProjectionTests(unittest.TestCase):
         source['geometry']['geometry']['objects'] = [{'raw': 'GEOMETRY_SENTINEL' + 'x' * 1500000}]
         service = SimpleNamespace(call=lambda op, args: copy.deepcopy(source))
         routes = object.__new__(AiRoutes)
+        routes.service = service
         routes.sessions = SimpleNamespace(get=lambda sid: SimpleNamespace(service=service))
         result = routes.get('/api/ai/context', {'project_id': ['SYNTHETIC']})
         self.assertLess(len(canonical(result)), 10000)

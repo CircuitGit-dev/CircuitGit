@@ -1,0 +1,70 @@
+{
+  "testbenches": [
+    {
+      "id": "rc-smoke-tran-source",
+      "library_id": "basics",
+      "cell_id": "rc-smoke",
+      "configuration_path": "projects/rc-smoke/configurations/TRAN.json",
+      "engine": "source-check",
+      "workflow_path": ".github/workflows/circuit-ci.yml",
+      "label": "RC TRAN \u00b7 source/config checks",
+      "requires_external_models": false,
+      "available": true
+    },
+    {
+      "id": "pipetisar-real-TB_PIPE_RS9_N06-PIPE_LOW",
+      "library_id": "pipetisar-real",
+      "cell_id": "TB_PIPE_RS9_N06",
+      "configuration_path": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_LOW/configuration.json",
+      "engine": "spectre",
+      "workflow_path": ".github/workflows/circuit-spectre.yml",
+      "label": "TB_PIPE_RS9_N06 / PIPE_LOW \u00b7 Spectre (requires local setup)",
+      "requires_external_models": true,
+      "available": true
+    },
+    {
+      "id": "pipetisar-real-TB_PIPE_RS9_N06-PIPE_NYQUIST",
+      "library_id": "pipetisar-real",
+      "cell_id": "TB_PIPE_RS9_N06",
+      "configuration_path": "lib/pipetisar-real/TB_PIPE_RS9_N06/simulation/PIPE_NYQUIST/configuration.json",
+      "engine": "spectre",
+      "workflow_path": ".github/workflows/circuit-spectre.yml",
+      "label": "TB_PIPE_RS9_N06 / PIPE_NYQUIST \u00b7 Spectre (requires local setup)",
+      "requires_external_models": true,
+      "available": true
+    },
+    {
+      "id": "pipetisar-research-TB_PIPE_CA4_RS9_N06-PIPE_LOW",
+      "library_id": "pipetisar-research",
+      "cell_id": "TB_PIPE_CA4_RS9_N06",
+      "configuration_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_LOW/configuration.json",
+      "engine": "spectre",
+      "workflow_path": ".github/workflows/circuit-spectre.yml",
+      "label": "TB_PIPE_CA4_RS9_N06 / PIPE_LOW \u00b7 Spectre (requires local setup)",
+      "requires_external_models": true,
+      "available": true
+    },
+    {
+      "id": "pipetisar-research-TB_PIPE_CA4_RS9_N06-PIPE_NYQUIST",
+      "library_id": "pipetisar-research",
+      "cell_id": "TB_PIPE_CA4_RS9_N06",
+      "configuration_path": "lib/pipetisar-research/TB_PIPE_CA4_RS9_N06/simulation/PIPE_NYQUIST/configuration.json",
+      "engine": "spectre",
+      "workflow_path": ".github/workflows/circuit-spectre.yml",
+      "label": "TB_PIPE_CA4_RS9_N06 / PIPE_NYQUIST \u00b7 Spectre (requires local setup)",
+      "requires_external_models": true,
+      "available": true
+    },
+    {
+      "id": "pipetisar-research-TB_MDAC_CA4_N06-MDAC_CODES",
+      "library_id": "pipetisar-research",
+      "cell_id": "TB_MDAC_CA4_N06",
+      "configuration_path": "lib/pipetisar-research/TB_MDAC_CA4_N06/simulation/MDAC_CODES/configuration.json",
+      "engine": "spectre",
+      "workflow_path": ".github/workflows/circuit-spectre.yml",
+      "label": "TB_MDAC_CA4_N06 / MDAC_CODES \u00b7 Spectre (requires local setup)",
+      "requires_external_models": true,
+      "available": true
+    }
+  ]
+}

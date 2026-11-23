@@ -43,6 +43,7 @@
 .ic-ai-session-badge { color: var(--warning, #856019); font-size: 11px; }
 .ic-ai-sessions-message { padding: 3px 10px; overflow-wrap: anywhere; color: var(--error, #a3392e); }
 .ic-ai-session-panels { grid-row: 3; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
+.ic-ai-sessions-empty { margin: 0; padding: 36px 16px; color: var(--muted, #687c87); text-align: center; }
 .ic-ai-session-panel { box-sizing: border-box; height: 100%; min-height: 0; min-width: 0; overflow: hidden; }
 .ic-ai-session-panel[hidden] { display: none !important; }
 .ic-ai-session-dialog {

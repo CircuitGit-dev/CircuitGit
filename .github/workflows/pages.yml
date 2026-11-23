@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 8
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -31,7 +31,12 @@ jobs:
           python -B tests/remote/test_pairing.py
           python -B tests/remote/test_helper.py
           python -B tests/remote/test_development.py
+          python -B tests/remote/test_library.py
           python -B tests/library/test_build_library.py
+          python -B tests/library/test_history_build.py
+          python -B tests/library/test_workflow.py
+          python -B tests/library/test_ci.py
+          python -B tests/ai/test_sessions.py
           python -B tools/library/test_import.py
           node --test tests/library/*.test.mjs
           python -B tools/workbench/test_library_projects.py

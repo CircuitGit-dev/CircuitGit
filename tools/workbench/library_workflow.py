@@ -1,0 +1,783 @@
+"""Finite, cell-scoped source lifecycle for an explicitly configured public checkout.
+
+The caller owns pairing and human confirmation. Only a locally approved review
+may reach ``confirm``; there is deliberately no HTTP server or approval boolean
+here. GitHub is contacted only by a confirmed PR review. All durable workflow
+state lives below .local, outside the public library and application packages.
+"""
+import contextlib
+import datetime
+import difflib
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import shlex
+import shutil
+import subprocess
+import tempfile
+
+
+SCHEMA = "circuitgit.library-workflow.v1"
+ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\Z")
+SHA = re.compile(r"[a-f0-9]{40}\Z")
+HASH = re.compile(r"[a-f0-9]{64}\Z")
+TEXT = {".scs", ".rnl", ".va", ".v", ".sv", ".json", ".md", ".txt", ".ocn", ".il"}
+PRIVATE = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{24,})\b|https?://[^\s/@:]+:[^\s/@]+@|/(?:Users|home)/[^/\s]+/", re.I)
+MAX_FILE = 1024 * 1024
+MAX_DIFF = 256 * 1024
+MAX_OUTPUT = 4 * 1024 * 1024
+
+
+class WorkflowError(ValueError):
+    def __init__(self, code, message, status=400, details=None):
+        super().__init__(message)
+        self.code, self.status, self.details = code, status, details or {}
+
+
+def require(condition, message, code="invalid_request", status=400):
+    if not condition:
+        raise WorkflowError(code, message, status)
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def digest(value):
+    return hashlib.sha256(value if isinstance(value, bytes) else canonical(value).encode()).hexdigest()
+
+
+def now():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+
+def identifier(value):
+    require(isinstance(value, str) and ID.fullmatch(value) and ".." not in value, "Invalid library/cell identifier")
+    return value
+
+
+def relative_path(value):
+    require(isinstance(value, str) and 0 < len(value.encode()) <= 512, "Invalid source path")
+    parts = value.split("/")
+    require(parts[0] in {"lib", "projects"} and all(p and p not in {".", ".."} and not p.startswith(".") for p in parts)
+            and not any(c in value for c in "\\:%?#") and not any(ord(c) < 32 or ord(c) == 127 for c in value), "Invalid source path")
+    require(not any(p.lower() in {"private", "pdks", "psf", "ahdlsimdb", "node_modules"} for p in parts)
+            and not value.endswith(".local.json"), "Private/runtime files are outside the library workflow")
+    return value
+
+
+def branch_name(value):
+    require(isinstance(value, str) and len(value) <= 180 and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./-]*", value)
+            and ".." not in value and "//" not in value and not value.endswith(("/", ".", ".lock"))
+            and all(not p.startswith(".") for p in value.split("/")), "Invalid branch name")
+    return value
+
+
+class LibraryWorkflow:
+    READ_OPERATIONS = frozenset({"describe", "read_file", "current", "history", "commit_detail", "checkpoints", "get_ci", "review", "receipt", "pr_status"})
+    PREPARE_OPERATIONS = frozenset({"preview_save", "preview_commit", "preview_restore", "preview_pr", "preview_ci"})
+
+    def __init__(self, root, repository, base_branch="main", state_dir=None, ci_registry=None, gh_bin="gh"):
+        self.root = Path(root).resolve(strict=True)
+        require(isinstance(repository, str) and re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository)
+                and all(p not in {".", ".."} for p in repository.split("/")), "Invalid configured GitHub repository")
+        self.repository, self.base_branch = repository, branch_name(base_branch)
+        self.git_bin = shutil.which("git") or "git"
+        self.gh_bin = shutil.which(gh_bin) or gh_bin
+        self.state = Path(state_dir).absolute() if state_dir else self.root / ".local/library-workflow"
+        require(self.state.is_relative_to(self.root / ".local"), "Workflow state must remain inside repository .local")
+        self._safe_local(self.state)
+        self.state.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.ci_registry = self._registry(ci_registry or {})
+        self._assert_repository()
+
+    def _safe_local(self, path):
+        require(path.is_relative_to(self.root), "Internal state path escaped the checkout")
+        for part in [path, *path.parents]:
+            if part == self.root:
+                break
+            require(not part.is_symlink(), "Symlinks are not allowed in workflow state")
+
+    @contextlib.contextmanager
+    def _locked(self):
+        path = self.state / "workflow.lock"
+        self._safe_local(path)
+        with path.open("a+b") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    def _git(self, *args, data=None, index=None, check=True, network=False, identity=None, identity_config=False):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        env.update(GIT_OPTIONAL_LOCKS="0", GIT_NO_LAZY_FETCH="1", GIT_TERMINAL_PROMPT="0", GIT_NO_REPLACE_OBJECTS="1",
+                   GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_ATTR_NOSYSTEM="1",
+                   GIT_ALLOW_PROTOCOL="https" if network else "", GIT_PROTOCOL_FROM_USER="0", LC_ALL="C")
+        if identity_config:
+            env.pop("GIT_CONFIG_GLOBAL", None)  # Read only the user's configured name/email, never run a Git command from configuration.
+        if index:
+            env["GIT_INDEX_FILE"] = str(index)
+        command = [self.git_bin, "--no-pager", "--literal-pathspecs", "-c", "core.hooksPath=/dev/null",
+                   "-c", "core.fsmonitor=false", "-c", "core.attributesFile=/dev/null", "-c", "submodule.recurse=false",
+                   "-c", "log.showSignature=false", "-c", "diff.renames=false", "-c", "commit.gpgSign=false",
+                   "-c", "protocol.allow=never"]
+        if identity:
+            command += ["-c", "user.name=" + identity["name"], "-c", "user.email=" + identity["email"]]
+        if args and args[0] in {"update-index", "read-tree", "write-tree", "diff"}:
+            # update-index --cacheinfo can still refresh a real index entry and
+            # invoke an attribute clean filter. Disable configured drivers on
+            # this invocation, not just hash-object's direct input filtering.
+            try:
+                filters = subprocess.run([self.git_bin, "-C", str(self.root), "config", "--includes", "--name-only", "--get-regexp",
+                                          r"^filter\..*\.(clean|smudge|process|required)$"],
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, timeout=10)
+            except (OSError, subprocess.TimeoutExpired):
+                raise WorkflowError("git_unavailable", "Git filter settings cannot be safely inspected", 503) from None
+            require(filters.returncode in {0, 1} and len(filters.stdout) <= 32768, "Git filter configuration exceeds safe bounds")
+            names = set()
+            for key in filters.stdout.decode().splitlines():
+                match = re.fullmatch(r"filter\.([A-Za-z0-9_.-]+)\.(?:clean|smudge|process|required)", key, re.I)
+                require(match is not None, "Git filter name cannot be safely disabled")
+                names.add(match[1])
+            for name in sorted(names):
+                for suffix in ("clean", "smudge", "process"):
+                    command += ["-c", "filter." + name + "." + suffix + "="]
+                command += ["-c", "filter." + name + ".required=false"]
+        if network:
+            command += ["-c", "protocol.https.allow=always", "-c", "credential.helper=", "-c",
+                        "credential.helper=!" + shlex.quote(self.gh_bin) + " auth git-credential"]
+        command += ["-C", str(self.root), *args]
+        try:
+            result = subprocess.run(command, input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, timeout=60 if network else 20)
+        except (OSError, subprocess.TimeoutExpired):
+            raise WorkflowError("git_unavailable", "Git command failed or its outcome is unknown", 503) from None
+        require(len(result.stdout) <= MAX_OUTPUT and len(result.stderr) <= 65536, "Git response exceeds the bounded workflow", "output_limit", 413)
+        if check and result.returncode:
+            raise WorkflowError("git_failed", "Git could not complete the requested operation", 409)
+        return result
+
+    def _gh(self, *args):
+        env = dict(os.environ, GH_PROMPT_DISABLED="1", GH_PAGER="cat", PAGER="cat")
+        try:
+            result = subprocess.run([self.gh_bin, *args], cwd=self.root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, timeout=60)
+        except (OSError, subprocess.TimeoutExpired):
+            raise WorkflowError("github_unknown", "GitHub request failed or its outcome is unknown", 503) from None
+        require(result.returncode == 0 and len(result.stdout) <= MAX_OUTPUT, "GitHub request did not return a confirmed result", "github_unknown", 503)
+        return result.stdout
+
+    def _assert_repository(self):
+        top = self._git("rev-parse", "--show-toplevel").stdout.decode().strip()
+        require(Path(top).resolve() == self.root, "Configured directory is not the repository root", "repository_mismatch", 409)
+        origin = self._git("config", "--local", "--get", "remote.origin.url").stdout.decode().strip()
+        require(origin in {"https://github.com/" + self.repository, "https://github.com/" + self.repository + ".git",
+                           "git@github.com:" + self.repository + ".git"}, "Repository origin differs from the configured GitHub repository", "repository_mismatch", 409)
+        rewrites = self._git("config", "--includes", "--get-regexp", r"^url\..*\.(insteadof|pushinsteadof)$", check=False)
+        require(rewrites.returncode == 1, "Repository URL rewrites are not supported", "repository_mismatch", 409)
+
+    def _head(self):
+        self._assert_repository()
+        head = self._git("rev-parse", "--verify", "HEAD^{commit}").stdout.decode().strip()
+        require(SHA.fullmatch(head), "Unsupported Git commit identity")
+        return head
+
+    def _branch(self):
+        result = self._git("symbolic-ref", "--quiet", "--short", "HEAD", check=False)
+        return result.stdout.decode().strip() if not result.returncode else None
+
+    def _identity(self):
+        values = {}
+        for field in ("name", "email"):
+            result = self._git("config", "--get", "user." + field, check=False, identity_config=True)
+            require(result.returncode in {0, 1}, "Git committer identity cannot be read", "identity_unavailable", 409)
+            values[field] = result.stdout.decode("utf-8").strip() if result.returncode == 0 else ""
+        if not all(values.values()):
+            return {"name": "CircuitGit Workbench", "email": "circuitgit@localhost.invalid", "source": "neutral_fallback"}
+        require(0 < len(values["name"]) <= 120 and not any(ord(c) < 32 or c in "<>" for c in values["name"])
+                and len(values["email"]) <= 254 and re.fullmatch(r"[^\s<>@]+@[^\s<>@]+", values["email"]),
+                "Configured Git committer identity is invalid", "identity_unavailable", 409)
+        return {**values, "source": "git_config"}
+
+    def _blob(self, commit, path):
+        require(isinstance(commit, str) and SHA.fullmatch(commit), "A full commit SHA is required")
+        relative_path(path)
+        row = self._git("ls-tree", "-z", commit, "--", path).stdout
+        if not row:
+            return None
+        mode, kind, oid = row.split(b"\t", 1)[0].decode().split()
+        require(kind == "blob" and mode in {"100644", "100755"}, "Historical source is not a regular file")
+        raw = self._git("cat-file", "blob", oid).stdout
+        require(len(raw) <= MAX_FILE, "Source exceeds the 1 MiB editing limit", "file_limit", 413)
+        return raw
+
+    def _json_blob(self, head, path):
+        raw = self._blob(head, path)
+        require(raw is not None, "Committed library inventory is missing")
+        try:
+            value = json.loads(raw)
+        except (ValueError, UnicodeError):
+            raise WorkflowError("invalid_inventory", "Committed library metadata is invalid") from None
+        require(isinstance(value, dict), "Committed library metadata must be an object")
+        return value, digest(raw)
+
+    def _scope(self, library_id, cell_id):
+        lid, cid = identifier(library_id), identifier(cell_id)
+        head = self._head()
+        catalog, catalog_hash = self._json_blob(head, "lib/catalog.json")
+        require(catalog.get("schema") == "circuitgit.libraries.v1" and isinstance(catalog.get("libraries"), list), "Invalid committed catalog")
+        choices = [item for item in catalog["libraries"] if isinstance(item, dict) and item.get("id") == lid]
+        manifest_path = "lib/" + lid + "/library.json"
+        require(len(choices) == 1 and choices[0].get("manifest") == manifest_path, "Library identity is not uniquely registered")
+        manifest, manifest_hash = self._json_blob(head, manifest_path)
+        require(manifest.get("schema") == "circuitgit.library.v1" and manifest.get("id") == lid and isinstance(manifest.get("cells"), list), "Invalid committed library identity")
+        choices = [item for item in manifest["cells"] if isinstance(item, dict) and item.get("id") == cid]
+        directory = "lib/" + lid + "/" + cid
+        require(len(choices) == 1 and choices[0].get("directory") == directory, "Cell identity is not uniquely registered")
+        cell = choices[0]
+        readme = relative_path(cell.get("readme"))
+        require(readme.startswith(directory + "/"), "Cell README identity differs")
+        paths = {readme}
+        require(isinstance(cell.get("views"), list), "Cell views are invalid")
+        for view in cell["views"]:
+            require(isinstance(view, dict) and isinstance(view.get("files"), list) and view.get("entry") in view["files"], "View inventory is incomplete")
+            paths.update(relative_path(path) for path in view["files"])
+        require(len(paths) <= 2000, "Cell inventory exceeds workflow bounds")
+        project = cell.get("project_id")
+        legacy_prefix = "projects/" + identifier(project) + "/" if isinstance(project, str) else None
+        owned = {p for p in paths if p.startswith(directory + "/") or legacy_prefix and p.startswith(legacy_prefix)}
+        ci_path = directory + "/ci.json"
+        owned.add(ci_path)
+        editable = {p for p in owned if PurePosixPath(p).suffix.lower() in TEXT
+                    and not p.endswith(("/docs/provenance.json", "/provenance.json"))}
+        return {"library_id": lid, "cell_id": cid, "cell": cell, "head": head, "paths": paths | {ci_path},
+                "owned": owned, "editable": editable, "ci_path": ci_path,
+                "scope_hash": digest([catalog_hash, manifest_hash, lid, cid])}
+
+    def _file(self, path):
+        relative_path(path)
+        file = self.root / path
+        for part in [file, *file.parents]:
+            if part == self.root:
+                break
+            require(not part.is_symlink(), "Source symlinks are not editable")
+        if not file.exists():
+            return None
+        require(file.is_file() and file.stat().st_size <= MAX_FILE, "Source is not a bounded regular file")
+        return file.read_bytes()
+
+    def _content(self, path, value):
+        require(isinstance(value, str), "Source content must be UTF-8 text")
+        raw = value.encode("utf-8")
+        require(len(raw) <= MAX_FILE and "\0" not in value, "Source exceeds the text editing limit")
+        require(not PRIVATE.search(value), "Private credentials or machine paths cannot be written to public sources")
+        if path.endswith(".json"):
+            try:
+                json.loads(value)
+            except ValueError:
+                raise WorkflowError("invalid_json", "JSON source is invalid") from None
+        return raw
+
+    def _diff(self, path, before, after):
+        try:
+            a = (before or b"").decode("utf-8").splitlines(keepends=True)
+            b = (after or b"").decode("utf-8").splitlines(keepends=True)
+        except UnicodeError:
+            return "Binary file changed: " + path + "\n"
+        value = "".join(difflib.unified_diff(a, b, fromfile="a/" + path, tofile="b/" + path))
+        require(len(value.encode()) <= MAX_DIFF, "Diff exceeds the review limit", "diff_limit", 413)
+        return value
+
+    def describe(self, library_id, cell_id, published_entry=None, source_sha256=None):
+        scope = self._scope(library_id, cell_id)
+        match = None
+        if published_entry is not None or source_sha256 is not None:
+            require(published_entry in scope["paths"] and isinstance(source_sha256, str) and HASH.fullmatch(source_sha256), "Invalid public snapshot identity")
+            blob = self._blob(scope["head"], published_entry)
+            match = blob is not None and digest(blob) == source_sha256
+        return {"schema": SCHEMA, "library_id": library_id, "cell_id": cell_id, "repository": self.repository,
+                "branch": self._branch(), "base_branch": self.base_branch, "base_commit": scope["head"],
+                "source_match": match, "snapshot_matches_head": match, "scope_hash": scope["scope_hash"],
+                "committer": self._identity(),
+                "files": [{"path": p, "editable": p in scope["editable"] and p != scope["ci_path"]} for p in sorted(scope["paths"])],
+                "capabilities": {"read": True, "save": True, "commit": self._branch() is not None,
+                                 "restore": True, "pr": True, "ci": bool(self._cell_testbenches(scope))},
+                "provenance_note": "Recorded import provenance remains historical; saved source edits are new working revisions."}
+
+    def read_file(self, library_id, cell_id, path):
+        scope = self._scope(library_id, cell_id)
+        require(path in scope["paths"], "File is not in this cell's committed inventory", "out_of_scope", 403)
+        raw, committed = self._file(path), self._blob(scope["head"], path)
+        require(raw is not None, "Source file is missing", "not_found", 404)
+        try:
+            content = raw.decode("utf-8")
+        except UnicodeError:
+            raise WorkflowError("not_text", "This source is not editable UTF-8 text") from None
+        return {"path": path, "content": content, "text": content, "sha256": digest(raw),
+                "head_sha256": digest(committed) if committed is not None else None, "base_commit": scope["head"],
+                "editable": path in scope["editable"] and path != scope["ci_path"]}
+
+    def current(self, library_id, cell_id):
+        scope = self._scope(library_id, cell_id)
+        changes, diffs = [], []
+        for path in sorted(scope["owned"]):
+            before, after = self._blob(scope["head"], path), self._file(path)
+            if before == after:
+                continue
+            changes.append({"path": path, "status": "A" if before is None else "D" if after is None else "M",
+                            "before_sha256": digest(before) if before is not None else None,
+                            "sha256": digest(after) if after is not None else None, "editable": path in scope["editable"]})
+            diffs.append(self._diff(path, before, after))
+        diff = "".join(diffs)
+        require(len(diff.encode()) <= MAX_DIFF, "Cell diff exceeds the review limit", "diff_limit", 413)
+        return {"schema": SCHEMA, "library_id": library_id, "cell_id": cell_id, "base_commit": scope["head"],
+                "branch": self._branch(), "changes": changes, "dirty": bool(changes), "diff": diff}
+
+    def _reachable(self, commit, head):
+        require(isinstance(commit, str) and SHA.fullmatch(commit), "Use a full lowercase commit SHA")
+        require(self._git("merge-base", "--is-ancestor", commit, head, check=False).returncode == 0,
+                "Commit is not part of this checkout's current history", "unknown_commit", 404)
+
+    def _commit_metadata(self, commit, paths):
+        raw = self._git("show", "-s", "--no-notes", "--format=%H%x00%P%x00%aI%x00%s%x00%b", commit).stdout.decode("utf-8", errors="replace")
+        sha, parents, timestamp, subject, body = raw.split("\0", 4)
+        require(len(subject) + len(body) <= 16384, "Commit description exceeds the display limit")
+        parent_list = parents.split()
+        args = ["diff-tree", "--no-commit-id", "--no-renames", "-r", "--name-only", "-z"]
+        args += [parent_list[0], commit] if parent_list else ["--root", commit]
+        changed = self._git(*args, "--", *sorted(paths)).stdout.decode().rstrip("\0").split("\0")
+        return {"sha": sha, "parents": parent_list, "timestamp": timestamp, "subject": subject,
+                "title": subject, "body": body.rstrip(), "files": [p for p in changed if p]}
+
+    def history(self, library_id, cell_id, limit=30):
+        require(type(limit) is int and 1 <= limit <= 100, "History limit must be 1–100")
+        scope = self._scope(library_id, cell_id)
+        hashes = self._git("log", "--first-parent", "--no-notes", "--format=%H", "-n", str(limit + 1), scope["head"], "--", *sorted(scope["owned"])).stdout.decode().splitlines()
+        return {"base_commit": scope["head"], "commits": [self._commit_metadata(h, scope["owned"]) for h in hashes[:limit]], "has_more": len(hashes) > limit}
+
+    def commit_detail(self, library_id, cell_id, commit):
+        scope = self._scope(library_id, cell_id)
+        self._reachable(commit, scope["head"])
+        metadata = self._commit_metadata(commit, scope["owned"])
+        require(metadata["files"], "Commit has no changes for this cell", "unknown_commit", 404)
+        diff = "".join(self._diff(path, self._blob(metadata["parents"][0], path) if metadata["parents"] else None,
+                                  self._blob(commit, path)) for path in metadata["files"])
+        require(len(diff.encode()) <= MAX_DIFF, "Commit diff exceeds review bounds", "diff_limit", 413)
+        return {"base_commit": scope["head"], "commit": metadata, "files": metadata["files"], "diff": diff}
+
+    def _append(self, path, value):
+        self._safe_local(path)
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        raw = canonical(value).encode() if not isinstance(value, bytes) else value
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            require(path.read_bytes() == raw, "Immutable workflow record already exists with different content", "conflict", 409)
+            return
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(raw); handle.flush(); os.fsync(handle.fileno())
+        self._fsync_dir(path.parent)
+
+    def _fsync_dir(self, path):
+        fd = os.open(path, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+    def _record(self, path):
+        self._safe_local(path)
+        require(path.is_file() and path.stat().st_size <= 4 * MAX_FILE, "Workflow record is missing or invalid", "not_found", 404)
+        return json.loads(path.read_text())
+
+    def _review(self, scope, operation, payload, diff="", summary=""):
+        record = {"schema": SCHEMA, "operation": operation, "library_id": scope["library_id"], "cell_id": scope["cell_id"],
+                  "repository": self.repository, "branch": self._branch(), "base_commit": scope["head"], "scope_hash": scope["scope_hash"],
+                  "payload": payload, "diff": diff, "summary": summary, "automatic_push": False}
+        require(len(canonical(record).encode()) <= 4 * MAX_FILE, "Review exceeds the durable record limit", "review_limit", 413)
+        review_id = digest(record)
+        self._append(self.state / "reviews" / (review_id + ".json"), record)
+        return {**record, "review_id": review_id, "files": payload.get("files", [payload["path"]] if "path" in payload else [])}
+
+    def review(self, review_id):
+        require(isinstance(review_id, str) and HASH.fullmatch(review_id), "Invalid review ID")
+        record = self._record(self.state / "reviews" / (review_id + ".json"))
+        require(digest(record) == review_id, "Frozen review integrity check failed", "conflict", 409)
+        return {**record, "review_id": review_id}
+
+    def _save_review(self, scope, path, content, base_sha256, operation="save", extra=None):
+        require(path in scope["editable"], "File is not an editable source owned by this cell", "out_of_scope", 403)
+        before = self._file(path)
+        actual = digest(before) if before is not None else None
+        require(base_sha256 == actual, "Source changed; read the current file before preparing again", "conflict", 409)
+        after = self._content(path, content)
+        require(after != before, "No source change to review")
+        payload = {"path": path, "content": content, "base_sha256": actual, "sha256": digest(after),
+                   "checkpoint_base": self._checkpoint_base(scope, path), **(extra or {})}
+        return self._review(scope, operation, payload, self._diff(path, before, after), "Restore source as a new change" if operation == "restore" else "Save a local source checkpoint")
+
+    def preview_save(self, library_id, cell_id, path, base_sha256, content=None, text=None):
+        scope = self._scope(library_id, cell_id)
+        require(path != scope["ci_path"], "Use the reviewed CI selector for cell CI configuration")
+        require(content is None or text is None or content == text, "Conflicting source content")
+        return self._save_review(scope, path, content if content is not None else text, base_sha256)
+
+    def _checkpoint(self, checkpoint_id):
+        require(isinstance(checkpoint_id, str) and HASH.fullmatch(checkpoint_id), "Invalid checkpoint ID")
+        record = self._record(self.state / "checkpoints" / (checkpoint_id + ".json"))
+        receipt = self.receipt(record["operation_id"])
+        require(receipt["state"] == "complete", "Checkpoint save has not been confirmed complete", "outcome_unknown", 409)
+        return record
+
+    def _checkpoint_base(self, scope, source_path):
+        """Distinguish an explicit new edit after a restore from replaying an old review."""
+        ids = []
+        for path in (self.state / "checkpoints").glob("*.json"):
+            record = self._record(path)
+            if (record.get("library_id"), record.get("cell_id"), record.get("path")) == (scope["library_id"], scope["cell_id"], source_path):
+                ids.append(path.stem)
+        return digest(sorted(ids))
+
+    def checkpoints(self, library_id, cell_id, limit=30):
+        self._scope(library_id, cell_id)
+        require(type(limit) is int and 1 <= limit <= 100, "Checkpoint limit must be 1–100")
+        records = []
+        for path in sorted((self.state / "checkpoints").glob("*.json")):
+            record = self._record(path)
+            if (record.get("library_id"), record.get("cell_id")) != (library_id, cell_id):
+                continue
+            receipt = self.receipt(record["operation_id"])
+            records.append({**record, "state": receipt["state"], "restore_versions": ["before", "after"] if record["before_sha256"] else ["after"]})
+        records.sort(key=lambda row: row["created_at"], reverse=True)
+        return {"checkpoints": records[:limit], "has_more": len(records) > limit}
+
+    def preview_restore(self, library_id, cell_id, path, base_sha256, checkpoint_id=None, commit=None, checkpoint_version="after"):
+        require((checkpoint_id is None) != (commit is None), "Choose one checkpoint or historical commit")
+        require(checkpoint_version in {"before", "after"}, "Choose the saved before or after source")
+        scope = self._scope(library_id, cell_id)
+        require(path != scope["ci_path"], "Restore CI settings through the current registered CI selector")
+        if checkpoint_id is not None:
+            checkpoint = self._checkpoint(checkpoint_id)
+            require((checkpoint["library_id"], checkpoint["cell_id"], checkpoint["path"]) == (library_id, cell_id, path), "Checkpoint belongs to a different cell/file")
+            wanted_hash = checkpoint["before_sha256"] if checkpoint_version == "before" else checkpoint["sha256"]
+            require(wanted_hash is not None, "The file did not exist before this checkpoint; deletion is not supported")
+            object_path = self.state / "objects" / wanted_hash
+            self._safe_local(object_path)
+            require(object_path.is_file() and object_path.stat().st_size <= MAX_FILE, "Checkpoint object is unavailable")
+            raw = object_path.read_bytes()
+            require(digest(raw) == wanted_hash, "Checkpoint content integrity check failed")
+        else:
+            self._reachable(commit, scope["head"])
+            raw = self._blob(commit, path)
+            require(raw is not None, "Historical file is absent; no partial restore was prepared")
+        return self._save_review(scope, path, raw.decode("utf-8"), base_sha256, "restore", {"target_commit": commit, "checkpoint_id": checkpoint_id, "checkpoint_version": checkpoint_version})
+
+    def preview_commit(self, library_id, cell_id, base_commit, message=None, title=None, body=None):
+        scope = self._scope(library_id, cell_id)
+        require(base_commit == scope["head"] and self._branch(), "Commit base changed or checkout is detached", "conflict", 409)
+        if message is None:
+            message = (title or "") + ("\n\n" + body if body else "")
+        require(isinstance(message, str) and 0 < len(message.strip()) <= 8000 and "\0" not in message, "Commit needs a bounded title/description")
+        require(not PRIVATE.search(message), "Private credentials or machine paths cannot enter public commit descriptions")
+        current = self.current(library_id, cell_id)
+        require(current["changes"], "Cell has no changes to commit")
+        paths = [item["path"] for item in current["changes"]]
+        require(all(p in scope["editable"] for p in paths), "Cell has binary or historical-provenance changes; handle those separately")
+        staged = self._git("diff", "--cached", "--no-ext-diff", "--no-textconv", "--name-only", "-z", scope["head"], "--", *paths).stdout
+        require(not staged, "Selected cell files have staged changes; preserve that staging before using the web commit", "conflict", 409)
+        require(not any(item["status"] == "D" for item in current["changes"]), "File deletion is not supported by this source editor")
+        snapshots = []
+        for path in paths:
+            raw = self._file(path)
+            self._content(path, raw.decode("utf-8"))
+            if path == scope["ci_path"]:
+                self._validate_ci(scope, json.loads(raw))
+            snapshots.append({"path": path, "content": raw.decode("utf-8"), "sha256": digest(raw)})
+        return self._review(scope, "commit", {"message": message, "files": paths, "snapshots": snapshots, "committer": self._identity()}, current["diff"], "Create a scoped local Git commit; no push")
+
+    def _registry(self, registry):
+        if isinstance(registry, dict) and "testbenches" in registry:
+            registry = registry["testbenches"]
+        items = list(registry.values()) if isinstance(registry, dict) else registry
+        require(isinstance(items, list) and len(items) <= 1000, "Invalid configured testbench registry")
+        result = {}
+        for item in items:
+            require(isinstance(item, dict), "Invalid testbench registration")
+            tid = identifier(item.get("id"))
+            require(tid not in result, "Duplicate testbench registration")
+            identifier(item.get("library_id")); identifier(item.get("cell_id"))
+            relative_path(item.get("configuration_path"))
+            require(item.get("engine") in {"source-check", "spectre"}, "Unsupported registered CI engine")
+            require(isinstance(item.get("workflow_path"), str) and re.fullmatch(r"\.github/workflows/[A-Za-z0-9_-]+\.ya?ml", item["workflow_path"]), "Invalid registered workflow path")
+            result[tid] = {key: item[key] for key in ("id", "library_id", "cell_id", "configuration_path", "engine", "workflow_path", "label", "requires_external_models", "available") if key in item}
+        return result
+
+    def _cell_testbenches(self, scope):
+        return [row for row in self.ci_registry.values() if (row["library_id"], row["cell_id"]) == (scope["library_id"], scope["cell_id"])]
+
+    def get_ci(self, library_id, cell_id):
+        scope = self._scope(library_id, cell_id)
+        raw = self._file(scope["ci_path"])
+        config = json.loads(raw) if raw is not None else None
+        if config is not None:
+            self._validate_ci(scope, config)
+        return {"path": scope["ci_path"], "sha256": digest(raw) if raw is not None else None, "config": config,
+                "testbenches": self._cell_testbenches(scope), "execution_status": "not_checked",
+                "note": "Configuration selects registered checks only. No workflow or Spectre simulation has been started."}
+
+    def _validate_ci(self, scope, config):
+        require(isinstance(config, dict) and set(config) == {"schema", "library_id", "cell_id", "enabled", "testbench_ids"}
+                and config.get("schema") == "circuitgit.cell-ci.v1" and config.get("library_id") == scope["library_id"]
+                and config.get("cell_id") == scope["cell_id"] and type(config.get("enabled")) is bool, "Invalid cell CI identity/schema")
+        selected = config.get("testbench_ids")
+        allowed = {row["id"] for row in self._cell_testbenches(scope)}
+        require(isinstance(selected, list) and len(selected) <= 32 and all(isinstance(tid, str) for tid in selected)
+                and len(set(selected)) == len(selected) and set(selected) <= allowed
+                and (not config["enabled"] or bool(selected)), "CI configuration must select registered testbenches for this cell")
+
+    def preview_ci(self, library_id, cell_id, testbench_ids, enabled, base_sha256):
+        scope = self._scope(library_id, cell_id)
+        require(type(enabled) is bool and isinstance(testbench_ids, list) and len(testbench_ids) <= 32
+                and all(isinstance(tid, str) for tid in testbench_ids) and len(set(testbench_ids)) == len(testbench_ids), "Invalid cell CI selection")
+        allowed = {row["id"] for row in self._cell_testbenches(scope)}
+        require(set(testbench_ids) <= allowed and (not enabled or bool(testbench_ids)), "Choose registered testbenches belonging to this cell")
+        config = {"schema": "circuitgit.cell-ci.v1", "library_id": library_id, "cell_id": cell_id,
+                  "enabled": enabled, "testbench_ids": testbench_ids}
+        self._validate_ci(scope, config)
+        return self._save_review(scope, scope["ci_path"], json.dumps(config, indent=2) + "\n", base_sha256, "ci", {"registry_hash": digest(self.ci_registry)})
+
+    def _base(self):
+        for ref in ("refs/remotes/origin/" + self.base_branch, "refs/heads/" + self.base_branch):
+            result = self._git("rev-parse", "--verify", "--end-of-options", ref + "^{commit}", check=False)
+            if result.returncode == 0:
+                return result.stdout.decode().strip()
+        raise WorkflowError("base_unavailable", "The configured base branch is not available locally", 409)
+
+    def preview_pr(self, library_id, cell_id, commit, title, body="", branch=None, base_branch=None, action="create"):
+        scope = self._scope(library_id, cell_id)
+        self._reachable(commit, scope["head"])
+        require(base_branch in (None, self.base_branch), "PR base differs from the configured base branch")
+        require(action in {"create", "update"}, "Choose create or update PR")
+        require(isinstance(title, str) and 0 < len(title.strip()) <= 120 and not any(ord(c) < 32 for c in title), "Invalid PR title")
+        require(isinstance(body, str) and len(body) <= 16000 and "\0" not in body and not PRIVATE.search(title + "\n" + body), "Invalid or private PR description")
+        base = self._base()
+        self._reachable(base, commit)
+        files = self._git("diff", "--no-ext-diff", "--no-textconv", "--name-only", "-z", base, commit).stdout.decode().rstrip("\0").split("\0")
+        require(files != [""] and set(files) <= scope["editable"], "PR contains changes outside the selected cell; prepare a cell-only branch first", "out_of_scope", 409)
+        for path in files:
+            content = self._blob(commit, path)
+            require(content is not None, "Deletion is not supported by the library PR workflow")
+            self._content(path, content.decode("utf-8"))
+            if path == scope["ci_path"]:
+                self._validate_ci(scope, json.loads(content))
+        branch = self._pr_branch(scope, branch or "codex/library/" + library_id + "/" + cell_id + "-" + commit[:12])
+        diff = "".join(self._diff(path, self._blob(base, path), self._blob(commit, path)) for path in files)
+        require(len(diff.encode()) <= MAX_DIFF, "PR diff exceeds review bounds", "diff_limit", 413)
+        return self._review(scope, "pr", {"commit": commit, "pr_branch": branch, "base_branch": self.base_branch,
+                            "base_sha": base, "title": title, "body": body, "action": action, "files": files}, diff,
+                            "Push the exact reviewed commit and " + action + " its pull request; never merge or force-push")
+
+    def _pr_branch(self, scope, branch):
+        branch_name(branch)
+        prefix = "codex/library/" + scope["library_id"] + "/" + scope["cell_id"]
+        require(branch == prefix or branch.startswith((prefix + "-", prefix + "/")), "PR branch must belong to the exact selected library/cell")
+        require(branch != self.base_branch, "PR branch cannot be the configured base")
+        return branch
+
+    def pr_status(self, library_id, cell_id, branch):
+        scope = self._scope(library_id, cell_id)
+        branch = self._pr_branch(scope, branch)
+        rows = json.loads(self._gh("pr", "list", "--repo", self.repository, "--state", "all", "--head", branch,
+                                   "--base", self.base_branch, "--json", "number,url,state,headRefName,headRefOid,baseRefName,statusCheckRollup", "--limit", "5"))
+        require(isinstance(rows, list) and len(rows) <= 5, "Invalid GitHub PR status")
+        result = []
+        for row in rows:
+            require(isinstance(row, dict) and row.get("headRefName") == branch and row.get("baseRefName") == self.base_branch
+                    and isinstance(row.get("url"), str) and re.fullmatch(r"https://github\.com/" + re.escape(self.repository) + r"/pull/[1-9][0-9]*", row["url"])
+                    and row.get("state") in {"OPEN", "CLOSED", "MERGED"}, "GitHub PR identity differs")
+            checks = row.get("statusCheckRollup") or []
+            require(isinstance(checks, list) and len(checks) <= 100, "CI check status exceeds display bounds")
+            visible_checks = [{key: check[key] for key in ("name", "workflowName", "status", "conclusion", "state", "context", "detailsUrl", "targetUrl") if key in check}
+                              for check in checks if isinstance(check, dict)]
+            result.append({key: row.get(key) for key in ("number", "url", "state", "headRefName", "headRefOid", "baseRefName")})
+            result[-1]["statusCheckRollup"] = visible_checks
+        return {"state": "not_found" if not result else result[0]["state"].lower() if len(result) == 1 else "multiple",
+                "repository": self.repository, "branch": branch, "base_branch": self.base_branch,
+                "pull_requests": result, "remote_checked": True, "simulation_claim": "No simulation result is inferred from workflow status."}
+
+    def _operation_id(self, key):
+        require(isinstance(key, str) and 8 <= len(key) <= 160 and not any(ord(c) < 32 for c in key), "A stable idempotency key is required")
+        return hashlib.sha256(key.encode()).hexdigest()
+
+    def receipt(self, operation_id=None, idempotency_key=None, review_id=None):
+        if review_id is not None:
+            self.review(review_id)
+            require(operation_id is None and idempotency_key is None, "Choose one receipt identity")
+            candidates = []
+            for path in (self.state / "operations").glob("*/request.json"):
+                record = self._record(path)
+                if record.get("review_id") == review_id:
+                    candidates.append((record["created_at"], path.parent.name))
+            if not candidates:
+                return {"review_id": review_id, "state": "prepared", "automatic_retry": False}
+            candidates.sort()
+            return self.receipt(operation_id=candidates[-1][1])
+        oid = self._operation_id(idempotency_key) if idempotency_key is not None else operation_id
+        require(isinstance(oid, str) and HASH.fullmatch(oid), "Invalid operation identity")
+        folder = self.state / "operations" / oid
+        request = self._record(folder / "request.json")
+        if (folder / "complete.json").exists():
+            return self._record(folder / "complete.json")
+        stages = [self._record(path) for path in sorted(folder.glob("stage-*.json"))]
+        return {"operation_id": oid, "review_id": request["review_id"], "state": "unknown", "automatic_retry": False, "stages": stages}
+
+    def confirm(self, review_id, idempotency_key):
+        """Invoke only after the host's exact, correlated local-human approval."""
+        with self._locked():
+            review = self.review(review_id)
+            oid = self._operation_id(idempotency_key)
+            folder = self.state / "operations" / oid
+            if (folder / "request.json").exists():
+                existing = self._record(folder / "request.json")
+                require(existing["review_id"] == review_id, "Idempotency key belongs to another frozen review", "conflict", 409)
+                return self.receipt(operation_id=oid)
+            scope = self._scope(review["library_id"], review["cell_id"])
+            require(scope["head"] == review["base_commit"] and scope["scope_hash"] == review["scope_hash"]
+                    and self._branch() == review["branch"], "Repository, source base or library inventory changed; prepare again", "conflict", 409)
+            payload, operation = review["payload"], review["operation"]
+            if operation in {"save", "restore", "ci"}:
+                before = self._file(payload["path"])
+                require((digest(before) if before is not None else None) == payload["base_sha256"], "Source changed after preview", "conflict", 409)
+                require(payload["checkpoint_base"] == self._checkpoint_base(scope, payload["path"]),
+                        "File save history changed after preview; prepare again", "conflict", 409)
+                if operation == "ci":
+                    require(payload["registry_hash"] == digest(self.ci_registry), "Testbench registry changed after preview", "conflict", 409)
+            elif operation == "commit":
+                refreshed = self.preview_commit(scope["library_id"], scope["cell_id"], scope["head"], message=payload["message"])
+                require(refreshed["review_id"] == review_id, "Commit changes differ from the reviewed diff", "conflict", 409)
+            elif operation == "pr":
+                refreshed = self.preview_pr(scope["library_id"], scope["cell_id"], payload["commit"], payload["title"], payload["body"], payload["pr_branch"], payload["base_branch"], payload["action"])
+                require(refreshed["review_id"] == review_id, "PR base or reviewed scope changed", "conflict", 409)
+            else:
+                raise WorkflowError("invalid_review", "Unsupported frozen workflow operation")
+            self._append(folder / "request.json", {"review_id": review_id, "operation": operation, "created_at": now()})
+            try:
+                if operation in {"save", "restore", "ci"}:
+                    result = self._apply_save(review, oid)
+                elif operation == "commit":
+                    result = self._apply_commit(review, oid)
+                else:
+                    result = self._apply_pr(review, oid)
+                result = {**result, "schema": SCHEMA, "operation_id": oid, "review_id": review_id, "state": "complete"}
+                self._append(folder / "complete.json", result)
+                return result
+            except Exception as error:
+                self._append(folder / "stage-99-unknown.json", {"stage": "unknown", "code": getattr(error, "code", "operation_failed"), "automatic_retry": False})
+                raise WorkflowError("outcome_unknown", "Operation outcome requires receipt reconciliation; do not replay", 409, {"operation_id": oid, "review_id": review_id}) from None
+
+    def _apply_save(self, review, oid):
+        payload = review["payload"]
+        path, raw = payload["path"], self._content(payload["path"], payload["content"])
+        before = self._file(path)
+        for content in (before, raw):
+            if content is not None:
+                self._append(self.state / "objects" / digest(content), content)
+        checkpoint_id = digest([oid, path, digest(raw)])
+        checkpoint = {"checkpoint_id": checkpoint_id, "operation_id": oid, "library_id": review["library_id"], "cell_id": review["cell_id"],
+                      "path": path, "created_at": now(), "summary": review["summary"], "base_commit": review["base_commit"],
+                      "before_sha256": digest(before) if before is not None else None, "sha256": digest(raw)}
+        self._append(self.state / "checkpoints" / (checkpoint_id + ".json"), checkpoint)
+        target = self.root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        fd, temporary = tempfile.mkstemp(prefix=".circuitgit-save-", dir=target.parent)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(raw); handle.flush(); os.fsync(handle.fileno())
+            os.chmod(temporary, target.stat().st_mode & 0o777 if target.exists() else 0o644)
+            os.replace(temporary, target)
+            self._fsync_dir(target.parent)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+        return {**checkpoint, "automatic_push": False, "operation": review["operation"]}
+
+    def _apply_commit(self, review, oid):
+        payload, base = review["payload"], review["base_commit"]
+        fd, index = tempfile.mkstemp(prefix="index-", dir=self.state)
+        os.close(fd); os.unlink(index)
+        staged = []
+        try:
+            self._git("read-tree", base, index=index)
+            for item in payload["snapshots"]:
+                raw = item["content"].encode()
+                require(digest(self._file(item["path"])) == item["sha256"], "Source changed during commit", "conflict", 409)
+                blob = self._git("hash-object", "-w", "--stdin", "--no-filters", data=raw).stdout.decode().strip()
+                row = self._git("ls-tree", base, "--", item["path"]).stdout
+                mode = row.split(b" ", 1)[0].decode() if row else "100644"
+                self._git("update-index", "--add", "--cacheinfo", mode, blob, item["path"], index=index)
+                staged.append((mode, blob, item["path"]))
+            tree = self._git("write-tree", index=index).stdout.decode().strip()
+            commit = self._git("commit-tree", tree, "-p", base, data=(payload["message"].rstrip() + "\n").encode(), identity=payload["committer"]).stdout.decode().strip()
+            self._append(self.state / "operations" / oid / "stage-10-commit.json", {"stage": "commit_created", "commit": commit})
+            self._git("update-ref", "refs/heads/" + review["branch"], commit, base)
+            # Update only the committed paths in the real index; every unrelated
+            # staged blob remains byte-for-byte untouched.
+            for mode, blob, path in staged:
+                self._git("update-index", "--add", "--cacheinfo", mode, blob, path)
+            return {"operation": "commit", "commit": commit, "base_commit": commit, "branch": review["branch"],
+                    "files": payload["files"], "committer": payload["committer"], "automatic_push": False}
+        finally:
+            if os.path.exists(index):
+                os.unlink(index)
+
+    def _apply_pr(self, review, oid):
+        payload = review["payload"]
+        branch = payload["pr_branch"]
+        rows = json.loads(self._gh("pr", "list", "--repo", self.repository, "--state", "open", "--head", branch,
+                                   "--base", self.base_branch, "--json", "number,url,headRefName,baseRefName", "--limit", "10"))
+        require(isinstance(rows, list) and len(rows) <= 1, "PR branch is ambiguous")
+        require(bool(rows) == (payload["action"] == "update"), "PR existence differs from the requested create/update action")
+        if rows:
+            require(rows[0].get("headRefName") == branch and rows[0].get("baseRefName") == self.base_branch
+                    and type(rows[0].get("number")) is int, "GitHub PR identity differs")
+        remote_base = self._git("ls-remote", "--refs", "--", "https://github.com/" + self.repository + ".git",
+                                "refs/heads/" + self.base_branch, network=True).stdout.decode().split()
+        require(remote_base == [payload["base_sha"], "refs/heads/" + self.base_branch],
+                "Remote base changed since preview; refresh the local base and prepare again", "conflict", 409)
+        self._git("push", "--porcelain", "--", "https://github.com/" + self.repository + ".git",
+                  payload["commit"] + ":refs/heads/" + branch, network=True)
+        self._append(self.state / "operations" / oid / "stage-20-push.json", {"stage": "push_returned_success", "commit": payload["commit"], "branch": branch})
+        body_file = self.state / "operations" / oid / "body.txt"
+        self._append(body_file, payload["body"].encode())
+        if rows:
+            self._gh("pr", "edit", str(rows[0]["number"]), "--repo", self.repository, "--title", payload["title"], "--body-file", str(body_file))
+            url = rows[0]["url"]
+        else:
+            url = self._gh("pr", "create", "--repo", self.repository, "--base", self.base_branch, "--head", branch,
+                           "--title", payload["title"], "--body-file", str(body_file)).decode().strip()
+        require(re.fullmatch(r"https://github\.com/" + re.escape(self.repository) + r"/pull/[1-9][0-9]*", url), "GitHub did not confirm the exact PR URL")
+        verified = json.loads(self._gh("pr", "view", url, "--repo", self.repository, "--json", "url,state,headRefName,headRefOid,baseRefName"))
+        require(isinstance(verified, dict) and verified.get("url") == url and verified.get("headRefName") == branch
+                and verified.get("headRefOid") == payload["commit"] and verified.get("baseRefName") == self.base_branch
+                and verified.get("state") == "OPEN", "GitHub has not confirmed the exact reviewed PR head", "github_unknown", 409)
+        return {"operation": "pr", "action": payload["action"], "commit": payload["commit"], "branch": branch,
+                "base_branch": self.base_branch, "url": url, "merged": False, "force_pushed": False}
+
+    def save(self, library_id, cell_id, path, content, base_sha256, idempotency_key):
+        """Internal trusted convenience; HTTP callers must use preview + local review."""
+        preview = self.preview_save(library_id, cell_id, path, base_sha256, content=content)
+        return self.confirm(preview["review_id"], idempotency_key)
+
+    def dispatch(self, operation, payload):
+        require(operation in self.READ_OPERATIONS | self.PREPARE_OPERATIONS and isinstance(payload, dict), "Unsupported finite library operation")
+        args = dict(payload)
+        if operation != "describe":
+            args.pop("published_entry", None); args.pop("source_sha256", None)
+        if operation in {"review", "receipt"}:
+            args.pop("library_id", None); args.pop("cell_id", None)
+        try:
+            return getattr(self, operation)(**args)
+        except TypeError:
+            raise WorkflowError("invalid_request", "Unexpected arguments for library operation") from None

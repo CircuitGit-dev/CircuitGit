@@ -11,6 +11,9 @@ import {sha256} from '../core.js';
 import {reference,referenceWindow} from './reference.js';
 import {mountRemoteNode} from '../remote/panel.js';
 import {mountLibraryManager} from '../library/panel.js';
+import {createLibraryClient} from '../library/model.js';
+import {mountLibraryVersions} from '../library/versions.js';
+import {createLibraryBridge} from '../remote/library-bridge.js';
 import {confirmLeave} from '../vendor/rnl-viewer/editor.js';
 import {enterRoot} from '../vendor/rnl-viewer/subcircuits.js';
 
@@ -48,7 +51,7 @@ export async function mountStudio() {
   const fav=document.createElement('link');fav.rel='icon';fav.type='image/svg+xml';fav.href=new URL('../branding/circuitgit-small.svg',import.meta.url);document.head.append(fav);
   const baseText=await fetch(new URL('./rc.scs',import.meta.url)).then(r=>{if(!r.ok)throw Error('RC example unavailable');return r.text();});
   let source=baseText,hash=await sha256(source),points=reference(),plotController=null,mode='none';
-  let activeLibrary=null,switching=false,waveformMount=null,referenceObserver=null;
+  let activeLibrary=null,versionSelection=null,libraryVersions=null,switching=false,waveformMount=null,referenceObserver=null;
   let parameters={resistance:1000,capacitance:1e-12,stop:12e-9};
   const listeners=new Set();
   let context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,
@@ -67,6 +70,7 @@ export async function mountStudio() {
   const host={version:1,slots:ui.slots,context:contextAdapter,notify:ui.notify,registerCommand:register,
     getRuns:()=>referenceActive()?jobs:[],refresh:async()=>{},selectRun:async id=>{requireReference(id);context.run={runId:id};emit();},
     plot:{attach(controller){plotController=controller;controller.setPlotMode(mode);return()=>controller.destroy();}}};
+  host.libraryBridge=createLibraryBridge();
   function mountReferenceWaves(){waveformMount=mountWaveforms(host,{api,labels:{loaded:'已加载浏览器计算的 RC 解析参考；不是 Spectre 仿真结果。',
     catalog:'RC 解析参考信号（浏览器计算，非 PSF 导出）。',provenance:'Piecewise-linear RC analytical reference · no Spectre execution',
     measurement:'RC 解析参考 / 线性插值',dataNote:'RC 一阶方程的分段线性输入解析解；每 5 ps 取样。显示使用保峰抽样，游标使用完整参考向量。'}});}
@@ -76,7 +80,7 @@ export async function mountStudio() {
   for(const [value,label] of [['voltage','电压探针：点击 in / out'],['current','电流探针：点击 R0']])register({id:'plot.'+value,menu:'plot',label,enabled:()=>referenceActive(),run:()=>{if(!referenceActive())throw Error('此库视图没有关联波形。');plotController.openWindow();setMode(value);ui.notify(label);},checked:()=>mode===value});
   register({id:'plot.exit',menu:'plot',label:'退出探针 (Esc)',run:()=>setMode('none')});
   register({id:'window.reset',menu:'window',label:'恢复默认布局',run:()=>ui.resetLayout()});
-  register({id:'git.history',menu:'git',label:'项目发布记录',run:()=>ui.slots.versions.setVisible(true)});
+  register({id:'git.history',menu:'git',label:'电路版本管理',run:async()=>{ui.slots.versions.setVisible(true);await libraryVersions?.activate();}});
   register({id:'project.source',menu:'project',label:'查看 / 下载示例网表',run:()=>showSource()});
   register({id:'simulation.export',menu:'simulation',label:'导出仿真配置 JSON',enabled:()=>referenceActive(),run:()=>exportConfiguration()});
   register({id:'simulation.local',menu:'simulation',label:'如何连接本地仿真',run:()=>showGuide()});
@@ -116,7 +120,7 @@ export async function mountStudio() {
 cd CircuitGit
 python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/getting-started.md" target="_blank" rel="noopener">安装与连接说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
-  const libraryManager=mountLibraryManager({toolbar:$('studio-toolbar'),libraryPane:$('pane-files'),onOpen:openLibrary,onReference:openReference,notify:ui.notify});
+  const libraryManager=mountLibraryManager({toolbar:$('studio-toolbar'),libraryPane:$('pane-files'),onOpen:openLibrary,onReference:openReference,onSelection:value=>{versionSelection=value;emit();},notify:ui.notify});
   register({id:'project.library',menu:'project',label:'Library Manager…',run:()=>libraryManager.show()});
   register({id:'project.reference',menu:'project',label:'返回 RC 解析参考',run:openReference});
   function stopReference(){
@@ -128,7 +132,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
   function libraryInformation(value){
     simulation.remove();const box=document.createElement('section');box.className='cg-library-preview-info';
     const title=document.createElement('h2');title.textContent=value.cell.name;const name=document.createElement('p');name.textContent=value.library.name+' / '+value.view.label;
-    const evidence=document.createElement('p');evidence.textContent='公开原理图预览 · '+value.bundle.paths.length+' 个已列出的文件。未关联运行，也未执行仿真。';
+    const evidence=document.createElement('p');evidence.textContent=(value.origin==='working'?'本机原理图快照':'公开原理图预览')+' · '+value.bundle.paths.length+' 个已列出的文件。未关联运行，也未执行仿真。';
     const dependency=document.createElement('p');dependency.textContent=value.cell.requires_external_models?'重放可能需要外部模型。请查看单元说明和已有配置。':'重放要求以单元说明和已有配置为准。';
     const ai=document.createElement('p');ai.textContent='AI 使用连接节点返回的工程身份；此公开库选择不会切换 AI 工程。';
     const browse=document.createElement('button');browse.type='button';browse.textContent='查看库视图与说明';browse.onclick=()=>libraryManager.show();
@@ -138,9 +142,9 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
   async function openLibrary(value){
     if(switching)return false;
     if(!await confirmLeave('打开公开库视图'))return false;
-    switching=true;activeLibrary=value;stopReference();libraryInformation(value);
+    switching=true;activeLibrary=value;versionSelection=value;stopReference();libraryInformation(value);
     $('studio-project').replaceChildren(new Option(value.library.name,value.library.id));$('studio-entry').replaceChildren(new Option(value.cell.name+' / '+value.view.label,value.view.entry));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
-    context={project:{id:'public-library:'+value.library.id+':'+value.cell.id,sourceCommit:null,libraryId:value.library.id,cellId:value.cell.id},run:null,selection:null,loading:true,loadState:'loading',file:{path:value.bundle.source.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};emit();
+    context={project:{id:(value.origin==='working'?'local-library:':'public-library:')+value.library.id+':'+value.cell.id,sourceCommit:value.origin==='working'?value.base_commit:null,libraryId:value.library.id,cellId:value.cell.id},run:null,selection:null,loading:true,loadState:'loading',file:{path:value.bundle.source.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};emit();
     ui.setNativeState({loading:true,hidden:false});$('studio-native-note').textContent='读取公开库视图…';
     try{
       const opened=await openSource(value.bundle.source,false,undefined,false,null,null,true);
@@ -148,7 +152,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
       if(value.view.level!==undefined){const level=value.view.level==='@top'?0:doc.levels.findIndex(l=>l.title===value.view.level);if(level<0)throw Error('清单指定的原生层级不存在：'+value.view.level);await enterRoot(level,{here:true,newWindow:false});}
       const errors=doc.diagnostics.filter(d=>d.severity==='error');
       context={...context,loading:false,loadState:errors.length?'error':'ready',file:{...context.file,currentTextSha256:await sha256(value.bundle.text)}};emit();
-      fit();ui.slots.schematic?.setVisible(true);$('studio-native-note').textContent=[value.library.name,value.cell.name,value.view.label].join(' / ')+' · 公开文件 · '+(errors.length?errors.length+' 项 RNL 诊断':'未关联仿真');
+      fit();ui.slots.schematic?.setVisible(true);$('studio-native-note').textContent=[value.library.name,value.cell.name,value.view.label].join(' / ')+(value.origin==='working'?' · 本机快照 · ':' · 公开文件 · ')+(errors.length?errors.length+' 项 RNL 诊断':'未关联仿真');
       if(errors.length)ui.notify('原理图已打开，存在 '+errors.length+' 项 RNL 诊断；请查看 Problems。',{kind:'warning'});
       return true;
     }catch(error){context={...context,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='库视图加载失败 · '+value.cell.name+' · 未关联仿真';throw error;}
@@ -167,9 +171,35 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     }catch(error){context={...context,run:null,selection:null,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='RC 参考加载失败 · 无关联波形';throw error;}
     finally{switching=false;ui.setNativeState({loading:false,hidden:false});}
   }
+  function libraryVersionSelection(){
+    if(!versionSelection)return null;
+    const {library,cell,view}=versionSelection;
+    const matches=!context.loading&&activeLibrary?.library.id===library.id&&activeLibrary?.cell.id===cell.id&&activeLibrary?.view.id===view.id;
+    return {library_id:library.id,cell_id:cell.id,library:library.name,cell:cell.name,view_id:view.id,view:view.label,directory:cell.directory,entry:view.entry,
+      files:[...new Set(cell.views.flatMap(item=>item.files))],has_schematic:cell.views.some(item=>item.kind==='rnl'),source_sha256:matches?context.file.currentTextSha256:null};
+  }
+  async function ensureVersionSelection(){
+    if(versionSelection)return;
+    const catalog=await createLibraryClient().load();if(versionSelection)return;
+    const library=catalog.libraries.find(item=>item.id==='basics'),cell=library?.cells.find(item=>item.id==='rc-smoke'),view=cell?.views.find(item=>item.id==='netlist');
+    if(library&&cell&&view){versionSelection={library,cell,view};emit();}
+  }
+  async function openWorkingLibrary(description){
+    const selected=versionSelection;if(!selected||description.library_id!==selected.library.id||description.cell_id!==selected.cell.id)throw Error('当前电路单元已变化，请重新读取本机版本。');
+    const view=selected.view.kind==='rnl'?selected.view:selected.cell.views.find(item=>item.kind==='rnl');if(!view)throw Error('此单元没有可打开的 RNL 原理图视图。');
+    const value={...selected,view};
+    const prefix=new URL('../library-files/',import.meta.url),client=createLibraryClient({baseURL:prefix,fetcher:async url=>{
+      const requested=new URL(url);if(requested.origin!==prefix.origin||!requested.pathname.startsWith(prefix.pathname))throw Error('本机文件请求越界。');
+      const path=decodeURIComponent(requested.pathname.slice(prefix.pathname.length));if(!value.view.files.includes(path))throw Error('文件不在当前视图清单内。');
+      const file=await host.libraryBridge.request('read_file',{library_id:value.library.id,cell_id:value.cell.id,path});
+      if(file.path!==path||typeof(file.text??file.content)!=='string')throw Error('节点返回的原理图文件身份无效。');
+      return new Response(file.text??file.content,{status:200,headers:{'Content-Type':'text/plain;charset=utf-8'}});
+    }});
+    const bundle=await client.loadView(value.view);if(versionSelection!==selected)throw Error('读取期间电路单元已变化，未打开旧快照。');
+    await openLibrary({...value,bundle,origin:'working',base_commit:description.base_commit});
+  }
   mountRemoteNode(host);
-  const versions=section(ui.slots.versions.element,`<small>PROJECT HISTORY</small><h2>公开版本</h2><p>这里显示本站部署时的仓库提交记录。本地版可按电路筛选、审阅差异和恢复版本。</p><div id="demo-history"></div><p><a href="${REPO}/commits/main/" target="_blank" rel="noopener">在 GitHub 查看最新提交 ↗</a></p>`);
-  try{const r=await fetch(new URL('./release.json',import.meta.url));if(r.ok){const release=await r.json();for(const c of release.commits||[]){const row=document.createElement('div');row.className='demo-step';const link=document.createElement('a');link.href=REPO+'/commit/'+encodeURIComponent(c.sha);link.target='_blank';link.rel='noopener';link.textContent=c.sha.slice(0,7)+' · '+c.subject;row.append(link);$('demo-history').append(row);}}}catch{$('demo-history').textContent='本地预览；发布记录见 GitHub。';}
+  libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});
   setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});
   await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false);
   if(!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');

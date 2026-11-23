@@ -94,8 +94,9 @@ class DevelopmentTests(unittest.TestCase):
     def test_endpoint_accepts_optional_known_session_without_creating_one_or_rpc(self):
         routes = AiRoutes(self.service)
         try:
+            sid = routes.sessions.create('Explicit development metadata')['session_id']
             first = routes.get('/api/ai/development', {})
-            self.assertTrue(first['available']); self.assertEqual(routes.get('/api/ai/development', {'session_id': ['default']}), first)
+            self.assertTrue(first['available']); self.assertEqual(routes.get('/api/ai/development', {'session_id': [sid]}), first)
             for query in ({'workspace': [str(self.code)]}, {'session_id': ['unknown']}, {'session_id': ['default', 'default']}):
                 with self.assertRaises(Failure): routes.get('/api/ai/development', query)
             self.assertEqual(routes.sessions.instances, {})

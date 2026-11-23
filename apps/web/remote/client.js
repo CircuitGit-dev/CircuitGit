@@ -13,7 +13,8 @@ export function createNodeClient({url,accessCode,fetchImpl=fetch,timeout=45000,o
   let secret=accessCode,closed=false;const pending=new Set();
   async function request(path,{method='GET',body}={}) {
     if(closed)throw Error('节点已断开。');
-    if(!['GET','POST'].includes(method)||(!path.startsWith('/ai/')&&path!=='/node/info'))throw Error('请求不属于运行节点接口。');
+    const library=['/library/read','/library/prepare','/library/review-request'].includes(path);
+    if(!['GET','POST'].includes(method)||(!path.startsWith('/ai/')&&path!=='/node/info'&&!library))throw Error('请求不属于运行节点接口。');
     const target=new URL(base+(path==='/node/info'?path:'/api'+path));
     const expected=new URL(base);
     if(target.origin!==expected.origin||!target.pathname.startsWith(expected.pathname.replace(/\/$/,'')+'/'))throw Error('节点接口越界。');
@@ -31,8 +32,9 @@ export function createNodeClient({url,accessCode,fetchImpl=fetch,timeout=45000,o
       return value.data;
     } catch(error) {
       if(error.status)throw error;
-      const message=closed?'节点已断开；没有重发操作。':method==='POST'?'发送结果尚不确定；请重新连接并核对原会话，不要重复发送。':'无法读取节点。请检查地址、HTTPS、访问码及浏览器的本地网络权限。';
-      const e=Error(message);e.data={code:method==='POST'?'transport_unknown':'node_unreachable'};throw e;
+      const write=method==='POST'&&path!=='/library/read';
+      const message=closed?'节点已断开；没有重发操作。':write?(library?'操作结果尚未确认；请检查原请求记录，不要重新提交。':'发送结果尚不确定；请重新连接并核对原会话，不要重复发送。'):'无法读取节点。请检查地址、HTTPS、访问码及浏览器的本地网络权限。';
+      const e=Error(message);e.data={code:write?'transport_unknown':'node_unreachable'};throw e;
     } finally {clearTimeout(timer);pending.delete(controller);}
   }
   return Object.freeze({base,request,close(){closed=true;secret='';for(const controller of pending)controller.abort();pending.clear();}});

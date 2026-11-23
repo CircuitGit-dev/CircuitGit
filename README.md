@@ -33,7 +33,7 @@ The public library canvas and AI's selected node project have separate identitie
 | Circuit viewing | RNL Viewer and its WebAssembly renderer; preserved schematic positions and wiring when exported geometry is supplied |
 | Simulation workflow | Versioned configuration → reviewed changes → plan/preflight → Spectre submission → result collection → GitHub archive |
 | Waveform analysis | Saved transient voltage/current signals, exact probe mappings, cursors, smooth pan/zoom, and display decimation |
-| Circuit version control | Design-scoped diffs and history, reviewable commits, and restoration as a new change |
+| Circuit version control | Library/cell source diffs, local before/after checkpoints, scoped Git commits, PR create/update, registered TB CI, and restoration as a new change |
 | AI integration | MCP tools and interactive resources; web chat through an explicitly authorized owner node, with models, settings, images and sessions |
 | Workspace | Rearrangeable, closable, floating panels with layout persistence |
 

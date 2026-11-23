@@ -1,7 +1,7 @@
 import {createLibraryClient,filterLibraries} from './model.js';
 
 /** Library browser lives with the existing RNL workspace; only explicit opens load circuit files. */
-export function mountLibraryManager({toolbar,libraryPane,onOpen,onReference,notify=()=>{},client=createLibraryClient()}){
+export function mountLibraryManager({toolbar,libraryPane,onOpen,onReference,onSelection=()=>{},notify=()=>{},client=createLibraryClient()}){
   const el=(tag,text,cls)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;};
   const button=(label,action)=>{const b=el('button',label);b.type='button';b.onclick=action;return b;};
   const css=el('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url).href;document.head.append(css);
@@ -21,13 +21,14 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onReference,noti
   const entry=el('section',undefined,'cg-library-entry');entry.append(el('strong','公开电路库'),el('p','Library → Cell → View'),button('打开 Library Manager',()=>show()));libraryPane?.prepend(entry);
   let data=[],errors=[],loaded=false,busy=false,loading=false,request=null,disposed=false;
   let previewValue=null,previewRequest=null;
-  let selected={library:null,cell:null,view:null};
+  let selected={library:null,cell:null,view:null},selectionKey='';
   const options=(node,items,current,label)=>{node.replaceChildren(...items.map(item=>new Option(label(item),item.id)));node.value=items.some(item=>item.id===current)?current:items[0]?.id||'';node.disabled=busy||loading||!items.length;};
   function selection(){const library=data.find(x=>x.id===libraries.value),cell=library?.cells.find(x=>x.id===cells.value),view=cell?.views.find(x=>x.id===views.value);return {library,cell,view};}
   function render(){
     const filtered=filterLibraries(data,search.value);options(libraries,filtered,selected.library,x=>x.name);const library=filtered.find(x=>x.id===libraries.value);
     options(cells,library?.cells||[],selected.cell,x=>x.name);const cell=library?.cells.find(x=>x.id===cells.value);options(views,cell?.views||[],selected.view,x=>x.label);
     selected={library:libraries.value,cell:cells.value,view:views.value};const exact=selection();
+    const nextKey=JSON.stringify([exact.library?.id,exact.cell?.id,exact.view?.id]);if(nextKey!==selectionKey){selectionKey=nextKey;onSelection(exact.view?exact:null);}
     crumb.textContent=exact.cell?[exact.library.name,exact.cell.name,exact.view?.label].filter(Boolean).join(' / '):loaded?'没有匹配的单元':'按库、单元和视图浏览';
     summary.textContent=exact.cell?.description||exact.library?.description||'';
     dependency.textContent=exact.cell?(exact.cell.requires_external_models?'需要外部模型 · 可查看已有原理图；本页不运行仿真。':'本页只浏览已发布文件；是否可重放仿真请查看单元说明。'):'';

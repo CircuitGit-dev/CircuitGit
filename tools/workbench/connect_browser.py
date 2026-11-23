@@ -4,6 +4,7 @@ import argparse
 import fcntl
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import signal
@@ -19,6 +20,8 @@ from icwb.service import Service
 from remote_node import Server, Handler, Node, node_config, node_identity
 from browser_login import LocalLogin
 from browser_development import LocalDevelopment
+from browser_library import LocalLibrary
+from library_workflow import LibraryWorkflow
 
 PUBLIC_URL = 'https://joshuazeng713.github.io/CircuitGit/'
 
@@ -89,6 +92,16 @@ def main():
             node = Node(routes, token, ['https://joshuazeng713.github.io', *args.allow_origin], identity, 'http://127.0.0.1:8767', '本机 Codex')
             node.login = LocalLogin(config)
             node.development = LocalDevelopment(state / 'owner-settings', routes, node.pairing, node.url, workspace_hint=ROOT)
+            # A Git checkout is required for branch/history operations. ZIP users
+            # retain chat and the isolated RC runtime without a fabricated origin.
+            if (ROOT / '.git').exists():
+                registry_path = ROOT / 'config/library-testbenches.json'
+                registry = json.loads(registry_path.read_text()) if registry_path.is_file() else {'testbenches': []}
+                origin_result = subprocess.run(['git','-C',str(ROOT),'remote','get-url','origin'], capture_output=True, text=True, timeout=10)
+                remote = origin_result.stdout.strip() if origin_result.returncode == 0 else ''
+                match = re.fullmatch(r'(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?', remote)
+                if match:
+                    node.library = LocalLibrary(LibraryWorkflow(ROOT, repository=match.group(1), state_dir=state / 'library', ci_registry=registry), node.pairing, node.url)
             browser.node = node
             print('CircuitGit 连接助手已启动。请保持此窗口运行，在网页点击“连接本机 Codex”并确认授权。', flush=True)
             print('不会自动登录、发送模型消息或运行仿真。关闭此窗口可停止助手。', flush=True)

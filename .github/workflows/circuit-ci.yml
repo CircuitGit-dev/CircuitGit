@@ -1,0 +1,53 @@
+name: Circuit source checks (no simulation)
+on:
+  pull_request:
+    paths: ['lib/**', 'projects/**', 'config/library-testbenches.json', 'tools/ci/**', '.github/workflows/circuit-ci.yml']
+  push:
+    branches: [main]
+    paths: ['lib/**', 'projects/**', 'config/library-testbenches.json', 'tools/ci/**', '.github/workflows/circuit-ci.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: circuit-source-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Trusted checker from the PR base or current main workflow
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          path: trusted
+          persist-credentials: false
+      - name: Candidate data at an exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: circuit
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Manifest, selected testbench configurations and include closure
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          python3 -B trusted/tools/ci/check.py --root circuit
+          --registry trusted/config/library-testbenches.json --base "$BASE_SHA" --head "$HEAD_SHA"
+          --report reports/circuit-source.json
+      - name: Build affected RNL documents with the trusted renderer (no simulator)
+        if: always()
+        run: node trusted/tools/ci/rnl-check.mjs circuit reports/circuit-source.json reports/rnl-build.json
+      - name: Upload source-check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: circuit-source-checks-${{ github.run_id }}
+          path: reports/*.json
+          if-no-files-found: error
+          retention-days: 14

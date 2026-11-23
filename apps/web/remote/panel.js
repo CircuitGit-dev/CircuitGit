@@ -50,7 +50,7 @@ export function mountRemoteNode(host) {
     async readSelection(){throw Error('示例画布未绑定到本机工程，请让 AI 读取当前工程源码。');}};
   function message(text,error=false){status.textContent=text;status.dataset.error=String(error);}
   function setBusy(value){busy=value;localButton.disabled=value;form.querySelector('button').disabled=value;openButton.disabled=value||!!context||!accountReady;}
-  function drop(){++epoch;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;client?.close();client=null;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
+  function drop(){++epoch;host.libraryBridge?.unbind();pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;client?.close();client=null;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
   function disconnect(){
     drop();setBusy(false);welcome.hidden=false;connected.hidden=true;$('.cg-node-account').hidden=true;$('.cg-node-project').hidden=false;
     projects.disabled=false;projects.title='';openButton.disabled=false;openButton.textContent='打开对话';
@@ -80,6 +80,7 @@ export function mountRemoteNode(host) {
     }});
     const info=await client.request('/node/info');if(generation!==epoch||destroyed)return;
     if(info?.schema!=='circuitgit.remote-node.v1'||info.single_owner!==true||info.auth!=='bearer'||!info.capabilities?.chat)throw Error('未找到兼容的 CircuitGit 连接服务。');
+    host.libraryBridge?.bind(client,{supported:local&&info.capabilities.library_workflow===true});
     const catalog=await client.request('/ai/catalog');if(generation!==epoch||destroyed)return;
     if(!Array.isArray(catalog.projects)||!catalog.projects.length)throw Error('助手尚未配置可用工程。');
     const seen=new Set();projects.replaceChildren(new Option('选择工程',''));
@@ -147,10 +148,11 @@ export function mountRemoteNode(host) {
       context={...next,revision:(context?.revision||0)+1,mode:'live'};
       for(const listener of listeners)listener(structuredClone(context));
       const slot={...parent,element:chat,setVisible:value=>parent.setVisible(value),isVisible:()=>parent.isVisible(),setBadge:value=>parent.setBadge(value),toggle:()=>parent.toggle()};
-      ai=mountAI({...host,context:contextAdapter,aiSettings:{element:connectionSettings,configureDevelopment},slots:{...host.slots,ai:slot},gateway:{request:(path,options)=>client?client.request(path,options):Promise.reject(Error('连接已断开。'))}});
+      const onSessionsChanged=({count,loading})=>{if(loading)return;initialSettings.hidden=count>0;if(!count){settingsHome.append(connectionSettings);initialHint.textContent='连接设置';settingsHome.hidden=true;initialToggle.setAttribute('aria-expanded','false');}else settingsHome.hidden=true;};
+      ai=mountAI({...host,context:contextAdapter,aiSettings:{element:connectionSettings,configureDevelopment,onSessionsChanged},slots:{...host.slots,ai:slot},gateway:{request:(path,options)=>client?client.request(path,options):Promise.reject(Error('连接已断开。'))}});
       $('.cg-context-label').textContent=`AI 工程：${id} · ${next.project.sourceCommit.slice(0,8)}。画布是公开电路预览，与此节点工程独立。`;
       projects.disabled=true;openButton.textContent='工程已绑定';projects.title='更换工程或刷新源码版本，请先断开再连接。';
-      $('.cg-node-project').hidden=true;initialSettings.hidden=true;settingsHome.hidden=true;connectionSettings.open=false;message('');
+      $('.cg-node-project').hidden=true;settingsHome.hidden=true;connectionSettings.open=false;message('');
     }catch(error){if(generation===epoch&&!destroyed){context=null;message(error.message,true);}}
     finally{if(generation===epoch&&!destroyed){setBusy(false);openButton.disabled=!!context||!accountReady;}}
   };

@@ -176,14 +176,15 @@ class RecoveryTests(unittest.TestCase):
     def test_route_requires_exact_session_and_turn_fields(self):
         routes = AiRoutes(self.service); routes.sessions.factory = lambda service, session_id: self.session(service, session_id)
         try:
+            sid = routes.sessions.create('Explicit recovery session')['session_id']
             for body in ({}, {'expected_turn_id': 'turn'}, {'session_id': 'default'},
                          {'session_id': 'default', 'expected_turn_id': 'turn', 'approve': True}):
                 with self.subTest(body=body), self.assertRaises(Failure): routes.post('/api/ai/resume', body)
-            ai = routes.sessions.get('default'); ai.turn('Synthetic route test', context(), 'route-failure-key')
+            ai = routes.sessions.get(sid); ai.turn('Synthetic route test', context(), 'route-failure-key')
             ai._receive({'method': 'turn/completed', 'params': {'threadId': ai.thread_id,
                 'turn': {'id': ai.turn_id, 'status': 'failed', 'error': {'message': 'Synthetic failure', 'codexErrorInfo': 'internalServerError'}}}})
             tid = ai.turn_id; sent = copy.deepcopy(ai.rpc.sent)
-            result = routes.post('/api/ai/resume', {'session_id': 'default', 'expected_turn_id': tid})
+            result = routes.post('/api/ai/resume', {'session_id': sid, 'expected_turn_id': tid})
             self.assertTrue(result['resumed']); self.assertEqual(sent, ai.rpc.sent)
         finally: routes.close()
 

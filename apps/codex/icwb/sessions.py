@@ -14,14 +14,24 @@ class SessionRegistry:
     def __init__(self, service, session_factory=AiSession):
         self.service = service; self.factory = session_factory; self.lock = threading.RLock(); self.instances = {}; self.closed = False
         self.path = service.state / 'ai-sessions.json'
-        saved = json.loads(self.path.read_text()) if self.path.exists() else {'sessions': [
-            {'session_id': 'default', 'name': '默认会话', 'updated_at_ms': round(time.time()*1000)}]}
+        if self.path.exists():
+            # A registry, including an empty one or a default tombstone, is
+            # authoritative. Retained legacy files never resurrect deleted rows.
+            saved = json.loads(self.path.read_text())
+        elif (service.state / 'ai-session.json').exists():
+            # Pre-registry installations may have actual default history. Keep
+            # it discoverable until the owner explicitly deletes that chat.
+            legacy = json.loads((service.state / 'ai-session.json').read_text())
+            check(isinstance(legacy, dict) and legacy.get('session_id') == 'default', 'Invalid legacy session identity')
+            saved = {'sessions': [{'session_id': 'default', 'name': '默认会话',
+                                   'updated_at_ms': legacy.get('updated_at_ms', round(time.time()*1000))}]}
+        else:
+            saved = {'sessions': []}
         self.rows = saved['sessions']; self.deleted = saved.get('deleted_sessions', {})
         check(isinstance(self.rows, list) and isinstance(self.deleted, dict), 'Invalid session registry')
         ids = [r.get('session_id') for r in self.rows if isinstance(r, dict)]
         check(len(ids) == len(self.rows) <= self.MAX_SESSIONS and all(isinstance(sid, str) for sid in ids)
-              and len(ids) == len(set(ids)) and ids.count('default') == 1
-              and 'default' not in self.deleted and not set(ids).intersection(self.deleted)
+              and len(ids) == len(set(ids)) and not set(ids).intersection(self.deleted)
               and all(isinstance(sid, str) and isinstance(row, dict) and row.get('session_id') == sid
                       for sid, row in self.deleted.items()), 'Invalid session registry')
 
@@ -30,7 +40,6 @@ class SessionRegistry:
 
     @staticmethod
     def _delete_reason(sid, state, pending, metadata_busy=False, active_calls=0, closing=False):
-        if sid == 'default': return 'default_session'
         if state in ('starting', 'running'): return 'active_turn'
         if metadata_busy: return 'metadata_busy'
         if any(p.get('status') != 'resolved' for p in pending): return 'unresolved_approval'

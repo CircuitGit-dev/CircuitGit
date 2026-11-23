@@ -349,7 +349,7 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(routes.commit_summary_activity(), {'running_count': 0})
         first = routes.start_commit_summary(verified()); result = self.wait(manager, first['summary_id'])
         self.assertEqual(routes.get_commit_summary(first['summary_id']), result)
-        self.assertEqual(routes.sessions.instances, {}); self.assertEqual(len(routes.sessions.rows), 1)
+        self.assertEqual(routes.sessions.instances, {}); self.assertEqual(routes.sessions.rows, [])
         routes.close()
 
 

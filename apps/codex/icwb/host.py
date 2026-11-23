@@ -62,16 +62,18 @@ class AiRoutes:
             check(set(query) == {'session_id', 'image_id'} and all(isinstance(v, list) and len(v) == 1 for v in query.values()),
                   'Image read requires one explicit session_id and image_id')
             return self.sessions.get(query['session_id'][0]).image(query['image_id'][0])
-        ids = query.pop('session_id', ['default']); check(len(ids) == 1, 'One explicit session_id required')
+        ids = query.pop('session_id', None)
+        check(ids is None or isinstance(ids, list) and len(ids) == 1 and isinstance(ids[0], str), 'One explicit session_id required')
         if path == '/api/ai/sessions':
             check(not query, 'Unexpected sessions query'); return self.sessions.list()
-        session = self.sessions.get(ids[0]); service = session.service
-        if path == '/api/ai/history':
-            check(not query, 'Unexpected history query'); return session.history()
-        if path == '/api/ai/models':
-            check(not query, 'Model catalog does not accept provider overrides or query fields')
-            return session.models()
-        if path == '/api/ai/catalog': return service.call('projects', {})
+        if path in ('/api/ai/catalog', '/api/ai/context'):
+            # Connecting/selecting an engineering project precedes chat creation.
+            # An explicit identity is still checked, including deletion tombstones.
+            if ids is not None: self.sessions.info(ids[0])
+            service = self.service
+        if path == '/api/ai/catalog':
+            check(not query, 'Unexpected project catalog query')
+            return service.call('projects', {})
         if path == '/api/ai/context':
             r = service.call('read', {'project_id': query.get('project_id', [''])[0]})
             f = r['file']; p = r['project']
@@ -80,6 +82,14 @@ class AiRoutes:
                 'file': {'path': f['path'], 'baseCommit': f['base_commit'], 'persistedSha256': f['sha256'],
                          'currentTextSha256': f['sha256'], 'dirty': False, 'editable': f['editable']},
                 'selection': None, 'geometry': {'gatewayMetadata': geometry_summary(r['geometry']), 'state': 'unknown'}, 'run': None}
+        # Omitting an identity is compatible only with an actual surviving legacy
+        # default. SessionRegistry.get never creates one or chooses another chat.
+        session = self.sessions.get(ids[0] if ids is not None else 'default')
+        if path == '/api/ai/history':
+            check(not query, 'Unexpected history query'); return session.history()
+        if path == '/api/ai/models':
+            check(not query, 'Model catalog does not accept provider overrides or query fields')
+            return session.models()
         if path == '/api/ai/events': return session.poll(int(query.get('after', ['0'])[0]))
         raise Failure('not_found', 'Unknown AI endpoint')
 

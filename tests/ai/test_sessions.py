@@ -34,7 +34,7 @@ class FakeRpc:
 
 def context():return {'version':1,'revision':1,'mode':'live','project':{'id':'SYNTHETIC'},'file':{'path':'projects/demo.scs','baseCommit':'a'*40,'persistedSha256':'b'*64,'currentTextSha256':'b'*64,'dirty':False}}
 def source_call(self,op,args):
-    if op=='read':return {'project':{'id':'SYNTHETIC'},'file':{'path':'projects/demo.scs','base_commit':'a'*40,'sha256':'b'*64,'content':'R0 r=2k'},'geometry':{}}
+    if op=='read':return {'project':{'id':'SYNTHETIC','repository':'synthetic','branch':'fixture'},'file':{'path':'projects/demo.scs','base_commit':'a'*40,'sha256':'b'*64,'content':'R0 r=2k','editable':True},'geometry':{}}
     if op=='projects':return {'projects':[]}
     raise AssertionError('Unexpected real or mutation service call '+op)
 
@@ -49,7 +49,9 @@ class Tests(unittest.TestCase):
         a=AiSession(service or self.service,FakeRpc,session_id=sid);self.live.append(a);return a
     def done(self,a,ms=17452):
         a._receive({'method':'turn/completed','params':{'threadId':a.thread_id,'turn':{'id':a.turn_id,'status':'completed','durationMs':ms}}})
-    def routes(self):
+    def routes(self,legacy=False):
+        if legacy:
+            (self.service.state/'ai-sessions.json').write_text(json.dumps({'sessions':[{'session_id':'default','name':'Legacy default','updated_at_ms':1}]}))
         r=AiRoutes(self.service);r.sessions.factory=lambda service,session_id:self.ai(service,session_id);return r
     def test_catalog_allowlist_no_thread_unknown_and_explicit_failure(self):
         a=self.ai();catalog=a.models();self.assertEqual([m['id'] for m in catalog['models']],['slow-id','quick-id']);self.assertFalse(catalog['inference_verified']);self.assertIsNone(a.thread_id)
@@ -88,14 +90,14 @@ class Tests(unittest.TestCase):
         r=self.routes();before=len(FakeRpc.created);new=r.post('/api/ai/sessions',{'name':'Second'})
         self.assertEqual(len(FakeRpc.created),before);self.assertEqual(r.sessions.instances,{})
         self.assertEqual(r.post('/api/ai/sessions/rename',{'session_id':new['session_id'],'name':'Renamed'})['name'],'Renamed')
-        for _ in range(6):r.post('/api/ai/sessions',{})
+        for _ in range(7):r.post('/api/ai/sessions',{})
         self.assertEqual(len(r.get('/api/ai/sessions',{})['sessions']),8)
         with self.assertRaises(Failure):r.post('/api/ai/sessions',{})
         with self.assertRaises(Failure):r.get('/api/ai/models',{'session_id':['not-real']})
         with self.assertRaises(Failure):r.post('/api/ai/turn',{'session_id':'default','message':'x','context':context(),'idempotency_key':'extra-key','provider':'other'})
         with self.assertRaises(Failure):r.get('/api/ai/models',{'provider':['other']})
     def test_session_turns_and_approval_are_isolated(self):
-        r=self.routes();sid=r.post('/api/ai/sessions',{})['session_id']
+        r=self.routes(legacy=True);sid=r.post('/api/ai/sessions',{})['session_id']
         body={'message':'one','context':context(),'idempotency_key':'same-key-123'}
         ra=r.post('/api/ai/turn',body);rb=r.post('/api/ai/turn',{**body,'session_id':sid,'model':'quick-id'})
         a=r.sessions.get('default');b=r.sessions.get(sid)
@@ -119,7 +121,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(len(FakeRpc.created),before)
 
     def test_delete_retains_history_images_receipts_and_releases_slot(self):
-        r=self.routes();rows=[r.post('/api/ai/sessions',{'name':'Session '+str(i)}) for i in range(7)]
+        r=self.routes();rows=[r.post('/api/ai/sessions',{'name':'Session '+str(i)}) for i in range(8)]
         sid=rows[0]['session_id'];a=r.sessions.get(sid);b=r.sessions.get(rows[1]['session_id'])
         a.turn('retained message',context(),'delete-retained-key');self.done(a)
         def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
@@ -152,7 +154,7 @@ class Tests(unittest.TestCase):
         self.assertTrue(row['can_delete']);self.assertIsNone(row['delete_block_reason'])
         result=r.sessions.delete(sid);self.assertEqual(saved.read_bytes(),original);r.sessions.factory.assert_not_called()
         restored=SessionRegistry(self.service,session_factory=Mock(side_effect=AssertionError('NO RESURRECTION')))
-        self.assertEqual(restored.delete(sid),result);self.assertEqual(len(restored.list()['sessions']),1)
+        self.assertEqual(restored.delete(sid),result);self.assertEqual(len(restored.list()['sessions']),0)
         for call in (lambda:restored.get(sid),lambda:restored.info(sid),lambda:restored.rename(sid,'revive')):
             with self.assertRaises(Failure) as error:call()
             self.assertEqual(error.exception.code,'not_found')
@@ -160,21 +162,106 @@ class Tests(unittest.TestCase):
         for path,query in (('/api/ai/history',{'session_id':[sid]}),('/api/ai/models',{'session_id':[sid]}),
                            ('/api/ai/image',{'session_id':[sid],'image_id':['a'*64]}),('/api/ai/context',{'session_id':[sid]})):
             with self.assertRaises(Failure):routes.get(path,query)
-        restored.rename('default','Default retained');restored.create('New after deletion')
+        created=restored.create('New after deletion');restored.rename(created['session_id'],'Renamed survivor')
         again=SessionRegistry(self.service)
         self.assertIn(sid,again.deleted);restored.factory.assert_not_called()
 
-    def test_delete_body_unknown_and_default_protection(self):
+    def test_delete_body_unknown_and_absent_default_never_created(self):
         r=self.routes();before=len(FakeRpc.created)
-        default=r.sessions.list()['sessions'][0]
-        self.assertFalse(default['can_delete']);self.assertEqual(default['delete_block_reason'],'default_session')
+        self.assertEqual(r.sessions.list()['sessions'],[])
         for body in ({},{'session_id':'default','confirm':True},{'session_id':None},{'session_id':['default']}):
             with self.assertRaises(Failure):r.post('/api/ai/sessions/delete',body)
         with self.assertRaises(Failure) as error:r.post('/api/ai/sessions/delete',{'session_id':'default'})
-        self.assertEqual(error.exception.details['delete_block_reason'],'default_session')
+        self.assertEqual(error.exception.code,'not_found')
         with self.assertRaises(Failure) as error:r.sessions.delete('unknown')
         self.assertEqual(error.exception.code,'not_found');self.assertEqual(len(FakeRpc.created),before)
         self.assertEqual(r.sessions.deleted,{});self.assertEqual(r.sessions.instances,{})
+
+    def test_fresh_empty_startup_and_project_metadata_do_not_start_session(self):
+        r=self.routes();before=len(FakeRpc.created)
+        r.sessions.factory=Mock(side_effect=AssertionError('NO IMPLICIT SESSION'))
+        self.assertEqual(r.get('/api/ai/sessions',{}),{'sessions':[],'max_sessions':8})
+        self.assertEqual(r.get('/api/ai/catalog',{}),{'projects':[]})
+        self.assertEqual(r.get('/api/ai/context',{'project_id':['SYNTHETIC']})['project']['id'],'SYNTHETIC')
+        for path in ('history','models','events'):
+            with self.assertRaises(Failure) as error:r.get('/api/ai/'+path,{})
+            self.assertEqual(error.exception.code,'not_found')
+        with self.assertRaises(Failure):r.session
+        with self.assertRaises(Failure):r.post('/api/ai/turn',{'message':'no implicit chat','context':context(),'idempotency_key':'no-default-key'})
+        self.assertEqual(r.sessions.rows,[]);self.assertEqual(len(FakeRpc.created),before)
+        r.sessions.factory.assert_not_called();self.assertFalse(r.sessions.path.exists())
+
+    def test_empty_create_delete_last_restart_and_no_implicit_selection(self):
+        r=self.routes();first=r.post('/api/ai/sessions',{'name':'First explicit chat'})
+        self.assertRegex(first['session_id'],r'^s_[0-9a-f]{24}$')
+        self.assertEqual(first['name'],'First explicit chat')
+        with self.assertRaises(Failure):r.get('/api/ai/history',{})
+        self.assertTrue(r.sessions.delete(first['session_id'])['deleted'])
+        restored=SessionRegistry(self.service,session_factory=Mock(side_effect=AssertionError('NO RESURRECTION')))
+        self.assertEqual(restored.list()['sessions'],[])
+        self.assertIn(first['session_id'],restored.deleted)
+        for sid in ('default',first['session_id']):
+            with self.assertRaises(Failure):restored.get(sid)
+        second=restored.create('Second explicit chat')
+        self.assertRegex(second['session_id'],r'^s_[0-9a-f]{24}$')
+        self.assertNotEqual(second['session_id'],first['session_id'])
+        restored.factory.assert_not_called()
+
+    def test_existing_legacy_default_is_retained_and_explicitly_deletable(self):
+        r=self.routes(legacy=True);a=r.sessions.get('default')
+        a.turn('legacy retained history',context(),'legacy-history-key');self.done(a)
+        saved=a.service.state/'ai-session.json';before=saved.read_bytes()
+        original_history=r.get('/api/ai/history',{})
+        self.assertEqual(original_history['messages'][0]['text'],'legacy retained history')
+        self.assertTrue(r.sessions.info('default')['can_delete'])
+        self.assertEqual(r.sessions.delete('default'),{'session_id':'default','deleted':True,'history_retained':True})
+        self.assertEqual(saved.read_bytes(),before)
+        restored=SessionRegistry(self.service,session_factory=Mock(side_effect=AssertionError('NO DEFAULT RESURRECTION')))
+        r.sessions=restored
+        self.assertEqual(restored.list()['sessions'],[]);self.assertIn('default',restored.deleted)
+        self.assertTrue(restored.delete('default')['deleted'])
+        for path in ('history','models','events'):
+            for query in ({},{'session_id':['default']}):
+                with self.assertRaises(Failure):r.get('/api/ai/'+path,query)
+        for path in ('catalog','context'):
+            with self.assertRaises(Failure):r.get('/api/ai/'+path,{'session_id':['default']})
+        with self.assertRaises(Failure):r.post('/api/ai/turn',{'message':'must not revive','context':context(),'idempotency_key':'legacy-revive-key'})
+        restored.create('New explicit chat')
+        self.assertNotIn('default',[row['session_id'] for row in SessionRegistry(self.service).rows])
+        self.assertEqual(saved.read_bytes(),before);restored.factory.assert_not_called()
+
+    def test_pre_registry_legacy_history_is_discovered_without_rpc(self):
+        saved=self.service.state/'ai-session.json'
+        saved.write_text(json.dumps({'session_id':'default','state':'complete','updated_at_ms':1234,'pending':[],
+                                     'messages':[{'role':'user','text':'legacy'}]}))
+        before=saved.read_bytes();factory=Mock(side_effect=AssertionError('NO EAGER LEGACY LOAD'))
+        registry=SessionRegistry(self.service,session_factory=factory)
+        info=registry.list()['sessions'][0]
+        self.assertEqual(info['session_id'],'default');self.assertEqual(info['updated_at_ms'],1234)
+        self.assertTrue(info['can_delete']);self.assertTrue(info['restored'])
+        registry.delete('default')
+        self.assertEqual(SessionRegistry(self.service,session_factory=factory).rows,[])
+        self.assertEqual(saved.read_bytes(),before);factory.assert_not_called()
+
+    def test_authoritative_empty_registry_never_discovers_retained_default_file(self):
+        (self.service.state/'ai-sessions.json').write_text(json.dumps({'sessions':[],'deleted_sessions':{}}))
+        (self.service.state/'ai-session.json').write_text(json.dumps({'session_id':'default','state':'complete','pending':[]}))
+        registry=SessionRegistry(self.service)
+        self.assertEqual(registry.rows,[])
+        with self.assertRaises(Failure):registry.get('default')
+
+    def test_legacy_default_uses_the_same_active_and_approval_delete_guards(self):
+        r=self.routes(legacy=True);session=r.sessions.get('default')
+        for state,pending,reason in [('running',{},'active_turn'),('starting',{},'active_turn'),
+                                     ('suspended',{'one':{'status':'pending'}},'unresolved_approval'),
+                                     ('suspended',{'one':{'status':'suspended'}},'unresolved_approval')]:
+            session.state=state;session.pending=pending
+            self.assertEqual(r.sessions.info('default')['delete_block_reason'],reason)
+            with self.assertRaises(Failure) as error:r.sessions.delete('default')
+            self.assertEqual(error.exception.details['delete_block_reason'],reason)
+            self.assertNotIn('default',r.sessions.deleted)
+        session.state='suspended';session.pending={}
+        self.assertTrue(r.sessions.delete('default')['deleted'])
 
     def test_active_metadata_pending_and_closing_delete_guards(self):
         r=self.routes();sid=r.sessions.create('Guarded')['session_id'];a=r.sessions.get(sid)

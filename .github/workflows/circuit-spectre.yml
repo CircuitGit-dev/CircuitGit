@@ -1,0 +1,71 @@
+name: Spectre operator workflow (manual and protected)
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Exact 40-character circuit commit already available to the operator gateway
+        required: true
+        type: string
+      testbench_id:
+        description: ID in the trusted operator testbench bindings
+        required: true
+        type: string
+      operation:
+        description: Submit/collect prepare human-reviewed requests; CI never approves them
+        type: choice
+        options: [submit, plan, preflight, collect, results]
+        default: submit
+      run_id:
+        description: Existing run identity, required for collect/results
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: circuit-spectre-operator
+  cancel-in-progress: false
+jobs:
+  configured:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check explicit operator setup before scheduling any licensed runner
+        env:
+          ENABLED: ${{ vars.CIRCUITGIT_SPECTRE_ENABLED }}
+          WORKFLOW_REF: ${{ github.ref }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          python3 - <<'PY'
+          import os,re
+          if os.environ['WORKFLOW_REF'] != 'refs/heads/main':
+              raise SystemExit('BLOCKED: dispatch the trusted main workflow only.')
+          if os.environ['ENABLED'] != 'true':
+              raise SystemExit('BLOCKED: licensed runner, protected environment and local operator bindings are not enabled. No simulation ran.')
+          if not re.fullmatch(r'[a-f0-9]{40}',os.environ['SOURCE_COMMIT']):
+              raise SystemExit('BLOCKED: supply an exact source commit.')
+          PY
+  operator-request:
+    needs: configured
+    runs-on: [self-hosted, circuitgit-spectre]
+    environment: circuitgit-spectre
+    timeout-minutes: 10
+    steps:
+      # Deliberately no checkout of PR/circuit code on the licensed runner.
+      - name: Use the administrator-installed reviewed adapter and local bindings
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          TESTBENCH_ID: ${{ inputs.testbench_id }}
+          OPERATION: ${{ inputs.operation }}
+          RUN_ID: ${{ inputs.run_id }}
+          INVOCATION: ${{ github.run_id }}
+        run: >-
+          python3 -B /opt/circuitgit-ci/tools/ci/spectre_request.py
+          --settings /etc/circuitgit/ci.local.json --commit "$SOURCE_COMMIT"
+          --testbench "$TESTBENCH_ID" --operation "$OPERATION" --run-id "$RUN_ID"
+          --invocation "$INVOCATION" --report "$RUNNER_TEMP/circuitgit-$INVOCATION/request.json"
+      - name: Publish only the bounded request observation, never private raw model files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spectre-operator-request-${{ github.run_id }}
+          path: ${{ runner.temp }}/circuitgit-${{ github.run_id }}/request.json
+          if-no-files-found: error
+          retention-days: 7

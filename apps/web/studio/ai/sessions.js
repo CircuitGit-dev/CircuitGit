@@ -11,12 +11,12 @@ export function mountSessions(host,{createPanel}={}) {
   const doc=slot.element.ownerDocument,records=new Map();
   const make=(tag,cls,text)=>{const element=doc.createElement(tag);if(cls)element.className=cls;if(text)element.textContent=text;return element;};
   const root=make('section','ic-ai-sessions'),bar=make('div','ic-ai-sessions-bar'),tabs=make('div','ic-ai-session-tabs'),actions=make('div','ic-ai-session-actions');
-  const add=make('button','','新建'),manage=make('button','','管理'),retry=make('button','','重新读取'),message=make('div','ic-ai-sessions-message'),body=make('div','ic-ai-session-panels');
+  const add=make('button','','新建'),manage=make('button','','管理'),retry=make('button','','重新读取'),message=make('div','ic-ai-sessions-message'),body=make('div','ic-ai-session-panels'),empty=make('p','ic-ai-sessions-empty','暂无对话，点击“新建”开始。');
   root.setAttribute('aria-label','AI 多对话');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','AI 对话');
   for(const button of [add,manage,retry])button.type='button';
   add.setAttribute('aria-label','新建 AI 对话');manage.setAttribute('aria-label','管理 AI 对话');retry.hidden=true;
-  message.setAttribute('role','status');message.hidden=true;actions.append(add,manage,retry);bar.append(tabs,actions);root.append(bar,message,body);slot.element.replaceChildren(root);
-  let activeId=null,loading=true,busy=false,destroyed=false,limit=8,editDialog=null,manager=null,sequence=0,controller;
+  message.setAttribute('role','status');message.hidden=true;empty.hidden=true;body.append(empty);actions.append(add,manage,retry);bar.append(tabs,actions);root.append(bar,message,body);slot.element.replaceChildren(root);
+  let activeId=null,loading=true,busy=false,destroyed=false,limit=8,editDialog=null,manager=null,sequence=0,controller,hostState=null;
   const running=state=>['starting','running'].includes(state.phase);
   const number=value=>Number.isInteger(value)&&value>0?value:0;
   function status(state){
@@ -48,6 +48,9 @@ export function mountSessions(host,{createPanel}={}) {
     add.disabled=loading||busy||records.size>=limit;manage.disabled=busy;retry.disabled=loading||busy;
     add.title=records.size>=limit?'已达到 '+limit+' 个对话上限':'新建对话；发送消息后才启动 AI';
     root.setAttribute('aria-busy',String(loading||busy));
+    empty.hidden=loading||records.size>0;
+    const snapshot={count:records.size,activeSessionId:activeId,loading},signature=JSON.stringify(snapshot);
+    if(hostState!==signature){hostState=signature;host.aiSettings?.onSessionsChanged?.(snapshot);}
     syncManager();
   }
   function failure(error){if(destroyed)return;message.hidden=false;message.textContent=error.message||String(error);}
@@ -63,13 +66,12 @@ export function mountSessions(host,{createPanel}={}) {
   function dropRecord(id){
     const record=records.get(id);if(!record)return;
     records.delete(id);record.panel.destroy();record.button.remove();record.container.remove();
-    if(activeId===id)activeId=records.has('default')?'default':records.keys().next().value||null;
+    if(activeId===id)activeId=records.keys().next().value||null;
   }
   function deleteReason(record){
-    if(record.id==='default')return '默认对话保留';
     if(running(record.state))return '请先停止当前回合';
     if(number(record.state.pendingApprovalCount)||number(record.state.suspendedApprovalCount))return '仍有未处理的审批';
-    if(record.info.can_delete!==true)return ({active_turn:'请先停止当前回合',pending_approval:'仍有未处理的审批',unresolved_approval:'仍有未处理的审批',metadata_busy:'正在读取连接信息，请稍后刷新',session_busy:'正在处理请求，请稍后刷新',session_closing:'对话正在关闭',default_session:'默认对话保留'})[record.info.delete_block_reason]||'暂不可删除，请刷新状态';
+    if(record.info.can_delete!==true)return ({active_turn:'请先停止当前回合',pending_approval:'仍有未处理的审批',unresolved_approval:'仍有未处理的审批',metadata_busy:'正在读取连接信息，请稍后刷新',session_busy:'正在处理请求，请稍后刷新',session_closing:'对话正在关闭'})[record.info.delete_block_reason]||'暂不可删除，请刷新状态';
     return '';
   }
   function syncManager(){
@@ -99,7 +101,7 @@ export function mountSessions(host,{createPanel}={}) {
       open.onclick=()=>{closeManager();slot.setVisible(true);select(record.id);};rename.onclick=()=>editName('rename',record.id);remove.onclick=()=>deleteSession(record.id);
       info.append(name,state,meta,reason);controls.append(open,rename,remove);element.append(info,controls);manager.list.append(element);manager.rows.set(record.id,{element,state,open,rename,remove,reason});
     }
-    if(!rows.length)manager.list.append(make('p','ic-ai-manager-empty',loading?'正在读取对话…':'没有匹配的对话'));
+    if(!rows.length)manager.list.append(make('p','ic-ai-manager-empty',loading?'正在读取对话…':records.size?'没有匹配的对话':'暂无对话，点击“新建对话”开始。'));
     syncManager();
   }
   function closeManager(){if(!manager)return;const dialog=manager.dialog;clearInterval(manager.timer);manager=null;dialog.close();dialog.remove();manage.focus();}
@@ -171,11 +173,10 @@ export function mountSessions(host,{createPanel}={}) {
       const result=await host.gateway.request('/ai/sessions');if(destroyed||ticket!==sequence)return;
       if(!Array.isArray(result?.sessions)||!Number.isInteger(result.max_sessions)||result.max_sessions<1||result.max_sessions>8||result.sessions.length>result.max_sessions)throw Error('会话列表不符合最多 8 个会话的契约。');
       const infos=result.sessions.map(validate);if(new Set(infos.map(info=>info.session_id)).size!==infos.length)throw Error('会话列表包含重复身份。');
-      if(!infos.some(info=>info.session_id==='default'))throw Error('会话列表缺少默认对话；保留当前列表。');
       limit=result.max_sessions;
       const ids=new Set(infos.map(info=>info.session_id));for(const id of [...records.keys()])if(!ids.has(id))dropRecord(id);
       for(const info of infos){const existing=records.get(info.session_id);if(existing){existing.info=info;existing.container.setAttribute('aria-label',info.name);}else mountRecord(info);}
-      if(!activeId)activeId=records.has('default')?'default':records.keys().next().value||null;
+      if(!activeId)activeId=records.keys().next().value||null;
     }catch(error){failure(error);if(manager)manager.notice.textContent=error.message||String(error);retry.hidden=false;}
     finally{if(!destroyed&&ticket===sequence){loading=false;renderManager();publish();}}
   }

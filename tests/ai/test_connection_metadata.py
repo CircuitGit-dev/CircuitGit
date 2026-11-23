@@ -320,7 +320,8 @@ class MetadataTests(unittest.TestCase):
         service = self.ai().service; routes = AiRoutes(service)
         routes.sessions.factory = lambda service, session_id: self.ai(sid=session_id)
         try:
-            self.assertEqual(routes.post('/api/ai/connect', {'session_id': 'default'})['session_id'], 'default')
+            sid = routes.sessions.create('Explicit connection metadata')['session_id']
+            self.assertEqual(routes.post('/api/ai/connect', {'session_id': sid})['session_id'], sid)
             with self.assertRaises(Failure): routes.post('/api/ai/connect', {'session_id': 'unknown'})
         finally: routes.close()
 

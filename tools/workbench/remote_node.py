@@ -19,12 +19,14 @@ from icwb.host import AiRoutes
 from icwb.service import Service, Failure, load_config
 from browser_pairing import Pairing, confirmation_html
 from browser_login import LocalLogin
+from library_workflow import WorkflowError
 
 MAX_BODY = 16 * 1024 * 1024
 GET_ROUTES = {'catalog', 'context', 'history', 'events', 'models', 'sessions',
               'image', 'development', 'discovery', 'connection', 'auth/status'}
 POST_ROUTES = {'sessions', 'sessions/rename', 'sessions/delete', 'connect',
                'resume', 'turn', 'approval', 'interrupt', 'doctor', 'auth/login', 'development/settings-request'}
+LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/review-request'}
 
 def node_config(config_path=None, gateway_url='http://127.0.0.1:8766', state_dir=None, codex_bin=None):
     config = load_config(config_path) if config_path else {'gateway_url': gateway_url}
@@ -92,6 +94,7 @@ class Node:
         self.pairing = Pairing()
         self.login = None
         self.development = None
+        self.library = None
 
     def info(self):
         return {'schema': 'circuitgit.remote-node.v1', 'node_id': self.node_id,
@@ -100,8 +103,10 @@ class Node:
                 'capabilities': {'chat': True, 'projects': True, 'approvals': True,
                                  'developer': False, 'hosted_subscription_oauth': False,
                                  'local_developer_settings': self.development is not None,
+                                 'library_workflow': self.library is not None,
                                  'local_login': self.login is not None and self.public_origin.startswith('http://127.0.0.1:') and not self.prefix},
-                'automatic_model_start': False}
+                'automatic_model_start': False,
+                'library_activity': self.library.activity() if self.library else {'running_actions': 0}}
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
@@ -181,6 +186,18 @@ class Handler(BaseHTTPRequestHandler):
         nonce = secrets.token_urlsafe(24)
         self.send_page(settings.form(query['request'][0], nonce), nonce)
 
+    def library_guard(self):
+        self.local_guard()
+        if self.node.library is None: raise PermissionError('This connector has no circuit repository')
+        return self.node.library
+
+    def library_page(self):
+        workflow = self.library_guard()
+        path, query = self.route()
+        if path != '/library/review' or set(query) != {'ticket'}: raise ValueError('Exact review ticket required')
+        nonce = secrets.token_urlsafe(24)
+        self.send_page(workflow.form(query['ticket'][0], nonce), nonce)
+
     def send_page(self, html, nonce):
         raw = html.encode()
         self.send_response(200)
@@ -220,7 +237,9 @@ class Handler(BaseHTTPRequestHandler):
             pass
 
     def fail(self, error):
-        if isinstance(error, PermissionError):
+        if isinstance(error, WorkflowError):
+            status, record = error.status, {'code': error.code, 'message': str(error), 'details': error.details}
+        elif isinstance(error, PermissionError):
             status, record = 403, {'code': 'forbidden', 'message': str(error)}
         elif isinstance(error, Failure):
             status = 409 if error.exit_code == 3 else 403 if error.exit_code == 4 else 503 if error.exit_code == 75 else 400
@@ -250,7 +269,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             self.guard(False)
             path, _ = self.route()
-            if path != '/node/info' and not (path.startswith('/api/ai/') and path[8:] in GET_ROUTES | POST_ROUTES):
+            if path != '/node/info' and path not in LIBRARY_ROUTES and not (path.startswith('/api/ai/') and path[8:] in GET_ROUTES | POST_ROUTES):
                 raise ValueError('Unknown preflight route')
             if self.headers.get('Access-Control-Request-Method') not in ('GET', 'POST'):
                 raise PermissionError('Method is not allowed')
@@ -267,6 +286,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.connect_page(); return
             if urlsplit(self.path).path == '/development/settings':
                 self.development_page(); return
+            if urlsplit(self.path).path == '/library/review':
+                self.library_page(); return
             self.guard()
             path, qs = self.route()
             if path == '/node/info' and not qs:
@@ -297,6 +318,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
+            if self.path == '/library/review/confirm':
+                self.local_guard(True)
+                data = self.library_guard().confirm(self.body(8192))
+                self.send(200, {'ok': True, 'data': data}); return
             if self.path == '/development/settings/confirm':
                 self.local_guard(True)
                 settings = self.developer_guard()
@@ -311,6 +336,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200, {'ok': True, 'data': data}); return
             self.guard()
             path, qs = self.route()
+            if path in LIBRARY_ROUTES:
+                if qs: raise ValueError('Library operations do not accept query fields')
+                workflow = self.library_guard();body = self.body(2*1024*1024)
+                if path.endswith('/review-request'):
+                    if set(body) != {'review_id'} or not isinstance(body['review_id'], str): raise ValueError('Exact review identity required')
+                    data = workflow.request(body['review_id'], *self.browser_identity())
+                else:
+                    if set(body) != {'operation','args'} or not isinstance(body['operation'], str) or not isinstance(body['args'], dict): raise ValueError('Finite operation and arguments required')
+                    method = workflow.read if path.endswith('/read') else workflow.prepare
+                    data = method(body['operation'], body['args'], *self.browser_identity())
+                self.send(200, {'ok': True, 'data': data}); return
             if qs or not path.startswith('/api/ai/') or path[8:] not in POST_ROUTES:
                 raise ValueError('Unknown node write route')
             body = self.body()
