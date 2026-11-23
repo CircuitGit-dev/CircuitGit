@@ -164,6 +164,12 @@ def next_actions(state):
             if setups: args['overrides'] = {'setup_source_ids': setups}
             return [action('probe', args, ready=not needs_setup, missing=needs_setup,
                            reason='observed_setup_selection', description='Activate the observed setup choice and recheck this selected environment.')]
+        if len(valid)>2:
+            return [action('discover-pdk', current, ready=False,
+                           missing=[missing('probe_ids','discovery_batch_selection_needed',
+                                            'Select one or two observed hosts for this full-library discovery batch.')],
+                           reason='bounded_discovery_batch_needed',
+                           description='Keep the observed hosts and select an explicit batch of at most two for model discovery.')]
         return [action('discover-pdk', {**current, 'probe_ids': [p['probe_id'] for p in valid]},
                        reason='selected_environments_observed', description='Discover model candidates using only these new environment observations.')]
     return [action('ssh-hosts', {}, reason='ssh_alias_inventory_needed',

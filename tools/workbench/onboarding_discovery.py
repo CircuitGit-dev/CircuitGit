@@ -18,6 +18,8 @@ def digest(value):
 
 MAX_AUTOMATIC_SEARCH_ROUNDS = 8
 MAX_SEARCH_SCOPE_HISTORY = 512
+FULL_LIBRARY_REMOTE_TIMEOUT = 240
+FULL_LIBRARY_TRANSPORT_TIMEOUT = 270
 
 
 def search_scope_id(probe_id, source_sha256, path):
@@ -72,19 +74,21 @@ def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cd
         from spiceowl.onboarding.pdk_discovery import build_pdk_library_script,validate_pdk_library,MAX_LIBRARY_RESULT_BYTES
         script=build_pdk_library_script(roots=roots,cds_libs=cds[:16])
         output_limit=MAX_LIBRARY_RESULT_BYTES+1024  # Framing only; receipt retains its own strict bound.
+        remote_timeout,transport_timeout=FULL_LIBRARY_REMOTE_TIMEOUT,FULL_LIBRARY_TRANSPORT_TIMEOUT
     else:
         script=build_pdk_discovery_script(required_masters=requirements['required_masters'],roots=roots,
             source_sha256=requirements['source_sha256'],cds_libs=cds[:16])
         output_limit=2*1024*1024
+        remote_timeout,transport_timeout=50,60
     nonce=secrets.token_hex(16);begin='SPICEOWL_DISCOVERY_'+nonce+'_BEGIN';end='SPICEOWL_DISCOVERY_'+nonce+'_END'
     identity=private['identity'];q=shlex.quote
     command='set -eu\n[ "$(hostname)" = '+q(identity['hostname'])+' ]\n[ "$(id -un)" = '+q(identity['username'])+' ]\n'
-    command+='printf "\\n%s\\n" '+q(begin)+'\n/usr/bin/timeout 50 '+q(python)+" - <<'SPICEOWL_DISCOVERY_PY'\n"+script+'\nSPICEOWL_DISCOVERY_PY\n'
+    command+='printf "\\n%s\\n" '+q(begin)+'\n/usr/bin/timeout '+str(remote_timeout)+' '+q(python)+" - <<'SPICEOWL_DISCOVERY_PY'\n"+script+'\nSPICEOWL_DISCOVERY_PY\n'
     command+='printf "%s\\n" '+q(end)+'\n'
     argv=['/usr/bin/ssh','-T','-F',str(config_path(ssh_config))]
     for option in (*_SSH_OPTIONS,'StdinNull=no'):argv.extend(('-o',option))
     argv.extend(('--',validate_ssh_target(target),'/bin/sh -s'))
-    reply=_transport(argv,command,timeout=60,max_output=output_limit)
+    reply=_transport(argv,command,timeout=transport_timeout,max_output=output_limit)
     lines=reply.stdout.splitlines();b=begin.encode();e=end.encode()
     prefix=DIRECTORY_SNAPSHOT_PREFIX.encode();snapshots=[line[len(prefix):] for line in lines if line.startswith(prefix)]
     partial=not full_library and reply.returncode==124 and lines.count(b)==1 and lines.count(e)==0 and len(snapshots)==1 and len(snapshots[0])<=65536

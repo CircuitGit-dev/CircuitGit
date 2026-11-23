@@ -158,8 +158,8 @@ test('legacy top-level discovery and foreign connection sessions are rejected',a
   const other=await setup();await other.controller.importSource(source);other.controller.setTargets(['synthetic-host']);const probe=other.fixture.adapter.probeHost;other.fixture.adapter.probeHost=async args=>({...await probe(args),connection_id:'foreign-store'});await assert.rejects(other.controller.probeHost(),/另一份网表/);
 });
 test('discovery accepts backend-bounded multi-host candidates without choosing any and rejects overflow',async()=>{
-  // public_discovery merges all rows: 8 selected probes × 256 SpiceOwl candidates.
-  for(const [count,hostCount]of [[129,1],[200,2],[2048,8],[2049,8]]){
+  // Preserve bounded compatibility for retained inventories; new requests use at most two hosts.
+  for(const [count,hostCount]of [[129,1],[200,2],[2048,2],[2049,2]]){
     const {fixture,controller}=await setup();await controller.importSource(source);controller.setTargets(Array.from({length:hostCount},(_,index)=>'synthetic-host-'+index));await controller.probeHost();
     const discover=fixture.adapter.discoverPdk;fixture.adapter.discoverPdk=async args=>{const value=await discover(args),template=value.discovery.candidates[0];value.discovery.candidates=Array.from({length:count},(_,index)=>({...structuredClone(template),candidate_id:'synthetic-candidate-'+index,probe_id:'synthetic-probe-'+index%hostCount}));return value;};
     if(count>2048){await assert.rejects(controller.matchPdk(),/嵌套 discovery/);assert.equal(controller.state.discovery.status,'error');assert.equal(controller.state.discovery.result,null);}
@@ -174,4 +174,26 @@ test('observed directory selection is explicit, narrows by opaque IDs, and inval
 });
 test('directory scopes must cover every selected probe and cannot cross host changes',async()=>{
   const {fixture,controller}=await setup();await controller.importSource(source);controller.setTargets(['synthetic-host','synthetic-second']);await controller.probeHost();const discover=fixture.adapter.discoverPdk;fixture.adapter.discoverPdk=async args=>{const value=await discover(args);value.discovery.search_directories.push({directory_id:'second-directory',probe_id:'synthetic-probe-1',label:'Second observed range',basis:['observed_environment'],scanned:true,qualified:false});return value;};await controller.matchPdk();controller.selectSearchDirectories(['synthetic-directory']);assert.throws(()=>controller.matchPdk(),/每个选中主机/);controller.selectSearchDirectories(['synthetic-directory','second-directory']);await controller.matchPdk();assert.deepEqual(fixture.calls.filter(call=>call.method==='discoverPdk').at(-1).args.search_directory_ids,['synthetic-directory','second-directory']);controller.setTargets(['synthetic-second']);assert.deepEqual(controller.state.searchDirectoryIds,[]);assert.throws(()=>controller.selectSearchDirectories(['second-directory']),/当前 discovery/);
+});
+
+test('PDK discovery requires an explicit current one-or-two-host batch after eight-host observation',async()=>{
+  const {fixture,controller}=await setup();await controller.importSource(source);controller.setTargets(Array.from({length:8},(_,i)=>'synthetic-host-'+i));await controller.probeHost();
+  assert.equal(fixture.calls.filter(row=>row.method==='probeHost').at(-1).args.ssh_targets.length,8);
+  const before=fixture.calls.length;assert.throws(()=>controller.matchPdk(),/明确选择本批/);
+  for(const probe_ids of [[],null,'synthetic-probe-0',['synthetic-probe-2','synthetic-probe-2'],['synthetic-probe-0','synthetic-probe-1','synthetic-probe-2'],['foreign-probe'],['synthetic-probe-2',null]])assert.throws(()=>controller.matchPdk({probe_ids}),/1–2/);
+  assert.equal(fixture.calls.length,before);assert.equal(controller.state.probe.result.probes.length,8);
+  const chosen=['synthetic-probe-2','synthetic-probe-7'];await controller.matchPdk({probe_ids:chosen});assert.deepEqual(fixture.calls.filter(row=>row.method==='discoverPdk').at(-1).args.probe_ids,chosen);
+  assert.equal(controller.state.probe.result.probes.length,8);assert.equal(controller.state.targets.length,8);
+  await controller.matchPdk({refresh:true,probe_ids:['synthetic-probe-7']});const args=fixture.calls.filter(row=>row.method==='discoverPdk').at(-1).args;assert.deepEqual(args.probe_ids,['synthetic-probe-7']);assert.equal(args.refresh,true);
+  controller.destroy();
+});
+test('combined probe-and-match rejects more than two targets before any probe while standalone probe stays eight-host capable',async()=>{
+  const {fixture,controller}=await setup();await controller.importSource(source);controller.setTargets(['synthetic-one','synthetic-two','synthetic-three']);const before=fixture.calls.length;
+  await assert.rejects(controller.probeAndMatch(),/每批 PDK/);assert.equal(fixture.calls.length,before);assert.equal(controller.state.probe.status,'idle');
+  controller.setTargets(['synthetic-one','synthetic-two']);await controller.probeAndMatch();assert.deepEqual(fixture.calls.filter(row=>row.method==='discoverPdk').at(-1).args.probe_ids,['synthetic-probe-0','synthetic-probe-1']);controller.destroy();
+});
+test('a selected PDK batch must still belong to the latest session observations',async()=>{
+  const {fixture,controller}=await setup();await controller.importSource(source);controller.setTargets(['synthetic-host']);await controller.probeHost();
+  fixture.saved={...fixture.saved,revision:fixture.saved.revision+1,probes:[{...fixture.saved.probes[0],probe_id:'new-observed-probe'}]};fixture.setConnection({selectedIntakeId:fixture.saved.intake_id});await controller.restoreSelected();
+  const before=fixture.calls.length;assert.throws(()=>controller.matchPdk({probe_ids:['synthetic-probe-0']}),/1–2/);assert.equal(fixture.calls.length,before);controller.destroy();
 });

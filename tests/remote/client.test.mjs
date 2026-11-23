@@ -45,7 +45,7 @@ test('onboarding permits only the fourteen browser routes, exact verbs and bound
   const calls=[],client=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async(url,options)=>{calls.push({url,options});return new Response(JSON.stringify({ok:true,data:{observed:true}}));}});
   for(const row of Object.values(ONBOARDING_OPERATIONS)){
     const path='/simulation/onboarding'+row.path+(row.query?'?'+new URLSearchParams(Object.fromEntries(row.query.map(key=>[key,'opaque-original-id']))):'');
-    assert.equal(isOnboardingRequest(path,row.method),true);await client.request(path,{method:row.method,...(row.method==='POST'?{body:{}}:{})});
+    assert.equal(isOnboardingRequest(path,row.method),true);await client.request(path,{method:row.method,...(row.method==='POST'?{body:row.path==='/discover-pdk'?{probe_ids:['observed-probe']}:{}}:{})});
     assert.equal(isOnboardingRequest(path,row.method==='GET'?'POST':'GET'),false);
   }
   assert.equal(calls.length,14);
@@ -70,8 +70,8 @@ test('finite onboarding budgets follow explicit host batches instead of changing
   assert.equal(onboardingRequestTimeout('probeHost',{ssh_targets:hosts.slice(0,1)}),45000);
   assert.equal(onboardingRequestTimeout('probeHost',{ssh_targets:hosts}),150000);
   assert.equal(onboardingRequestTimeout('probeHost',{ssh_targets:hosts,overrides:{setup_source_ids:{'host-0':'observed-source'}}}),290000);
-  assert.equal(onboardingRequestTimeout('discoverPdk',{probe_ids:hosts.slice(0,1)}),70000);
-  assert.equal(onboardingRequestTimeout('discoverPdk',{probe_ids:hosts}),250000);
+  assert.equal(onboardingRequestTimeout('discoverPdk',{probe_ids:hosts.slice(0,1)}),310000);
+  assert.equal(onboardingRequestTimeout('discoverPdk',{probe_ids:hosts.slice(0,2)}),310000);
   assert.equal(onboardingRequestTimeout('prepareExperiment'),150000);
   assert.equal(onboardingRequestTimeout('runPrepared',{}, {execution_scope:{candidate_host_ids:hosts.slice(0,1)}}),110000);
   assert.equal(onboardingRequestTimeout('runPrepared'),320000,'unknown cached scope uses the finite eight-host maximum');
@@ -83,18 +83,28 @@ test('paired client accepts bounded per-onboarding timeouts only and retains the
   const scheduled=[],calls=[];
   t.mock.method(globalThis,'setTimeout',(_callback,delay)=>{scheduled.push(delay);return 0;});
   const client=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async(url)=>{calls.push(url);return new Response(JSON.stringify({ok:true,data:{}}));}});
-  await client.request('/simulation/onboarding/discover-pdk',{method:'POST',body:{probe_ids:['chosen']},timeout:70000});
-  assert.equal(scheduled.at(-1),70000);
+  await client.request('/simulation/onboarding/discover-pdk',{method:'POST',body:{probe_ids:['chosen']},timeout:310000});
+  assert.equal(scheduled.at(-1),310000);
   await client.request('/simulation/onboarding/probe',{method:'POST',body:{ssh_targets:['chosen']}});assert.equal(scheduled.at(-1),45000);
   await client.request('/ai/context',{timeout:320000});assert.equal(scheduled.at(-1),45000,'non-onboarding override cannot enlarge the ordinary request');
   const before=calls.length;
-  for(const timeout of [0,-1,Infinity,70000.5,250001])await assert.rejects(client.request('/simulation/onboarding/discover-pdk',{method:'POST',body:{},timeout}),/finite route budget/);
+  for(const timeout of [0,-1,Infinity,300000.5,299999,310001])await assert.rejects(client.request('/simulation/onboarding/discover-pdk',{method:'POST',body:{probe_ids:['chosen']},timeout}),/finite route budget/);
   assert.equal(calls.length,before);
 });
 test('an onboarding timer abort reports unknown outcome after one POST and never retries it',async t=>{
   t.mock.timers.enable({apis:['setTimeout']});let calls=0;
   const client=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:(_url,{signal})=>{calls++;return new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(new DOMException('Timed out','AbortError')),{once:true}));}});
   const request=client.request('/simulation/onboarding/discover-pdk',{method:'POST',body:{probe_ids:['chosen']}});
-  t.mock.timers.tick(69999);assert.equal(calls,1);
+  t.mock.timers.tick(70000);assert.equal(calls,1);
+  t.mock.timers.tick(239999);assert.equal(calls,1);
   t.mock.timers.tick(1);await assert.rejects(request,e=>e.data.code==='transport_unknown');assert.equal(calls,1);
+});
+test('full PDK discovery rejects missing, duplicate or oversized batches before fetch, even with a custom deadline',async()=>{
+  let calls=0;const client=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async()=>{calls++;return new Response(JSON.stringify({ok:true,data:{}}));}});
+  for(const probe_ids of [undefined,null,[],['a','b','c'],Array.from({length:9},(_,i)=>String(i)),['a','a'],[''],[1],['x'.repeat(513)]]){
+    assert.throws(()=>onboardingRequestTimeout('discoverPdk',{probe_ids}),/1–2/);
+    for(const timeout of [undefined,310000])await assert.rejects(client.request('/simulation/onboarding/discover-pdk',{method:'POST',body:{probe_ids},...(timeout===undefined?{}:{timeout})}),/1–2/);
+  }
+  assert.equal(calls,0);
+  await client.request('/simulation/onboarding/discover-pdk',{method:'POST',body:{probe_ids:['second-observed','eighth-observed']}});assert.equal(calls,1);
 });
