@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {pairLocal,LOCAL_CONNECTOR} from '../../apps/web/remote/pair.js';
+
+function fixture(blocked=false){
+  let listener;const timers=new Map();let timer=0;
+  const popup={closed:false,close(){this.closed=true;}};
+  const state='0123456789abcdef0123456789abcdef';
+  const win={crypto:{randomUUID:()=>state},location:{origin:'https://example.github.io'},
+    addEventListener(t,fn){listener=fn;},removeEventListener(){listener=null;},
+    open(url){win.opened=url;return blocked?null:popup;},
+    setTimeout(fn){timers.set(++timer,fn);return timer;},clearTimeout(id){timers.delete(id);},
+    setInterval(fn){timers.set(++timer,fn);return timer;},clearInterval(id){timers.delete(id);}};
+  const send=(type,extra={},override={})=>listener?.({origin:LOCAL_CONNECTOR,source:popup,data:{type,state,...extra},...override});
+  return {win,popup,timers,send};
+}
+test('pairs only with the opened local window, exact origin and request state',async()=>{
+  const f=fixture();let ready=0;const flow=pairLocal({win:f.win,onReady:()=>ready++});
+  assert(f.win.opened.startsWith(LOCAL_CONNECTOR+'/connect?'));
+  f.send('circuitgit.local.ready',{}, {origin:'https://evil.example'});
+  f.send('circuitgit.local.ready',{}, {source:{}});
+  f.send('circuitgit.local.ready',{state:'wrong'});assert.equal(ready,0);
+  f.send('circuitgit.local.ready');assert.equal(ready,1);
+  f.send('circuitgit.local.result',{allowed:true,accessCode:'x'.repeat(43),endpoint:'https://evil.example'});
+  assert.deepEqual(await flow.result,{url:LOCAL_CONNECTOR,accessCode:'x'.repeat(43)});
+  assert(f.popup.closed);assert.equal(f.timers.size,0);
+});
+test('blocked popup, cancellation, timeout and denial never yield a credential',async()=>{
+  const blocked=fixture(true);await assert.rejects(pairLocal({win:blocked.win}).result,/阻止/);
+  const cancelled=fixture(),a=pairLocal({win:cancelled.win});a.cancel();await assert.rejects(a.result,/取消/);
+  const missing=fixture(),b=pairLocal({win:missing.win});missing.timers.get(1)();await assert.rejects(b.result,/未检测到/);
+  const denied=fixture(),c=pairLocal({win:denied.win});denied.send('circuitgit.local.ready');denied.send('circuitgit.local.result',{allowed:false});await assert.rejects(c.result,/取消/);
+});

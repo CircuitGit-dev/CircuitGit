@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Start the local browser companion with its own gateway; no typed address or code."""
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import shutil
+import signal
+import subprocess
+import sys
+import threading
+import webbrowser
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'apps/codex'))
+from icwb.host import AiRoutes
+from icwb.service import Service
+from remote_node import Server, Handler, Node, node_config, node_identity
+from browser_login import LocalLogin
+
+PUBLIC_URL = 'https://joshuazeng713.github.io/CircuitGit/'
+
+
+def configuration(state):
+    state.mkdir(parents=True, exist_ok=True, mode=0o700)
+    config = state / 'workbench.local.json'
+    if config.exists():
+        return json.loads(config.read_text())
+    if not shutil.which('git'):
+        raise RuntimeError('需要 Git。请先安装 Git 后重新打开连接助手。')
+    seed = ROOT
+    if not (ROOT / '.git').exists():
+        # GitHub ZIP downloads have no repository metadata. Initialize only the
+        # bundled public example in private helper state, never the extracted app.
+        seed = state / 'example-seed'
+        if not seed.exists():
+            seed.mkdir()
+            shutil.copytree(ROOT / 'projects', seed / 'projects')
+        if not (seed / '.git').exists():
+            subprocess.run(['git', 'init', '--initial-branch=main', str(seed)], check=True, stdout=subprocess.DEVNULL)
+        has_commit = subprocess.run(['git', '-C', str(seed), 'rev-parse', '--verify', 'HEAD'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+        if not has_commit:
+            subprocess.run(['git', '-C', str(seed), 'add', 'projects'], check=True)
+            subprocess.run(['git', '-C', str(seed), '-c', 'user.name=CircuitGit', '-c', 'user.email=local@example.invalid', 'commit', '-m', 'Initialize bundled public RC example'], check=True, stdout=subprocess.DEVNULL)
+    site = state / 'site.local.json'
+    if not site.exists():
+        shutil.copyfile(ROOT / 'config/site.example.json', site)
+    value = json.loads((ROOT / 'config/workbench.example.json').read_text())
+    value.update(seed_repo=str(seed), runtime_root=str(state / 'engineering'), runs_root=str(state / 'engineering/runs'),
+                 site_file=str(site), projects=json.loads((ROOT / 'config/workbench.projects.json').read_text()), gh_bin=shutil.which('gh') or 'gh')
+    fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, 'w') as file:
+        json.dump(value, file, indent=2)
+    return value
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--state-dir', type=Path, default=ROOT / '.local/browser-helper')
+    p.add_argument('--gateway-url', help='Optional existing loopback engineering gateway')
+    p.add_argument('--no-browser', action='store_true')
+    p.add_argument('--allow-origin', action='append', default=[])
+    args = p.parse_args()
+    state = args.state_dir.expanduser().resolve();state.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with (state / 'helper.lock').open('a') as lock:
+        try:fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:raise RuntimeError('连接助手已经运行，请回到网页点击“连接本机 Codex”。')
+        # Reserve the known pairing port first. Never replace another process.
+        try:browser = Server(('127.0.0.1', 8767), Handler)
+        except OSError:raise RuntimeError('本机连接端口已被占用。请检查已有连接助手，未停止任何现有程序。')
+        gateway = routes = node = remote_lock = None
+        try:
+            gateway_url = args.gateway_url
+            if not gateway_url:
+                cfg = configuration(state)
+                import server as engineering
+                app = engineering.Application(cfg, ROOT / 'apps/web')
+                gateway = engineering.Server(('127.0.0.1', 0), engineering.Handler);gateway.app = app
+                thread = threading.Thread(target=gateway.serve_forever, daemon=True);thread.start()
+                gateway_url = 'http://127.0.0.1:' + str(gateway.server_port)
+            config = node_config(gateway_url=gateway_url, state_dir=state / 'ai')
+            token, identity, _ = node_identity(Path(config['state_dir']))
+            remote_lock = (Path(config['state_dir']) / 'remote-node.lock').open('a')
+            try:fcntl.flock(remote_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:raise RuntimeError('已有服务使用此 AI 会话目录，未启动重复实例。')
+            routes = AiRoutes(Service(config))
+            node = Node(routes, token, ['https://joshuazeng713.github.io', *args.allow_origin], identity, 'http://127.0.0.1:8767', '本机 Codex')
+            node.login = LocalLogin(config);browser.node = node
+            print('CircuitGit 连接助手已启动。请保持此窗口运行，在网页点击“连接本机 Codex”并确认授权。', flush=True)
+            print('不会自动登录、发送模型消息或运行仿真。关闭此窗口可停止助手。', flush=True)
+            if not args.no_browser:webbrowser.open(PUBLIC_URL)
+            def stop(signum, frame):raise KeyboardInterrupt
+            signal.signal(signal.SIGTERM, stop)
+            try:browser.serve_forever()
+            except KeyboardInterrupt:pass
+        finally:
+            browser.server_close()
+            if node and node.login:node.login.close()
+            if routes:routes.close()
+            if gateway:
+                gateway.shutdown();gateway.server_close();gateway.app.pool.shutdown(wait=False)
+            if remote_lock:remote_lock.close()
+
+
+if __name__ == '__main__':
+    try:main()
+    except Exception as error:
+        print('连接助手未启动：' + str(error), file=sys.stderr)
+        sys.exit(1)

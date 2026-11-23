@@ -8,7 +8,7 @@ Drag tabs to rearrange panels. Use ↗ to float a panel and ↙ to return it. Th
 
 Simulation controls update the RC analytical reference or export `TRAN.json` and `circuit.scs`. The reference is the closed-form first-order response over piecewise-linear input segments, sampled every 5 ps. It is not a Cadence execution, a PSF export, or evidence of a remote job.
 
-The AI panel can connect to your explicitly authorized local or self-hosted Codex node. Enter its URL and node access code, authorize access, select a real node project, and open chat. No node requests run before you connect. Follow [one-time browser-node setup](remote-node.md); the node can stay on your own server so daily use requires only a browser. The sample canvas remains separate from the AI's real project.
+The AI panel's default **连接本机 Codex** button opens a local authorization window. Start the local helper once (macOS: double-click `Start CircuitGit.command` with Python 3.10+, Git and Codex installed), approve the connection, then select an engineering project. Codex's official login page is offered if sign-in is required. No account requests run before confirmation. Server URL/code entry remains under Advanced; follow [connection setup](remote-node.md). The sample canvas remains separate from the AI's real project.
 
 ## Local application
 

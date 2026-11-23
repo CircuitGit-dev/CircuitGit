@@ -1,71 +1,153 @@
 import {createNodeClient} from './client.js';
+import {pairLocal} from './pair.js';
 import {mount as mountAI} from '../studio/ai/index.js';
 
-const DOCS='https://github.com/joshuazeng713/CircuitGit/blob/main/docs/remote-node.md';
+const REPO='https://github.com/joshuazeng713/CircuitGit';
+const DOCS=REPO+'/blob/main/docs/remote-node.md';
 
-/** The remote chat owns remote context. The demo canvas is never promoted into an engineering identity. */
+/** Remote chat owns its context; the RC canvas never supplies an engineering identity. */
 export function mountRemoteNode(host) {
-  const parent=host.slots.ai,doc=parent.element.ownerDocument;
+  const parent=host.slots.ai,doc=parent.element.ownerDocument,win=doc.defaultView;
   const css=doc.createElement('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url);doc.head.append(css);
-  const root=doc.createElement('section');root.className='cg-remote';root.setAttribute('aria-label','连接 AI 运行节点');
-  root.innerHTML=`<form class="cg-node-connect"><strong>连接你的 Codex 运行节点</strong><p>网页可连接本机或自托管服务器，使用节点上已登录的 Codex。</p>
-    <label>节点地址<input name="endpoint" type="url" placeholder="https://your-node.example" required autocomplete="off"></label>
-    <label>节点访问码<input name="accessCode" type="password" placeholder="由节点生成，不是 OpenAI API Key" required autocomplete="off" spellcheck="false"></label>
-    <label class="cg-consent"><input name="consent" type="checkbox" required>允许此网页访问该节点的项目与 AI 会话</label>
-    <button type="submit">授权并连接</button><a href="${DOCS}" target="_blank" rel="noopener noreferrer">首次配置节点 ↗</a>
-    <small>面向所有访客的托管订阅登录尚未开放。</small></form>
-    <div class="cg-node-connected" hidden><div class="cg-node-identity"><strong></strong><button type="button" data-action="disconnect">断开</button></div>
-    <div class="cg-node-project"><select aria-label="运行节点项目"><option value="">选择节点上的项目</option></select><button type="button" data-action="open-project">打开对话</button></div>
-    <p class="cg-context-label">选择实际项目后开始对话。当前画布仍是 RC 演示。</p></div>
-    <p class="cg-node-status" role="status" aria-live="polite"></p><div class="cg-node-chat"></div>`;
+  const root=doc.createElement('section');root.className='cg-remote';root.setAttribute('aria-label','连接 Codex');
+  root.innerHTML=`<div class="cg-node-welcome">
+    <strong>使用你的 Codex</strong><p>在本机确认授权后，自动检查 Codex 登录状态。无需填写地址或访问码。</p>
+    <button class="cg-primary" type="button" data-action="local">连接本机 Codex</button>
+    <details class="cg-node-setup"><summary>首次使用？启动连接助手</summary>
+      <p>网页需要一个本机连接助手，才能与已安装的 Codex 通信。首次下载后双击 <b>Start CircuitGit.command</b>；保持助手运行，然后回来点击连接。</p>
+      <a href="${REPO}/archive/refs/heads/main.zip" target="_blank" rel="noopener noreferrer">下载项目包（含 macOS 双击启动器） ↗</a>
+      <small>启动器需要 Python 3.10+ 和 Git；不会自动安装软件或更改 Codex 设置。仅打开 Codex 应用不会启动连接助手。</small>
+      <a href="${DOCS}" target="_blank" rel="noopener noreferrer">其他系统与安装说明 ↗</a>
+    </details>
+    <details class="cg-node-advanced"><summary>高级：连接自己的服务器</summary>
+      <form class="cg-node-connect">
+        <label>节点地址<input name="endpoint" type="url" placeholder="https://your-node.example" required autocomplete="off"></label>
+        <label>节点访问码<input name="accessCode" type="password" placeholder="服务器生成的访问码" required autocomplete="off" spellcheck="false"></label>
+        <label class="cg-consent"><input name="consent" type="checkbox" required>允许此网页访问该服务器的项目与 AI 会话</label>
+        <button type="submit">授权并连接</button>
+      </form>
+    </details>
+    <small>本机未登录时可继续前往官方登录页。无需本机助手的纯云端订阅登录尚未接入。</small>
+  </div>
+  <div class="cg-node-connected" hidden>
+    <div class="cg-node-identity"><strong></strong><button type="button" data-action="disconnect">断开</button></div>
+    <div class="cg-node-account" hidden><span></span><button type="button" data-action="login" hidden>在官方页面登录 ChatGPT</button><button type="button" data-action="account-refresh">重新检查</button></div>
+    <div class="cg-node-project"><select aria-label="运行节点项目"><option value="">选择工程</option></select><button type="button" data-action="open-project">打开对话</button></div>
+    <p class="cg-context-label">AI 将使用所选工程。当前画布仍是 RC 演示。</p>
+  </div>
+  <p class="cg-node-status" role="status" aria-live="polite"></p><div class="cg-node-chat"></div>`;
   parent.element.replaceChildren(root);
-  const $=s=>root.querySelector(s),form=$('form'),connected=$('.cg-node-connected'),status=$('.cg-node-status'),chat=$('.cg-node-chat'),projects=$('select');
-  let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false;const listeners=new Set();
+  const $=s=>root.querySelector(s),welcome=$('.cg-node-welcome'),form=$('form'),connected=$('.cg-node-connected'),status=$('.cg-node-status'),chat=$('.cg-node-chat'),projects=$('select');
+  const localButton=$('[data-action=local]'),openButton=$('[data-action=open-project]'),loginButton=$('[data-action=login]');
+  let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true;
+  const listeners=new Set();
   const contextAdapter={getContext:()=>context&&structuredClone(context),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
-    async readSelection(){throw Error('网页示例的原理图选择未绑定到远程工程。请让 AI 从当前节点读取工程源码。');}};
+    async readSelection(){throw Error('示例画布未绑定到本机工程，请让 AI 读取当前工程源码。');}};
   function message(text,error=false){status.textContent=text;status.dataset.error=String(error);}
-  function drop(){++epoch;client?.close();client=null;ai?.destroy();ai=null;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
-  function disconnect(){drop();busy=false;form.hidden=false;form.querySelector('button').disabled=false;connected.hidden=true;projects.disabled=false;projects.title='';$('[data-action=open-project]').disabled=false;$('[data-action=open-project]').textContent='打开对话';projects.replaceChildren(new Option('选择节点上的项目',''));form.elements.accessCode.value='';message('已断开。失去心跳的 AI 回合会由节点暂停；已提交的仿真不会因此取消。未自动重发或批准。');}
+  function setBusy(value){busy=value;localButton.disabled=value;form.querySelector('button').disabled=value;openButton.disabled=value||!!context||!accountReady;}
+  function drop(){++epoch;pairing?.cancel();pairing=null;clearTimeout(loginTimer);client?.close();client=null;ai?.destroy();ai=null;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
+  function disconnect(){
+    drop();setBusy(false);welcome.hidden=false;connected.hidden=true;$('.cg-node-account').hidden=true;$('.cg-node-project').hidden=false;
+    projects.disabled=false;projects.title='';openButton.disabled=false;openButton.textContent='打开对话';
+    projects.replaceChildren(new Option('选择工程',''));form.elements.accessCode.value='';
+    message('已断开。失去心跳的 AI 回合会由助手暂停；已提交的仿真不会因此取消。未自动重发或批准。');
+  }
   $('[data-action=disconnect]').onclick=disconnect;
+
+  async function refreshAccount(generation=epoch) {
+    const result=await client.request('/ai/auth/status');if(generation!==epoch||destroyed)return null;
+    const account=result.account||{};const signedOut=account.login_status==='signed_out';
+    accountReady=!signedOut;openButton.disabled=busy||!!context||!accountReady;
+    loginButton.hidden=!result.can_login;loginButton.disabled=result.login_state==='pending';
+    const label=account.account_type==='chatgpt'||account.account_type==='chatgptAuthTokens'
+      ? 'Codex 已登录 · '+(account.plan_type==='unknown'?'订阅类型未报告':account.plan_type)
+      : signedOut?'Codex 尚未登录'
+      : account.requires_openai_auth===false?'使用本机已配置的模型服务 · 订阅信息未报告'
+      : account.login_status==='signed_in'?'使用本机已有登录':'登录状态未报告，可在 Codex 应用中核对';
+    $('.cg-node-account span').textContent=label;
+    return result;
+  }
+
+  async function connect(url,code,generation,local=false){
+    client=createNodeClient({url,accessCode:code,onUnauthorized:()=>{
+      if(generation!==epoch||destroyed)return;disconnect();message('连接授权已失效，请重新授权。未自动重发操作。',true);
+    }});
+    const info=await client.request('/node/info');if(generation!==epoch||destroyed)return;
+    if(info?.schema!=='circuitgit.remote-node.v1'||info.single_owner!==true||info.auth!=='bearer'||!info.capabilities?.chat)throw Error('未找到兼容的 CircuitGit 连接服务。');
+    const catalog=await client.request('/ai/catalog');if(generation!==epoch||destroyed)return;
+    if(!Array.isArray(catalog.projects)||!catalog.projects.length)throw Error('助手尚未配置可用工程。');
+    const seen=new Set();projects.replaceChildren(new Option('选择工程',''));
+    for(const p of catalog.projects){if(typeof p.id!=='string'||!p.id||seen.has(p.id))throw Error('返回的工程列表无效。');seen.add(p.id);projects.add(new Option(p.name||p.id,p.id));}
+    if(catalog.projects.length===1)projects.value=catalog.projects[0].id;
+    $('.cg-node-identity strong').textContent=local?'本机 Codex':info.name||'CircuitGit server';
+    form.elements.accessCode.value='';welcome.hidden=true;connected.hidden=false;accountReady=true;
+    if(local&&info.capabilities.local_login){
+      $('.cg-node-account').hidden=false;message('已授权，正在检查本机 Codex 登录状态…');
+      try{await refreshAccount(generation);}catch(error){if(generation===epoch&&!destroyed){accountReady=false;openButton.disabled=true;message(error.message,true);return;}}
+      if(generation!==epoch||destroyed)return;
+    }
+    message(accountReady?'已连接。选择工程后打开对话。':'请在官方页面完成登录，然后继续。');
+  }
+
+  localButton.onclick=async()=>{
+    if(busy||destroyed)return;drop();const generation=epoch;setBusy(true);message('正在连接本机助手…');
+    try{
+      pairing=pairLocal({win,onReady:()=>message('请在弹出的本机窗口点击“允许并连接”。')});
+      const receipt=await pairing.result;pairing=null;if(generation!==epoch||destroyed)return;
+      await connect(receipt.url,receipt.accessCode,generation,true);
+    }catch(error){if(generation===epoch&&!destroyed){disconnect();$('.cg-node-setup').open=true;message(error.message,true);}}
+    finally{if(generation===epoch&&!destroyed)setBusy(false);}
+  };
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy||destroyed||!form.reportValidity())return;
-    drop();const generation=epoch;busy=true;form.querySelector('button').disabled=true;message('正在验证节点…');
-    try {
-      client=createNodeClient({url:form.elements.endpoint.value.trim(),accessCode:form.elements.accessCode.value.trim(),onUnauthorized:()=>{
-        if(generation!==epoch||destroyed)return;
-        disconnect();message('节点授权已失效，连接已暂停。请核对访问码和来源配置后重新连接；未自动重发操作。',true);
-      }});
-      const info=await client.request('/node/info');if(generation!==epoch||destroyed)return;
-      if(info?.schema!=='circuitgit.remote-node.v1'||info.single_owner!==true||info.auth!=='bearer'||!info.capabilities?.chat)throw Error('该地址不是兼容的 CircuitGit 单用户运行节点。');
-      const catalog=await client.request('/ai/catalog');if(generation!==epoch||destroyed)return;
-      if(!Array.isArray(catalog.projects)||!catalog.projects.length)throw Error('该节点没有可访问的工程，请先配置工程网关。');
-      const seen=new Set();projects.replaceChildren(new Option('选择节点上的项目',''));
-      for(const p of catalog.projects){if(typeof p.id!=='string'||!p.id||seen.has(p.id))throw Error('节点返回的项目列表无效。');seen.add(p.id);projects.add(new Option(p.name||p.id,p.id));}
-      $('.cg-node-identity strong').textContent=info.name||'CircuitGit node';$('.cg-node-identity strong').title=client.base;
-      form.elements.accessCode.value='';form.hidden=true;connected.hidden=false;message('节点已授权连接。选择工程后可查看模型与登录状态；尚未调用模型。');
-    }catch(error){if(generation===epoch&&!destroyed){disconnect();message(error.message,true);}}
-    finally{if(!destroyed&&generation===epoch){busy=false;form.querySelector('button').disabled=false;}}
+    drop();const generation=epoch;setBusy(true);message('正在连接服务器…');
+    try{await connect(form.elements.endpoint.value.trim(),form.elements.accessCode.value.trim(),generation);}
+    catch(error){if(generation===epoch&&!destroyed){disconnect();message(error.message,true);}}
+    finally{if(generation===epoch&&!destroyed)setBusy(false);}
   });
-  $('[data-action=open-project]').onclick=async()=>{
-    if(!client||!projects.value||busy||context)return;
-    const state=ai?.getState();if(state&&(['starting','running'].includes(state.phase)||state.pendingApprovalCount||state.suspendedApprovalCount)){message('当前对话仍在运行或等待审批；请先处理后再切换项目。',true);return;}
-    const generation=epoch,id=projects.value;busy=true;$('[data-action=open-project]').disabled=true;message('正在读取工程版本和源码身份…');
-    try {
+  $('[data-action=account-refresh]').onclick=()=>refreshAccount().catch(e=>message(e.message,true));
+  loginButton.onclick=async()=>{
+    if(busy||destroyed||!client)return;
+    const popup=win.open('about:blank','_blank');
+    if(!popup){message('请允许弹出官方登录窗口后重试。',true);return;}
+    popup.opener=null;const generation=epoch;loginButton.disabled=true;
+    try{
+      const result=await client.request('/ai/auth/login',{method:'POST',body:{}});if(generation!==epoch||destroyed){popup.close();return;}
+      const url=new URL(result.auth_url);
+      if(url.protocol!=='https:'||!['auth.openai.com','chatgpt.com'].includes(url.hostname)||url.username||url.password||url.port)throw Error('未返回可验证的官方登录地址。');
+      popup.location.replace(url.href);message('请在官方页面完成登录；账号凭据保留在本机。');
+      const deadline=Date.now()+180000;
+      async function poll(){
+        if(generation!==epoch||destroyed)return;
+        try{
+          const state=await refreshAccount(generation);if(!state)return;
+          if(state.login_id!==result.login_id)throw Error('登录回执不匹配，请在 Codex 应用中核对。');
+          if(state.login_state==='complete'){message('官方登录已完成，可以打开工程对话。');return;}
+          if(state.login_state==='failed')throw Error('官方登录未完成，请检查原登录页面。');
+          if(Date.now()>deadline)throw Error('仍未收到登录完成回执。可完成原登录页后点击“重新检查”，不会自动发起新登录。');
+          loginTimer=setTimeout(poll,1500);
+        }catch(error){if(generation===epoch&&!destroyed)message(error.message,true);}
+      }
+      loginTimer=setTimeout(poll,1500);
+    }catch(error){popup.close();if(generation===epoch&&!destroyed)message(error.message,true);}
+  };
+
+  openButton.onclick=async()=>{
+    if(!client||!projects.value||busy||context||!accountReady)return;
+    const generation=epoch,id=projects.value;setBusy(true);openButton.disabled=true;message('正在读取工程源码版本…');
+    try{
       const next=await client.request('/ai/context?project_id='+encodeURIComponent(id));if(generation!==epoch||destroyed)return;
-      if(next?.version!==1||next.project?.id!==id||!next.file?.path||!next.project.sourceCommit||!/^[a-f0-9]{64}$/.test(next.file.persistedSha256||'')||next.file.currentTextSha256!==next.file.persistedSha256||next.file.dirty)throw Error('节点未返回可用的已保存工程身份。');
+      if(next?.version!==1||next.project?.id!==id||!next.file?.path||!next.project.sourceCommit||!/^[a-f0-9]{64}$/.test(next.file.persistedSha256||'')||next.file.currentTextSha256!==next.file.persistedSha256||next.file.dirty)throw Error('未返回有效的已保存工程身份。');
       context={...next,revision:(context?.revision||0)+1,mode:'live'};
       for(const listener of listeners)listener(structuredClone(context));
-      if(!ai){
-        const slot={...parent,element:chat,setVisible:value=>parent.setVisible(value),isVisible:()=>parent.isVisible(),setBadge:value=>parent.setBadge(value),toggle:()=>parent.toggle()};
-        ai=mountAI({...host,context:contextAdapter,slots:{...host.slots,ai:slot},gateway:{request:(path,options)=>client?client.request(path,options):Promise.reject(Error('节点已断开。'))}});
-      }
+      const slot={...parent,element:chat,setVisible:value=>parent.setVisible(value),isVisible:()=>parent.isVisible(),setBadge:value=>parent.setBadge(value),toggle:()=>parent.toggle()};
+      ai=mountAI({...host,context:contextAdapter,slots:{...host.slots,ai:slot},gateway:{request:(path,options)=>client?client.request(path,options):Promise.reject(Error('连接已断开。'))}});
       $('.cg-context-label').textContent=`AI 工程：${id} · ${next.project.sourceCommit.slice(0,8)}。当前原理图与波形仍是公开示例。`;
-      projects.disabled=true;$('[data-action=open-project]').textContent='工程已绑定';
-      projects.title='如需更换工程或刷新源码版本，请先断开再连接。';
-      message('对话使用节点上的 Codex 登录与模型设置；修改和仿真保留人工审批。');
-    }catch(error){if(generation===epoch&&!destroyed){context=null;for(const listener of listeners)listener(null);message(error.message,true);}}
-    finally{if(generation===epoch&&!destroyed){busy=false;$('[data-action=open-project]').disabled=!!context;}}
+      projects.disabled=true;openButton.textContent='工程已绑定';projects.title='更换工程或刷新源码版本，请先断开再连接。';
+      $('.cg-node-project').hidden=true;message('');
+    }catch(error){if(generation===epoch&&!destroyed){context=null;message(error.message,true);}}
+    finally{if(generation===epoch&&!destroyed){setBusy(false);openButton.disabled=!!context||!accountReady;}}
   };
-  const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 AI 运行节点',run:()=>{parent.setVisible(true);form.elements.endpoint.focus();}});
+  const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 Codex',run:()=>{parent.setVisible(true);(connected.hidden?localButton:openButton).focus();}});
   return {destroy(){if(destroyed)return;destroyed=true;drop();off?.();css.remove();root.remove();}};
 }

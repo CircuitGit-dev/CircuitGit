@@ -16,7 +16,9 @@ The GitHub Pages demo runs entirely in your browser. Drag panel tabs, float and 
 
 The demo waveforms are explicitly labeled **analytical RC references**, calculated in the browser. Opening the website does not contact your local machine or start an AI model or Spectre job.
 
-For real AI conversations, use the AI panel to explicitly connect to **your own Codex node** with its URL and node access code, then select a project. The node can run on your computer or a self-hosted HTTPS server. It uses the node's existing Codex login and model configuration; the public frontend stores no access code. After one-time node setup, daily chat works from the lightweight website. See [browser-node setup](docs/remote-node.md).
+For real AI conversations, choose **连接本机 Codex** in the AI panel and approve the local connection window. The connector checks Codex's existing login and reports the account/plan only when Codex supplies it. If Codex requires sign-in, a separate button opens the official login URL returned by Codex. No address or access code is needed in this flow.
+
+Start the local helper once per computer session: on macOS, double-click **Start CircuitGit.command** in the downloaded repository (requires Python 3.10+, Git and Codex). The helper stays on your computer while you use the lightweight website. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md).
 
 The RC canvas remains a demo while AI reads the selected node project. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Real circuit changes and simulations retain the existing human-review workflow.
 

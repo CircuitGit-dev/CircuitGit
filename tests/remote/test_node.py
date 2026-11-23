@@ -1,12 +1,14 @@
 """Real HTTP boundary tests with a synthetic AI route owner; no model invocation."""
 import importlib.util
 import json
+import re
 from pathlib import Path
 import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('remote_node', ROOT / 'tools/workbench/remote_node.py')
@@ -29,16 +31,16 @@ class Tests(unittest.TestCase):
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True);self.thread.start()
     def tearDown(self):
         self.server.shutdown();self.server.server_close();self.thread.join()
-    def call(self, path='/node/info', method='GET', body=None, headers=None):
+    def call(self, path='/node/info', method='GET', body=None, headers=None, prefix='/prefix'):
         h = {'Origin': ORIGIN, 'Authorization': 'Bearer ' + TOKEN}
         if body is not None: h['Content-Type'] = 'application/json'
         h.update(headers or {})
-        request = urllib.request.Request(self.base + '/prefix' + path, method=method, headers=h,
+        request = urllib.request.Request(self.base + prefix + path, method=method, headers=h,
                                         data=None if body is None else json.dumps(body).encode())
         try: response = urllib.request.urlopen(request, timeout=3)
         except urllib.error.HTTPError as e: response = e
         with response:
-            data = response.read();return response.status, dict(response.headers), json.loads(data) if data else None
+            data = response.read();return response.status, dict(response.headers), (data.decode() if response.headers.get_content_type()=='text/html' else json.loads(data)) if data else None
     def test_metadata_requires_origin_host_and_bearer(self):
         status, headers, data = self.call()
         self.assertEqual(status, 200);self.assertEqual(data['data']['schema'], 'circuitgit.remote-node.v1')
@@ -85,5 +87,28 @@ class Tests(unittest.TestCase):
             self.assertNotIn('development_workspace',config)
             self.assertEqual(json.loads(path.read_text()),existing)
             self.assertEqual(node.node_config(path,state_dir=Path(directory)/'isolated')['state_dir'],str((Path(directory)/'isolated').resolve()))
+    def test_local_confirmation_has_csrf_framing_origin_and_replay_guards(self):
+        self.server.node=node.Node(self.routes,TOKEN,[ORIGIN],'local-test',self.base)
+        status,headers,html=self.call('/connect?origin='+quote(ORIGIN,safe='')+'&state='+'a'*32,prefix='',headers={'Origin':''})
+        self.assertEqual(status,200);self.assertEqual(headers['X-Frame-Options'],'DENY')
+        self.assertIn("frame-ancestors 'none'",headers['Content-Security-Policy'])
+        self.assertNotIn('Access-Control-Allow-Origin',headers);self.assertNotIn(TOKEN,html)
+        config=json.loads(re.search(r'const c=(\{[^\n]+\});',html).group(1))
+        body={'request_id':config['requestId'],'csrf':config['csrf'],'allow':True}
+        self.assertEqual(self.call('/connect/confirm','POST',body,prefix='')[0],403)
+        self.assertEqual(self.call('/connect/confirm','POST',{**body,'csrf':'wrong'},prefix='',headers={'Origin':self.base})[0],403)
+        status,_,result=self.call('/connect/confirm','POST',body,prefix='',headers={'Origin':self.base})
+        self.assertEqual(status,200);key=result['data']['accessCode'];self.assertNotEqual(key,TOKEN)
+        self.assertEqual(self.call('/node/info',prefix='',headers={'Authorization':'Bearer '+key})[0],200)
+        self.assertEqual(self.call('/node/info',prefix='',headers={'Authorization':'Bearer '+key,'Origin':'https://evil.example'})[0],403)
+        self.assertEqual(self.call('/connect/confirm','POST',body,prefix='',headers={'Origin':self.base})[0],403)
+        self.assertEqual(self.routes.calls,[])
+    def test_remote_owner_code_does_not_authorize_local_account_login(self):
+        self.server.node=node.Node(self.routes,TOKEN,[ORIGIN],'local-test',self.base)
+        self.assertEqual(self.call('/api/ai/auth/status',prefix='')[0],403)
+        self.assertEqual(self.call('/api/ai/auth/login','POST',{},prefix='')[0],403)
+        self.server.node=node.Node(self.routes,TOKEN,[ORIGIN],'remote-test','https://node.example')
+        self.assertEqual(self.call('/connect?origin='+quote(ORIGIN,safe='')+'&state='+'a'*32,prefix='')[0],403)
+        self.assertEqual(self.routes.calls,[])
 
 if __name__ == '__main__':unittest.main()

@@ -28,6 +28,8 @@ jobs:
           python -B tools/dev/check_structure.py
           node --test tests/demo/*.test.mjs tests/remote/*.test.mjs
           python -B tests/remote/test_node.py
+          python -B tests/remote/test_pairing.py
+          python -B tests/remote/test_helper.py
       - name: Build the static workbench
         run: python -B tools/dev/build_pages.py
       - uses: actions/configure-pages@v5

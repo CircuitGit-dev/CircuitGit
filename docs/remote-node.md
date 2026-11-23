@@ -1,10 +1,30 @@
-# Use the online workbench with your own Codex node
+# Connect the online workbench to Codex
 
-在线使用：在 AI 面板填写自己的节点地址与访问码，勾选授权，选择实际工程，然后打开对话。节点首次配置一次即可；部署到自己的服务器后，日常使用不需要本地工作台。访问码不是 OpenAI API Key，网页不会自动读取订阅或导入桌面对话。原理图与波形暂时仍是 RC 示例，AI 操作的工程以节点返回的身份为准。
+普通用户：启动本机连接助手 → 点击网页的 **连接本机 Codex** → 在本机弹窗确认授权 → 打开工程对话。无需理解地址和访问码。若尚未登录，由 Codex 返回官方登录页面；网页不接收账号密码或 OpenAI token。当前画布仍是 RC 示例，AI 操作的工程以助手返回的身份为准。
 
 The [CircuitGit website](https://joshuazeng713.github.io/CircuitGit/) can connect to a **single-owner node** on your computer or your own server. The website keeps the lightweight UI; the node runs the existing Codex app-server adapter and accesses its configured circuit gateway. This is not a shared public AI hosting service.
 
-## One-time node setup
+## Recommended: local connection without an address or code
+
+1. Install Codex, Python 3.10+ and Git. Download and unpack CircuitGit, or use an existing clone.
+2. On macOS, double-click **Start CircuitGit.command** in the repository root. This opens a launcher window; keep it running. If macOS requests permission to open the downloaded script, review it and use the system's normal Open action. This is a source launcher, not a signed standalone installer, and it does not install dependencies automatically.
+3. In the website AI panel, click **连接本机 Codex**. In the local popup, check the requesting website and click **允许并连接**.
+4. The helper checks Codex through `account/read`. Existing login/provider settings stay in place. When Codex explicitly reports that sign-in is required, click **在官方页面登录 ChatGPT**. The URL comes from `account/login/start`; Codex owns the local callback. Wait for its correlated completion receipt.
+5. Select the actual engineering project and open chat. One bundled RC engineering example is prepared by default, independently of the sample canvas.
+
+On Linux or from a developer terminal, the same helper can be started with:
+
+```bash
+python3 -B tools/workbench/connect_browser.py
+```
+
+Windows is not supported by this source launcher yet. The current helper uses Unix file locking. Merely opening the Codex desktop app does not start CircuitGit's helper; without it, the website cannot detect Codex. There is no port scan or credential-file read. No model or account check is started before the local authorization step.
+
+The helper uses the fixed loopback pairing address internally and starts its own engineering gateway on an OS-assigned loopback port. It leaves existing gateways untouched. Private state is under `.local/browser-helper/`; a ZIP download gets a separate Git repository for its bundled RC example inside that directory. Neither source publication nor simulation is automatic. Developers can supply `--gateway-url http://127.0.0.1:8766` to use a known existing gateway without starting another one over its runtime.
+
+Pairing expires after three minutes, requires a one-time confirmation, and produces an eight-hour browser credential bound to the exact authorized origin. The owner key is never returned to the website. The confirmation page rejects framing; messages must match the opened window, origin and request state. Browser credentials remain in page memory. Stopping the helper revokes its in-memory pairings. Reloading requires a new confirmation.
+
+## Advanced: manual node setup
 
 On a computer or server you control, clone CircuitGit and prepare Python 3.10+, Git, Codex and your engineering configuration. Sign into Codex there using a supported authentication method. An existing login or provider configuration stays on that node; do not paste OpenAI credentials into the website.
 
@@ -29,7 +49,7 @@ For a previously configured AI client, use `--config /absolute/client.local.json
 
 ## Connect in the browser
 
-1. Open the online demo and find **连接你的 Codex 运行节点** in the AI panel.
+1. Open **高级：连接自己的服务器** in the AI panel.
 2. Enter the node URL and its access code. The access code is a CircuitGit credential, not an OpenAI API Key.
 3. Authorize this browser's access and click **授权并连接**.
 4. Select a project returned by the node and click **打开对话**.
@@ -69,16 +89,20 @@ To revoke browser access, stop this node and rotate its owner-only access code b
 
 ## Subscription access and scope
 
-This release connects to the **operator's already configured Codex runtime**. It does not import desktop windows or all account conversations, implement public website OAuth, or grant model access that the node does not already have. Account and subscription metadata come from Codex; a readable model list is not proof that inference will succeed. A missing login or incompatible approval policy stops the operation.
+This release connects to the **operator's Codex runtime**, with an explicit official app-server browser login option for locally paired clients. It does not import desktop windows or all account conversations, implement public website OAuth, or grant model access independently of Codex. Account and subscription metadata come from Codex; custom providers may not report a subscription, and a readable model list is not proof of inference access. No login/provider is silently replaced. Remote owner access codes cannot initiate the local account login flow.
 
 Official references:
 
 - [Sign in with ChatGPT: Codex app-server](https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server)
 - [Self-hosted VM authentication](https://developers.openai.com/siwc/token-sharing-open-source/self-hosted-vms)
 - [Hosted Sign in with ChatGPT availability](https://developers.openai.com/siwc)
+- [Website OAuth registration and backend requirements](https://developers.openai.com/siwc/website)
+- [Codex app-server account and browser-login protocol](https://learn.chatgpt.com/docs/app-server)
 
 Public multi-user subscription OAuth remains subject to OpenAI's hosted-integration eligibility. Do not run a shared credential pool or advertise this single-owner node as an approved hosted integration.
 
 ## Verification
 
 `npm run test:remote` checks the HTTP authorization boundary and browser transport without invoking models. `npm run build:pages` builds the public frontend. An optional end-to-end browser check uses `NODE_URL`, `NODE_KEY_FILE`, and `NODE_PROJECT` to connect to an operator-owned test node; run `npm run test:remote:browser`. It requires Playwright and Chrome. Set `NODE_SEND=1` only to explicitly request a single read-only model message in a new test conversation. `NODE_MODEL` selects an already listed model for that test only. `FRONTEND_URL` can point at the published site; otherwise the check serves the built `site/` on `http://127.0.0.1:8790`, which must be in the node's allowed origins. Tests do not grant browser local-network permission automatically.
+
+Use `NODE_PAIR=1` instead of URL/key variables to verify the default local flow. It tests cancellation before any account/project read, then confirms a real popup and checks connection. Official sign-in state/URL/correlation are tested with a fake app-server; the test suite never signs a real account out or submits account credentials.

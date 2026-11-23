@@ -105,7 +105,7 @@ export async function mountStudio() {
     }finally{$('demo-update').disabled=false;}}
   $('demo-update').onclick=()=>rebuild().catch(e=>ui.notify(e.message,{kind:'error'}));$('demo-export').onclick=()=>{try{exportConfiguration();}catch(e){ui.notify(e.message,{kind:'error'});}};$('demo-guide').onclick=showGuide;
   function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=source;dialog('RC 示例网表 · 含固定 RNL 布局',area);}
-  function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p>本页直接运行 RNL Viewer、Dockview 和共享波形组件，可拖动、关闭、浮动及放回面板。</p><p>Plot → 电压探针，点击 in 或 out；电流探针可查看 R0 端口 1。波形支持滚轮、拖动、F 适配，M 查看测量。</p><p>AI 面板可授权连接自己的本机或 HTTPS 服务器节点，使用该节点已配置的 Codex。输入节点地址与访问码、选择实际工程后即可对话。原理图与波形仍是公开 RC 示例；AI 操作的工程以节点身份为准。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">首次配置 Codex 运行节点 ↗</a></p><p>需要完整本地工程界面时，可启动自己的网关并配置授权 Cadence 环境：</p><pre>git clone ${REPO}.git
+  function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p>本页直接运行 RNL Viewer、Dockview 和共享波形组件，可拖动、关闭、浮动及放回面板。</p><p>Plot → 电压探针，点击 in 或 out；电流探针可查看 R0 端口 1。波形支持滚轮、拖动、F 适配，M 查看测量。</p><p>AI 面板点击“连接本机 Codex”，在本机助手弹窗中确认授权后即可检查登录；未登录时可继续打开官方登录页。首次需要启动项目包中的连接助手。自己的服务器可在“高级”设置中连接。原理图与波形仍是公开 RC 示例；AI 工程以助手返回的身份为准。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">首次配置 Codex 运行节点 ↗</a></p><p>需要完整本地工程界面时，可启动自己的网关并配置授权 Cadence 环境：</p><pre>git clone ${REPO}.git
 cd CircuitGit
 python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/getting-started.md" target="_blank" rel="noopener">安装与连接说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
