@@ -52,7 +52,7 @@ function renderAnswer(target, text) {
 }
 
 /** Independent mount. contextAdapter is the ONE explicit adapter shared with the waveform panel. */
-export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/api/health', onStateChange=()=>{}, postRequest=null, getRequest=null, presentation='diagnostic', sessionId='default', settingsContent=null, onNewSession=null, onConfigureDevelopment=null}) {
+export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/api/health', onStateChange=()=>{}, postRequest=null, getRequest=null, presentation='diagnostic', sessionId='default', settingsContent=null, onNewSession=null, onConfigureDevelopment=null, prepareContext=null, onToolResult=null}) {
   if (!contextAdapter?.getContext || !contextAdapter?.subscribe) throw Error('Explicit context adapter required');
   const clean = presentation === 'clean', doc = root.ownerDocument;
   root.classList.add('ic-ai'); root.dataset.presentation = presentation;
@@ -380,7 +380,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
         }
       }
     }
-    else if(e.method==='tool/result'){add('实际工具结果 · '+p.tool,p.result);progressStep('tool:'+p.call_id,'工具返回 '+p.tool,p.result,true);}
+    else if(e.method==='tool/result'){add('实际工具结果 · '+p.tool,p.result);progressStep('tool:'+p.call_id,'工具返回 '+p.tool,p.result,true);if(onToolResult)void Promise.resolve().then(()=>onToolResult(p)).catch(error=>add('仿真界面同步',error.message,'error'));}
     else if(e.method==='approval/required'){approval(p);progressLabel('等待批准');progressStep('approval:'+p.approval_id,'等待人工批准',{kind:p.kind,operation:p.request?.operation});}
     else if(e.method==='approval/resolved'){approvalStates.set(p.approval_id,'resolved');add('审批回执',p);progressStep('approval:'+p.approval_id,p.decision==='approve'?'已批准':'已拒绝',p,true);progressLabel('等待响应');}
     else if(e.method==='session/ready'){phase='running';status.textContent=`Codex · ${p.model} · ${p.approvalsReviewer}`;add('会话连接',p);}
@@ -493,7 +493,9 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
         const models=Array.isArray(fresh.models)?fresh.models:[],issue=settingsIssue(selectedModel(models,fresh.default_model));if(issue)throw Error(issue);
         if(items.length){const capability=imageModelError(models,fresh.default_model,selected);if(capability)throw Error(capability);}
       }else if(selected&&!modelChoices.has(selected))throw Error('请从当前模型目录选择模型');
-      const context=contextAdapter.getContext();if(!context||context.file?.dirty)throw Error('请先保存并审阅当前源码，再发起 AI 回合');
+      const baseContext=contextAdapter.getContext(),context=prepareContext?await prepareContext(baseContext):baseContext;
+      if(destroyed)return;
+      if(!context||context.file?.dirty)throw Error('请先保存并审阅当前源码，再发起 AI 回合');
       const images=items.map(({name,mime_type,data_url})=>({name,mime_type,data_url})),key=crypto.randomUUID();
       const body={message,context,idempotency_key:key,...(selected?{model:selected}:{}),...(nextEffort?{reasoning_effort:nextEffort}:{}),...(permissionExplicit||nextPermission!=='manual'?{permission_mode:nextPermission}:{}),...(images.length?{images}:{}),session_id:sessionId};
       checkImageRequest(body);

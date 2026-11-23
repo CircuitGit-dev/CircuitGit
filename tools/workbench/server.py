@@ -5,13 +5,35 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit,parse_qs,unquote
 import ic_sim as core
-from runner import Runner,atomic
+from runner import Runner,atomic,locked
 from workspace import Workspace,Conflict,VersionControlError
 from publisher import Publisher
 from waveforms import WaveformService, WaveformError, dispatch as waveform_dispatch
 from geometry import Geometry,InvalidGeometry
 from supervision import Supervision, execution_target
 from simulation_runtime import SimulationRuntime
+
+def default_onboarding_configuration(cfg):
+    """Add a separate intake store at public entrypoints, never to child runtimes."""
+    if 'onboarding' in cfg:return cfg
+    from onboarding_runtime import create_onboarding_config
+    runtime=Path(cfg['runtime_root']).expanduser().resolve()
+    runtime.mkdir(parents=True,exist_ok=True)
+    root=runtime/'onboarding'
+    with locked(runtime/'.onboarding-init.lock'):
+        isolated=create_onboarding_config(root,resume=(root/'onboarding-state.json').exists())
+    # Fresh launcher configuration includes an empty workspace and local-only
+    # policy. Only its isolated intake settings belong in an existing gateway.
+    return {**cfg,'onboarding':dict(isolated['onboarding'])}
+
+
+def onboarding_entry_origin(headers):
+    """Entry metadata records provenance; normal request guards still authorize."""
+    values=headers.get_all('X-IC-Onboarding-Entry',[])
+    if not values:return 'interactive_client'
+    if values!=['native_agent']:raise ValueError('Unknown onboarding entry metadata')
+    return 'native_agent'
+
 
 class Application:
     def __init__(self,cfg,web_root):
@@ -149,12 +171,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response({'api_version':'1','mode':'live','mutation_token':self.app.token,
                     'connection_id':getattr(onboarding,'connection_id',None),
                     'ai_activity':{'running_summaries':self.app.ai.commit_summary_activity()['running_count'] if self.app.ai else 0},
-                    'capabilities':{'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
+                    'capabilities':{'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'simulation_onboarding_native_entry':onboarding_enabled,'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
             if path.startswith('/api/simulation/onboarding/'):
                 if len(u.query)>4096:raise ValueError('Onboarding query exceeds its bound')
                 qs=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=8) if u.query else {}
                 if any(len(v)!=1 for v in qs.values()):raise ValueError('Onboarding query fields must be unique')
-                return self.response(self.app.onboarding.read(path[len('/api/simulation/onboarding/'):],{k:v[0] for k,v in qs.items()}))
+                return self.response(self.app.onboarding.read(path[len('/api/simulation/onboarding/'):],{k:v[0] for k,v in qs.items()},origin=onboarding_entry_origin(self.headers)))
             if path=='/api/project':
                 data=self.app.workspace.describe();data['capabilities']['viewer']=(self.app.web/'viewer-adapter/index.js').exists();return self.response(data)
             if path=='/api/simulation/runtime':
@@ -253,7 +275,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(self.app.simulation.scan(b['project_id'],self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
             if path.startswith('/api/simulation/onboarding/'):
                 if urlsplit(self.path).query:raise ValueError('Onboarding writes do not accept query parameters')
-                return self.response(self.app.onboarding.write(path[len('/api/simulation/onboarding/'):],b))
+                return self.response(self.app.onboarding.write(path[len('/api/simulation/onboarding/'):],b,origin=onboarding_entry_origin(self.headers)))
             if path=='/api/simulation/control':
                 if set(b)-{'operation','arguments','idempotency_key'} or not {'operation','arguments'}.issubset(b):raise ValueError('Invalid finite simulation command')
                 return self.response(self.app.simulation.control(b['operation'],b['arguments'],b.get('idempotency_key'),self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
@@ -287,7 +309,8 @@ class Server(ThreadingHTTPServer):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--config',required=True,type=Path);p.add_argument('--web-root',required=True,type=Path);p.add_argument('--host',default='127.0.0.1');p.add_argument('--port',type=int,default=8766);a=p.parse_args()
     if a.host!='127.0.0.1':p.error('only 127.0.0.1 is supported; public bind is forbidden')
-    app=Application(json.loads(a.config.read_text()),a.web_root);server=Server((a.host,a.port),Handler);server.app=app;atomic(Path(app.cfg['runtime_root'])/'gateway-process.json',{'pid':os.getpid(),'port':server.server_port,'host':a.host});print(json.dumps({'url':f'http://127.0.0.1:{server.server_port}','api':'v1','mode':'live','pid':os.getpid()}),flush=True)
+    cfg=default_onboarding_configuration(json.loads(a.config.read_text()))
+    app=Application(cfg,a.web_root);server=Server((a.host,a.port),Handler);server.app=app;atomic(Path(app.cfg['runtime_root'])/'gateway-process.json',{'pid':os.getpid(),'port':server.server_port,'host':a.host});print(json.dumps({'url':f'http://127.0.0.1:{server.server_port}','api':'v1','mode':'live','pid':os.getpid()}),flush=True)
     import signal
     def stop_server(signum, frame):
         raise KeyboardInterrupt
@@ -296,6 +319,6 @@ def main():
     try:server.serve_forever()
     except KeyboardInterrupt:pass
     finally:
-        server.server_close();app.simulation.close();app.pool.shutdown(wait=False)
+        server.server_close();app.onboarding.close();app.simulation.close();app.pool.shutdown(wait=False)
         if app.ai is not None:app.ai.close()
 if __name__=='__main__':main()

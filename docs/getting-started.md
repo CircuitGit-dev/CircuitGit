@@ -8,17 +8,27 @@ Drag tabs to rearrange panels. Use ↗ to float a panel and ↙ to return it. Th
 
 Simulation controls update the RC analytical reference or export `TRAN.json` and `circuit.scs`. The reference is the closed-form first-order response over piecewise-linear input segments, sampled every 5 ps. It is not a Cadence execution, a PSF export, or evidence of a remote job.
 
-The AI panel's default **连接本机 Codex** button opens a local authorization window. Start the local helper once (macOS: double-click `Start CircuitGit.command` with Python 3.10+, Git and Codex installed), approve the connection, then select an engineering project. Codex's official login page is offered if sign-in is required. No account requests run before confirmation. Server URL/code entry remains under Advanced; follow [connection setup](remote-node.md). The sample canvas remains separate from the AI's real project.
+The AI panel's default **连接本机 Codex** button opens a local authorization window. Start the local helper once (macOS: double-click `Start CircuitGit.command` with Python 3.11+, Git and Codex installed), approve the connection, then select an engineering project. On first launch the starter creates a project-only Python environment and installs the exact SpiceOwl repository/commit in `contracts/spiceowl-integration.lock.json`; this step needs network access. Subsequent launches reuse a verified environment. Codex's official login page is offered if sign-in is required. No account requests run before confirmation. Server URL/code entry remains under Advanced; follow [connection setup](remote-node.md). The sample canvas remains separate from the AI's real project.
 
 ## Local application
 
-1. Install Python 3.10+ and Git; clone the repository.
+1. Install Python 3.11+ and Git; clone the repository.
 2. Run `python3 -B tools/workbench/launch.py`.
 3. Open `http://127.0.0.1:8766/`.
 4. Edit `config/site.local.json` with your authorized site's SSH alias, run directory, setup script, Spectre executable and OCEAN executable. Examples contain placeholders, not a usable shared server.
 5. Review your project's configuration and plan, run preflight, and explicitly submit a job when ready.
 
 The startup command builds assets and uses a separate local runtime checkout. It does not submit a simulation. The RC project uses built-in components and needs no PDK. Other projects may require operator-supplied licensed models. Source and configuration commits, run identity, collection and publication are separate stages.
+
+The bootstrap first checks the project's `.venv` and its own environments under `.local/python/`. An environment is reused only when Python is at least 3.11, SpiceOwl's installed Git provenance matches the full locked commit, and the required modules load from that environment. An old or different project `.venv` is left unchanged. If installation is needed, the bootstrap creates a new environment keyed by the repository/commit and Python version. It never runs global `pip install`; a changed pin leaves the previous environment intact. The application starts with Python environment overrides and the user site disabled, so another project's `PYTHONPATH` cannot replace the verified dependency. Installation or verification failure stops startup with the failing step and its error.
+
+To prepare dependencies without starting either local server:
+
+```bash
+python3 -B tools/workbench/bootstrap_python.py --setup-only
+```
+
+This prints a JSON receipt containing the verified Python executable. Normal `tools/workbench/launch.py` and `tools/workbench/connect_browser.py` startup also perform this check automatically and switch to the verified project Python when needed. `--help` and `launch.py --write-config-only` do not install dependencies; ordinary module imports do not trigger setup. You can also invoke the bootstrap directly: it forwards ordinary application arguments unchanged, for example `--entry launch --port 8769` or `--no-browser --port 8768` for the default browser helper. Setup alone does not connect SSH, call a model, or run a simulator. No download or installation is retried automatically after a failure; rerun the starter after fixing the reported cause.
 
 The configured remote run directory must be absolute and end in `ic_on_github_runs`, as required by the existing runner's dedicated-directory guard. Choose an operator-owned directory with that final component; do not point it at a general home or project directory.
 

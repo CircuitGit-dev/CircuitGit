@@ -8,6 +8,7 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
+from unittest.mock import Mock
 from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,6 +22,64 @@ class Routes:
     def __init__(self): self.calls = []
     def get(self, path, query): self.calls.append((path, query));return {'synthetic': True}
     def post(self, path, body): self.calls.append((path, body));return {'accepted': True}
+
+
+class GatewayOnboardingTests(unittest.TestCase):
+    def setUp(self):
+        self.identity='a'*32
+        self.health={'api_version':'1','mode':'live','connection_id':self.identity,
+            'capabilities':{'simulation_onboarding':True,'simulation_onboarding_api_version':'1',
+                            'simulation_onboarding_native_entry':True}}
+        self.gateway=Mock()
+        self.gateway.request.return_value=self.health
+        self.proxy=node.GatewayOnboarding(self.gateway)
+
+    def test_probe_is_a_passive_health_read_and_chat_survives_gateway_unavailability(self):
+        owner=node.Node(Routes(),TOKEN,[ORIGIN],'original-chat-node','http://127.0.0.1:8767')
+        owner.onboarding=self.proxy
+        info=owner.info()
+        self.gateway.request.assert_called_once_with('/api/health')
+        self.assertEqual(info['connection_id'],self.identity)
+        self.assertEqual(info['node_id'],'original-chat-node')
+        self.assertTrue(info['capabilities']['chat'])
+        self.gateway.request.side_effect=node.Failure('transport_unknown','Synthetic offline gateway',75)
+        info=owner.info()
+        self.assertFalse(info['capabilities']['simulation_onboarding'])
+        self.assertTrue(info['capabilities']['chat'])
+        self.assertEqual(info['connection_id'],'original-chat-node')
+
+    def test_browser_and_native_requests_keep_the_original_identity_and_distinct_provenance(self):
+        self.proxy.refresh();self.gateway.reset_mock()
+        session={'schema':'ic.onboarding.session.v1','intake_id':'intake_'+'b'*32,'connection_id':self.identity}
+        self.gateway.request.return_value=session
+        args={'file_name':'fresh.scs','text':'synthetic source'}
+        self.assertEqual(self.proxy.write('netlist',args),session)
+        self.gateway.request.assert_called_once_with('/api/simulation/onboarding/netlist',args,
+            onboarding_entry=None,onboarding_connection_id=self.identity,route_timeout=20)
+        self.gateway.reset_mock()
+        self.assertEqual(self.proxy.read('session',{'intake_id':session['intake_id']},origin='native_agent'),session)
+        self.gateway.request.assert_called_once_with('/api/simulation/onboarding/session?intake_id='+session['intake_id'],None,
+            onboarding_entry='native_agent',onboarding_connection_id=self.identity,route_timeout=20)
+
+    def test_unknown_run_is_never_replayed_and_uses_bounded_operation_timeout(self):
+        self.proxy.refresh();self.gateway.reset_mock()
+        self.gateway.request.side_effect=node.Failure('transport_unknown','Synthetic lost response',75)
+        args={'intake_id':'intake_'+'b'*32,'plan_id':'c'*64,'revision':4}
+        with self.assertRaises(node.Failure):self.proxy.write('run',args)
+        self.gateway.request.assert_called_once_with('/api/simulation/onboarding/run',args,
+            onboarding_entry=None,onboarding_connection_id=self.identity,route_timeout=320)
+
+    def test_routes_and_returned_source_connection_are_checked_without_fallback(self):
+        self.proxy.refresh();self.gateway.reset_mock()
+        for operation in ('../../api/jobs','waveforms/../session','shell'):
+            with self.assertRaises(ValueError):self.proxy.read(operation,{})
+        self.gateway.request.assert_not_called()
+        self.gateway.request.return_value={'schema':'ic.onboarding.session.v1','connection_id':'c'*32}
+        with self.assertRaisesRegex(node.Failure,'another connection') as mismatch:
+            self.proxy.write('netlist',{'file_name':'fresh.scs','text':'source'})
+        self.assertEqual(mismatch.exception.exit_code,75)
+        self.assertEqual(self.gateway.request.call_count,1)
+
 
 class Tests(unittest.TestCase):
     def setUp(self):

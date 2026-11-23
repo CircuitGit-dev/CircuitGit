@@ -66,6 +66,22 @@ class PluginRuntime:
         try:
             path=Path(self.settings['workbench_config']);cfg=json.loads(path.read_text())
             check(isinstance(cfg,dict),'Invalid workbench configuration')
+            if cfg.get('onboarding_only') is True:
+                check(set(cfg)=={'local_only','onboarding_only','github_repo','runtime_root','projects','onboarding'}
+                      and cfg.get('local_only') is True and cfg.get('github_repo') is None and cfg.get('projects')==[],
+                      'Fresh onboarding configuration cannot contain legacy project or site settings')
+                entry=cfg.get('onboarding')
+                check(isinstance(entry,dict) and set(entry)=={'enabled','state_root','connection_id','ssh_config'}
+                      and entry.get('enabled') is True,'Invalid fresh onboarding configuration')
+                check(isinstance(entry.get('connection_id'),str) and len(entry['connection_id'])==32
+                      and all(c in '0123456789abcdef' for c in entry['connection_id']), 'Invalid onboarding connection identity')
+                for value in (cfg.get('runtime_root'),entry.get('state_root'),entry.get('ssh_config')):
+                    check(isinstance(value,str) and Path(value).is_absolute() and '..' not in Path(value).parts
+                          and all(ord(c)>=32 and ord(c)!=127 for c in value),'Fresh onboarding paths must be explicit local absolute paths')
+                runtime,store=Path(cfg['runtime_root']),Path(entry['state_root'])
+                check(runtime.name=='gateway' and store.name=='intake-store' and runtime.parent==store.parent,
+                      'Fresh onboarding storage must belong to one explicitly configured intake root')
+                return cfg
             for key in ['runtime_root','seed_repo','site_file']:
                 check(isinstance(cfg.get(key),str) and Path(cfg[key]).is_absolute(),'Missing absolute '+key)
             check(Path(cfg['site_file']).is_file(),'Configured Cadence site file is missing','setup_required',4)
@@ -76,11 +92,23 @@ class PluginRuntime:
     def probe(self,cfg):
         conn=http.client.HTTPConnection('127.0.0.1',self.port,timeout=2)
         try:
-            conn.request('GET','/api/project')
+            onboarding=cfg.get('onboarding_only') is True
+            conn.request('GET','/api/health' if onboarding else '/api/project')
             response=conn.getresponse();raw=response.read(2*1024*1024+1)
             check(response.status==200 and len(raw)<=2*1024*1024,'The configured port is occupied by an incompatible service','gateway_conflict',4)
             body=json.loads(raw);data=body.get('data')
             check(body.get('ok') is True and isinstance(data,dict),'Incompatible gateway response','gateway_conflict',4)
+            if onboarding:
+                caps=data.get('capabilities',{})
+                check(data.get('api_version')=='1' and data.get('mode')=='live'
+                      and data.get('connection_id')==cfg['onboarding']['connection_id']
+                      and isinstance(caps,dict) and caps.get('simulation_onboarding') is True
+                      and caps.get('simulation_onboarding_native_entry') is True
+                      and caps.get('simulation_onboarding_api_version')=='1',
+                      'The configured port belongs to another or incompatible onboarding connection','gateway_conflict',4)
+                # Health contains a process mutation token; never return it in
+                # lifecycle status or use an old project catalogue as intake data.
+                return {'connection_id':data['connection_id'],'projects':[],'source_commit':None}
             check(data.get('repo')==cfg['github_repo'] and data.get('branch')==cfg.get('runtime_branch','codex/gateway-session'),
                   'The running gateway belongs to a different project/branch','gateway_conflict',4)
             expected={(p['id'],p['source_path']) for p in cfg['projects']}
@@ -109,6 +137,7 @@ class PluginRuntime:
             return {**base,'state':'connected' if project else 'ready_to_start','repository':cfg['github_repo'],
               'projects':project.get('projects',[]) if project else [{'id':p['id'],'name':p.get('name',p['id'])} for p in cfg['projects']],
               'source_commit':project.get('source_commit') if project else None,
+              **({'connection_id':cfg['onboarding']['connection_id'],'onboarding_only':True} if cfg.get('onboarding_only') else {}),
               'message':'Ready in Codex' if project else 'The plugin will start the local gateway when a workbench tool is used.'}
         except Failure as error:return {**base,'state':'setup_required' if error.code=='setup_required' else 'suspended','error':error.record()}
         except (OSError,ValueError):return {**base,'state':'suspended','message':'Local startup state cannot be read; inspect it before continuing.'}
@@ -153,7 +182,7 @@ class PluginRuntime:
             # Preserve engineering/site files; the optional web-model bridge is unnecessary here.
             launch_cfg={k:v for k,v in cfg.items() if k!='ai_client_config'}
             config_path=self.control/'gateway.local.json';atom(config_path,launch_cfg)
-            web=Path(cfg['seed_repo'])/'web'
+            web=Path(__file__).resolve().parents[1]/'gateway-web' if cfg.get('onboarding_only') else Path(cfg['seed_repo'])/'web'
             if not web.is_dir():web=Path(__file__).resolve().parents[1]/'gateway-web'
             check(web.is_dir(),'Packaged web assets are unavailable','setup_required',4)
             record={'schema':'ic.plugin.gateway-process.v1','state':'starting','port':self.port,

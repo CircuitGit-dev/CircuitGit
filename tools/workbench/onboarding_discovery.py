@@ -2,6 +2,7 @@
 import hashlib
 import json
 from pathlib import PurePosixPath
+import posixpath
 import re
 import secrets
 import shlex
@@ -13,6 +14,48 @@ from spiceowl.onboarding.pdk_discovery import build_pdk_discovery_script, profil
 
 def digest(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False).encode()).hexdigest()
+
+
+MAX_AUTOMATIC_SEARCH_ROUNDS = 8
+MAX_SEARCH_SCOPE_HISTORY = 512
+
+
+def search_scope_id(probe_id, source_sha256, path):
+    """Stable within one source/probe, even when discovery IDs change."""
+    return digest({'probe_id':probe_id,'source_sha256':source_sha256,
+                   'path':posixpath.normpath(path)})
+
+
+def record_search_progress(public, rows, source_sha256, previous=None):
+    """Bound automatic narrowing without exposing paths or forbidding manual scans."""
+    previous=previous or {}
+    scopes=set(previous.get('scope_ids',[]))
+    rounds=previous.get('rounds_completed',0)+1
+    complete=previous.get('history_complete',True)
+    for row in rows:
+        roots=list(row.get('search_roots',[]))+list((row.get('result') or {}).get('roots',[]))
+        scopes.update(search_scope_id(row['probe_id'],source_sha256,path) for path in roots)
+    if len(scopes)>MAX_SEARCH_SCOPE_HISTORY:
+        complete=False
+    history={'scope_ids':sorted(scopes)[:MAX_SEARCH_SCOPE_HISTORY],
+             'rounds_completed':rounds,'history_complete':complete}
+    by_id={row['directory_id']:row for row in public['search_directories']}
+    for row in rows:
+        for choice in (row.get('result') or {}).get('directory_suggestions',[]):
+            identifier=digest({'discovery_id':public['discovery_id'],
+                               'probe_id':row['probe_id'],'path':choice['path']})
+            directory=by_id[identifier]
+            scope=search_scope_id(row['probe_id'],source_sha256,choice['path'])
+            reason=('incomplete_search_history' if not complete else
+                    'search_round_limit' if rounds>=MAX_AUTOMATIC_SEARCH_ROUNDS else
+                    'already_searched_scope' if scope in scopes else None)
+            directory.update(search_scope_id=scope,search_attempted=scope in scopes,
+                             automatic_search_allowed=reason is None,
+                             automatic_search_blocked_reason=reason)
+    public['automatic_search']={'rounds_completed':rounds,
+        'round_limit':MAX_AUTOMATIC_SEARCH_ROUNDS,'history_complete':complete,
+        'ready':any(row.get('automatic_search_allowed') is True for row in by_id.values())}
+    return history
 
 
 def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cds_lib_hint=None):

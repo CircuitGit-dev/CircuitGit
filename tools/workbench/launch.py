@@ -34,4 +34,8 @@ def main():
     command=[sys.executable,'-B',str(Path(__file__).with_name('server.py')),
              '--config',str(config),'--web-root',str(repo/'web'),'--port',str(a.port)]
     raise SystemExit(subprocess.call(command))
-if __name__=='__main__':main()
+if __name__=='__main__':
+    if any(flag in sys.argv[1:] for flag in ('--help','-h','--write-config-only')):main()
+    else:
+        from bootstrap_python import run_entrypoint
+        raise SystemExit(run_entrypoint(__file__,main))

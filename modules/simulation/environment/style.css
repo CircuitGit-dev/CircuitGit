@@ -40,3 +40,9 @@
 .ic-env-directory span{min-width:0;overflow-wrap:anywhere}
 .ic-env-directory strong,.ic-env-directory small{display:block;font-weight:400}
 .ic-env-directory small{font-size:9px;color:#687583;margin-top:3px}
+.ic-env-recommendation{min-width:0;padding:2px 0}
+.ic-env-recommendation>.ic-env-observations{grid-template-columns:minmax(66px,1fr) minmax(0,2fr);margin:6px 0 12px}
+.ic-env .ic-env-primary{padding:8px 14px;background:#315f88;border-color:#315f88;color:#fff;font-weight:600}
+.ic-env .ic-env-primary:disabled{opacity:.48;cursor:default}
+.ic-env [data-environment-detail="pdk-advanced"],.ic-env [data-environment-detail="experiment-advanced"]{margin-top:12px;border-top:1px solid #e1e7ed;padding-top:8px}
+.ic-env [data-environment-detail="pdk-advanced"]>summary,.ic-env [data-environment-detail="experiment-advanced"]>summary{font-size:11px;color:#687583}

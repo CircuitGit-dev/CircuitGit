@@ -61,8 +61,97 @@ DESCRIPTIONS['sim_runtime'] = 'Read cached server resources, saved run monitorin
 DESCRIPTIONS['sim_execute'] = 'Use an installed simulation grant: prepare(project_id,recipe_id,source_commit) freezes a registered experiment; run(project_id,plan_id) selects a host and launches once; inspect(project_id,job_id) observes and collects terminal native results with five independent verdicts. Legacy submit/collect require stable keys; run derives its stable key from plan_id. Unknown actions are never replayed or approved. No arbitrary command, path, credentials or scope argument.'
 
 
+# New-intake operations are separate from the registered-project simulation
+# grant and its manual request chain. Identifiers always come from this store.
+INTAKE = {'type':'string','pattern':'^intake_[a-f0-9]{32}$'}
+PROBE = {'type':'string','pattern':'^probe_[a-f0-9]{32}$'}
+DISCOVERY = {'type':'string','pattern':'^discovery_[a-f0-9]{32}$'}
+REVISION = {'type':'integer','minimum':1,'maximum':9007199254740991}
+PORT = {'type':'string','pattern':'^[A-Za-z_][A-Za-z0-9_]{0,95}$'}
+SSH_TARGET = {'type':'string','minLength':1,'maxLength':320,
+    'pattern':r'^(?:[A-Za-z0-9][A-Za-z0-9_.-]{0,95}|[A-Za-z_][A-Za-z0-9_.-]{0,63}@[A-Za-z0-9][A-Za-z0-9.-]{0,252})$'}
+SETUP_SOURCE = {'type':'string','pattern':'^source-[a-f0-9]{20}$'}
+JOB = {'type':'string','pattern':'^[A-Za-z0-9_-]{1,160}$'}
+SIGNAL = {'type':'string','pattern':'^s_[a-f0-9]{32}$'}
+SEARCH_DIRECTORY = {'type':'string','minLength':1,'maxLength':4096,
+    'pattern':r'^/(?!.*\.\.)[A-Za-z0-9_./ +\-]+$'}
+
+
+def array(items, lower=1, upper=8):
+    return {'type':'array','items':items,'minItems':lower,'maxItems':upper,'uniqueItems':True}
+
+
+def dictionary(values, names, upper):
+    return {'type':'object','properties':{},'propertyNames':names,'additionalProperties':values,'maxProperties':upper}
+
+
+def number(lower, upper, *, positive=False):
+    return {'type':'number', 'exclusiveMinimum' if positive else 'minimum':lower,'maximum':upper}
+
+
+INTENT = obj({
+    'supply_v':number(0,1000,positive=True), 'frequency_hz':number(0,1e100,positive=True),
+    'temperature_c':number(-272.15,1726.85), 'nominal_temperature_c':number(-272.15,1726.85),
+    'input_port':PORT,'output_port':PORT,'vdd_port':PORT,'vss_port':PORT,
+    'cycles':{'type':'integer','minimum':1,'maximum':64}, 'load_f':number(0,1,positive=True),
+    'rise_s':number(0,1e6,positive=True), 'fall_s':number(0,1e6,positive=True),
+    'points_per_period':{'type':'integer','minimum':1,'maximum':199999},
+})
+MODEL_CONTRACT = obj({'polarity':{'type':'string','enum':['n','p']},
+    'terminals':array({'type':'string','enum':['d','g','s','b']},4,4)}, ('polarity','terminals'))
+ONBOARDING_ROUTES = {
+    'onboarding_netlist':('POST','netlist'), 'onboarding_ssh_hosts':('GET','ssh-hosts'),
+    'onboarding_session':('GET','session'), 'onboarding_probe':('POST','probe'),
+    'onboarding_discover_pdk':('POST','discover-pdk'), 'onboarding_prepare':('POST','prepare'),
+    'onboarding_run':('POST','run'), 'onboarding_submission':('GET','submission'),
+    'onboarding_inspect':('POST','inspect'), 'onboarding_waveforms_catalog':('GET','waveforms/catalog'),
+    'onboarding_waveforms_mapping':('GET','waveforms/mapping'), 'onboarding_waveforms_window':('GET','waveforms/window'),
+}
+SCHEMAS.update({
+    'onboarding_netlist':obj({'file_name':{'type':'string','minLength':1,'maxLength':240,'pattern':r'^[^\x00-\x1f\x7f]+$'},
+        'text':{'type':'string','minLength':1,'maxLength':1048576}},('file_name','text')),
+    'onboarding_ssh_hosts':obj(),
+    'onboarding_session':obj({'intake_id':INTAKE},('intake_id',)),
+    'onboarding_probe':obj({'intake_id':INTAKE,'revision':REVISION,'ssh_targets':array(SSH_TARGET),
+        'overrides':obj({'setup_source_ids':dictionary(SETUP_SOURCE,SSH_TARGET,8)})},('intake_id','revision','ssh_targets')),
+    'onboarding_discover_pdk':obj({'intake_id':INTAKE,'revision':REVISION,'probe_ids':array(PROBE),
+        'search_paths':array(SEARCH_DIRECTORY),'search_directory_ids':array(HASH),
+        'cds_lib_hint':SEARCH_DIRECTORY},('intake_id','revision','probe_ids')),
+    'onboarding_prepare':obj({'intake_id':INTAKE,'revision':REVISION,
+        'accept_recommendation':{'type':'boolean'},'recommendation_id':HASH,'recommendation_revision':REVISION,
+        'discovery_id':DISCOVERY,'candidate_id':HASH,
+        'sections':array({'anyOf':[PORT,{'type':'null'}]},1,64),
+        'tmi_candidate_id':{'anyOf':[HASH,{'type':'null'}]},
+        'model_contracts':dictionary(MODEL_CONTRACT,PORT,128),'intent':INTENT},('intake_id','revision')),
+    'onboarding_run':obj({'intake_id':INTAKE,'revision':REVISION,'plan_id':HASH},('intake_id','revision','plan_id')),
+    'onboarding_submission':obj({'intake_id':INTAKE,'plan_id':HASH},('intake_id','plan_id')),
+    'onboarding_inspect':obj({'intake_id':INTAKE,'job_id':JOB},('intake_id','job_id')),
+    'onboarding_waveforms_catalog':obj({'intake_id':INTAKE,'job_id':JOB},('intake_id','job_id')),
+    'onboarding_waveforms_mapping':obj({'intake_id':INTAKE,'job_id':JOB},('intake_id','job_id')),
+    'onboarding_waveforms_window':obj({'intake_id':INTAKE,'job_id':JOB,'signal_ids':array(SIGNAL),
+        'start':number(-1e100,1e100),'stop':number(-1e100,1e100),
+        'max_points':{'type':'integer','minimum':4,'maximum':10000}},('intake_id','job_id','signal_ids')),
+})
+READ_ONLY.update(name for name,(method,_) in ONBOARDING_ROUTES.items() if method=='GET')
+DESCRIPTIONS.update({
+    'onboarding_netlist':'Import newly supplied literal Spectre netlist text into a fresh isolated intake. file_name is a display label, never a path to read. No historical project, model, SSH or simulator access.',
+    'onboarding_ssh_hosts':'List literal aliases from the installed SSH configuration and bounded Includes. No private-key reads, SSH, host probing or configuration-path argument.',
+    'onboarding_session':'Read this connection’s saved intake and exact revision, recommendations, selections and original receipts. No SSH, discovery, collection or execution.',
+    'onboarding_probe':'Probe only the explicitly selected SSH targets. An optional setup_source_ids choice must refer to this intake’s observed scripts; explicit activation evaluates that script and can have side effects. No direct simulator or license-checkout command. Copy the returned revision.',
+    'onboarding_discover_pdk':'Discover bounded model/include metadata for this intake’s exact probe IDs. Prefer returned search_directory_ids to narrow an incomplete scan; optional search_paths or cds_lib_hint are explicit PDK search inputs. Candidate evidence does not select or qualify a process. No solver execution.',
+    'onboarding_prepare':'Prepare from the current intake revision and server recommendation; optional accept_recommendation defaults to accepting the current recommendation. Optional recommendation_id/revision must match. Partial intent, model_contracts, sections or TMI overrides remain explicit. accept_recommendation:false requires the complete legacy discovery/candidate/sections/TMI/contracts/intent selection. Freezes source and dependencies for review; never launches.',
+    'onboarding_run':'Run this intake’s exact frozen plan once within its selected hosts. Persist the returned identities. The stable key is derived from plan_id and cannot be supplied or replaced. Repeated calls reconcile the original submission instead of sending another run; an unknown outcome never authorizes replay.',
+    'onboarding_submission':'Read the original intake/plan submission receipt. No SSH, collection or launch. found:false never authorizes replay; only an exact authoritative pre-dispatch rejection permits a deliberate new prepare.',
+    'onboarding_inspect':'Inspect the original intake job; may observe remote status and collect terminal native artifacts. Reports execution, data validity, performance, qualification and dependency provenance separately. Never restarts or repairs a solver.',
+    'onboarding_waveforms_catalog':'Read the saved original job waveform catalog with run/archive/source binding. No SSH, remote observation, collection or derivation.',
+    'onboarding_waveforms_mapping':'Read the saved original job signal mapping. Missing geometry remains unverified. No SSH, collection or simulation.',
+    'onboarding_waveforms_window':'Read bounded waveform samples for one to eight exact signal IDs from this original job catalog. start/stop are finite seconds, max_points is per signal. No signal expressions, paths, SSH, collection or execution.',
+})
+
+
 def tools():
     return [{'name': 'ic_' + name, 'description': DESCRIPTIONS[name], 'inputSchema': schema,
-             'annotations': {'readOnlyHint': name in READ_ONLY, 'destructiveHint': name in MUTATIONS or name == 'sim_execute',
-                             'idempotentHint': True, 'openWorldHint': name in {'sim_preflight', 'sim_status','sim_execute'} | MUTATIONS}}
+             'annotations': {'readOnlyHint': name in READ_ONLY, 'destructiveHint': name in MUTATIONS or name in {'sim_execute','onboarding_probe','onboarding_run','onboarding_inspect'},
+                             'idempotentHint': name not in {'onboarding_netlist','onboarding_probe','onboarding_discover_pdk','onboarding_prepare'},
+                             'openWorldHint': name in {'sim_preflight','sim_status','sim_execute','onboarding_probe','onboarding_discover_pdk','onboarding_prepare','onboarding_run','onboarding_inspect'} | MUTATIONS}}
             for name, schema in SCHEMAS.items()]

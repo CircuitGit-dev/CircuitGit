@@ -26,6 +26,83 @@ The browser injects an adapter into `modules/simulation/environment`; that modul
 
 Each source import creates a new `intake_id`. Mutable discovery calls require the latest integer `revision` and return its successor. A changed source, host selection or discovery invalidates downstream selections/plans in that intake. Historical job receipts remain available by their original identifiers. Every state response includes `intake_id`, `revision`, `source_sha256`, `source_commit` and `state`; callers copy those exact identities instead of deriving them.
 
+## Recommendations and finite next actions
+
+Sessions expose `suggested_intent` as editable plain values and `intent_suggestions`
+as field-level evidence. After discovery, `session.recommended_selection` and
+`session.discovery.recommended_selection` hold the same draft or null when no
+compatible default exists. Candidates also retain individual recommendations,
+rank evidence and `recommended_tmi_candidate_id`; `candidate_groups` separates
+the recommended entry, other entries and definition fragments.
+
+A draft has schema `ic.onboarding.recommended-selection.v1`, a 64-hex
+`recommendation_id`, `recommendation_revision`, source/discovery identities,
+`candidate_id`, `sections`, `tmi_candidate_id`, `model_contracts`, `intent`,
+`ready_for_prepare`, `missing` and `provenance`. It always has
+`requires_acceptance:true`, `fresh_dependency_audit_required:true` and
+`ready_to_run:false`. The recommendation revision stays at its generation
+revision; it is not the current session CAS revision after preparation or run.
+Source/host/discovery changes invalidate the recommendation.
+
+`provenance.fields` distinguishes observed values, source-based inference and
+the visible inverter smoke preset. A default among compatible tied drafts is
+labelled `policy_default`, retains alternatives and explicitly does not prove
+model equivalence. Nominal supply suggestions are not foundry qualifications.
+Absolute remote paths and model bodies remain private.
+
+Before saving a session, the gateway checks both the 2 MiB HTTP envelope and
+the 4 MiB local-record budget, with headroom for subsequent steps. If needed,
+it first removes repeated optional explanation arrays from alternative drafts.
+`provenance.omitted` and `omission_reason:"session_size_budget"` identify those
+omissions; omitted arrays keep their original type. Candidate choices, model
+source evidence, Field values/confidence/missing conditions and selection IDs
+are retained. A projected draft with omitted evidence reports
+`recommendation_id_basis:"complete_original_draft"` and
+`public_rehash_supported:false`: its original ID stays valid, but the shortened
+presentation is not the complete hash input. The main recommendation keeps its
+full explanation when the remaining budget permits. Private discovery records
+use compact JSON that preserves every observed value. Data that still exceeds
+the core budget is rejected before replacing the last readable record.
+
+Every session includes `next_actions`, an array of
+`{id,tool,operation,kind,ready,arguments,missing,reason_code,description}`. `tool`
+is an exact `ic_onboarding_*` name and arguments carry current intake/revision
+bindings. Guidance does not authorize operations. Missing inputs disable the
+corresponding action; uncertain submission permits original-plan lookup only.
+Completed jobs expose saved waveform reads. GET does not execute these actions.
+Automatic directory narrowing skips previously searched scopes using a stable
+source/probe/path fingerprint and stops after eight discovery rounds per probe
+generation. A new discovery ID cannot restart the same scope. The public
+directory rows report `search_scope_id`, `search_attempted`,
+`automatic_search_allowed` and `automatic_search_blocked_reason`; paths remain
+private. `discovery.automatic_search` reports the round count and limit. Explicit
+manual search hints remain supported after the automatic limit. A fresh probe
+invalidates its old search history. When reactivating selected hosts, guidance
+preserves every already selected setup ID and rechecks its current source hash.
+
+The twelve generated MCP tools mirror the routes above and waveform routes:
+`ic_onboarding_netlist`, `ic_onboarding_ssh_hosts`, `ic_onboarding_session`,
+`ic_onboarding_probe`, `ic_onboarding_discover_pdk`, `ic_onboarding_prepare`,
+`ic_onboarding_run`, `ic_onboarding_submission`, `ic_onboarding_inspect`,
+`ic_onboarding_waveforms_catalog`, `ic_onboarding_waveforms_mapping`, and
+`ic_onboarding_waveforms_window`. Their `structuredContent` remains
+`{ok:true,data:result}`; session results retain all binding fields and guidance.
+The Service records `native_agent` using a fixed transport header, verifies the
+gateway connection identity and capability, and keeps the original run journal.
+The header is provenance, not an authorization mechanism or a human approval.
+
+The [smart fixture](contracts/onboarding-smart.example.json) comes from actual
+runtime serialization with original synthetic models and mocked remote seams.
+Its controller uses returned actions without an LLM; dispatch remains deferred.
+`tools/workbench/test_onboarding_tool_driver.py` also exercises the complete
+source-import, SSH-inventory, setup-selection, discovery, preparation,
+reservation and original-job inspection chain. The only initial external choice
+is the allowed host range. Subsequent calls copy the returned action arguments;
+the controller stops if an action is not ready or reports missing inputs. The
+fixture runs the local compiler, Git and Runner reservation, with no LLM, SSH or
+solver invocation. This verifies orchestration, not a new physical simulation
+or a benchmark of a particular language model.
+
 ## Source, environment and candidate responses
 
 `inspectNetlist` returns `schema: "ic.onboarding.session.v1"`, initial `state: "source_inspected"`, and `source: {file_name,source_sha256,source_commit:null,requirements}`. Requirements include `instances: [{name,master,ordered_nets,dimensions}]`, `interfaces: [{name,ports}]`, `required_masters`, `issues` and `confirmation_required`. Dimensions retain their source literal; metres are supplied only where parsing is unambiguous. Model spelling does not establish a process, polarity or terminal semantics.
@@ -38,7 +115,17 @@ Each source import creates a new `intake_id`. Mutable discovery calls require th
 
 ## Preparing and running
 
-`prepareExperiment` takes exactly the current discovery identities and explicit choices:
+`prepareExperiment` accepts a complete explicit selection as below. Alternatively,
+only `{intake_id,revision}` accepts the current recommendation. Optional
+`recommendation_id` and `recommendation_revision` bind a displayed draft;
+stale bindings fail before preparation. Partial `intent` and `model_contracts`
+objects merge over the draft, and other selection fields replace their draft
+values. `accept_recommendation:false` requires the complete explicit selection.
+Unresolved recommendation gaps stay blocked unless the relevant field is
+explicitly supplied. Final adopted settings, including inferred model contracts,
+are echoed in `session.selection`; input provenance retains the supplied overrides.
+
+Complete explicit input:
 
 ```json
 {

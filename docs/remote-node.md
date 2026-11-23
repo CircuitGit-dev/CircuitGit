@@ -6,11 +6,11 @@ The [CircuitGit website](https://joshuazeng713.github.io/CircuitGit/) can connec
 
 ## Recommended: local connection without an address or code
 
-1. Install Codex, Python 3.10+ and Git. Download and unpack CircuitGit, or use an existing clone.
-2. On macOS, double-click **Start CircuitGit.command** in the repository root. This opens a launcher window; keep it running. If macOS requests permission to open the downloaded script, review it and use the system's normal Open action. This is a source launcher, not a signed standalone installer, and it does not install dependencies automatically.
+1. Install Codex, Python 3.11+ and Git. Download and unpack CircuitGit, or use an existing clone. The launcher prepares the exact pinned simulation dependency in a project-local environment on first use; global Python packages are unchanged.
+2. On macOS, double-click **Start CircuitGit.command** in the repository root. This opens a launcher window; keep it running. If macOS requests permission to open the downloaded script, review it and use the system's normal Open action. This source launcher prepares its pinned Python package locally; Python itself, Git and Codex must already be installed.
 3. In the website AI panel, open the **settings gear** and click **连接本机 Codex**. In the local popup, check the requesting website and click **允许并连接**.
 4. The helper checks Codex through `account/read`. Existing login/provider settings stay in place. When Codex explicitly reports that sign-in is required, click **在官方页面登录 ChatGPT**. The URL comes from `account/login/start`; Codex owns the local callback. Wait for its correlated completion receipt.
-5. Select the actual engineering project and open chat. One bundled RC engineering example is prepared by default, independently of the sample canvas.
+5. Select the actual engineering project or **当前网表** and open chat. For a new circuit, open its library view and use the inline **连接服务器 & 自动匹配 PDK** panel to import the current netlist. The same authorized helper serves AI and the isolated simulation intake; no special onboarding port or extra launcher is required.
 
 On Linux or from a developer terminal, the same helper can be started with:
 
@@ -26,7 +26,7 @@ Pairing expires after three minutes, requires a one-time confirmation, and produ
 
 ## Advanced: manual node setup
 
-On a computer or server you control, clone CircuitGit and prepare Python 3.10+, Git, Codex and your engineering configuration. Sign into Codex there using a supported authentication method. An existing login or provider configuration stays on that node; do not paste OpenAI credentials into the website.
+On a computer or server you control, clone CircuitGit and prepare Python 3.11+, Git, Codex and your engineering configuration. Sign into Codex there using a supported authentication method. An existing login or provider configuration stays on that node; do not paste OpenAI credentials into the website.
 
 Start the engineering gateway:
 
@@ -55,7 +55,9 @@ For a previously configured AI client, use `--config /absolute/client.local.json
 4. Select a project returned by the node and click **打开对话**.
 5. Use the existing model selector, thinking controls, image input, multi-session manager and approval UI. Check the connection from the AI panel if login or model access is unavailable.
 
-The AI's project, source commit and saved source hash come from the node. **Public library schematics and the RC analytical waveform demo remain separate from that node project**. Circuit changes and simulation requests go through the existing reviewed workflow. Once connected, the account, project identity, refresh and disconnect controls live under **连接与工程** inside the same settings gear.
+The AI's project, source commit and saved source hash come from the node. An explicitly imported current netlist appears as **当前网表** in the AI settings, including before it has a prepared Git snapshot. AI tools and the Simulation panel then use the same connection/intake/source identity. Changes to that intake refresh the panel, its diagnostic report and verified exported waveforms. Switching the canvas or receiving a result for another intake does not silently rebind the view. The RC analytical reference remains labelled separately, and imported-netlist waveforms do not enable graphical probes without a verified mapping. Account, project identity, refresh and disconnect controls live under **连接与工程** inside the settings gear.
+
+After probing the selected SSH hosts, **自动匹配 PDK** presents a recommended model entry, sections, platform library, model contracts and experiment conditions. Their evidence and any missing values remain visible; alternative candidates and manual fields are under advanced settings. **确认并运行** prepares the displayed selection, rechecks dependencies, verifies the returned values and submits that exact plan. It does not retry an uncertain submission. The five report dimensions are independent; a completed run is not an overall qualification pass.
 
 ## Models, reasoning and local development settings
 

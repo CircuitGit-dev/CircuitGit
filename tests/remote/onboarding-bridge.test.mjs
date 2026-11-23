@@ -13,9 +13,38 @@ function fixture({storage=memory(),storeId='store-A',gateway=false,respond}={}){
   let closed=0;
   const transport={base:'http://127.0.0.1:18885',close(){closed++;},health:async()=>{calls.push({path:'/health'});return info;},request:async(path,options={})=>{calls.push({path,...options});if(path==='/node/info')return info;if(respond)return respond(path,options);if(path.endsWith('/netlist'))return session(0);if(path.endsWith('/probe'))return session(options.body.revision+1);if(path.endsWith('/prepare'))return {...session(options.body.revision+1),prepared:{plan_id:plan,submission_key:'experiment-'+plan}};if(path.includes('/session?'))return session(2);if(path.includes('/submission?'))return {intake_id:intake,plan_id:plan,submission_key:'experiment-'+plan,found:false,replay_permitted:false};return {hosts:[]};}};
   const bridge=createOnboardingBridge({win:{location:{origin:'http://127.0.0.1:18884'}},gateway:gateway?transport:null,pair:options=>{pairs.push(options);return {result:Promise.resolve({url:options.base,accessCode:'x'.repeat(43)}),cancel(){}};},clientFactory:()=>transport,pendingStore:createOnboardingPendingStore({storage}),selectionStore:createOnboardingSelectionStore({storage})});
-  return {bridge,storage,calls,pairs,info,get closed(){return closed;}};
+  return {bridge,storage,calls,pairs,info,transport,get closed(){return closed;}};
 }
 async function imported(f){await f.bridge.connect({port:18885});await f.bridge.inspectNetlist({file_name:'inverter.scs',text:'subckt INV A Y VDD VSS\nends INV\n'});}
+
+test('RNL virtual-root alias resolves the current file and its editor buffer exactly',()=>{
+  const doc={path:'/circuit/inv.scs',files:[{path:'unrelated.scs',text:'wrong'},{path:'circuit/inv.scs',text:'saved'}]};
+  assert.deepEqual(snapshotOnboardingSource(doc),{file_name:'inv.scs',text:'saved'});
+  assert.deepEqual(snapshotOnboardingSource(doc,{hasBuffer:path=>path==='circuit/inv.scs',fileText:()=> 'edited'}),{file_name:'inv.scs',text:'edited'});
+  assert.equal(snapshotOnboardingSource({...doc,path:'/elsewhere/inv.scs'}),null);
+  assert.equal(snapshotOnboardingSource({...doc,files:[...doc.files,{path:'circuit/inv.scs',text:'ambiguous'}]}),null);
+});
+
+test('shared AI helper pairing is reused without closing its transport',async()=>{
+  const f=fixture();await f.bridge.bindClient(f.transport,f.info);
+  assert.equal(f.bridge.getState().storeIdentity,'store-A');assert.equal(f.pairs.length,0);
+  await f.bridge.listSshAliases();f.bridge.disconnect();assert.equal(f.closed,0);
+});
+test('explicit AI intake adoption performs a matching readback before selecting',async()=>{
+  const result={...session(2),source_sha256:'a'.repeat(64)};
+  const f=fixture({respond:async()=>result});await f.bridge.bindClient(f.transport,f.info);
+  await f.bridge.adoptIntake(result);assert.equal(f.bridge.getState().selectedIntakeId,intake);
+  assert.equal(f.bridge.getSessionState().source_sha256,result.source_sha256);
+  assert.match(f.calls[0].path,/session\?intake_id=intake-public-fixture$/);
+});
+test('AI adoption refuses a changed source during readback or another connection',async()=>{
+  const result={...session(2),source_sha256:'a'.repeat(64)};
+  const f=fixture({respond:async()=>result});await f.bridge.bindClient(f.transport,f.info);
+  await assert.rejects(f.bridge.adoptIntake(result,{isCurrent:()=>false}),/画布/);
+  assert.equal(f.bridge.getState().selectedIntakeId,null);
+  await assert.rejects(f.bridge.adoptIntake({...result,connection_id:'another'}),/不匹配/);
+  assert.equal(f.calls.length,1);
+});
 
 test('explicit local pairing works with chat disabled and never reads AI state',async()=>{
   const f=fixture();assert.equal(f.calls.length,0);const connected=f.bridge.connect({port:18885});

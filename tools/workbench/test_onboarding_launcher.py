@@ -1,6 +1,8 @@
 """Launcher lifetime and legacy health compatibility, without sockets or SSH."""
 import contextlib
 import io
+import json
+import sys
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -9,6 +11,68 @@ from unittest.mock import Mock, patch
 
 import onboarding_server
 import server
+
+
+class DefaultOnboardingTests(unittest.TestCase):
+    def test_normal_server_entrypoint_enables_onboarding_without_a_special_flag(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve();config=root/'workbench.json'
+            original={'runtime_root':str(root/'runtime'),'site_file':'existing-site','projects':[]}
+            config.write_text(json.dumps(original))
+            listener=Mock(server_port=8766);listener.serve_forever.side_effect=KeyboardInterrupt()
+            created=[]
+            def application(cfg,web):
+                app=Mock(cfg=cfg,ai=None);created.append(app);return app
+            with (patch.object(sys,'argv',['server','--config',str(config),'--web-root',str(root/'web')]),
+                  patch.object(server,'Application',side_effect=application),
+                  patch.object(server,'Server',return_value=listener) as server_type,
+                  patch('signal.signal'),contextlib.redirect_stdout(io.StringIO())):
+                server.main()
+            server_type.assert_called_once_with(('127.0.0.1',8766),server.Handler)
+            self.assertTrue(created[0].cfg['onboarding']['enabled'])
+            self.assertEqual(created[0].cfg['site_file'],'existing-site')
+            self.assertEqual(json.loads(config.read_text()),original)
+            created[0].onboarding.close.assert_called_once()
+
+    def test_normal_entrypoint_preserves_main_configuration_and_isolates_intakes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve()
+            cfg={'runtime_root':str(root/'runtime'),'site_file':'existing-site',
+                 'projects':[{'id':'existing-project'}],'github_repo':'existing/repository',
+                 'ai_client_config':'existing-chat','experiment_workflow':{'profiles':{'old-pdk':{}}}}
+            with patch('subprocess.run',side_effect=AssertionError('No child process')), \
+                    patch('pathlib.Path.home',return_value=root/'home'):
+                first=server.default_onboarding_configuration(cfg)
+                again=server.default_onboarding_configuration(cfg)
+            self.assertNotIn('onboarding',cfg)
+            self.assertEqual({k:v for k,v in first.items() if k!='onboarding'},cfg)
+            self.assertEqual(first,again)
+            self.assertEqual(set(first['onboarding']),{'enabled','state_root','connection_id','ssh_config'})
+            self.assertTrue(first['onboarding']['enabled'])
+            self.assertRegex(first['onboarding']['connection_id'],r'^[a-f0-9]{32}$')
+            self.assertEqual(first['onboarding']['state_root'],str(root/'runtime/onboarding/intake-store'))
+            self.assertEqual(first['onboarding']['ssh_config'],str(root/'home/.ssh/config'))
+            stored=json.loads((root/'runtime/onboarding/connection.json').read_text())
+            self.assertEqual(stored['projects'],[])
+            self.assertIsNone(stored['github_repo'])
+            self.assertNotIn('site_file',stored)
+            self.assertNotIn('experiment_workflow',stored)
+
+    def test_existing_explicit_configuration_and_disabled_policy_are_preserved(self):
+        for onboarding in ({'enabled':False},{'enabled':True,'state_root':'explicit-store'}):
+            cfg={'runtime_root':'unused','onboarding':onboarding}
+            with patch('onboarding_runtime.create_onboarding_config') as create:
+                self.assertIs(server.default_onboarding_configuration(cfg),cfg)
+                create.assert_not_called()
+
+    def test_default_entrypoint_never_adopts_an_unmarked_nonempty_store(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runtime=Path(directory)/'runtime';store=runtime/'onboarding';store.mkdir(parents=True)
+            evidence=store/'existing-file';evidence.write_text('preserve')
+            with self.assertRaisesRegex(ValueError,'empty'):
+                server.default_onboarding_configuration({'runtime_root':str(runtime)})
+            self.assertEqual(evidence.read_text(),'preserve')
+            self.assertFalse((store/'connection.json').exists())
 
 
 class OnboardingLauncherTests(unittest.TestCase):
@@ -132,6 +196,7 @@ class LegacyHealthTests(unittest.TestCase):
         self.assertTrue(data['capabilities']['git'])
         self.assertTrue(data['capabilities']['publish'])
         self.assertFalse(data['capabilities']['simulation_onboarding'])
+        self.assertFalse(data['capabilities']['simulation_onboarding_native_entry'])
         self.assertIsNone(data['capabilities']['simulation_onboarding_api_version'])
 
     def test_fresh_app_health_keeps_local_onboarding_capabilities(self):
@@ -143,6 +208,7 @@ class LegacyHealthTests(unittest.TestCase):
         self.assertFalse(data['capabilities']['git'])
         self.assertFalse(data['capabilities']['publish'])
         self.assertTrue(data['capabilities']['simulation_onboarding'])
+        self.assertTrue(data['capabilities']['simulation_onboarding_native_entry'])
         self.assertEqual(data['capabilities']['simulation_onboarding_api_version'], '1')
 
 

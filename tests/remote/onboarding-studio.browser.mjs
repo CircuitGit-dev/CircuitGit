@@ -27,7 +27,7 @@ const origin='https://onboarding-studio.test',calls=[],errors=[],unexpected=[],a
 const mime={'.js':'text/javascript','.css':'text/css','.json':'application/json','.html':'text/html','.svg':'image/svg+xml','.wasm':'application/wasm','.woff2':'font/woff2','.png':'image/png'};
 const report={kind:'synthetic-built-local-studio-integration',real_network:false,real_ssh:false,real_simulation:false,real_inference:false,
   fixture_sha256:createHash('sha256').update(fixtureRaw).digest('hex'),checks:[],ai_status_reads:[],model_requests:0};
-let emptyProject=true,foreign=false,waveGate=null;
+let emptyProject=true,existingConfiguration=false,foreign=false,waveGate=null;
 const browser=await chromium.launch({headless:true,channel:'chrome'}),context=await browser.newContext(),page=await context.newPage({viewport:{width:1500,height:980}});
 page.on('pageerror',error=>errors.push(error.message));page.setDefaultTimeout(12000);
 const response=(route,data)=>route.fulfill({contentType:'application/json',body:JSON.stringify({ok:true,data})});
@@ -53,7 +53,8 @@ await context.route('**/*',async route=>{
       }
       if(url.pathname==='/api/health')return response(route,{api_version:'1',mode:'live',mutation_token:'synthetic-mutation-token',connection_id:connectionId,
         capabilities:{simulation_onboarding:true,simulation_onboarding_api_version:'1',chat:false,runner:false,publish:false,git:false,viewer:true}});
-      if(url.pathname==='/api/project')return response(route,emptyProject?{projects:[],active_project:null,source_commit:null,branch:'synthetic-empty'}:project);
+      if(url.pathname==='/api/project')return response(route,emptyProject?{projects:[],active_project:null,source_commit:null,branch:'synthetic-empty'}:existingConfiguration?{...project,projects:[{...project.projects[0],configurations:[{id:'TRAN',name:'Saved transient'}]}]}:project);
+      if(url.pathname==='/api/configuration')return response(route,{schema:'ic.sim.configuration-description.v1',project_id:projectId,configuration:'TRAN',source_commit:originalJob.source_commit,configuration_path:'synthetic/TRAN.json',configuration_sha256:'d'.repeat(64),configuration_text:'{"analysis":{"stop":"2n"},"parameters":{}}',effective:{compiled_inputs_sha256:'e'.repeat(64),tran:{values:{stop:'2n'},values_si:{stop:2e-9}},parameters:{},raw_save:{effective:{signals:[]}}}});
       if(url.pathname==='/api/jobs')return response(route,{jobs:emptyProject?[]:[originalJob]});
       if(url.pathname==='/api/tree')return response(route,{files:[]});
       if(url.pathname==='/api/file')return response(route,{path:'synthetic/source.scs',content:record.source_text,sha256:descriptor.original_source_sha256,base_commit:originalJob.source_commit,editable:false});
@@ -110,9 +111,15 @@ try{
   await page.goto(origin+'/studio/index.html?layout=dockview');await ready();
   assert.equal(await page.locator('#studio-project').isDisabled(),true);assert.match(await page.locator('#studio-project').innerText(),/导入网表后开始/);
   assert.equal(await page.evaluate(()=>ICRNLStudio.getProject().projects.length),0);
+  await page.locator('.studio-panel-simulation [data-page="environment"]:not([hidden])').waitFor();
+  assert.equal(await page.locator('.studio-panel-simulation [aria-label="环境与 PDK 向导"]').count(),1);
+  assert.equal(await page.locator('dialog [aria-label="环境与 PDK 向导"]').count(),0);
+  assert.equal(calls.some(row=>row.path.startsWith('/api/simulation/onboarding/')),false);
+  await page.locator('.studio-panel-simulation [data-field="page-config"]').click();
+  await page.evaluate(()=>viewer.command('simulation.environment'));await page.locator('.studio-panel-simulation [data-page="environment"]:not([hidden])').waitFor();
   await connect();assert.equal(await page.evaluate(()=>ICRNLStudio.onboarding.getState().mode),'same-origin');
   assert.equal(calls.some(row=>row.path==='/node/info'),false);
-  report.checks.push('empty /api/project catalogue reaches ready Studio; same-origin onboarding connects through /api/health');
+  report.checks.push('empty Studio defaults to inline environment without implicit operations; same-origin pairing uses /api/health');
 
   emptyProject=false;await page.reload();await ready();
   await page.waitForFunction(id=>ICRNLStudio.getRuns().some(row=>row.run_id===id),originalRun);
@@ -178,6 +185,14 @@ try{
   await page.waitForFunction(()=>document.querySelector('.wf-status')?.textContent.includes('连接已变化'));
   assert.equal(calls.length,beforeDisconnect);assert.equal(await page.locator('.wf-trace').count(),1);
   report.checks.push('disconnect keeps the saved curve and stops subsequent provider reads');
+
+  existingConfiguration=true;await page.reload();await ready();
+  await page.locator('.studio-panel-simulation [data-page="config"]:not([hidden]) [data-field="analysis-stop"]').waitFor();
+  assert.equal(await page.locator('[data-field="configuration"]').inputValue(),'TRAN');
+  assert.equal(await page.locator('[data-field="analysis-stop"]').inputValue(),'2n');
+  await page.evaluate(()=>viewer.command('simulation.environment'));await page.locator('.studio-panel-simulation [data-page="environment"]:not([hidden])').waitFor();
+  await page.locator('[data-field="page-config"]').click();assert.equal(await page.locator('[data-field="analysis-stop"]').inputValue(),'2n');
+  report.checks.push('registered projects retain their saved configuration page and values alongside the environment entry');
 
   assert.equal(calls.some(row=>row.method!=='GET'&&row.path!=='/api/simulation/onboarding/netlist'),false);
   assert.equal(calls.some(row=>/\/(?:probe|run|inspect|preflight|collect|publish|scan)$/.test(row.path)),false);

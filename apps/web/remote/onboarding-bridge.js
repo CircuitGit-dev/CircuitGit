@@ -46,23 +46,50 @@ export function createOnboardingSelectionStore({storage,key='circuitgit.onboardi
   return Object.freeze({
     async load({connectionId}){return read().find(row=>row.connectionId===connectionId)?.intake_id||null;},
     async remember({connectionId,intake_id}){if(!opaque(connectionId)||!opaque(intake_id))throw failure('已选网表身份无效。','invalid_session_identity');const rows=read().filter(row=>row.connectionId!==connectionId);if(rows.length>=128)throw failure('已保存的连接身份过多。','selection_store_full');const raw=JSON.stringify([...rows,{connectionId,intake_id}]);try{backend().setItem(key,raw);if(backend().getItem(key)!==raw)throw Error('not durable');}catch{throw failure('无法保存已选网表身份；请保留当前会话。','selection_store_unavailable');}},
+    async restore({connectionId,expectedIntakeId,intake_id}){
+      const rows=read();if(rows.find(row=>row.connectionId===connectionId)?.intake_id!==expectedIntakeId)return false;
+      const next=rows.filter(row=>row.connectionId!==connectionId);if(intake_id)next.push({connectionId,intake_id});
+      try{const raw=JSON.stringify(next);backend().setItem(key,raw);if(backend().getItem(key)!==raw)throw Error('not durable');}
+      catch{throw failure('无法恢复原网表选择，请保留当前会话。','selection_store_unavailable');}return true;
+    },
   });
 }
 
 /** Read just the currently displayed entry from memory, including its editor text. */
 export function snapshotOnboardingSource(doc,{hasBuffer=()=>false,fileText=()=>''}={}){
   if(!doc||typeof doc.path!=='string')return null;
-  const file=doc.files?.find(file=>file.path===doc.path),text=hasBuffer(doc.path)?fileText(doc.path):file?.text;
+  let file=doc.files?.find(file=>file.path===doc.path);
+  // RNL's virtual root keeps /entry.scs on Document and entry.scs on File.
+  // Resolve only that exact root alias, never the first file or a basename match.
+  if(!file&&doc.path.startsWith('/')&&!doc.path.startsWith('//')){
+    const aliases=doc.files?.filter(file=>file.path===doc.path.slice(1))||[];
+    if(aliases.length===1)file=aliases[0];
+  }
+  const bufferPath=file&&hasBuffer(file.path)?file.path:doc.path;
+  const text=hasBuffer(bufferPath)?fileText(bufferPath):file?.text;
   if(typeof text!=='string'||!text.trim())return null;
   return {file_name:doc.path.split('/').pop()||'circuit.scs',text};
 }
 
 export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=pairLocal,clientFactory=createNodeClient,pendingStore=createOnboardingPendingStore(),selectionStore=createOnboardingSelectionStore()}={}){
-  let transport=null,pairing=null,epoch=0,connecting=false,connectionId=null,storeIdentity=null,endpoint=null,error=null,capabilities={},selectedIntakeId=null;
+  let transport=null,pairing=null,epoch=0,connecting=false,connectionId=null,storeIdentity=null,endpoint=null,error=null,capabilities={},selectedIntakeId=null,ownsTransport=false,bindingClient=null,selectionTicket=0;
   const mode=gateway?'same-origin':'paired-local',listeners=new Set(),attempted=new Set(),intakes=new Set(),sessions=new Map();
-  const getState=()=>({connected:!!transport,connecting,mode,revision:epoch,connectionId,endpoint,error,capabilities:clone(capabilities),selectedIntakeId});
+  let selectionQueue=Promise.resolve();
+  function saveSelection({scope,intake_id,generation,client,ticket,previous,isCurrent=()=>true}){
+    const work=selectionQueue.catch(()=>{}).then(async()=>{
+      const current=()=>generation===epoch&&client===transport&&ticket===selectionTicket;
+      requireValue(await isCurrent()&&current(),'选择已变化，未采用旧网表。','source_changed');
+      await selectionStore.remember({connectionId:scope,intake_id});
+      if(!await isCurrent()||!current()){
+        if(typeof selectionStore.restore==='function')await selectionStore.restore({connectionId:scope,expectedIntakeId:intake_id,intake_id:previous});
+        throw failure('画布或连接已变化，未采用旧 AI 结果。','source_changed');
+      }
+    });
+    selectionQueue=work.catch(()=>{});return work;
+  }
+  const getState=()=>({connected:!!transport,connecting,mode,revision:epoch,connectionId,storeIdentity,endpoint,error,capabilities:clone(capabilities),selectedIntakeId});
   const publish=()=>{for(const listener of listeners)listener(getState());};
-  function disconnect(){epoch++;pairing?.cancel();pairing=null;if(!gateway)transport?.close();transport=null;connecting=false;connectionId=null;storeIdentity=null;endpoint=null;error=null;capabilities={};selectedIntakeId=null;intakes.clear();sessions.clear();publish();}
+  function disconnect(){epoch++;selectionTicket++;pairing?.cancel();pairing=null;if(ownsTransport)transport?.close();transport=null;ownsTransport=false;bindingClient=null;connecting=false;connectionId=null;storeIdentity=null;endpoint=null;error=null;capabilities={};selectedIntakeId=null;intakes.clear();sessions.clear();publish();}
   async function connect(options={}){
     if(connecting)throw failure('连接正在进行。','connection_busy');
     if(!options||typeof options!=='object'||Object.keys(options).some(key=>key!=='port')||options.port!==undefined&&(!Number.isInteger(options.port)||options.port<1||options.port>65535))throw failure('高级连接只接受明确的本机端口。','invalid_connection');
@@ -92,8 +119,45 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       for(const record of pending){attempted.add(pendingKey(record));intakes.add(record.intake_id);}
       if(selected)intakes.add(selected);
       connectionId=scope;storeIdentity=storeId;endpoint=resolvedEndpoint;selectedIntakeId=selected;
-      capabilities=clone(info.capabilities);transport=candidate;connecting=false;error=null;publish();return getState();
+      capabilities=clone(info.capabilities);transport=candidate;ownsTransport=!gateway;connecting=false;error=null;publish();return getState();
     }catch(problem){if(!gateway)candidate?.close();if(generation===epoch){transport=null;connecting=false;connectionId=null;storeIdentity=null;endpoint=null;error=problem.message;publish();}throw problem;}
+  }
+  /** Reuse an already authorized browser helper; its AI adapter owns the client. */
+  async function bindClient(candidate,info){
+    if(gateway)return getState();
+    if(info?.schema!=='circuitgit.remote-node.v1'||info.auth!=='bearer'||info.single_owner!==true||
+       info.capabilities?.simulation_onboarding!==true||info.capabilities.simulation_onboarding_api_version!=='1'||
+       !opaque(info.connection_id)||typeof candidate?.request!=='function'||!candidate.base)
+      throw failure('此助手没有兼容的仿真会话接口。','unsupported_onboarding');
+    if(transport){
+      if(storeIdentity!==info.connection_id||endpoint!==candidate.base)throw failure('仿真与 AI 连接了不同助手，请先明确选择同一个连接。','connection_mismatch');
+      return getState();
+    }
+    if(connecting)throw failure('仿真连接正在进行。','connection_busy');
+    const generation=++epoch,scope=mode+'|'+candidate.base+'|'+info.connection_id;
+    connecting=true;bindingClient=candidate;publish();
+    try{
+      const pending=await pendingStore.load({connectionId:scope}),selected=await selectionStore.load({connectionId:scope});
+      if(generation!==epoch||bindingClient!==candidate)throw failure('连接已变化。','connection_changed');
+      for(const record of pending){attempted.add(pendingKey(record));intakes.add(record.intake_id);}
+      if(selected)intakes.add(selected);
+      transport=candidate;ownsTransport=false;connectionId=scope;storeIdentity=info.connection_id;endpoint=candidate.base;
+      capabilities=clone(info.capabilities);selectedIntakeId=selected;connecting=false;bindingClient=null;publish();return getState();
+    }catch(problem){if(generation===epoch){connecting=false;bindingClient=null;publish();}throw problem;}
+  }
+  function unbindClient(candidate){if(bindingClient===candidate||transport===candidate&&!ownsTransport){disconnect();return true;}return false;}
+  /** Adopt only an explicit tool-result identity, after an authoritative readback. */
+  async function adoptIntake({connection_id,intake_id,source_sha256},{isCurrent=()=>true}={}){
+    requireValue(transport&&connection_id===storeIdentity&&opaque(intake_id)&&hash(source_sha256),'AI 网表身份与当前助手不匹配。','intake_scope_mismatch');
+    const generation=epoch,client=transport,scope=connectionId,ticket=++selectionTicket,previous=selectedIntakeId;
+    const result=await client.request(PREFIX+'/session?'+new URLSearchParams({intake_id}),{method:'GET',timeout:20000});
+    requireValue(generation===epoch&&client===transport,'连接已变化，未采用旧 AI 结果。','connection_changed');
+    requireValue(result?.schema==='ic.onboarding.session.v1'&&result.connection_id===connection_id&&result.intake_id===intake_id&&
+      result.source_sha256===source_sha256&&Number.isInteger(result.revision)&&result.revision>=1,'AI 网表回读身份不匹配。','invalid_session_identity');
+    requireValue(await isCurrent(),'画布已变化，未切换到旧 AI 结果。','source_changed');
+    requireValue(generation===epoch&&client===transport&&ticket===selectionTicket,'连接已变化。','connection_changed');
+    await saveSelection({scope,intake_id,generation,client,ticket,previous,isCurrent});
+    intakes.add(intake_id);selectedIntakeId=intake_id;sessions.set(intake_id,clone(result));publish();return clone(result);
   }
   async function request(name,args){
     const operation=ONBOARDING_OPERATIONS[name];
@@ -118,7 +182,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       if(generation!==epoch||scope!==connectionId)throw failure(operation.method==='POST'?'连接已变化；请用原身份核对结果，未重发。':'连接已变化；旧响应已丢弃。',operation.method==='POST'?'transport_unknown':'connection_changed');
       if(name==='inspectNetlist'){
         if(result?.schema!=='ic.onboarding.session.v1'||result.connection_id!==storeIdentity||!opaque(result.intake_id)||!Number.isInteger(result.revision)||result.revision<0)throw failure('助手返回的网表会话身份无效。','invalid_session_identity');
-        await selectionStore.remember({connectionId:scope,intake_id:result.intake_id});
+        await saveSelection({scope,intake_id:result.intake_id,generation,client,ticket:++selectionTicket,previous:selectedIntakeId});
         if(generation!==epoch||scope!==connectionId)throw failure('连接已变化；旧响应已丢弃。','connection_changed');
         intakes.add(result.intake_id);
         selectedIntakeId=result.intake_id;publish();
@@ -156,7 +220,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
           result.submission_key!=='experiment-'+input.plan_id||result.replay_permitted!==false||typeof result.found!=='boolean'||
           result.found&&(result.job?.schema!=='ic.experiment.job.v1'||result.job.job_id!==result.run_id||result.job.run_id!==result.run_id||result.job.plan_id!==input.plan_id)))
         throw failure('提交回执与原会话或计划不一致。','invalid_submission_identity');
-      if(result?.schema==='ic.onboarding.session.v1')sessions.set(result.intake_id,clone(result));
+      if(result?.schema==='ic.onboarding.session.v1'){sessions.set(result.intake_id,clone(result));publish();}
       return result;
     }catch(problem){
       if(generation!==epoch||scope!==connectionId)throw failure(operation.method==='POST'?'连接已变化；请用原身份核对结果，未重发。':'连接已变化；旧响应已丢弃。',operation.method==='POST'?'transport_unknown':'connection_changed');
@@ -243,5 +307,6 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     });
   }
   const methods=Object.fromEntries(Object.keys(ONBOARDING_OPERATIONS).map(name=>[name,args=>request(name,args)]));
-  return Object.freeze({...methods,waveformApi,getState,connect,disconnect,pendingStore,subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}});
+  return Object.freeze({...methods,waveformApi,getState,connect,bindClient,unbindClient,adoptIntake,disconnect,pendingStore,
+    getSessionState:()=>clone(sessions.get(selectedIntakeId)||null),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}});
 }
