@@ -67,7 +67,7 @@ def _serve_onboarding(state,*,root,node_port,gateway_port,allow_origins,resume,n
         node_url='http://127.0.0.1:'+str(browser.server_port)
         node=Node(None,token,['https://joshuazeng713.github.io',gateway_url,*allow_origins],
                   node_id,node_url,'仿真环境接入')
-        node.onboarding=app.onboarding;browser.node=node
+        node.onboarding=app.onboarding;node.onboarding_review_base=gateway_url;browser.node=node
         thread=threading.Thread(target=gateway.serve_forever,daemon=True);thread.start();gateway_started=True
         atomic(state/'active-process.json',{'connection_id':node_id,'gateway_url':gateway_url,
             'node_url':node_url,'source_commit':None,'chat_enabled':False})

@@ -162,12 +162,21 @@ class PluginRuntime:
         check((source/'server.py').is_file(),'Bundled gateway is unavailable; reinstall the plugin','setup_required',4)
         return source
 
+    def _bind_review_authority(self, cfg):
+        # Trusted installed configuration, never tool arguments or /api/health.
+        # The gateway owns creation and permissions of this separate key.
+        entry = cfg.get('onboarding') or {}
+        store = entry.get('state_root')
+        if not store:
+            store = str(Path(cfg['runtime_root']) / 'onboarding' / 'intake-store')
+        self.service.config['onboarding_review_authority_key_file'] = str(Path(store) / 'review-authority.key')
+
     def ensure(self):
         cfg=self.installed_config()
         with self.startup_lock():
             project=self.probe(cfg)
             if project:
-                self.last='reused';return {**self.status(),'startup':'reused','gateway_started':False}
+                self._bind_review_authority(cfg);self.last='reused';return {**self.status(),'startup':'reused','gateway_started':False}
             # A partial/non-HTTP listener is not ours. Never try another port or kill it.
             with socket.socket() as sock:
                 sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
@@ -201,7 +210,7 @@ class PluginRuntime:
                     if process.poll() is not None:raise Failure('startup_failed','Bundled gateway stopped during startup; inspect plugin diagnostics',4)
                     project=self.probe(cfg)
                     if project:
-                        record['state']='ready';atom(attempts,record);self.last='started'
+                        record['state']='ready';atom(attempts,record);self._bind_review_authority(cfg);self.last='started'
                         return {**self.status(),'startup':'started','gateway_started':True}
                     time.sleep(.1)
                 raise Failure('startup_pending','Gateway startup is still pending; check plugin status before trying more work',75)

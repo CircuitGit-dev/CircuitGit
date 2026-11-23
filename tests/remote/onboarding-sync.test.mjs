@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
 import {createOnboardingSync} from '../../apps/web/remote/onboarding-sync.js';
+import {analysisSession} from '../studio/analysis.fixture.mjs';
 
 const hash=text=>createHash('sha256').update(text).digest('hex');
 function fixture(){
@@ -52,4 +54,20 @@ test('deferred controller prevents waveform replacement and disposal stops polli
   const f=fixture();f.session={...f.session,prepared:{plan_id:'plan'},job:{job_id:'job',plan_id:'plan',waveforms:{available:true,source_binding_verified:true,archive_sha256:'d'.repeat(64)}}};
   const unregister=f.sync.register({async refreshCurrent(input){assert.equal(input.intakeId,f.session.intake_id);return {status:'deferred'};}});
   await f.sync.refresh();assert.equal(f.waves.length,0);assert.equal(f.timers.size,1);unregister();assert.equal(f.timers.size,0);f.sync.destroy();
+});
+test('the exact analysis tool updates only controllers still bound to the same source and original run',async()=>{
+  const analysis=JSON.parse(await readFile(new URL('./fixtures/onboarding-analysis.example.json',import.meta.url),'utf8')).analysis;
+  const f=fixture(),received=[];f.source.text='subckt Example IN OUT\nR1 (IN OUT) resistor r=1000\nends Example\n';
+  assert.equal(hash(f.source.text),analysis.original_source_sha256);f.session=analysisSession(f.session,analysis);f.state.selectedIntakeId=f.session.intake_id;
+  f.sync.register({refreshCurrent:async()=>({status:'unchanged'}),receiveAnalysis:value=>received.push(value)});
+  assert.equal((await f.sync.handleToolResult({tool:'ic_onboarding_analysis',result:{ok:true,data:analysis}})).status,'updated');assert.deepEqual(received,[analysis]);
+  const wrong={...analysis,job_id:'foreign-run'};assert.equal((await f.sync.handleToolResult({tool:'ic_onboarding_analysis',result:wrong})).status,'ignored');
+  f.source.text+='// another source';assert.equal((await f.sync.handleToolResult({tool:'ic_onboarding_analysis',result:analysis})).status,'ignored');assert.equal(received.length,1);f.sync.destroy();
+});
+test('interrupted backend operations stop periodic reads and never open a waveform as new progress',async()=>{
+  const f=fixture();f.sync.register({refreshCurrent:async()=>({status:'unchanged'})});await f.sync.refresh();assert.equal(f.timers.size,1);
+  f.session={...f.session,state:'recovery_required',recovery:{status:'interrupted',operation:'discover-pdk',requires_human:true,automatic_retry:false,original_records_preserved:true}};
+  await f.sync.handleToolResult({tool:'ic_onboarding_session',result:f.session});
+  // A new registration invokes the same scheduling guard without an elapsed timer.
+  f.sync.register({refreshCurrent:async()=>({status:'unchanged'})});assert.equal(f.timers.size,0);assert.equal(f.waves.length,0);f.sync.destroy();
 });

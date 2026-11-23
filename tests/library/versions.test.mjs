@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {writable,publishedCell,receiptState,receiptReleased,commitDraft,createPublishedHistoryLoader,textDiff,createPendingStore} from '../../apps/web/library/versions.js';
+import {writable,publishedCell,receiptState,receiptReleased,commitDraft,createPublishedHistoryLoader,textDiff,createPendingStore,testbenchExecutionLabel} from '../../apps/web/library/versions.js';
 import {createLibraryBridge,cellFingerprint} from '../../apps/web/remote/library-bridge.js';
 const scope={library_id:'test',cell_id:'gain',directory:'lib/test/gain',cell:'Gain'};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -25,6 +25,11 @@ test('pending request metadata survives remount without persisting code or crede
  const restored=createPendingStore(storage);assert.equal(restored.find(scope,'owner/repo').idempotency_key,'original-key-123');assert.equal(restored.find(scope,'other/repo'),null);assert.doesNotMatch([...values.values()][0],/private source|secret|"content"|"token"/);restored.forget(record);assert.equal(restored.find(scope),null);
 });
 test('commit draft describes current cell files',()=>{assert.deepEqual(commitDraft(scope,[{path:'lib/test/gain/a.scs'}]),{title:'更新 Gain · 1 个文件',body:'• lib/test/gain/a.scs'});});
+test('Testbench CI distinguishes unrun, named-analysis success, invalid and uncertain results',()=>{
+ assert.equal(testbenchExecutionLabel('not_run'),'尚未运行 CI');assert.match(testbenchExecutionLabel('passed'),/命名分析/);
+ assert.match(testbenchExecutionLabel('invalid'),/无效/);assert.match(testbenchExecutionLabel('unknown'),/未自动重跑/);
+ assert.doesNotMatch(testbenchExecutionLabel('unrecognized'),/满足验收|尚未运行/);
+});
 test('published metadata uses credential-free reads',async()=>{
  let options;const loader=createPublishedHistoryLoader({fetcher:async(_url,value)=>(options=value,{ok:true,json:async()=>({cells:[{...scope,commits:[]}]})})});assert.equal((await loader(scope)).cell_id,'gain');assert.equal(options.credentials,'omit');await assert.rejects(createPublishedHistoryLoader({fetcher:async()=>({ok:false})})(scope),/尚未包含/);
 });

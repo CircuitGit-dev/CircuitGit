@@ -86,7 +86,7 @@ try{
   assert.equal(calls.filter(row=>row.path==='/node/info').length,1);assert.equal(await wizard.getByRole('button',{name:'连接本机环境服务',exact:true}).count(),0);
   report.checks.push('one explicit AI pairing shares its authorized helper client with the inline Simulation panel, including an empty project catalog');
 
-  await wizard.getByRole('button',{name:'导入当前网表',exact:true}).click();
+  await wizard.locator('[data-environment-field="import-mode"]').selectOption('legacy');await wizard.getByRole('button',{name:'导入当前网表',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('select[aria-label="运行节点项目"]')?.value==='onboarding:synthetic-intake');
   assert.match(await wizard.locator('[data-environment-step="1"]').innerText(),/synthetic\.scs.*2 个器件/);
   const projects=page.getByRole('combobox',{name:'运行节点项目',exact:true});assert.match(await projects.innerText(),/当前网表 · synthetic\.scs/);

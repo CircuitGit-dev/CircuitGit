@@ -1,0 +1,141 @@
+{
+  "schema": "ic.onboarding.analysis-examples.v1",
+  "synthetic": true,
+  "producer": "tools/workbench/test_onboarding_analysis.py --write-examples",
+  "evidence": {
+    "adapter": "actual OnboardingAnalysis and WaveformService",
+    "data": "original synthetic saved CSV and archive receipt",
+    "algorithm": "explicit test seam, metrics do not validate numerical algorithms",
+    "ssh_calls": 0,
+    "solver_invocations": 0,
+    "model_calls": 0
+  },
+  "request": {
+    "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "job_id": "synthetic-original-run",
+    "operation": "spec_analyze",
+    "inputs": {
+      "samples": "s_b9e28cc715bed0030a3e61c953adffba"
+    },
+    "parameters": {
+      "signal_unit": "V",
+      "backend": "spiceowl"
+    },
+    "criteria": [
+      {
+        "metric": "sndr_db",
+        "op": ">=",
+        "threshold": 60,
+        "unit": "dB"
+      }
+    ]
+  },
+  "analysis": {
+    "schema": "ic.onboarding.analysis.v1",
+    "intake_id": "intake_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "job_id": "synthetic-original-run",
+    "run_id": "synthetic-original-run",
+    "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "original_source_sha256": "76d296288cf3275f52df8245f33209bd9f25639e8e56dd1beb89f6c0ce770aa2",
+    "archive_sha256": "9d704b7921f985b749e890fa4e1d7fe1ca67e7b2a55bcb35e674937567360dcb",
+    "input": {
+      "csv_sha256": "dc46958e174d6b3d6f3ae3f328214abe9841b1ad148ff72c1bcabad24f82f0ac",
+      "raw_signature": "ae8cd385a4b9b69b0b5f6caf03e56f077fd192c00f56a6199de4597de3c5eae5",
+      "archive_sha256": "9d704b7921f985b749e890fa4e1d7fe1ca67e7b2a55bcb35e674937567360dcb",
+      "source_hashes": {
+        "projects/synthetic/input.scs": "76d296288cf3275f52df8245f33209bd9f25639e8e56dd1beb89f6c0ce770aa2"
+      },
+      "effective_config_sha256": "e096a06f7d2d68835dd1f8d09ed078de0e7907e47f919046c14dee51944f1b45",
+      "sample_count": 21,
+      "data_basis": "OCEAN_exported_CSV",
+      "selection": {
+        "samples": {
+          "id": "s_b9e28cc715bed0030a3e61c953adffba",
+          "psf_name": "out",
+          "label": "out",
+          "analysis": "tran",
+          "quantity": "voltage",
+          "unit": "V",
+          "polarity": null,
+          "status": "available",
+          "sample_count": 21,
+          "domain": [
+            0.0,
+            2.0
+          ],
+          "x_unit": "s",
+          "data_basis": "OCEAN_exported_CSV",
+          "name_evidence": "exact name in same-run OCEAN export receipt and matching CSV header"
+        },
+        "time_s": {
+          "axis": "time",
+          "unit": "s"
+        }
+      },
+      "full_resolution": true,
+      "display_downsampling_used": false
+    },
+    "request": {
+      "operation": "spec_analyze",
+      "inputs": {
+        "samples": "s_b9e28cc715bed0030a3e61c953adffba"
+      },
+      "parameters": {
+        "signal_unit": "V",
+        "backend": "spiceowl"
+      },
+      "criteria": [
+        {
+          "metric": "sndr_db",
+          "op": ">=",
+          "threshold": 60,
+          "unit": "dB"
+        }
+      ]
+    },
+    "request_sha256": "8783fab750136ec92640540479ec32be9b6061757f36d664536457e39ce90f64",
+    "evaluation_scope": "exploratory",
+    "result": {
+      "schema": "spiceowl.adctools.result.v1",
+      "operation": "spec_analyze",
+      "algorithm_version": "1.0.0",
+      "backend": "synthetic-test-seam",
+      "backend_version": "1",
+      "status": "valid",
+      "metrics": {
+        "sndr_db": {
+          "value": 65.0,
+          "unit": "dB",
+          "status": "valid"
+        }
+      },
+      "warnings": [],
+      "specification_result": "not_evaluated"
+    },
+    "evaluation": {
+      "specification_result": "pass",
+      "criteria": [
+        {
+          "metric": "sndr_db",
+          "op": ">=",
+          "threshold": 60,
+          "unit": "dB",
+          "value": 65.0,
+          "verdict": "pass",
+          "reason": null
+        }
+      ]
+    },
+    "network_operations": 0,
+    "solver_invocations": 0,
+    "changes_original_job_verdict": false,
+    "analysis_id": "8bbd8a9493dc3fe802d895396b0ee4fb4717f3e55a71ff055319d3730b40cca4",
+    "artifact": {
+      "id": "8bbd8a9493dc3fe802d895396b0ee4fb4717f3e55a71ff055319d3730b40cca4",
+      "sha256": "2b86f5bc5c2c2186c2945c9c02dc2787579498946b7542cc415b18827ac22ede",
+      "format": "application/json",
+      "bytes": 3013,
+      "full_result": true
+    }
+  }
+}

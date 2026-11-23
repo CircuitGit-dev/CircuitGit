@@ -73,10 +73,10 @@ class OnboardingServiceTests(unittest.TestCase):
 
     def posts(self):return [(p,b) for p,b,_ in self.gateway.calls if b is not None]
 
-    def test_catalog_has_twelve_strict_independent_tools_and_correct_effect_hints(self):
+    def test_catalog_has_eighteen_strict_independent_tools_and_correct_effect_hints(self):
         names={'ic_'+name for name in ONBOARDING_ROUTES}
         selected={row['name']:row for row in tools() if row['name'] in names}
-        self.assertEqual(len(selected),12)
+        self.assertEqual(len(selected),18)
         for name,row in selected.items():
             self.assertIs(row['inputSchema']['additionalProperties'],False)
             self.assertFalse({'origin','caller_id','commands','url','config_path','idempotency_key'} & set(row['inputSchema']['properties']))

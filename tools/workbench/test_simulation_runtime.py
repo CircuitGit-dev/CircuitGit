@@ -48,7 +48,8 @@ def run(host='node-a', **changes):
 
 
 def diagnosis(*args, execution_state='unknown', exit_code=None, acceptance=None, **kwargs):
-    return {'schema': 'spiceowl.spectre-diagnostics.v1', 'observed_context': {'execution_state': execution_state},
+    return {'schema': 'spiceowl.spectre-diagnostics.v1', 'observed_context': {
+                'execution_state': execution_state, 'acceptance_source': 'synthetic-test-observation'},
             'diagnostics': [{'category': 'unknown', 'severity': 'info', 'code': 'unclassified',
                              'evidence_line_numbers': [], 'redacted_excerpt': '', 'suggested_actions': []}],
             'scientific_acceptance': {'execution': execution_state,
@@ -156,7 +157,13 @@ class RuntimeTests(unittest.TestCase):
     def install_diagnoser(self):
         module = types.ModuleType('spiceowl.integrations.spectre_diagnostics')
         module.diagnose_spectre = Mock(side_effect=diagnosis)
-        self._patch(patch.dict(sys.modules, {'spiceowl.integrations.spectre_diagnostics': module}))
+        # This transport fixture supplies a minimal diagnostic observation. Do
+        # not feed it into the real report builder when the optional package is
+        # installed; actual report/diagnostic contracts have separate tests.
+        report = types.ModuleType('spiceowl.integrations.spectre_report')
+        report.build_spectre_report = Mock(side_effect=ValueError('Synthetic diagnostic fixture has no full report evidence'))
+        self._patch(patch.dict(sys.modules, {'spiceowl.integrations.spectre_diagnostics': module,
+                                            'spiceowl.integrations.spectre_report': report}))
         return module.diagnose_spectre
 
     def assert_no_execution(self):

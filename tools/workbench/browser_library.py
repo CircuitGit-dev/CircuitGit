@@ -6,8 +6,8 @@ import secrets
 import threading
 import time
 
-READS = {'catalog', 'describe', 'read_file', 'current', 'history', 'commit_detail', 'checkpoints', 'get_ci', 'receipt', 'pr_status'}
-PREVIEWS = {'preview_save', 'preview_commit', 'preview_restore', 'preview_pr', 'preview_ci'}
+READS = {'catalog', 'describe', 'read_file', 'current', 'history', 'commit_detail', 'checkpoints', 'get_ci', 'receipt', 'pr_status', 'get_testbenches', 'get_testbench_result'}
+PREVIEWS = {'preview_save', 'preview_commit', 'preview_restore', 'preview_pr', 'preview_ci', 'preview_testbench'}
 EXECUTIONS = {'save', 'save_files', 'commit', 'restore', 'pr', 'ci'}
 
 
@@ -38,6 +38,17 @@ class LocalLibrary:
     def read(self, operation, args, token, origin):
         self.identity(token, origin)
         if not isinstance(args, dict): raise ValueError('Operation arguments must be an object')
+        if operation == 'review_testbench':
+            if set(args) != {'library_id', 'cell_id', 'review_id'}:
+                raise ValueError('Exact cell and testbench proposal are required')
+            # Rehydrate only a stored proposal bound to this owned cell. This
+            # opens the existing local human form; it never approves a bundle.
+            review = self.workflow.testbench_review(**args)
+            rid = review['review_id']
+            with self.lock:
+                self.reviews[rid] = {'owner': self.identity(token, origin), 'review': review,
+                    'token': token, 'origin': origin, 'preparation': 'testbench-' + rid}
+            return self.request(rid, token, origin)
         if operation == 'review_status':
             if set(args) != {'ticket'}: raise ValueError('Exact ticket required')
             with self.lock:
@@ -52,7 +63,7 @@ class LocalLibrary:
             if args: raise ValueError('Capability takes no arguments')
             return {'available': True, 'schema': 'circuitgit.library-workflow.v1',
                     'repository': self.workflow.repository, 'root': str(self.workflow.root),
-                    'authorization': 'paired-browser', 'human_review': 'not-required',
+                    'authorization': 'paired-browser', 'human_review': 'required-for-testbench-registration',
                     'operations': sorted(READS | PREVIEWS | EXECUTIONS), 'execute_operations': sorted(EXECUTIONS)}
         if operation not in READS: raise ValueError('Unknown library read operation')
         if operation == 'receipt':

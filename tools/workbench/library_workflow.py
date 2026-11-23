@@ -10,6 +10,7 @@ import datetime
 import difflib
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -77,8 +78,8 @@ def branch_name(value):
 
 
 class LibraryWorkflow:
-    READ_OPERATIONS = frozenset({"catalog", "describe", "read_file", "current", "history", "commit_detail", "checkpoints", "get_ci", "review", "receipt", "pr_status"})
-    PREPARE_OPERATIONS = frozenset({"preview_save", "preview_commit", "preview_restore", "preview_pr", "preview_ci"})
+    READ_OPERATIONS = frozenset({"catalog", "describe", "read_file", "current", "history", "commit_detail", "checkpoints", "get_ci", "get_testbenches", "get_testbench_result", "review", "receipt", "pr_status"})
+    PREPARE_OPERATIONS = frozenset({"preview_save", "preview_commit", "preview_restore", "preview_pr", "preview_ci", "preview_testbench"})
     EXECUTE_OPERATIONS = frozenset({"save", "save_files", "commit", "restore", "pr", "ci"})
 
     def __init__(self, root, repository, base_branch="main", state_dir=None, ci_registry=None, gh_bin="gh"):
@@ -251,10 +252,34 @@ class LibraryWorkflow:
         owned = {p for p in paths if p.startswith(directory + "/") or legacy_prefix and p.startswith(legacy_prefix)}
         ci_path = directory + "/ci.json"
         owned.add(ci_path)
+        source_paths = set(paths)
+        bundle_index = directory + "/testbenches/index.json"
+        bundle_raw = self._blob(head, bundle_index)
+        bundle_paths = set()
+        if bundle_raw is not None:
+            try:
+                bundle_data = json.loads(bundle_raw)
+            except ValueError:
+                raise WorkflowError("invalid_testbench", "Committed Testbench CI index is invalid") from None
+            require(isinstance(bundle_data, dict) and bundle_data.get("schema") == "ic.testbench_ci_index.v1"
+                    and (bundle_data.get("library_id"), bundle_data.get("cell_id")) == (lid, cid)
+                    and isinstance(bundle_data.get("testbenches"), list) and len(bundle_data["testbenches"]) <= 64,
+                    "Committed Testbench CI index differs from the selected cell")
+            seen = set()
+            for item in bundle_data["testbenches"]:
+                require(isinstance(item, dict), "Invalid Testbench CI index entry")
+                tid = identifier(item.get("id"))
+                require(tid not in seen, "Duplicate Testbench CI registration"); seen.add(tid)
+                prefix = directory + "/testbenches/" + tid + "/"
+                require(item.get("manifest_path") == prefix + "manifest.json", "Testbench manifest escaped its cell")
+                bundle_paths.update(prefix + name for name in ("testbench.scs", "analysis.py", "manifest.json"))
+            bundle_paths.add(bundle_index)
+            paths.update(bundle_paths); owned.update(bundle_paths)
         editable = {p for p in owned if PurePosixPath(p).suffix.lower() in TEXT
-                    and not p.endswith(("/docs/provenance.json", "/provenance.json"))}
+                    and p not in bundle_paths and not p.endswith(("/docs/provenance.json", "/provenance.json"))}
         return {"library_id": lid, "cell_id": cid, "cell": cell, "head": head, "paths": paths | {ci_path},
                 "owned": owned, "editable": editable, "ci_path": ci_path,
+                "source_paths": source_paths, "bundle_index": bundle_index, "bundle_paths": bundle_paths,
                 "scope_hash": digest([catalog_hash, manifest_hash, lid, cid])}
 
     def _file(self, path):
@@ -304,7 +329,7 @@ class LibraryWorkflow:
                 "committer": self._identity(),
                 "files": [{"path": p, "editable": p in scope["editable"] and p != scope["ci_path"]} for p in sorted(scope["paths"])],
                 "capabilities": {"read": True, "save": True, "save_files": True, "execute": True, "commit": self._branch() is not None,
-                                 "restore": True, "pr": True, "ci": bool(self._cell_testbenches(scope))},
+                                 "restore": True, "pr": True, "ci": bool(self._cell_testbenches(scope)), "testbench_review": self._branch() is not None},
                 "provenance_note": "Recorded import provenance remains historical; saved source edits are new working revisions."}
 
     def catalog(self):
@@ -596,6 +621,7 @@ class LibraryWorkflow:
             self._validate_ci(scope, config)
         return {"path": scope["ci_path"], "sha256": digest(raw) if raw is not None else None, "config": config,
                 "testbenches": self._cell_testbenches(scope), "execution_status": "not_checked",
+                "agent_testbenches": self.get_testbenches(library_id, cell_id),
                 "note": "Configuration selects registered checks only. No workflow or Spectre simulation has been started."}
 
     def _validate_ci(self, scope, config):
@@ -619,6 +645,206 @@ class LibraryWorkflow:
         self._validate_ci(scope, config)
         return self._save_review(scope, scope["ci_path"], json.dumps(config, indent=2) + "\n", base_sha256, "ci", {"registry_hash": digest(self.ci_registry)})
 
+    def _testbench_source(self, scope, require_clean=False):
+        hashes = {}
+        for path in sorted(scope["source_paths"]):
+            raw = self._file(path)
+            require(raw is not None, "The cell source closure contains a missing file", "conflict", 409)
+            if require_clean:
+                require(raw == self._blob(scope["head"], path), "Commit the exact cell source before proposing a Testbench CI", "conflict", 409)
+            hashes[path] = digest(raw)
+        return {"source_commit": scope["head"], "files": hashes, "sha256": digest(hashes), "inventory_sha256": digest(scope["cell"])}
+
+    def _testbench_index(self, scope):
+        raw = self._file(scope["bundle_index"])
+        require(raw == self._blob(scope["head"], scope["bundle_index"]), "Testbench CI index has uncommitted changes", "conflict", 409)
+        return json.loads(raw) if raw else {"schema": "ic.testbench_ci_index.v1", "library_id": scope["library_id"],
+                                          "cell_id": scope["cell_id"], "testbenches": []}
+
+    def _agent_testbench_manifest(self, manifest):
+        # Load only the fixed, installed stdlib validator. Repository candidate
+        # Python and authored analysis.py are never imported by this workflow.
+        spec = importlib.util.spec_from_file_location("ic_agent_testbench_manifest", Path(__file__).with_name("agent_testbench_manifest.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        try:
+            validated = module.validate_manifest(manifest)
+        except (ValueError, TypeError):
+            raise WorkflowError("invalid_testbench", "Provide a complete finite ic.agent_testbench.v1 manifest") from None
+        require(bool(validated["criteria"]), "Explicit Testbench CI acceptance criteria are required")
+        return validated["criteria"]
+
+    def preview_testbench(self, library_id, cell_id, testbench_id, base_commit, testbench, analysis, manifest, title, body=""):
+        """Freeze Agent-authored bytes for the existing correlated human Web review.
+
+        This method creates local review data only. It is deliberately absent
+        from EXECUTE_OPERATIONS: the Agent cannot register executable code.
+        """
+        scope = self._scope(library_id, cell_id)
+        tid = identifier(testbench_id)
+        require(base_commit == scope["head"] and self._branch() is not None, "An exact current source commit and attached branch are required", "conflict", 409)
+        require(isinstance(title, str) and 0 < len(title.strip()) <= 120 and not any(ord(c) < 32 for c in title), "Invalid Testbench CI title")
+        require(isinstance(body, str) and len(body) <= 8000 and "\0" not in body and not PRIVATE.search(title + "\n" + body), "Invalid Testbench CI description")
+        criteria = self._agent_testbench_manifest(manifest)
+        require(manifest["text"] == testbench, "Manifest text must equal the complete reviewed testbench bytes")
+        source = self._testbench_source(scope, require_clean=True)
+        prefix = scope["cell"]["directory"] + "/testbenches/" + tid + "/"
+        tb = self._content(prefix + "testbench.scs", testbench)
+        script = self._content(prefix + "analysis.py", analysis)
+        require(tb.strip() and script.strip(), "A complete testbench and analysis script are required")
+        # Syntax checking is non-executing. Python is retained for code review,
+        # never imported or run by a library/CI operation.
+        try:
+            compile(analysis, "analysis.py", "exec", dont_inherit=True)
+        except (SyntaxError, ValueError):
+            raise WorkflowError("invalid_testbench", "Analysis script is not valid Python source") from None
+        self._content(prefix + "manifest.json", canonical(manifest))
+        binding = {"source_commit": source["source_commit"], "source_sha256": source["sha256"],
+                   "source_inventory_sha256": source["inventory_sha256"],
+                   "testbench_sha256": digest(tb), "analysis_sha256": digest(script),
+                   "manifest_sha256": digest(manifest), "criteria_sha256": digest(criteria)}
+        record = {"schema": "ic.testbench_ci.v1", "id": tid, "library_id": library_id, "cell_id": cell_id,
+                  "source": source, "binding": binding, "agent_manifest": manifest,
+                  "testbench_path": prefix + "testbench.scs", "analysis_path": prefix + "analysis.py",
+                  "execution": "spiceowl_named_algorithm", "arbitrary_script_execution": False,
+                  "title": title.strip(), "body": body, "simulation_started": False}
+        contents = {prefix + "testbench.scs": testbench, prefix + "analysis.py": analysis,
+                    prefix + "manifest.json": json.dumps(record, ensure_ascii=False, indent=2) + "\n"}
+        index = self._testbench_index(scope)
+        index["testbenches"] = [item for item in index["testbenches"] if item["id"] != tid]
+        require(len(index["testbenches"]) < 64, "A cell can register at most 64 Testbench CI bundles")
+        index["testbenches"].append({"id": tid, "manifest_path": prefix + "manifest.json",
+                                   "manifest_sha256": digest(contents[prefix + "manifest.json"].encode()), "enabled": True})
+        index["testbenches"].sort(key=lambda item: item["id"])
+        contents[scope["bundle_index"]] = json.dumps(index, ensure_ascii=False, indent=2) + "\n"
+        snapshots, per_file = [], []
+        for path, content in contents.items():
+            raw, before = self._content(path, content), self._file(path)
+            require(before == self._blob(scope["head"], path), "Testbench bundle has uncommitted files; preserve them before proposing an update", "conflict", 409)
+            sha = digest(before) if before is not None else None
+            snapshots.append({"path": path, "content": content, "base_sha256": sha, "sha256": digest(raw),
+                              "checkpoint_base": self._checkpoint_base(scope, path)})
+            per_file.append({"path": path, "before_sha256": sha, "sha256": digest(raw), "diff": self._diff(path, before, raw)})
+        files = sorted(contents)
+        staged = self._git("diff", "--cached", "--name-only", "-z", "--", *files).stdout
+        require(not staged, "Testbench paths have staged changes; preserve that staging before registration", "conflict", 409)
+        diff = "".join(item["diff"] for item in per_file)
+        require(diff and len(diff.encode()) <= MAX_DIFF, "Testbench preview is empty or exceeds review bounds", "diff_limit", 413)
+        payload = {"testbench_id": tid, "files": files, "snapshots": snapshots, "per_file_diffs": per_file,
+                   "manifest": manifest, "binding": binding, "source": source, "committer": self._identity(),
+                   "message": title.strip() + ("\n\n" + body.strip() if body.strip() else ""),
+                   "human_review_required": True, "simulation_started": False}
+        return self._review(scope, "register_testbench", payload, diff,
+                            "Review all testbench, analysis and criteria bytes; confirm once to register a cell-scoped Git version. No simulation is submitted.")
+
+    def get_testbenches(self, library_id, cell_id):
+        scope = self._scope(library_id, cell_id)
+        index = self._testbench_index(scope)
+        source = self._testbench_source(scope)
+        result_records = []
+        for path in sorted((self.state / "testbench-results").glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:256]:
+            value = self._record(path)
+            if (value.get("library_id"), value.get("cell_id")) == (library_id, cell_id):
+                require(value.get("schema") == "ic.testbench_ci_result.v1" and digest(value) == path.stem, "Saved CI result integrity failed")
+                result_records.append({"result_id": path.stem, **{key: value.get(key) for key in
+                                      ("testbench_id", "registration_commit", "binding", "status", "job_id", "analysis_id", "evaluation", "source_commit")}})
+                if len(result_records) >= 32:
+                    break
+        bundles = []
+        for item in index["testbenches"]:
+            raw = self._blob(scope["head"], item["manifest_path"])
+            require(raw is not None and digest(raw) == item.get("manifest_sha256"), "Registered Testbench CI manifest integrity failed", "conflict", 409)
+            record = json.loads(raw)
+            require(record.get("schema") == "ic.testbench_ci.v1" and record.get("id") == item["id"]
+                    and (record.get("library_id"), record.get("cell_id")) == (library_id, cell_id), "Registered Testbench CI identity differs")
+            require(isinstance(record.get("source"), dict) and isinstance(record["source"].get("files"), dict)
+                    and record["source"].get("sha256") == digest(record["source"]["files"])
+                    and record.get("binding", {}).get("source_sha256") == record["source"]["sha256"]
+                    and record["binding"].get("source_inventory_sha256") == record["source"].get("inventory_sha256")
+                    and record["binding"].get("source_commit") == record["source"].get("source_commit"), "Registered source binding integrity failed")
+            prefix = scope["cell"]["directory"] + "/testbenches/" + item["id"] + "/"
+            for name, field in (("testbench.scs", "testbench_sha256"), ("analysis.py", "analysis_sha256")):
+                content = self._blob(scope["head"], prefix + name)
+                require(content is not None and digest(content) == record["binding"].get(field), "Registered Testbench CI file integrity failed", "conflict", 409)
+            require(digest(record["agent_manifest"]) == record["binding"].get("manifest_sha256")
+                    and digest(self._agent_testbench_manifest(record["agent_manifest"])) == record["binding"].get("criteria_sha256"), "Registered criteria integrity failed")
+            commit = self._git("log", "-1", "--format=%H", scope["head"], "--", item["manifest_path"]).stdout.decode().strip()
+            bundles.append({"id": item["id"], "title": record.get("title", item["id"]), "enabled": item.get("enabled") is True,
+                            "manifest_path": item["manifest_path"], "registration_commit": commit, "binding": record["binding"],
+                            "source_matches": source["files"] == record["source"]["files"] and source["inventory_sha256"] == record["source"]["inventory_sha256"], "execution": record["execution"],
+                            "execution_status": "not_run", "arbitrary_script_execution": False})
+            results = [result for result in result_records if result["testbench_id"] == item["id"]
+                       and result["registration_commit"] == commit and result["binding"] == record["binding"]]
+            if results:
+                bundles[-1].update(execution_status=results[0]["status"], latest_result=results[0])
+            pending_runs = []
+            for request_path in (self.state / "testbench-runs").glob("*/request.json"):
+                if (request_path.parent / "complete.json").exists():
+                    continue
+                pending = self._record(request_path)
+                if ((pending.get("library_id"), pending.get("cell_id"), pending.get("testbench_id")) == (library_id, cell_id, item["id"])
+                        and pending.get("registration_commit") == commit and pending.get("binding") == record["binding"]):
+                    pending_runs.append({"run_key": request_path.parent.name, "automatic_retry": False})
+            if pending_runs:
+                bundles[-1].update(execution_status="unknown", pending_runs=pending_runs[:16])
+        proposals = []
+        for path in sorted((self.state / "reviews").glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:256]:
+            record = self._record(path)
+            if record.get("operation") != "register_testbench" or (record.get("library_id"), record.get("cell_id")) != (library_id, cell_id):
+                continue
+            payload = record["payload"]
+            receipt = self.receipt(review_id=path.stem)
+            proposals.append({"review_id": path.stem, "id": payload["testbench_id"], "title": payload["message"].split("\n", 1)[0],
+                              "binding": payload["binding"], "base_commit": record["base_commit"], "state": receipt["state"],
+                              "source_matches": record["base_commit"] == scope["head"] and payload["source"]["files"] == source["files"],
+                              "files": payload["files"], "per_file_diffs": payload["per_file_diffs"]})
+            if len(proposals) >= 20:
+                break
+        result = {"library_id": library_id, "cell_id": cell_id, "base_commit": scope["head"], "bundles": bundles,
+                  "proposals": proposals, "results": result_records, "simulation_started": False,
+                  "note": "Registration versions reviewed bytes only. Named analysis and remote solver require their own exact artifact/run binding."}
+        require(len(canonical(result).encode()) <= MAX_OUTPUT, "Testbench inventory exceeds bounded output", "output_limit", 413)
+        return result
+
+    def get_testbench_result(self, library_id, cell_id, testbench_id, result_id):
+        self._scope(library_id, cell_id)
+        tid = identifier(testbench_id)
+        require(isinstance(result_id, str) and HASH.fullmatch(result_id), "An exact CI result digest is required")
+        value = self._record(self.state / "testbench-results" / (result_id + ".json"))
+        require(digest(value) == result_id and (value.get("library_id"), value.get("cell_id"), value.get("testbench_id")) == (library_id, cell_id, tid),
+                "CI result does not belong to this exact cell/testbench", "out_of_scope", 403)
+        return {**value, "result_id": result_id}
+
+    def testbench_registration(self, library_id, cell_id, testbench_id, registration_commit, binding):
+        """Require this host's durable human-reviewed registration, not Git data alone."""
+        identifier(library_id); identifier(cell_id); identifier(testbench_id)
+        require(isinstance(registration_commit, str) and SHA.fullmatch(registration_commit), "Exact registered commit required")
+        for path in (self.state / "operations").glob("*/complete.json"):
+            value = self._record(path)
+            if (value.get("operation") != "register_testbench" or value.get("registered") is not True
+                    or value.get("state") != "complete" or value.get("registration_commit") != registration_commit
+                    or value.get("testbench_id") != testbench_id or value.get("binding") != binding):
+                continue
+            review = self.review(value["review_id"])
+            if (review["library_id"], review["cell_id"]) != (library_id, cell_id):
+                continue
+            require(review["operation"] == "register_testbench" and review["payload"]["binding"] == binding,
+                    "Registration receipt differs from its frozen review")
+            return {"review_id": value["review_id"], "operation_id": value["operation_id"], "registration_commit": registration_commit}
+        raise WorkflowError("review_required", "This host has no completed human-reviewed registration for the exact Testbench CI version", 403)
+
+    def testbench_review(self, library_id, cell_id, review_id):
+        """Read one exact proposal for a paired browser to open human review."""
+        scope = self._scope(library_id, cell_id)
+        review = self.review(review_id)
+        require(review.get("operation") == "register_testbench"
+                and (review.get("library_id"), review.get("cell_id")) == (library_id, cell_id),
+                "Testbench review does not belong to this cell", "out_of_scope", 403)
+        require(review["base_commit"] == scope["head"] and review["scope_hash"] == scope["scope_hash"]
+                and review["payload"]["source"] == self._testbench_source(scope, require_clean=True),
+                "Testbench source changed; prepare a new review", "conflict", 409)
+        return review
+
     def _base(self):
         for ref in ("refs/remotes/origin/" + self.base_branch, "refs/heads/" + self.base_branch):
             result = self._git("rev-parse", "--verify", "--end-of-options", ref + "^{commit}", check=False)
@@ -636,7 +862,13 @@ class LibraryWorkflow:
         base = self._base()
         self._reachable(base, commit)
         files = self._git("diff", "--no-ext-diff", "--no-textconv", "--name-only", "-z", base, commit).stdout.decode().rstrip("\0").split("\0")
-        require(files != [""] and set(files) <= scope["editable"], "PR contains changes outside the selected cell; prepare a cell-only branch first", "out_of_scope", 409)
+        require(files != [""] and set(files) <= scope["editable"] | scope["bundle_paths"], "PR contains changes outside the selected cell; prepare a cell-only branch first", "out_of_scope", 409)
+        if set(files) & scope["bundle_paths"]:
+            require(commit == scope["head"], "Publish the exact current reviewed Testbench CI version", "conflict", 409)
+            for bundle in self.get_testbenches(library_id, cell_id)["bundles"]:
+                prefix = scope["cell"]["directory"] + "/testbenches/" + bundle["id"] + "/"
+                if any(path.startswith(prefix) for path in files):
+                    self.testbench_registration(library_id, cell_id, bundle["id"], bundle["registration_commit"], bundle["binding"])
         for path in files:
             content = self._blob(commit, path)
             require(content is not None, "Deletion is not supported by the library PR workflow")
@@ -769,6 +1001,17 @@ class LibraryWorkflow:
             elif operation == "pr":
                 refreshed = self.preview_pr(scope["library_id"], scope["cell_id"], payload["commit"], payload["title"], payload["body"], payload["pr_branch"], payload["base_branch"], payload["action"])
                 require(refreshed["review_id"] == review_id, "PR base or reviewed scope changed", "conflict", 409)
+            elif operation == "register_testbench":
+                require(payload.get("human_review_required") is True, "Missing Testbench CI human-review declaration")
+                require(self._testbench_source(scope, require_clean=True) == payload["source"], "Cell source changed after testbench review", "conflict", 409)
+                self._agent_testbench_manifest(payload["manifest"])
+                for item in payload["snapshots"]:
+                    before = self._file(item["path"])
+                    require((digest(before) if before is not None else None) == item["base_sha256"]
+                            and digest(item["content"].encode()) == item["sha256"], "Testbench bytes changed after review", "conflict", 409)
+                    require(item["checkpoint_base"] == self._checkpoint_base(scope, item["path"]), "Testbench save history changed after review", "conflict", 409)
+                require(not self._git("diff", "--cached", "--name-only", "-z", "--", *payload["files"]).stdout,
+                        "Testbench paths gained staged changes after review", "conflict", 409)
             else:
                 raise WorkflowError("invalid_review", "Unsupported frozen workflow operation")
             self._append(folder / "request.json", {"review_id": review_id, "operation": operation, "created_at": now()})
@@ -779,6 +1022,8 @@ class LibraryWorkflow:
                     result = self._apply_save(review, oid)
                 elif operation == "commit":
                     result = self._apply_commit(review, oid)
+                elif operation == "register_testbench":
+                    result = self._apply_register_testbench(review, oid)
                 else:
                     result = self._apply_pr(review, oid)
                 result = {**result, "schema": SCHEMA, "operation_id": oid, "review_id": review_id,
@@ -875,6 +1120,16 @@ class LibraryWorkflow:
                     "files": states, "rollback_errors": rollback_errors, "automatic_push": False}
         return {"operation": "save_files", "group_id": oid, "checkpoint_ids": checkpoints,
                 "files": review["payload"]["files"], "automatic_push": False}
+
+    def _apply_register_testbench(self, review, oid):
+        payload = review["payload"]
+        saved = self._apply_save_files({**review, "payload": {**payload, "changes": payload["snapshots"]}}, oid)
+        if saved.get("state", "complete") != "complete":
+            return {**saved, "operation": "register_testbench", "registered": False, "simulation_started": False}
+        result = self._apply_commit(review, oid)
+        return {**result, "operation": "register_testbench", "registered": True, "testbench_id": payload["testbench_id"],
+                "registration_commit": result["commit"], "binding": payload["binding"],
+                "checkpoint_ids": saved["checkpoint_ids"], "simulation_started": False, "execution_status": "not_run"}
 
     def _apply_commit(self, review, oid):
         payload, base = review["payload"], review["base_commit"]

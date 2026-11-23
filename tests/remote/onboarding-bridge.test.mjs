@@ -4,15 +4,16 @@ import {readFile} from 'node:fs/promises';
 import {createNodeClient} from '../../apps/web/remote/client.js';
 import {Gateway} from '../../apps/web/api.js';
 import {createOnboardingBridge,createOnboardingPendingStore,createOnboardingSelectionStore,snapshotOnboardingSource} from '../../apps/web/remote/onboarding-bridge.js';
+import {analysisSession} from '../studio/analysis.fixture.mjs';
 
 const intake='intake-public-fixture',plan='plan-fixture';
 const session=revision=>({schema:'ic.onboarding.session.v1',connection_id:'store-A',intake_id:intake,revision,source_commit:null});
 function memory(){const values=new Map();return {getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)};}
-function fixture({storage=memory(),storeId='store-A',gateway=false,respond}={}){
+function fixture({storage=memory(),storeId='store-A',gateway=false,respond,open}={}){
   const calls=[],pairs=[],info={schema:'circuitgit.remote-node.v1',node_id:'node-fixture',connection_id:storeId,single_owner:true,auth:'bearer',capabilities:{chat:false,simulation_onboarding:true,simulation_onboarding_api_version:'1',override_fields:['spectre_path']}};
   let closed=0;
   const transport={base:'http://127.0.0.1:18885',close(){closed++;},health:async()=>{calls.push({path:'/health'});return info;},request:async(path,options={})=>{calls.push({path,...options});if(path==='/node/info')return info;if(respond)return respond(path,options);if(path.endsWith('/netlist'))return session(0);if(path.endsWith('/probe'))return session(options.body.revision+1);if(path.endsWith('/prepare'))return {...session(options.body.revision+1),prepared:{plan_id:plan,submission_key:'experiment-'+plan}};if(path.includes('/session?'))return session(2);if(path.includes('/submission?'))return {intake_id:intake,plan_id:plan,submission_key:'experiment-'+plan,found:false,replay_permitted:false};return {hosts:[]};}};
-  const bridge=createOnboardingBridge({win:{location:{origin:'http://127.0.0.1:18884'}},gateway:gateway?transport:null,pair:options=>{pairs.push(options);return {result:Promise.resolve({url:options.base,accessCode:'x'.repeat(43)}),cancel(){}};},clientFactory:()=>transport,pendingStore:createOnboardingPendingStore({storage}),selectionStore:createOnboardingSelectionStore({storage})});
+  const bridge=createOnboardingBridge({win:{location:{origin:'http://127.0.0.1:18884'},open},gateway:gateway?transport:null,pair:options=>{pairs.push(options);return {result:Promise.resolve({url:options.base,accessCode:'x'.repeat(43)}),cancel(){}};},clientFactory:()=>transport,pendingStore:createOnboardingPendingStore({storage}),selectionStore:createOnboardingSelectionStore({storage})});
   return {bridge,storage,calls,pairs,info,transport,get closed(){return closed;}};
 }
 async function imported(f){await f.bridge.connect({port:18885});await f.bridge.inspectNetlist({file_name:'inverter.scs',text:'subckt INV A Y VDD VSS\nends INV\n'});}
@@ -23,6 +24,46 @@ test('RNL virtual-root alias resolves the current file and its editor buffer exa
   assert.deepEqual(snapshotOnboardingSource(doc,{hasBuffer:path=>path==='circuit/inv.scs',fileText:()=> 'edited'}),{file_name:'inv.scs',text:'edited'});
   assert.equal(snapshotOnboardingSource({...doc,path:'/elsewhere/inv.scs'}),null);
   assert.equal(snapshotOnboardingSource({...doc,files:[...doc.files,{path:'circuit/inv.scs',text:'ambiguous'}]}),null);
+});
+
+async function reviewFixture({mutate=()=>{},open}={}){
+  const review_id='a'.repeat(64),review_digest='b'.repeat(64),plan_id='c'.repeat(64);
+  const path='/agent-tb/review?'+new URLSearchParams({intake_id:intake,review_id});
+  const snapshot={...session(3),prepared:{plan_id},agent_tb_review:{state:'pending',requires_human:true,revision:3,review_id,review_digest,plan_id,review_path:path,review_url:'http://127.0.0.1:19666'+path}};
+  mutate(snapshot);const f=fixture({respond:()=>structuredClone(snapshot),open});await imported(f);
+  return {...f,snapshot,args:{intake_id:intake,revision:3,review_id,review_digest,plan_id}};
+}
+test('a human review click opens only the frozen gateway form and never posts run or approval',async()=>{
+  const opened=[],popup={opener:'synthetic-opener',location:{replace:url=>opened.push(url)}};
+  const f=await reviewFixture({open:(...args)=>{assert.deepEqual(args,['about:blank','_blank']);return popup;}}),before=f.calls.length;
+  assert.throws(()=>f.bridge.openAgentTestbenchReview(f.args),error=>error.data.code==='human_gesture_required');
+  assert.equal(f.bridge.openAgentTestbenchReview(f.args,{event:{isTrusted:true}}).opened,true);
+  assert.equal(popup.opener,null);assert.deepEqual(opened,[f.snapshot.agent_tb_review.review_url]);assert.equal(f.calls.length,before);
+  assert.equal('approveAgentTestbench' in f.bridge,false);assert.equal('runReviewedAgentTestbench' in f.bridge,false);
+});
+test('foreign, missing, stale and altered review URLs cannot open a window',async()=>{
+  for(const mutate of [
+    value=>value.agent_tb_review.review_url='https://example.org'+value.agent_tb_review.review_path,
+    value=>value.agent_tb_review.review_url='http://localhost:19666'+value.agent_tb_review.review_path,
+    value=>value.agent_tb_review.review_url+='&other=1',value=>delete value.agent_tb_review.review_url,
+    value=>value.agent_tb_review.review_path+='/changed',value=>value.agent_tb_review.state='approved',
+    value=>value.agent_tb_review.revision=2,
+  ]){let opened=0;const f=await reviewFixture({mutate,open:()=>opened++});assert.throws(()=>f.bridge.openAgentTestbenchReview(f.args,{event:{isTrusted:true}}));assert.equal(opened,0);}
+});
+const analysisExample=JSON.parse(await readFile(new URL('./fixtures/onboarding-analysis.example.json',import.meta.url),'utf8')).analysis;
+async function analysisBridgeFixture({mutate=()=>{}}={}){
+  const snapshot=analysisSession({...session(7),source:{}},analysisExample);
+  const f=fixture({respond:(path)=>{if(path.endsWith('/analysis')){const value=structuredClone(analysisExample);mutate(value);return value;}return snapshot;}});await imported(f);return {...f,snapshot};
+}
+test('analysis transport uses only exact saved signal IDs and receives the actual full-resolution receipt',async()=>{
+  const f=await analysisBridgeFixture(),args={intake_id:f.snapshot.intake_id,job_id:analysisExample.job_id,...analysisExample.request};
+  assert.deepEqual(await f.bridge.analyzeExperiment(args),analysisExample);assert.equal(f.calls.at(-1).path,'/simulation/onboarding/analysis');assert.equal(f.calls.at(-1).timeout,120000);
+  for(const inputs of [{samples:'/tmp/private.csv'},{samples:'s_'+'f'.repeat(32)},{samples:'@time'},{decisions:['s_'+'f'.repeat(32)]}]){const before=f.calls.length;await assert.rejects(f.bridge.analyzeExperiment({...args,inputs}),e=>e.data.code==='analysis_scope_mismatch');assert.equal(f.calls.length,before);}
+});
+test('analysis transport rejects changed original data and fabricated metrics even with matching outer IDs',async()=>{
+  for(const mutate of [value=>value.input.csv_sha256='0'.repeat(64),value=>value.input.display_downsampling_used=true,value=>value.result.metrics.sndr_db.value=NaN,value=>value.input.selection.samples.id='s_'+'f'.repeat(32),value=>value.changes_original_job_verdict=true]){
+    const f=await analysisBridgeFixture({mutate});await assert.rejects(f.bridge.analyzeExperiment({intake_id:f.snapshot.intake_id,job_id:analysisExample.job_id,...analysisExample.request}),e=>e.data.code==='analysis_scope_mismatch');
+  }
 });
 
 test('shared AI helper pairing is reused without closing its transport',async()=>{

@@ -1,5 +1,5 @@
 // The paired transport owns its credential. This bridge accepts only finite library operations.
-const reads=new Set(['capability','describe','read_file','current','history','commit_detail','checkpoints','get_ci','receipt','pr_status']);
+const reads=new Set(['capability','describe','read_file','current','history','commit_detail','checkpoints','get_ci','receipt','pr_status','get_testbenches','get_testbench_result','review_testbench','review_status']);
 const writes=new Set(['save','save_files','commit','restore','pr','ci']);
 const complete=result=>['complete','completed','succeeded'].includes(result?.state||result?.status);
 export const cellFingerprint=value=>value?.fingerprint||JSON.stringify([value?.base_commit,value?.branch,(value?.changes||[]).map(item=>[item.path,item.status,item.sha256]).sort((a,b)=>a[0].localeCompare(b[0]))]);

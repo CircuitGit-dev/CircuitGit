@@ -31,7 +31,7 @@ class Runtime:
         return python
 
     def dependency(self, prefix, pin):
-        return {'location': str(prefix / 'lib/site-packages'),
+        return {'location': str(prefix / 'lib/site-packages'), 'adctoolbox_version':'0.9.3',
                 'direct_url': {'url': pin['repository'], 'vcs_info': {
                     'vcs': 'git', 'commit_id': pin['commit'], 'requested_revision': pin['commit']}},
                 'modules': {name: str(prefix / 'lib/site-packages' / (name.replace('.', '/') + '.py'))
@@ -50,7 +50,8 @@ class Runtime:
         elif operation == 'pip':
             if self.fail_install:
                 return subprocess.CompletedProcess(command, 1, '', 'Synthetic network unavailable')
-            repository, commit = command[-1][4:].rsplit('@', 1)
+            assert command[-1].startswith('spiceowl[adctools] @ git+')
+            repository, commit = command[-1].split(' @ git+', 1)[1].rsplit('@', 1)
             observation = self.observations[command[0]]
             observation['dependency'] = self.dependency(Path(observation['prefix']), {
                 'repository': repository, 'commit': 'f' * 40 if self.wrong_commit else commit})
@@ -90,11 +91,19 @@ class BootstrapTests(unittest.TestCase):
         python = self.ensure()
         self.assertTrue(bootstrap.within(python, self.root / '.local/python'))
         self.assertEqual(len(self.runtime.installs), 1)
-        self.assertEqual(self.runtime.installs[0][-1], 'git+' + self.pin['repository'] + '@' + self.pin['commit'])
+        self.assertEqual(self.runtime.installs[0][-1], 'spiceowl[adctools] @ git+' + self.pin['repository'] + '@' + self.pin['commit'])
         self.assertIn('--no-cache-dir', self.runtime.installs[0])
         self.assertEqual(self.ensure(), python)
         self.assertEqual(len(self.runtime.installs), 1)
         self.assertEqual(len(self.progress), 3)
+
+    def test_wrong_optional_analysis_version_cannot_be_reused(self):
+        project = self.runtime.add(self.root / '.venv/bin/python', pin=self.pin)
+        self.runtime.observations[str(project)]['dependency']['adctoolbox_version'] = '0.8.0'
+        selected = self.ensure()
+        self.assertNotEqual(selected, project)
+        self.assertEqual(len(self.runtime.installs), 1)
+        self.assertEqual(self.runtime.observations[str(project)]['dependency']['adctoolbox_version'], '0.8.0')
 
     def test_matching_project_venv_is_preferred_and_never_modified(self):
         project = self.runtime.add(self.root / '.venv/bin/python', pin=self.pin)
@@ -111,7 +120,7 @@ class BootstrapTests(unittest.TestCase):
         self.assertNotEqual(first, second)
         self.assertEqual((first.parent.parent / 'circuitgit-environment.json').read_bytes(), old_marker)
         self.assertEqual(len(self.runtime.installs), 2)
-        self.assertEqual(self.runtime.installs[-1][-1], 'git+' + self.pin['repository'] + '@' + self.pin['commit'])
+        self.assertEqual(self.runtime.installs[-1][-1], 'spiceowl[adctools] @ git+' + self.pin['repository'] + '@' + self.pin['commit'])
 
     def test_old_python_is_skipped_and_only_old_python_fails_before_install(self):
         old = self.runtime.add(self.root / '.venv/bin/python', version=(3, 9, 6), pin=self.pin)

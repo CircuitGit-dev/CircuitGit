@@ -55,16 +55,19 @@ class Application:
         self.supervision=Supervision(self.runner,self.workspace.projects)
         self.waveforms=WaveformService(self.runner,cfg.get('waveform_bindings',{}),cfg.get('waveform_derivatives',{}),source_reader=self.geometry.blob)
         self.ai=None
+        self.token=secrets.token_urlsafe(32);self.pool=concurrent.futures.ThreadPoolExecutor(max_workers=2);self.operations={};self.mutex=threading.Lock()
+        self.simulation=SimulationRuntime(self)
+        from onboarding_runtime import OnboardingRuntime
+        self.onboarding=OnboardingRuntime(self)
         if cfg.get('ai_client_config'):
             import sys
             sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'ai'))
             from icwb.host import AiRoutes
             from icwb.service import Service,load_config
-            self.ai=AiRoutes(Service(load_config(cfg['ai_client_config'])))
-        self.token=secrets.token_urlsafe(32);self.pool=concurrent.futures.ThreadPoolExecutor(max_workers=2);self.operations={};self.mutex=threading.Lock()
-        self.simulation=SimulationRuntime(self)
-        from onboarding_runtime import OnboardingRuntime
-        self.onboarding=OnboardingRuntime(self)
+            client_config=load_config(cfg['ai_client_config'])
+            if self.onboarding.enabled:
+                client_config={**client_config,'onboarding_review_authority_key_file':str(self.onboarding.review_authority_key_file)}
+            self.ai=AiRoutes(Service(client_config))
     def publication_view(self,r):
         p=r.get('publication')
         return {**p,'status':'published','verification_status':'complete'} if p and p.get('status')=='complete' else p
@@ -158,6 +161,15 @@ class Handler(BaseHTTPRequestHandler):
             self.guard();u=urlsplit(self.path);path=unquote(u.path)
             qs={} if path in ('/api/version-control','/api/version-control/commit') else parse_qs(u.query)
             get=lambda k:qs.get(k,[''])[0]
+            if path=='/agent-tb/review':
+                qs=parse_qs(u.query,keep_blank_values=True,strict_parsing=True)
+                if set(qs)!={'intake_id','review_id'} or any(len(v)!=1 for v in qs.values()):raise ValueError('Exact intake and review identity required')
+                self.app.onboarding._check()
+                body,nonce=self.app.onboarding.reviews.browser_page(get('intake_id'),get('review_id'))
+                self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Content-Length',str(len(body)))
+                self.send_header('Cache-Control','no-store');self.send_header('Referrer-Policy','no-referrer');self.send_header('X-Frame-Options','DENY')
+                self.send_header('Content-Security-Policy',"default-src 'none'; script-src 'nonce-"+nonce+"'; style-src 'nonce-"+nonce+"'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+                self.end_headers();self.wfile.write(body);return
             if path.startswith('/api/ai/'):
                 if self.app.ai is None:raise FileNotFoundError('AI adapter is not configured')
                 if path=='/api/ai/events' and 'text/event-stream' in self.headers.get('Accept',''):
@@ -252,6 +264,15 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:self.error(e)
     def do_POST(self):
         try:
+            if self.path=='/agent-tb/review/confirm':
+                self.guard()
+                if self.headers.get('Origin')!='http://127.0.0.1:'+str(self.server.server_port):raise PermissionError('Confirm in the local human review window')
+                if self.headers.get('Content-Type','').split(';')[0]!='application/json':raise ValueError('JSON required')
+                if self.headers.get('Transfer-Encoding') or len(self.headers.get_all('Content-Length',[]))!=1:raise ValueError('One bounded body required')
+                length=int(self.headers['Content-Length'])
+                if not 0<length<=8192:raise ValueError('Human review response exceeds its bound')
+                self.app.onboarding._check()
+                return self.response(self.app.onboarding.reviews.browser_decision(json.loads(self.rfile.read(length))))
             self.guard(True);length=int(self.headers.get('Content-Length','0'))
             if length<0 or length>2*1024*1024:raise ValueError('request body too large')
             raw_body=self.rfile.read(length);b=json.loads(raw_body);path=urlsplit(self.path).path
@@ -275,6 +296,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(self.app.simulation.scan(b['project_id'],self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
             if path.startswith('/api/simulation/onboarding/'):
                 if urlsplit(self.path).query:raise ValueError('Onboarding writes do not accept query parameters')
+                if path=='/api/simulation/onboarding/agent-tb/human-run':
+                    from onboarding_review import verify_authorization
+                    self.app.onboarding._check()
+                    if len(self.headers.get_all('X-IC-Human-Review',[]))!=1:raise PermissionError('One signed human-review response required')
+                    verify_authorization(self.app.onboarding.reviews.key,raw_body,self.headers.get('X-IC-Human-Review'))
+                    return self.response(self.app.onboarding.human_run(b,origin='native_host_form'))
                 return self.response(self.app.onboarding.write(path[len('/api/simulation/onboarding/'):],b,origin=onboarding_entry_origin(self.headers)))
             if path=='/api/simulation/control':
                 if set(b)-{'operation','arguments','idempotency_key'} or not {'operation','arguments'}.issubset(b):raise ValueError('Invalid finite simulation command')

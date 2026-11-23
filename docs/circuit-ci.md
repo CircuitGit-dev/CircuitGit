@@ -1,5 +1,101 @@
 # Circuit testbench CI
 
+## Agent-authored cell testbenches
+
+An Agent may propose a complete testbench for any catalog-owned library/cell using
+`ic_library_propose_testbench`. The proposal includes literal Spectre text,
+`analysis.py`, a complete `ic.agent_testbench.v1` manifest, a title/body, and the
+exact current source commit. The manifest's `text` must equal the submitted
+testbench. A proposal freezes local review data without changing engineering
+files or submitting a simulation.
+
+The library **Testbench CI** tab shows every file diff and separate SHA-256
+identities for the cell source closure, testbench, Python script, experiment
+manifest and acceptance criteria. **打开完整审阅** opens the existing paired
+browser review form. Only the correlated human confirmation registers the bundle;
+there is no Agent `approve` or direct `register_testbench` execution operation.
+Changes to the source, branch, inventory, staging or reviewed bytes invalidate
+the frozen request.
+
+Confirmation checkpoints and versions these files in one scoped Git commit:
+
+```text
+lib/<library>/<cell>/testbenches/<id>/testbench.scs
+lib/<library>/<cell>/testbenches/<id>/analysis.py
+lib/<library>/<cell>/testbenches/<id>/manifest.json
+lib/<library>/<cell>/testbenches/index.json
+```
+
+`manifest.json` is an `ic.testbench_ci.v1` envelope containing the authored
+manifest and exact content bindings. The index records its digest. Unrelated
+staging and the original circuit files stay intact. Updating a registered bundle
+requires another complete review and creates a new commit; existing history is
+never reset. Ordinary source-save operations cannot edit reviewed bundle files.
+Registration does not push, submit a solver or report CI success.
+
+Executable postprocessing currently uses the manifest's finite recipe:
+
+```json
+{
+  "postprocess": {
+    "operation": "spec_analyze",
+    "inputs": {"samples": {"name": "out", "analysis": "tran", "quantity": "voltage"}},
+    "parameters": {"backend": "spiceowl", "signal_unit": "V"}
+  },
+  "criteria": [{"metric": "sndr_db", "op": ">=", "threshold": 60, "unit": "dB"}]
+}
+```
+
+This is an excerpt, not a complete Agent manifest. Supported named operations are
+`spec_analyze`, `coherent_fft`, `sine_fit3`, `sine_fit4`, `weight_calibrate`,
+`reconstruct_codes`, `histogram_linearity`, and `tran_metrics`. Backends are
+explicitly `spiceowl` or `adctoolbox`; the installed algorithm adapter verifies
+availability and numerical options. Input names resolve uniquely against the
+exact collected run's `psf_name` and optional analysis/quantity/unit. Exact current
+signal IDs are also supported; time uses `time_s: "@time"`. Decision inputs use
+ordered lists of selectors. Missing or ambiguous mappings block dispatch.
+
+The trusted host calls `tools/ci/testbench_bundle.py::run_registered_analysis`
+with the exact registration commit and an independently verified runtime binding:
+cell identity, primary and supporting sources, testbench digest, intake/job,
+runtime commit, archive digest and same-run signal catalog. Callers cannot supply
+their own trusted binding through the Agent tool. A Git manifest alone is not
+execution authority: this host must retain the completed human-registration
+receipt for that exact version. Remote simulation remains separately authorized
+by its original review/grant; the analysis entry starts no SSH or solver.
+
+The source binding also includes the cell inventory/alias digest. Runtime binding
+matches only the primary source's actual electrical include closure, using
+committed logical aliases and exact supporting-file hashes; README, provenance
+and drawing files remain version-bound but are not imported as simulator inputs.
+The installed bounded Spectre statement parser handles quoted strings, line
+comments and continuations. Computed includes, includes escaping the intake root,
+unsupported include languages (including the current `ahdl_include` path), and
+block comments outside that parser's subset explicitly block this binding. No
+source text is rewritten to conceal an unsupported dependency.
+
+CI runs `OnboardingAnalysis.analyze` over full-resolution saved data. It validates
+the returned source/run/archive, CSV and raw-data hashes, selected signals,
+request digest, algorithm version/backend and every numerical acceptance
+criterion before saving an `ic.testbench_ci_result.v1` record. Undefined metrics,
+unit mismatches, downsampled input and inconsistent reported passes cannot become
+passing results. `get_testbench_result` reads one exact result ID. An uncertain
+dispatch preserves its original key and is never automatically repeated.
+
+**Python execution boundary:** `analysis.py` is syntax-checked and versioned for
+human review and reproducibility. This CI entry does not execute arbitrary
+Python; it executes only the reviewed manifest's named recipe. Results explicitly
+record `script_executed:false`. A matching reproducible `spec_analyze` script is
+provided in [the reference analysis.py](examples/testbench-spectrum-analysis.py).
+Run that script manually only in the separately installed pinned SpiceOwl
+environment with a full CSV and its verified hash. Numerical script output alone
+does not establish complete run provenance or CI acceptance.
+
+GitHub's ordinary source-check workflow now also verifies registered bundle
+identities and all source/TB/script/criteria digests. Its report labels these as
+`reviewed-bundle-source-check` with `analysis_status:not_run`; it never runs a
+candidate Python file or turns source-check success into electrical validation.
+
 CircuitGit records circuit versions as Git commits. Saving an authorized cell CI selection writes `lib/<library>/<cell>/ci.json`; committing and opening/updating a PR attaches the checks to that exact source commit. A local save alone does not run GitHub Actions or establish a new successful simulation.
 
 ## Select checks

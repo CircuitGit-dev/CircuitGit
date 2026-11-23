@@ -19,9 +19,10 @@ from spiceowl_pool import read_json, canonical, MAX_RECORD_BYTES
 from workspace import Conflict
 
 PREFIX = '/api/simulation/onboarding'
-READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window'}
-WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect'}
+READS = {'ssh-hosts','session','source','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','agent-tb/draft','agent-tb/review'}
+WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis'}
 SCHEMA = 'ic.onboarding.session.v1'
+IN_PROGRESS={'probe','discover-pdk','prepare','agent-tb/draft','agent-tb/prepare','submitting'}
 
 
 def save_discovery_observation(path, data):
@@ -44,7 +45,7 @@ def public_session(state):
     allowed={'schema','connection_id','intake_id','revision','source_sha256','source_commit',
         'state','created_at','updated_at','source','input_provenance','probes','discovery',
         'prepared','execution_scope','selection','job','inspection','missing','source_mapping','submission',
-        'recommended_selection','suggested_intent','intent_suggestions'}
+        'recommended_selection','suggested_intent','intent_suggestions','agent_tb','agent_tb_review','mode','support_files','analysis','operation'}
     result={k:copy.deepcopy(v) for k,v in state.items() if k in allowed}
     if 'probes' in result:
         result['probes']=[{k:copy.deepcopy(v) for k,v in row.items() if k in
@@ -57,7 +58,8 @@ def public_session(state):
     # Plans retain enough identity to revisit an original job, never a child
     # configuration path, selected remote paths, or signing material.
     result['plans']=[{k:copy.deepcopy(v) for k,v in row.items() if k in
-        {'plan_id','source_commit','project_id','recipe_id','submission_key','job_id','dispatch_outcome'}}
+        {'plan_id','source_commit','project_id','recipe_id','submission_key','job_id','dispatch_outcome',
+         'draft_id','review_id','review_digest','testbench_sha256'}}
         for row in state.get('plans',[])]
     from onboarding_guidance import next_actions
     result['next_actions']=next_actions(result)
@@ -151,7 +153,11 @@ class OnboardingRuntime:
         self.enabled=self.config.get('enabled') is True
         self.root=Path(self.config['state_root']) if self.enabled else None
         self.connection_id=self.config.get('connection_id') if self.enabled else None
-        self._children={};self._mutex=threading.RLock()
+        self._children={};self._mutex=threading.RLock();self._operation_owner=secrets.token_hex(16);self._active_operations={}
+        if self.enabled:
+            from onboarding_review import TestbenchReviews
+            self.reviews=TestbenchReviews(self)
+            self.review_authority_key_file=self.reviews.key_file
 
     def _check(self):
         if not self.enabled:raise PermissionError('This connection has no onboarding capability')
@@ -170,16 +176,54 @@ class OnboardingRuntime:
             raise ValueError('Intake belongs to a different connection')
         return state
 
+    def _stalled(self,state):
+        if state.get('state') not in IN_PROGRESS:return False
+        operation=state.get('operation') or {}
+        with self._mutex:
+            return not (operation.get('status')=='active' and operation.get('owner')==self._operation_owner
+                and self._active_operations.get(state['intake_id'])==operation.get('operation_id'))
+
+    def _public(self,state):
+        result=public_session(state)
+        if self._stalled(state):
+            operation=state.get('operation') or {}
+            result.update(state='recovery_required',recovery={'status':'interrupted','operation':state['state'],
+                'operation_id':operation.get('operation_id'),'started_at':operation.get('started_at'),
+                'requires_human':True,'automatic_retry':False,'original_records_preserved':True})
+            plan=(state.get('prepared') or {}).get('plan_id') if state['state']=='submitting' else None
+            result['next_actions']=[{'id':'submission' if plan else 'session',
+                'tool':'ic_onboarding_submission' if plan else 'ic_onboarding_session',
+                'operation':'submission' if plan else 'session','kind':'read','ready':False,
+                'arguments':{'intake_id':state['intake_id'],**({'plan_id':plan} if plan else {})},
+                'missing':[{'field':'operation','code':'interrupted_operation_requires_review',
+                    'message':'The original operation has no active local owner. Human recovery is required; do not repeat remote work.'}],
+                'reason_code':'interrupted_operation_requires_review',
+                'description':'Inspect the original submission receipt before any recovery; never replay or change its key.' if plan else
+                    'Stop automatic polling. Review the preserved interrupted operation before explicitly restoring this intake.'}]
+        return result
+
+    def _require_operable(self,state):
+        if self._stalled(state):raise Conflict('This intake has an interrupted operation. Human recovery is required; read its preserved session and original submission without replaying remote work.')
+
     def _begin(self,args,operation):
         folder=self._folder(args.get('intake_id'))
         with locked(folder/'session.lock'):
             state=self._load(args['intake_id'])
+            self._require_operable(state)
             if type(args.get('revision')) is not int or state['revision']!=args['revision']:
                 raise Conflict('Intake changed; read its latest session before continuing')
             state['revision']+=1;state['state']=operation;state['updated_at']=stamp()
+            operation_id=secrets.token_hex(16)
+            state['operation']={'operation_id':operation_id,'owner':self._operation_owner,'kind':operation,
+                'status':'active','started_at':stamp()}
+            with self._mutex:self._active_operations[state['intake_id']]=operation_id
+            if operation in ('probe','discover-pdk','prepare','agent-tb/draft','agent-tb/prepare'):
+                state.pop('agent_tb_review',None)
             for field in ({'probe':('probes','discovery','prepared','execution_scope','selection','source_mapping','job','submission','recommended_selection','discovery_search_history'),
                            'discover-pdk':('discovery','prepared','execution_scope','selection','source_mapping','job','submission','recommended_selection'),
-                           'prepare':('prepared','execution_scope','job','submission')}.get(operation,())):
+                           'prepare':('prepared','execution_scope','job','submission'),
+                           'agent-tb/draft':('prepared','execution_scope','job','submission','source_mapping'),
+                           'agent-tb/prepare':('prepared','execution_scope','job','submission')}.get(operation,())):
                 state.pop(field,None)
             atomic(folder/'session.json',state)
         return folder,state
@@ -190,6 +234,8 @@ class OnboardingRuntime:
             if current['revision']!=snapshot['revision']:
                 raise Conflict('This discovery reply is stale for the current intake')
             current.update(updates,updated_at=stamp())
+            if current.get('operation',{}).get('owner')==self._operation_owner:
+                current['operation'].update(status='completed',finished_at=stamp())
             from onboarding_recommendations import bound_session_recommendations
             bound_session_recommendations(current,public_session)
             atomic(folder/'session.json',current)
@@ -201,7 +247,22 @@ class OnboardingRuntime:
             if args:raise ValueError('SSH listing has no caller-supplied file path')
             from spiceowl.onboarding.ssh_discovery import discover_ssh_hosts
             return discover_ssh_hosts(self.config['ssh_config'])
-        if operation=='session' and set(args)=={'intake_id'}:return public_session(self._load(args['intake_id']))
+        if operation=='session' and set(args)=={'intake_id'}:return self._public(self._load(args['intake_id']))
+        if operation=='source' and set(args)=={'intake_id'}:
+            from onboarding_testbench import source_inputs
+            state=self._load(args['intake_id']);raw,support=source_inputs(self._folder(state['intake_id']),state)
+            result={'schema':'ic.onboarding.source.v1','connection_id':self.connection_id,
+                'intake_id':state['intake_id'],'revision':state['revision'],'source_sha256':state['source_sha256'],
+                'source':{'file_name':state['source']['file_name'],'text':raw.decode('utf-8'),'sha256':state['source_sha256']},
+                'support_files':{name:{'text':text.decode('utf-8'),'sha256':hashlib.sha256(text).hexdigest()}
+                    for name,text in support.items()}}
+            if len(json.dumps({'ok':True,'data':result},ensure_ascii=False).encode())>2*1024*1024:
+                raise ValueError('Supplied source bundle exceeds the bounded source-read response size')
+            return result
+        if operation in ('agent-tb','agent-tb/draft') and set(args)=={'intake_id'}:
+            return self._public(self._load(args['intake_id']))
+        if operation=='agent-tb/review' and set(args)=={'intake_id','review_id'}:
+            return self.reviews.read(args['intake_id'],args['review_id'])
         if operation=='submission' and set(args)=={'intake_id','plan_id'}:
             return self._submission(args)
         if operation in {'waveforms/catalog','waveforms/mapping','waveforms/window'}:
@@ -215,24 +276,43 @@ class OnboardingRuntime:
             raise PermissionError('Unsupported onboarding entry point')
         if not isinstance(args,dict):raise ValueError('Onboarding arguments must be an object')
         methods={'netlist':self._netlist,'probe':self._probe,'discover-pdk':self._discover,
-                 'prepare':self._prepare,'run':self._run,'inspect':self._inspect}
+                 'prepare':self._prepare,'run':self._run,'inspect':self._inspect,
+                 'agent-tb/draft':self._agent_draft,'agent-tb/prepare':self._agent_prepare,'analysis':self._analysis}
         if operation not in methods:raise ValueError('Unknown finite onboarding operation')
         if operation=='netlist':return methods[operation](args,origin)
         with locked(self._folder(args.get('intake_id'))/'operation.lock'):
-            return methods[operation](args,origin)
+            self._require_operable(self._load(args['intake_id']))
+            try:return methods[operation](args,origin)
+            finally:
+                with self._mutex:self._active_operations.pop(args['intake_id'],None)
 
     def _netlist(self,args,origin):
-        if set(args)!={'file_name','text'}:raise ValueError('Provide only the new file label and literal text')
+        if not {'file_name','text'}<=set(args) or set(args)-{'file_name','text','mode','support_files'}:
+            raise ValueError('Provide the file label, literal text and optional agent-TB source bundle')
+        agent=args.get('mode')=='agent-tb'
+        if 'mode' in args and not agent:raise ValueError('Only the explicit agent-tb import mode is supported')
+        if not agent and 'support_files' in args:raise ValueError('Supporting sources require agent-tb mode')
         name=args['file_name'];text=args['text']
         if not isinstance(name,str) or not 1<=len(name)<=240 or any(ord(c)<32 for c in name):
             raise ValueError('Invalid input display name')
         from spiceowl.onboarding.pdk_discovery import inspect_netlist
-        requirements=inspect_netlist(text,source_id=name)
-        from onboarding_recommendations import source_intent
-        suggested_intent,intent_suggestions=source_intent(requirements)
+        support=args.get('support_files',{})
+        if agent:
+            from spiceowl.onboarding.agent_tb import inspect_agent_source
+            if type(support) is not dict or any(not isinstance(v,str) for v in support.values()):
+                raise ValueError('Supporting sources must be literal UTF-8 text')
+            requirements=inspect_agent_source(text,source_id='dut.scs',support_files=support)
+            suggested_intent,intent_suggestions=None,None
+        else:
+            requirements=inspect_netlist(text,source_id=name)
+            from onboarding_recommendations import source_intent
+            suggested_intent,intent_suggestions=source_intent(requirements)
         intake_id='intake_'+secrets.token_hex(16);folder=self._folder(intake_id)
         folder.mkdir(parents=True,mode=0o700)
         source=folder/'source.scs';source.write_text(text,encoding='utf-8');source.chmod(0o600)
+        for relative,content in support.items():
+            path=folder/'support'/relative;path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_bytes(content.encode('utf-8'));path.chmod(0o600)
         state={'schema':SCHEMA,'connection_id':self.connection_id,'intake_id':intake_id,
             'revision':1,'source_sha256':requirements['source_sha256'],'source_commit':None,
             'state':'source_inspected','created_at':stamp(),'updated_at':stamp(),
@@ -241,6 +321,9 @@ class OnboardingRuntime:
             'input_provenance':[{'kind':'netlist','origin':origin,'sha256':requirements['source_sha256']}],
             'plans':[],'suggested_intent':suggested_intent,'intent_suggestions':intent_suggestions,
             'recommended_selection':None}
+        if agent:
+            state.update(mode='agent-tb',support_files={name:{'sha256':hashlib.sha256(raw.encode()).hexdigest()}
+                for name,raw in support.items()})
         atomic(folder/'session.json',state)
         return public_session(state)
 
@@ -295,8 +378,9 @@ class OnboardingRuntime:
 
     def _discover(self,args,origin):
         required={'intake_id','revision','probe_ids'}
-        if not required<=set(args) or set(args)-required-{'search_paths','cds_lib_hint','search_directory_ids'}:
+        if not required<=set(args) or set(args)-required-{'search_paths','cds_lib_hint','search_directory_ids','refresh'}:
             raise ValueError('Use the explicit probe identities and optional search hints')
+        if 'refresh' in args and type(args['refresh']) is not bool:raise ValueError('refresh must be an explicit boolean')
         previous=self._load(args['intake_id']);ids=args['probe_ids']
         if not isinstance(ids,list) or not 1<=len(ids)<=8 or any(not isinstance(x,str) for x in ids) or len(set(ids))!=len(ids):
             raise ValueError('Select one to eight exact probe IDs')
@@ -327,6 +411,7 @@ class OnboardingRuntime:
             raise ValueError('Use one explicit absolute cds.lib hint')
         folder,state=self._begin(args,'discover-pdk')
         from onboarding_discovery import remote_discovery,public_discovery,record_search_progress
+        from onboarding_lut import lookup_discovery,store_discovery
         def discover(probe):
             capture=read_json(folder/'probes'/(probe['probe_id']+'.json'))
             search_roots=roots_by_probe.get(probe['probe_id'],hints)
@@ -334,9 +419,20 @@ class OnboardingRuntime:
                 search_roots=[row['path'] for row in (capture.get('private') or {}).get('pdk_candidates',[])
                               if row.get('exists')]
             try:
-                result=remote_discovery(probe['ssh_target'],self.config['ssh_config'],capture,
-                    state['source']['requirements'],roots_by_probe.get(probe['probe_id'],hints),args.get('cds_lib_hint'))
+                cached=lookup_discovery(self.root/'pdk-cache',capture,state['source']['requirements'],
+                    roots=search_roots,refresh=args.get('refresh',False) or bool(args.get('cds_lib_hint')))
+                result=cached['discovery'];lut={**cached['public'],'scan_performed':result is None,'storage':None}
+                if result is None:
+                    result=remote_discovery(probe['ssh_target'],self.config['ssh_config'],capture,
+                        state['source']['requirements'],roots_by_probe.get(probe['probe_id'],hints),args.get('cds_lib_hint'))
+                    try:lut['storage']=store_discovery(self.root/'pdk-cache',capture,result)
+                    except Exception as error:
+                        atomic(folder/'cache-errors'/(probe['probe_id']+'.json'),{'error':str(error)[:2000]})
+                        lut['storage']={'schema':'ic.onboarding.pdk-lut.v1','status':'not_stored',
+                            'missing':[{'field':'cache','code':'cache_storage_failed','message':'The new observation is retained in this intake; reusable cache storage failed.'}],
+                            'fresh_dependency_audit_required':True,'remote_freshness_verified':False,'ready_to_run':False}
                 return {'probe_id':probe['probe_id'],'result':result,'search_roots':search_roots,
+                        'lut':lut,
                         'platform':(capture.get('private') or {}).get('platform') or (capture.get('public') or {}).get('platform')}
             except Exception as error:
                 atomic(folder/'discovery-errors'/(probe['probe_id']+'.json'),{'error':str(error)[:2000]})
@@ -347,26 +443,32 @@ class OnboardingRuntime:
         save_discovery_observation(folder/'discoveries'/(discovery_id+'.json'),
                                    {'rows':rows,'source_sha256':state['source_sha256']})
         public=public_discovery(rows,discovery_id)
+        public['lut']=[{'probe_id':row['probe_id'],'ssh_target':next(p['ssh_target'] for p in selected if p['probe_id']==row['probe_id']),
+            **row['lut']} for row in rows if row.get('lut')]
         search_history=record_search_progress(public,rows,state['source_sha256'],
                                                state.get('discovery_search_history'))
-        from onboarding_recommendations import attach_recommendations,source_intent
-        public=attach_recommendations(public,rows,state)
-        recommended=public['recommended_selection']
-        values,suggestions=source_intent(state['source']['requirements'])
-        if recommended:
-            values=recommended['intent']
-            suggestions={'preset':recommended['provenance']['preset'],
-                'fields':recommended['provenance']['fields']['intent'],'requires_acceptance':True,
-                'scientific_intent_discovered':False}
+        recommended=values=suggestions=None
+        if state.get('mode')!='agent-tb':
+            from onboarding_recommendations import attach_recommendations,source_intent
+            public=attach_recommendations(public,rows,state)
+            recommended=public['recommended_selection']
+            values,suggestions=source_intent(state['source']['requirements'])
+            if recommended:
+                values=recommended['intent']
+                suggestions={'preset':recommended['provenance']['preset'],
+                    'fields':recommended['provenance']['fields']['intent'],'requires_acceptance':True,
+                    'scientific_intent_discovered':False}
         return self._finish(folder,state,state='models_discovered',discovery=public,
             discovery_search_history=search_history,
             recommended_selection=recommended,suggested_intent=values,intent_suggestions=suggestions,
             input_provenance=state['input_provenance']+[{'kind':'pdk_search','origin':origin,
                 'probe_ids':ids,'explicit_search_paths':hints or [],'search_directory_ids':args.get('search_directory_ids',[]),
-                'explicit_cds_lib_hint':args.get('cds_lib_hint')}])
+                'explicit_cds_lib_hint':args.get('cds_lib_hint'),'explicit_refresh':args.get('refresh',False)}])
 
     def _prepare(self,args,origin):
         previous=self._load(args['intake_id'])
+        if previous.get('mode')=='agent-tb':
+            raise ValueError('Prepare the authored testbench with agent-tb/prepare and its exact draft ID')
         if not previous.get('discovery'):
             raise ValueError('Discover models for this intake before preparing an experiment')
         if any(p.get('dispatch_outcome') in ('attempting','unknown') for p in previous['plans']):
@@ -432,6 +534,156 @@ class OnboardingRuntime:
             source_commit=commit,source={**state['source'],'source_commit':commit},prepared=prepared,
             selection=selection,plans=plans,input_provenance=provenance,execution_scope=scope,source_mapping=mapping)
 
+    def _agent_draft(self,args,origin):
+        if not {'intake_id','revision','testbench'}<=set(args) or set(args)-{'intake_id','revision','testbench','selection'}:
+            raise ValueError('Save the literal testbench manifest and optional explicit selection')
+        previous=self._load(args['intake_id'])
+        if previous.get('mode')!='agent-tb':raise ValueError('Import the general circuit in agent-tb mode first')
+        if any(p.get('dispatch_outcome') in ('attempting','unknown') for p in previous['plans']):
+            raise Conflict('Reconcile the original uncertain submission before changing this intake')
+        from onboarding_testbench import draft_record
+        draft=draft_record(self._folder(args['intake_id']),previous,args['testbench'],args.get('selection'))
+        folder,state=self._begin(args,'agent-tb/draft');draft['revision']=state['revision']
+        return self._finish(folder,state,state='testbench_drafted',agent_tb=draft,
+            input_provenance=state['input_provenance']+[{'kind':'agent_testbench_draft','origin':origin,
+                'draft_id':draft['draft_id'],'testbench_sha256':draft['testbench_sha256']}])
+
+    def _agent_prepare(self,args,origin):
+        if set(args)!={'intake_id','revision','draft_id'}:raise ValueError('Prepare the exact saved testbench draft')
+        previous=self._load(args['intake_id']);draft=previous.get('agent_tb')
+        if previous.get('mode')!='agent-tb' or not draft or draft['draft_id']!=args['draft_id']:
+            raise Conflict('Save and select this intake’s exact agent testbench draft')
+        if any(p.get('dispatch_outcome') in ('attempting','unknown') for p in previous['plans']):
+            raise Conflict('Reconcile the original uncertain submission before preparing another experiment')
+        from onboarding_testbench import compile_agent_selection,validate_selection
+        from onboarding_prepare import observed_site,create_child_config
+        selection=validate_selection(draft.get('selection'));missing=[]
+        if not selection:missing.append({'field':'selection','code':'selection_missing','message':'Select the observed PDK and host scope for this testbench.'})
+        elif not previous.get('discovery') or previous['discovery']['discovery_id']!=selection['discovery_id']:
+            raise Conflict('The draft must select the current PDK discovery')
+        folder,state=self._begin(args,'agent-tb/prepare')
+        def blocked():
+            return self._finish(folder,state,state='needs_input',prepared={
+                'schema':'ic.experiment.plan.v1','state':'blocked','project_id':state['intake_id'],
+                'recipe_id':'agent-testbench','source_commit':None,'plan_id':None,'missing':missing,'submission_key':None})
+        if missing:return blocked()
+        saved=read_json(folder/'discoveries'/(selection['discovery_id']+'.json'))
+        if saved['source_sha256']!=state['source_sha256']:raise ValueError('Discovery source digest changed')
+        selected=compile_agent_selection(folder,state,saved);missing.extend(selected['missing']);hosts={};exclusions=[]
+        probes={p['ssh_target']:p for p in state.get('probes',[]) if p.get('probe_id')}
+        if set(selection['host_ids'])-set(probes):raise ValueError('Select only SSH aliases observed for this intake')
+        audit_probe=next((p for p in probes.values() if p['probe_id']==selected['probe_id']),None)
+        if not audit_probe or audit_probe['ssh_target'] not in selection['host_ids']:
+            missing.append({'field':'host_ids','code':'audit_host_outside_scope','message':'Include the host that observed the selected PDK.'})
+        for target in selection['host_ids']:
+            probe=probes[target];capture=read_json(folder/'probes'/(probe['probe_id']+'.json'))
+            observed,gaps=observed_site(capture,target,self.connection_id,self.config['ssh_config'])
+            if observed:hosts[target]=observed
+            else:exclusions.extend(gaps);missing.extend(gaps)
+        if missing:return blocked()
+        cfg,child_root,commit=create_child_config(folder,state,selected,hosts)
+        from server import Application
+        child=Application(cfg,self.app.web)
+        with self._mutex:self._children[str(child_root)]=child
+        prepared=child.simulation.control('prepare',{'project_id':state['intake_id'],
+            'recipe_id':'agent-testbench','source_commit':commit},None,'local-studio')
+        prepared['submission_key']='experiment-'+prepared['plan_id'] if prepared['plan_id'] else None
+        mapping=read_json(child_root/'source-mapping.json');plans=state['plans']
+        scope={'selected_ssh_targets':selection['host_ids'],'candidate_host_ids':list(hosts),
+            'selection_mode':'automatic_within_selected_hosts','resource_check_at_run':True,'excluded_before_preparation':exclusions}
+        updates={'state':'awaiting_human_review' if prepared['plan_id'] else 'needs_input',
+            'source_commit':commit,'source':{**state['source'],'source_commit':commit},'prepared':prepared,
+            'selection':copy.deepcopy(selection),'execution_scope':scope,'source_mapping':mapping}
+        if prepared['plan_id']:
+            plan={'plan_id':prepared['plan_id'],'source_commit':commit,'project_id':state['intake_id'],
+                'recipe_id':'agent-testbench','submission_key':prepared['submission_key'],'draft_id':draft['draft_id'],
+                'child_revision':state['revision'],'dispatch_outcome':'not_requested','source_mapping':mapping,
+                'configuration_sha256':filehash(child_root/'configuration.json'),'pool_sha256':filehash(child_root/'pool.json'),
+                'site_sha256':{h:filehash(child_root/(h+'.site.json')) for h in hosts}}
+            updates['plans']=plans+[plan]
+            snapshot_state={**state,**updates}
+            snapshot=self._agent_snapshot(snapshot_state,plan,child)
+            updates['agent_tb_review']=self.reviews.freeze(snapshot_state,snapshot)
+            plan.update(review_id=updates['agent_tb_review']['review_id'],
+                review_digest=updates['agent_tb_review']['review_digest'],testbench_sha256=draft['testbench_sha256'])
+        return self._finish(folder,state,**updates)
+
+    def _agent_snapshot(self,state,plan,child):
+        from onboarding_testbench import draft_record
+        from experiment_workflow import ExperimentWorkflow
+        folder=self._folder(state['intake_id']);draft=state['agent_tb']
+        if draft_record(folder,state,draft['testbench'],draft.get('selection'))['draft_id']!=draft['draft_id']:
+            raise Conflict('The authored source, supporting files, testbench or selected execution scope changed')
+        data=ExperimentWorkflow(child.simulation).plan(plan['plan_id'],plan['project_id'])
+        bundle_path=Path(data['bundle_path']);bundle=read_json(bundle_path)
+        for item in bundle['files']:
+            relative=item['source']
+            if Path(relative).is_absolute() or '..' in Path(relative).parts:raise ValueError('Invalid frozen source identity')
+            artifact=bundle_path.parent/relative
+            if artifact.is_symlink() or not artifact.is_file() or filehash(artifact)!=item['sha256']:
+                raise Conflict('Frozen testbench artifact bytes changed; prepare and review again')
+        source_files={}
+        for name,checksum in plan['source_mapping']['file_sha256'].items():
+            raw=child.workspace.compiler_blob(plan['source_commit'],name)
+            if hashlib.sha256(raw).hexdigest()!=checksum:raise Conflict('Frozen source bytes changed')
+            source_files[name]={'sha256':checksum,'text':raw.decode('utf-8')}
+        return {'schema':'ic.agent-tb.review-snapshot.v1','source_commit':plan['source_commit'],
+            'original_source_sha256':state['source_sha256'],'draft_id':draft['draft_id'],'plan_id':plan['plan_id'],
+            'testbench':copy.deepcopy(draft['testbench']),'files':source_files,
+            'selection':copy.deepcopy(draft['selection']),'recipe':data['recipe'],
+            'dependency_audit':data['dependency_audit'],'dependency_profile_sha256':data['dependency_profile_sha256'],
+            'hosts':data['sites'],'environment_pins':data['environment_pins'],'requirements':data['requirements'],
+            'bundle_sha256':data['bundle_sha256'],'configuration_sha256':plan['configuration_sha256'],
+            'pool_sha256':plan['pool_sha256'],'site_sha256':plan['site_sha256']}
+
+    def _verify_agent_review(self,state,plan):
+        from onboarding_review import BINDING_FIELDS
+        summary=state.get('agent_tb_review') or {}
+        review=self.reviews.current(state,{k:summary.get(k) for k in BINDING_FIELDS},approved=True)
+        child=self._child(state,plan)
+        if self._agent_snapshot(state,plan,child)!=review['snapshot']:
+            raise Conflict('The frozen source, testbench, PDK or execution inputs changed; prepare and review again')
+        return review
+
+    def human_run(self,args,*,origin,run=True):
+        self._check()
+        if origin not in ('native_host_form','browser_form'):raise PermissionError('Correlated human review is required')
+        with locked(self._folder(args.get('intake_id'))/'operation.lock'):
+            self._require_operable(self._load(args['intake_id']))
+            try:return self._human_run_locked(args,origin=origin,run=run)
+            finally:
+                with self._mutex:self._active_operations.pop(args['intake_id'],None)
+
+    def _human_run_locked(self,args,*,origin,run):
+        state=self._load(args['intake_id']);plan=self._plan_row(state,args.get('plan_id'))
+        review=self.reviews.read(args['intake_id'],args.get('review_id'))
+        if review['state']=='approved' and plan.get('dispatch_outcome')!='not_requested':
+            self.reviews.current(state,args,approved=True)
+            return self._run({'intake_id':state['intake_id'],'revision':state['revision'],'plan_id':plan['plan_id']},origin)
+        self.reviews.current(state,args)
+        child=self._child(state,plan)
+        if self._agent_snapshot(state,plan,child)!=review['snapshot']:
+            raise Conflict('The frozen testbench review no longer matches this preparation')
+        decision=self.reviews.decide(state,args,origin=origin,run=run)
+        state['agent_tb_review']=decision
+        if not run:state.update(state='review_denied',revision=state['revision']+1,updated_at=stamp())
+        atomic(self._folder(state['intake_id'])/'session.json',state)
+        if not run:return public_session(state)
+        return self._run({'intake_id':state['intake_id'],'revision':state['revision'],'plan_id':plan['plan_id']},origin)
+
+    def _analysis(self,args,origin):
+        from onboarding_analysis import OnboardingAnalysis
+        return OnboardingAnalysis(self._analysis_binding).analyze(args)
+
+    def _analysis_binding(self,intake_id,job_id):
+        from onboarding_analysis import AnalysisBinding
+        state,plan,child=self._bound_job(intake_id,job_id);record=child.runner.read(job_id)
+        return AnalysisBinding(intake_id,job_id,plan['source_commit'],service=child.waveforms,
+            original_source_sha256=plan['source_mapping']['original_source_sha256'],
+            archive_sha256=(record.get('collection') or {}).get('sha256'),
+            compiled_source_sha256=plan['source_mapping']['compiled_source_sha256'],
+            output_root=child.runner.path(job_id)/'analysis')
+
     def _plan_row(self,state,plan_id):
         rows=[p for p in state['plans'] if p['plan_id']==plan_id]
         if len(rows)!=1:raise ValueError('Plan does not belong to this intake')
@@ -442,7 +694,6 @@ class OnboardingRuntime:
         if type(revision) is not int or revision<1:raise ValueError('Invalid prepared child identity')
         root=self._folder(state['intake_id'])/'prepared'/str(revision)
         with self._mutex:
-            if str(root) in self._children:return self._children[str(root)]
             # Restore only the exact runtime produced here. GET cannot create a
             # replacement checkout when saved state is missing or redirected.
             for path in (root.parent,root,root/'runtime',root/'runtime/workspace',root/'runtime/workspace/.git',root/'source',
@@ -459,6 +710,7 @@ class OnboardingRuntime:
             for host,checksum in plan.get('site_sha256',{}).items():
                 if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,95}',host) or filehash(root/(host+'.site.json'))!=checksum:
                     raise ValueError('Original intake site hash differs')
+            if str(root) in self._children:return self._children[str(root)]
             cfg=read_json(root/'configuration.json')
             if (cfg.get('local_only') is not True or cfg.get('github_repo') is not None
                     or cfg.get('runtime_root')!=str(root/'runtime') or cfg.get('seed_repo')!=str(root/'source')
@@ -477,6 +729,7 @@ class OnboardingRuntime:
             state=self._load(args['intake_id']);plan=self._plan_row(state,args['plan_id'])
             if (state.get('prepared') or {}).get('plan_id')!=plan['plan_id']:
                 raise Conflict('This is a historical plan; use original-key lookup and saved waveform reads without changing the current intake')
+            if plan.get('recipe_id')=='agent-testbench':self._verify_agent_review(state,plan)
             if plan.get('dispatch_outcome')!='not_requested':
                 receipt=self._submission({'intake_id':state['intake_id'],'plan_id':plan['plan_id']})
                 return {**public_session(self._load(state['intake_id'])),'job':receipt['job'],'submission':receipt}
@@ -538,6 +791,8 @@ class OnboardingRuntime:
                 saved.update(job_id=rid,dispatch_outcome='recorded')
                 if (state.get('prepared') or {}).get('plan_id')==plan['plan_id']:
                     state.update(job=job,state='submitted',updated_at=stamp())
+                    if state.get('operation',{}).get('kind')=='submitting':
+                        state['operation'].update(status='reconciled',finished_at=stamp())
                 atomic(self._folder(state['intake_id'])/'session.json',state)
         return {'intake_id':state['intake_id'],'plan_id':args['plan_id'],
             'found':bool(rid),'run_id':rid,'submission_key':plan['submission_key'],

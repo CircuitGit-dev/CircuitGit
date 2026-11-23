@@ -46,3 +46,21 @@
 .ic-env .ic-env-primary:disabled{opacity:.48;cursor:default}
 .ic-env [data-environment-detail="pdk-advanced"],.ic-env [data-environment-detail="experiment-advanced"]{margin-top:12px;border-top:1px solid #e1e7ed;padding-top:8px}
 .ic-env [data-environment-detail="pdk-advanced"]>summary,.ic-env [data-environment-detail="experiment-advanced"]>summary{font-size:11px;color:#687583}
+.ic-env-code-field{display:grid;gap:6px;margin:10px 0;font-size:11px}
+.ic-env-code-field textarea{width:100%;min-height:160px;resize:vertical;font:11px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2}
+.ic-env-review-state{font-size:11px;color:#315f88;margin:8px 0}
+.ic-env-spectrum{margin:12px 0;min-width:0;max-width:100%}
+.ic-env-spectrum figcaption{font-size:11px;font-weight:600;margin-bottom:6px}
+.ic-env-spectrum svg{display:block;width:100%;height:auto;background:#fff;border:1px solid #e1e7ed;border-radius:4px}
+.ic-env-spectrum text{font:10px system-ui,sans-serif;fill:#596a79}
+.ic-env-spectrum-grid{stroke:#e7edf2;stroke-width:1}
+.ic-env-spectrum-line{fill:none;stroke:#315f88;stroke-width:1.5;stroke-linejoin:round}
+.ic-env-analysis{min-width:0;margin-top:16px;padding-top:10px;border-top:1px solid #e1e7ed}
+.ic-env-analysis-metrics{width:100%;table-layout:fixed;border-spacing:0;font-size:11px}
+.ic-env-analysis-metrics th,.ic-env-analysis-metrics td{padding:7px 5px;text-align:left;border-bottom:1px solid #e8edf1;overflow-wrap:anywhere;font-weight:400}
+.ic-env-analysis-metrics thead th{color:#687583;background:#f5f7f9}
+.ic-env-analysis-criteria p,.ic-env-lut p{font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.ic-env-analysis-signals{min-width:0;max-height:210px;overflow:auto;border:1px solid #e1e7ed;padding:7px;margin:10px 0}
+.ic-env-analysis-signals legend{font-size:11px;color:#687583}
+.ic-env-analysis .ic-env-code-field textarea{min-height:96px}
+.ic-env-lut{margin:12px 0;padding:0 10px;border-left:2px solid #c6d4df}

@@ -10,15 +10,21 @@ The browser injects an adapter into `modules/simulation/environment`; that modul
 
 | Adapter | Route | Input |
 | --- | --- | --- |
-| `inspectNetlist` | POST `/netlist` | `{file_name,text}` |
+| `inspectNetlist` | POST `/netlist` | `{file_name,text,mode?,support_files?}` |
 | `listSshAliases` | GET `/ssh-hosts` | none |
 | `getSession` | GET `/session?intake_id=ID` | original intake ID |
 | `probeHost` | POST `/probe` | `{intake_id,revision,ssh_targets,overrides?}` |
-| `discoverPdk` | POST `/discover-pdk` | `{intake_id,revision,probe_ids,search_paths?,search_directory_ids?,cds_lib_hint?}` |
+| `discoverPdk` | POST `/discover-pdk` | `{intake_id,revision,probe_ids,search_paths?,search_directory_ids?,cds_lib_hint?,refresh?}` |
 | `prepareExperiment` | POST `/prepare` | selection and intent below |
 | `runPrepared` | POST `/run` | `{intake_id,revision,plan_id}` |
 | `readSubmission` | GET `/submission?intake_id=ID&plan_id=PLAN` | original intake and plan IDs |
 | `inspectExperiment` | POST `/inspect` | `{intake_id,job_id}` |
+| `readSource` | GET `/source?intake_id=ID` | original intake ID |
+| `readAgentTestbench` | GET `/agent-tb?intake_id=ID` | original intake ID |
+| `saveAgentTestbench` | POST `/agent-tb/draft` | `{intake_id,revision,testbench,selection?}` |
+| `prepareAgentTestbench` | POST `/agent-tb/prepare` | `{intake_id,revision,draft_id}` |
+| `readAgentTestbenchReview` | GET `/agent-tb/review?intake_id=ID&review_id=REVIEW` | exact frozen review |
+| `analyzeExperiment` | POST `/analysis` | `{intake_id,job_id,operation,inputs,parameters,criteria?}` |
 
 `file_name` is a display label; it is never opened as a local path. The server stores only the supplied literal text. `ssh_targets` is a nonempty bounded list of explicit aliases or user-entered SSH targets. Before that selection, no SSH occurs. `overrides` is an optional bounded object of explicit setup/tool hints, not a path to an old configuration file. Its accepted fields are reported as capabilities; unknown fields fail closed.
 
@@ -80,12 +86,14 @@ manual search hints remain supported after the automatic limit. A fresh probe
 invalidates its old search history. When reactivating selected hosts, guidance
 preserves every already selected setup ID and rechecks its current source hash.
 
-The twelve generated MCP tools mirror the routes above and waveform routes:
+The eighteen generated MCP tools mirror the routes above and waveform routes:
 `ic_onboarding_netlist`, `ic_onboarding_ssh_hosts`, `ic_onboarding_session`,
 `ic_onboarding_probe`, `ic_onboarding_discover_pdk`, `ic_onboarding_prepare`,
 `ic_onboarding_run`, `ic_onboarding_submission`, `ic_onboarding_inspect`,
 `ic_onboarding_waveforms_catalog`, `ic_onboarding_waveforms_mapping`, and
-`ic_onboarding_waveforms_window`. Their `structuredContent` remains
+`ic_onboarding_waveforms_window`, `ic_onboarding_source`, `ic_onboarding_agent_tb`,
+`ic_onboarding_agent_tb_draft`, `ic_onboarding_agent_tb_prepare`,
+`ic_onboarding_agent_tb_review`, and `ic_onboarding_analysis`. Their `structuredContent` remains
 `{ok:true,data:result}`; session results retain all binding fields and guidance.
 The Service records `native_agent` using a fixed transport header, verifies the
 gateway connection identity and capability, and keeps the original run journal.
@@ -185,3 +193,46 @@ When a broad search is incomplete, `session.discovery.search_directories` contai
 A typed `PreDispatchRejected` originates only within the existing workflow's resource/dependency preflight block, which ends before `Runner.reserve`. It produces a complete session with `state: "pre_dispatch_rejected"`, `job: null`, and `submission: {intake_id,plan_id,found:false,run_id:null,submission_key,dispatch_outcome:"pre_dispatch_rejected",replay_permitted:false,job:null,rejection}`. The rejection is `{schema:"ic.experiment.pre-dispatch-rejection.v1",plan_id,project_id,source_commit,submission_key,phase:"before_runner_reserve",code:"resource_or_dependency_preflight_rejected",launch_attempted:false,recorded_at}`. Original-key lookup retains this receipt. A client may clear its pending request only after checking these exact bindings, then permit a deliberate new prepare. It never resends the rejected key. Ordinary exceptions or a missing run mapping do not produce this proof.
 
 A successful original-key lookup restores the current session's standard job only when its prepared plan still matches. Old-plan lookups cannot overwrite a newer active job. Active `inspect` for a noncurrent plan returns 409 Conflict before remote observation; v1 has no historical active-inspection session projection. Saved waveform GETs still accept the original historical job and remain independently bound.
+
+
+## General authored TB and human review
+
+`mode:"agent-tb"` selects the general source parser. `support_files` maps bounded
+relative include names to literal source text. Omitted mode retains the legacy
+inverter compatibility flow. Source reads return `ic.onboarding.source.v1` with
+verified complete source/support bytes and hashes, subject to the same response
+budget. A draft uses the full `ic.agent_testbench.v1` manifest; see
+[the workflow](agent-testbenches.md) for fields and current syntax limits.
+
+Draft saving can precede PDK selection. Preparation freezes all inputs and returns
+`state:"awaiting_human_review"` with a summary in `agent_tb_review`. The exact
+review GET returns `ic.agent-tb.review.v1` including its complete `snapshot`.
+Its digest covers source/support files, TB, PDK and host scope, analyses and
+criteria. Any changed input invalidates it.
+
+The independent local `/agent-tb/review` page uses a one-use form ticket and CSRF
+value. Its `/agent-tb/review/confirm` receives only that human form's decision.
+The native `ic_onboarding_run` instead returns a standard pending Service
+receipt; the existing MCP host review resolves it. Only that trusted resolver
+signs the exact `/api/simulation/onboarding/agent-tb/human-run` request. These
+human endpoints are absent from the model tool catalog and browser proxy.
+The signature key remains in the private onboarding store. Neither entry mode,
+developer permissions nor `approved:true` grants authority.
+
+Run identity remains stable across reloads. A repeated native request returns its
+existing receipt; an uncertain dispatch is reconciled against the original
+submission. No lookup grants permission to resend an unknown run.
+
+## Cached model lookup and analysis
+
+`discover-pdk` may reuse a matching private host-bound LUT observation and rebind
+it to the new source. `refresh:true` requests an explicit new scan. Public LUT
+status retains observation age/coverage and the need for source rebinding and
+fresh preflight. Raw private recommendations are not HTTP responses.
+
+Analysis selectors are exact saved signal IDs (or `@time`), never paths, numeric
+vectors or commands. The resolver independently binds the original job, source,
+archive and full-resolution CSV. Backends are explicit and unsupported options
+fail. Results use `ic.onboarding.analysis.v1`, with independent measurement and
+criterion status, optional spectrum and a persisted artifact identity. See
+[the complete analysis contract](onboarding-analysis.md).

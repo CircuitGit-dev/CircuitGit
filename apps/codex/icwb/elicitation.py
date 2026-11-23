@@ -54,7 +54,7 @@ class ReviewSession:
     def _receipt(self, args):
         receipt = self.service.call('request_status', {'request_id': args['request_id']})
         if (receipt.get('request_id') != args['request_id'] or receipt.get('fingerprint') != args['fingerprint']
-                or receipt.get('operation') not in ('apply', 'sim_submit', 'sim_collect', 'sim_archive')
+                or receipt.get('operation') not in ('apply', 'sim_submit', 'sim_collect', 'sim_archive', 'onboarding_agent_tb_run')
                 or not isinstance(receipt.get('arguments'), dict) or not isinstance(receipt.get('review'), dict)
                 or digest([receipt['operation'], receipt['arguments']]) != args['fingerprint']):
             raise Failure('conflict', 'Frozen request identity, fingerprint or review does not match', 3)
@@ -76,7 +76,7 @@ class ReviewSession:
         if not form_supported(capabilities, protocol):
             return self.result(receipt, 'unsupported')
         action = {'apply': '应用预览中的工程修改', 'sim_submit': '提交仿真任务',
-                  'sim_collect': '收集该运行的结果', 'sim_archive': '归档并发布该运行的结果'}[receipt['operation']]
+                  'sim_collect': '收集该运行的结果', 'sim_archive': '归档并发布该运行的结果', 'onboarding_agent_tb_run': '审阅并运行 Agent 编写的 Testbench'}[receipt['operation']]
         arguments, review = receipt['arguments'], receipt['review']
         identity = {key: arguments.get(key, review.get(key)) for key in
                     ('project_id', 'configuration', 'source_commit', 'base_commit', 'run_id')}
