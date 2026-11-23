@@ -1,4 +1,5 @@
 // Runtime reads are cached evidence. Only the explicit scan action asks for SSH resource checks.
+import {simulationReportView,appendSimulationReport} from './report.js';
 const COMMIT=/^[a-f0-9]{40}$/, PLAN=/^[a-f0-9]{64}$/, ID=/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}$/;
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const text=(value,size=240)=>typeof value==='string'&&value.length<=size;
@@ -61,6 +62,8 @@ export function normalizeRuntimeSnapshot(value,projectId){
       &&timestamp(run.monitor.last_success_at)&&timestamp(run.monitor.next_check_at)
       &&Number.isSafeInteger(run.monitor.failures)&&run.monitor.failures>=0);
     validateDiagnostics(run.diagnostics);validateAcceptance(run.acceptance);
+    simulationReportView(run.report,run.run_id);
+    if(run.report)validateDiagnostics(run.report.diagnostics);
     for(const key of Object.keys(acceptanceStates))requireValid(run.acceptance[key]===run.diagnostics.scientific_acceptance[key]);
     runs.add(run.run_id);
   }
@@ -151,7 +154,6 @@ export function createRuntimeController(host,{changed=()=>{},isVisible=()=>true,
 
 const time=value=>value||'未记录';
 const metric=(value,suffix='',divisor=1)=>value===null?'未知':`${Number((value/divisor).toFixed(1))}${suffix}`;
-const acceptanceLabels={queued:'排队',running:'执行中',completed:'执行完成',failed:'执行失败',cancelled:'已取消',unknown:'未知',valid:'数据有效',invalid:'数据无效',pass:'指标通过',fail:'指标未通过'};
 
 export function mountRuntime(root,{host,actions={},actionPolicy=()=>({})}){
   const doc=root.ownerDocument;let controller=null,disposed=false,actionBusy=false;
@@ -212,21 +214,21 @@ export function mountRuntime(root,{host,actions={},actionPolicy=()=>({})}){
     }
     if(snapshot.pool.configured&&!snapshot.pool.hosts.length)note(root,'尚无服务器资源记录。');
     root.append(el('h3','运行监控与验收'));
-    note(root,'后台监控状态和诊断来自保存的记录。执行完成、数据有效与指标通过分别判断。');
+    note(root,'各项结论来自保存的验收报告；执行结束不代表科学验收通过。');
     if(!snapshot.runs.length)note(root,'当前项目尚无运行记录。');
     for(const run of snapshot.runs){
       const card=el('article',undefined,'ic-sim-card ic-runtime-run');card.dataset.runtimeRun=run.run_id;
       const title=el('div',undefined,'ic-sim-section-head');title.append(el('h3',run.configuration||run.run_id),el('span',run.execution.state,'ic-sim-status'));card.append(title);
       note(card,run.run_id+' · 源码 '+(run.source_commit?run.source_commit.slice(0,12):'未记录'));
       if(run.execution_target?.host_id)note(card,'运行服务器：'+run.execution_target.host_id);
-      const acceptance=el('dl',undefined,'ic-runtime-acceptance');
-      for(const [key,label]of [['execution','执行'],['data_validity','数据'],['specification','指标']])acceptance.append(el('dt',label),el('dd',acceptanceLabels[run.acceptance[key]]));card.append(acceptance);
+      appendSimulationReport(card,{report:run.report,runId:run.run_id,detail});
       note(card,'退出码：'+(run.execution.exit_code===null?'未记录':run.execution.exit_code));
       const monitor=detail(card,'monitor-'+run.run_id,'监控记录 · '+run.monitor.state);
       for(const [label,value]of [['最近尝试',time(run.monitor.last_attempt_at)],['最近成功观察',time(run.monitor.last_success_at)],['下次检查',time(run.monitor.next_check_at)],['连续失败',String(run.monitor.failures)]])note(monitor,label+'：'+value);
-      const diagnostics=detail(card,'diagnostics-'+run.run_id,'诊断建议 · '+run.diagnostics.diagnostics.length+' 项');
+      const findings=run.report?.diagnostics.diagnostics||run.diagnostics.diagnostics;
+      const diagnostics=detail(card,'diagnostics-'+run.run_id,'诊断建议 · '+findings.length+' 项');
       note(diagnostics,'以下为建议；显示这些内容不会执行操作。');
-      for(const finding of run.diagnostics.diagnostics){
+      for(const finding of findings){
         const row=el('div',undefined,'ic-runtime-finding');row.append(el('strong',finding.category+' · '+finding.code));note(row,'级别：'+finding.severity);
         const list=el('ul');finding.suggested_actions.forEach(action=>list.append(el('li',action)));row.append(list);
         if(finding.evidence_line_numbers.length)note(row,'日志行：'+finding.evidence_line_numbers.join(', '));

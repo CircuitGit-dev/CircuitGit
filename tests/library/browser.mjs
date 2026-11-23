@@ -90,6 +90,25 @@ try{
     // drag homes. Give the real drawing an explicit inspection viewport.
     await page.evaluate(async prefix=>{const panel=window.ICStudioDock.api.getPanel('schematic');panel.api.setActive();panel.api.maximize();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));(await import(prefix+'vendor/rnl-viewer/drawing.js')).fit();},prefix);
     const drawingSize=await page.locator('#canvas').boundingBox();assert.ok(drawingSize.width>600&&drawingSize.height>300);assert.equal(await page.locator('#canvas > svg').isVisible(),true);
+    if(libId==='pipetisar-real'&&cellId==='RS9_L5_9bit_Bootstrap'){
+      real.instanceProperties=[];
+      for(const [name,model]of [['M9','nch_ulvt_mac'],['M10','pch_ulvt_mac']]){
+        const properties=await page.evaluate(async({prefix,name})=>{
+          const {selectedInstanceProperties}=await import(prefix+'modules/schematic/instance-properties.js');
+          const {select}=await import(prefix+'vendor/rnl-viewer/selection.js');
+          const doc=window.viewer.doc,index=doc.objects.findIndex(o=>o.kind==='instance'&&o.name===name&&o.level===doc.levels[window.viewer.level].host);
+          if(index<0)throw Error('Real transistor is absent: '+name);
+          select(index,'drawing');const property=selectedInstanceProperties(doc,index);
+          return {...property,documentFileFormat:doc.files[doc.objects[index].lines[0]].format,documentDefaultFormat:doc.files[doc.objects[index].lines[0]].default_format};
+        },{prefix,name});
+        assert.equal(properties.available,true);assert.equal(properties.model,model);
+        assert.equal(properties.dimensions.find(d=>d.name==='w').value,'250.0n');assert.equal(properties.dimensions.find(d=>d.name==='l').value,'30n');
+        assert.equal(properties.dimensions.find(d=>d.name==='nf').value,'1');assert.equal(properties.dimensions.find(d=>d.name==='multi').value,'1');
+        assert.match(await page.locator('#selection [data-instance-properties="available"]').innerText(),new RegExp(model));
+        assert.match(await page.locator('#selection [data-instance-properties="available"]').getAttribute('title'),/RS9_L5_9bit_Bootstrap\.scs/);
+        real.instanceProperties.push(properties);
+      }
+    }
     await page.screenshot({path:output+'/real-native.png',fullPage:true});
     await page.evaluate(()=>window.ICStudioDock.api.getPanel('schematic').api.exitMaximized());
     await page.locator('#studio-library-button').click();await manager.getByRole('button',{name:'回到 RC 参考',exact:true}).click();await page.waitForSelector('.wf-trace[data-trace="vout:1"]');

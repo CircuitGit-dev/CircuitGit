@@ -9,6 +9,7 @@ import { paintSourceSelection } from "./text.js";
 import { $ } from "./util.js";
 import { setEnabled } from "./commands.js";
 import { usageSelection } from "./usages.js";
+import { selectedInstanceProperties, appendInstanceProperties } from "../../../../modules/schematic/instance-properties.js";
 
 const canvas = $("canvas");
 const source = $("source");
@@ -45,6 +46,7 @@ export function select(o, from, options) {
   } else {
     append(sel, b, m` ${kindName(obj.kind)} in ${obj.level_title}`);
   }
+  appendInstanceProperties(sel, selectedInstanceProperties(doc, o));
 }
 
 export function clearSelection() {

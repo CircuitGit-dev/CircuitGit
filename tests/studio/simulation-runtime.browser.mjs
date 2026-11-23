@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
-const files=['modules/simulation/runtime.js','modules/simulation/style.css','tests/studio/runtime.fixture.mjs'];
+const files=['modules/simulation/runtime.js','modules/simulation/report.js','modules/simulation/style.css','tests/studio/runtime.fixture.mjs','tests/studio/simulation-report.fixture.mjs'];
 const assets=new Map(await Promise.all(files.map(async path=>['/'+path,await readFile(resolve(root,path),'utf8')])));
 const html='<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/modules/simulation/style.css"><style>body{margin:0}</style><section class="ic-sim-panel"><div id="runtime"></div></section><script type="module">import {mountRuntime} from "/modules/simulation/runtime.js";import {runtimeFixture} from "/tests/studio/runtime.fixture.mjs";window.fixture=runtimeFixture();window.runtime=mountRuntime(document.getElementById("runtime"),{host:fixture.host,actions:fixture.actions,actionPolicy:()=>fixture.policy});</script>';
 
@@ -27,12 +27,27 @@ test('runtime browser shows cached evidence gates actions and disposes visible p
     await t.test('unknown resources and original stale timestamps are visible without a scan',async()=>{
       assert.equal(await count('POST'),0);assert.equal(await count('GET'),1);
       const second=page.locator('[data-runtime-host="node-b"]');assert.match(await second.innerText(),/未知/);assert.match(await second.innerText(),/资源观察已过期/);assert.match(await second.innerText(),/2026-01-01T00:00:00Z/);
-      assert.match(await page.locator('.ic-runtime-run').innerText(),/执行失败/);assert.equal(await action('submit').isDisabled(),true);assert.equal(await action('collect').isDisabled(),true);
+      assert.equal(await page.locator('[data-report-status="unknown"]').count(),5);assert.equal(await action('submit').isDisabled(),true);assert.equal(await action('collect').isDisabled(),true);
+    });
+    await t.test('five scoped verdicts show function pass independently of SOA and dependency failures',async()=>{
+      await page.evaluate(async()=>{const {simulationReport}=await import('/tests/studio/simulation-report.fixture.mjs');const run=fixture.snapshot.runs[0];run.report=simulationReport();run.execution={state:'completed',exit_code:0};run.acceptance={...run.report.diagnostics.scientific_acceptance};run.diagnostics=structuredClone(run.report.diagnostics);});await refresh();
+      assert.deepEqual(await page.locator('[data-report-dimension]').evaluateAll(nodes=>nodes.map(node=>[node.dataset.reportDimension,node.dataset.reportStatus])),[
+        ['execution_status','completed'],['measurement_validity','valid'],['functional_performance','pass'],['operating_qualification','violations_detected'],['dependency_provenance','incomplete']]);
+      assert.match(await page.locator('[data-report-warnings]').innerText(),/54.*30,703/);
+      assert.equal(await page.getByText('全部通过',{exact:true}).count(),0);
+      const evidence=page.locator('[data-runtime-detail="report-run-1"]');
+      await evidence.locator('summary').click();await refresh();assert.equal(await evidence.getAttribute('open'),'');
+      assert.match(await evidence.innerText(),/TMI 未在运行前登记/);assert.match(await evidence.innerText(),/电压 SOA/);
+      for(const width of [260,340,640]){await page.setViewportSize({width,height:960});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));}
+      if(process.env.EVIDENCE_DIR){await mkdir(process.env.EVIDENCE_DIR,{recursive:true});await page.setViewportSize({width:340,height:960});await page.screenshot({path:resolve(process.env.EVIDENCE_DIR,'diagnostic-report-340.png'),fullPage:true});}
+      await evidence.locator('summary').click();
+      await page.evaluate(()=>{delete fixture.snapshot.runs[0].report;});await refresh();
+      assert.equal(await page.locator('[data-report-status="unknown"]').count(),5,'Exit 0 and legacy pass cannot manufacture report verdicts');
     });
     await t.test('five-second reads pause while hidden and never become resource scans',async()=>{
-      await page.clock.runFor(5000);assert.equal(await count('GET'),2);
-      await page.evaluate(()=>{document.getElementById('runtime').hidden=true;});await page.clock.runFor(10000);assert.equal(await count('GET'),2);
-      await page.evaluate(()=>{document.getElementById('runtime').hidden=false;});await page.clock.runFor(5000);assert.equal(await count('GET'),3);assert.equal(await count('POST'),0);
+      const before=await count('GET');await page.clock.runFor(5000);assert.equal(await count('GET'),before+1);
+      await page.evaluate(()=>{document.getElementById('runtime').hidden=true;});await page.clock.runFor(10000);assert.equal(await count('GET'),before+1);
+      await page.evaluate(()=>{document.getElementById('runtime').hidden=false;});await page.clock.runFor(5000);assert.equal(await count('GET'),before+2);assert.equal(await count('POST'),0);
     });
     await t.test('explicit resource scan posts only the current project and disables while running',async()=>{
       await action('scan').click();await page.waitForFunction(()=>fixture.calls.some(c=>c.options?.method==='POST'));

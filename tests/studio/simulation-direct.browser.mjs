@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
-const files=['modules/simulation/panel.js','modules/simulation/model.js','modules/simulation/receipts.js','modules/simulation/supervision.js','modules/simulation/runtime.js','modules/simulation/style.css','tests/studio/simulation-panel.fixture.mjs','tests/studio/runtime.fixture.mjs'];
+const files=['modules/simulation/panel.js','modules/simulation/model.js','modules/simulation/receipts.js','modules/simulation/supervision.js','modules/simulation/runtime.js','modules/simulation/report.js','modules/simulation/style.css','tests/studio/simulation-panel.fixture.mjs','tests/studio/runtime.fixture.mjs'];
 const assets=new Map(await Promise.all(files.map(async file=>['/'+file,await readFile(root+file,'utf8')])));
 const html=`<!doctype html><meta charset="utf-8"><div id="simulation"></div><script type="module">
 import {mount} from '/modules/simulation/panel.js';
