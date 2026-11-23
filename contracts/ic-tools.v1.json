@@ -699,7 +699,7 @@
     },
     {
       "name": "ic_onboarding_discover_pdk",
-      "description": "Discover bounded model/include metadata for this intake’s exact probe IDs. Prefer returned search_directory_ids to narrow an incomplete scan; optional search_paths or cds_lib_hint are explicit PDK search inputs. Candidate evidence does not select or qualify a process. No solver execution.",
+      "description": "Discover bounded model/include metadata for this intake’s exact probe IDs. Reuse the full-library device index for different required-device sets. Prefer returned search_directory_ids to narrow an incomplete scan. Optional library_selection must use the exact previous LUT observation and entry choice; it queries that saved library without rescanning. Candidate evidence does not select or qualify a process. No solver execution.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -752,12 +752,82 @@
           },
           "refresh": {
             "type": "boolean"
+          },
+          "library_selection": {
+            "type": "object",
+            "properties": {
+              "probe_id": {
+                "type": "string",
+                "pattern": "^probe_[a-f0-9]{32}$"
+              },
+              "library_id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "library_candidate_id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "probe_id",
+              "library_id",
+              "library_candidate_id"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
           "intake_id",
           "revision",
           "probe_ids"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "ic_onboarding_veriloga_headers",
+      "description": "Observe the standard Verilog-A headers and literal include closure only within explicitly selected remote roots on one already probed host. Saves hashes for later human review and fresh dependency audit. No simulator or automatic root guessing.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "probe_id": {
+            "type": "string",
+            "pattern": "^probe_[a-f0-9]{32}$"
+          },
+          "roots": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^/(?!.*\\.\\.)[A-Za-z0-9_./ +\\-]+$"
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "intake_id",
+          "revision",
+          "probe_id",
+          "roots"
         ],
         "additionalProperties": false
       },
@@ -1057,6 +1127,10 @@
           "job_id": {
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{1,160}$"
+          },
+          "dataset_id": {
+            "type": "string",
+            "pattern": "^ds_[a-f0-9]{32}$"
           }
         },
         "required": [
@@ -1085,6 +1159,10 @@
           "job_id": {
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{1,160}$"
+          },
+          "dataset_id": {
+            "type": "string",
+            "pattern": "^ds_[a-f0-9]{32}$"
           }
         },
         "required": [
@@ -1102,7 +1180,7 @@
     },
     {
       "name": "ic_onboarding_waveforms_window",
-      "description": "Read bounded waveform samples for one to eight exact signal IDs from this original job catalog. start/stop are finite seconds, max_points is per signal. No signal expressions, paths, SSH, collection or execution.",
+      "description": "Read bounded samples for exact signals of one original saved dataset. start/stop use its declared axis unit (s for transient, Hz for AC); AC/DC require explicit dataset_id. No signal expressions, paths, SSH, collection or execution.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1123,6 +1201,10 @@
             "minItems": 1,
             "maxItems": 8,
             "uniqueItems": true
+          },
+          "dataset_id": {
+            "type": "string",
+            "pattern": "^ds_[a-f0-9]{32}$"
           },
           "start": {
             "type": "number",
@@ -1266,7 +1348,22 @@
               "stimuli": {},
               "objectives": {},
               "criteria": {},
-              "postprocess": {}
+              "postprocess": {},
+              "helper_files": {
+                "type": "object",
+                "properties": {},
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 524288
+                },
+                "maxProperties": 48
+              }
             },
             "required": [
               "schema",
@@ -1343,6 +1440,11 @@
                 "minItems": 1,
                 "maxItems": 8,
                 "uniqueItems": true
+              },
+              "veriloga_header_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
               }
             },
             "required": [],
@@ -1400,7 +1502,7 @@
     },
     {
       "name": "ic_onboarding_analysis",
-      "description": "Analyze one original job’s verified full-precision waveform data with a named pinned algorithm. Inputs are exact catalog signal IDs or @time, never paths or commands. Returns source/archive/CSV provenance, FFT or metrics and separate user-criteria verdicts. Writes a bounded analysis report only; no SSH, solver, extraction or arbitrary Python execution.",
+      "description": "Analyze one original job’s verified full-precision saved data with a named pinned algorithm. Inputs are exact catalog signal IDs or @time; dc_op_metrics uses saved device IDs. AC/DC require explicit dataset_id. Units come from that saved dataset; AC response/reference must be exact complex signals and loop margins require explicit feedback convention and phase anchor. Returns source/archive/data provenance and separate user-criteria verdicts. Writes a bounded analysis report only; no SSH, solver, extraction or arbitrary Python execution.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1412,6 +1514,10 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{1,160}$"
           },
+          "dataset_id": {
+            "type": "string",
+            "pattern": "^ds_[a-f0-9]{32}$"
+          },
           "operation": {
             "type": "string",
             "enum": [
@@ -1422,7 +1528,9 @@
               "weight_calibrate",
               "reconstruct_codes",
               "histogram_linearity",
-              "tran_metrics"
+              "tran_metrics",
+              "ac_metrics",
+              "dc_op_metrics"
             ]
           },
           "inputs": {
@@ -1449,6 +1557,16 @@
                   "items": {
                     "type": "string",
                     "pattern": "^s_[a-f0-9]{32}$"
+                  },
+                  "minItems": 1,
+                  "maxItems": 64,
+                  "uniqueItems": true
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^d_[a-f0-9]{32}$"
                   },
                   "minItems": 1,
                   "maxItems": 64,

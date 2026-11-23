@@ -61,18 +61,18 @@ def _encoded(value):
 
 def _number(value, name):
     if type(value) not in (str, int, float) or len(str(value)) > 64:
-        _error('invalid_input', name + ' must be a finite number of seconds')
+        _error('invalid_input', name + ' must be a finite number in the selected saved axis unit')
     try:
         parsed = float(value)
     except (ValueError, TypeError, OverflowError):
-        _error('invalid_input', name + ' must be a finite number of seconds')
+        _error('invalid_input', name + ' must be a finite number in the selected saved axis unit')
     if not math.isfinite(parsed):
-        _error('invalid_input', name + ' must be a finite number of seconds')
+        _error('invalid_input', name + ' must be a finite number in the selected saved axis unit')
     return parsed
 
 
 def _query(operation, args):
-    allowed = {'intake_id', 'job_id'}
+    allowed = {'intake_id', 'job_id', 'dataset_id'}
     if operation == 'window':
         allowed |= {'signal_ids', 'start', 'stop', 'max_points'}
     elif operation not in ('catalog', 'mapping'):
@@ -87,6 +87,8 @@ def _query(operation, args):
     if not isinstance(args['job_id'], str) or not _JOB.fullmatch(args['job_id']):
         _error('invalid_job', 'Use an exact original job ID')
     query = dict(args)
+    if 'dataset_id' in query and (not isinstance(query['dataset_id'], str) or not re.fullmatch(r'ds_[a-f0-9]{32}', query['dataset_id'])):
+        _error('invalid_dataset', 'Use an exact dataset ID returned by this original job')
     if operation == 'window':
         ids = args.get('signal_ids')
         if isinstance(ids, str):
@@ -171,6 +173,7 @@ class OnboardingWaveforms:
         query = _query(operation, args)
         binding, archive = self._bound(query)
         service, rid = binding.service, binding.run_id
+        selected = {'dataset_id': query['dataset_id']} if 'dataset_id' in query else {}
         result = {'schema': SCHEMA, 'operation': operation,
                   'intake_id': binding.intake_id, 'job_id': binding.job_id,
                   'run_id': rid, 'source_commit': binding.source_commit,
@@ -186,18 +189,22 @@ class OnboardingWaveforms:
                              'max_window_signals': MAX_WINDOW_SIGNALS,
                              'max_points_per_signal': MAX_POINTS}}
         try:
+            if selected:
+                result.update(selected)
             if operation == 'catalog':
-                value = service.catalog(rid)
+                value = service.catalog(rid, **selected)
                 self._identity(value, binding, archive)
+                if selected and value.get('dataset_id') != query['dataset_id']:
+                    _error('identity_mismatch', 'Returned catalog belongs to another dataset', 409)
                 result['catalog'] = value
             elif operation == 'mapping':
-                value = service.mapping(rid)
+                value = service.mapping(rid, **selected)
                 if not isinstance(value, dict) or value.get('status') not in ('unmapped', 'verified_binding'):
                     _error('mapping_invalid', 'Unknown saved waveform mapping state', 422)
                 # Unmapped replies include catalog identity. Installed manifests
                 # bind run/source/config/raw but need not duplicate archive keys.
                 if value.get('status') == 'verified_binding':
-                    catalog = service.catalog(rid)
+                    catalog = service.catalog(rid, **selected)
                     self._identity(catalog, binding, archive)
                     for key in ('run_id', 'source_commit', 'effective_config_sha256', 'raw_signature'):
                         if value.get(key) != catalog.get(key):
@@ -208,7 +215,7 @@ class OnboardingWaveforms:
                     result['probe']['reason'] = 'no_source_geometry_binding'
                 result['mapping'] = value
             else:
-                catalog = service.catalog(rid)
+                catalog = service.catalog(rid, **selected)
                 self._identity(catalog, binding, archive)
                 lookup = {row['id']: row for row in catalog['signals']}
                 for sid in query['signal_ids']:
@@ -219,9 +226,11 @@ class OnboardingWaveforms:
                         _error(code, 'Selected signal has no existing readable waveform', 409)
                 result['series'] = []
                 for sid in query['signal_ids']:
-                    value = service.waveform(rid, sid, analysis='tran',
-                        start=query.get('start'), end=query.get('stop'), limit=query['max_points'])
+                    value = service.waveform(rid, sid,
+                        start=query.get('start'), end=query.get('stop'), limit=query['max_points'], **selected)
                     self._identity(value, binding, archive, catalog)
+                    if selected and any(value.get(key) != catalog.get(key) for key in ('dataset_id','data_sha256','data_format','analysis_id','analysis_kind','native_member_sha256')):
+                        _error('identity_mismatch', 'Selected dataset changed during this read', 409)
                     if value.get('signal', {}).get('id') != sid:
                         _error('identity_mismatch', 'Waveform signal identity changed during this read', 409)
                     result['series'].append(value)
@@ -263,9 +272,13 @@ class OnboardingWaveforms:
             return result
         catalog = data['catalog']
         result.update({key: catalog[key] for key in ('source_hashes', 'raw_signature',
-                       'effective_config_sha256', 'csv_sha256', 'archive_sha256')})
+                       'effective_config_sha256', 'archive_sha256')})
+        if 'csv_sha256' in catalog:
+            result['csv_sha256'] = catalog['csv_sha256']
+        if 'datasets' in catalog:
+            result['datasets'] = catalog['datasets']
         result['available_signal_ids'] = [s['id'] for s in catalog['signals'] if s.get('status') == 'available']
-        result['available'] = bool(result['available_signal_ids'])
+        result['available'] = bool(result['available_signal_ids'] or any(row.get('available_signal_ids') or row.get('available_device_ids') for row in result.get('datasets', [])))
         result['source_binding_verified'] = True
         if not result['available']:
             result['unavailable_reason'] = 'no_readable_exported_signals'
@@ -276,7 +289,7 @@ class OnboardingWaveforms:
 
 def dispatch(service, operation, query):
     """Accept ``parse_qs(..., keep_blank_values=True)`` without duplicate fields."""
-    if (not isinstance(query, dict) or len(query) > 6
+    if (not isinstance(query, dict) or len(query) > 7
             or any(not isinstance(values, list) or len(values) != 1
                    or not isinstance(values[0], str) or values[0] == '' for values in query.values())):
         _error('invalid_input', 'Unknown, duplicate or blank waveform query parameter')

@@ -88,6 +88,21 @@ class ExperimentWorkflow:
             raise ValueError('Bounded remote model audit did not complete')
         return json.loads(result.stdout)
 
+    def _audit_headers(self,site,profile,remote_python):
+        from spiceowl.onboarding.veriloga_headers import build_veriloga_header_probe_script,validate_veriloga_headers,MAX_RESULT_BYTES
+        if not isinstance(remote_python,str) or not remote_python.startswith('/') or not core.SAFE.fullmatch(remote_python):
+            raise ValueError('An observed remote Python executable is required')
+        original=validate_veriloga_headers(profile['observation'])
+        if site['spectre_bin']!=profile['spectre']:raise ValueError('Standard headers belong to a different selected Spectre installation')
+        code=build_veriloga_header_probe_script(roots=original['roots'])
+        script='set -eu\n[ "$(hostname)" = '+core.q(site['expected_host'])+' ]\n[ "$(id -un)" = '+core.q(site['expected_user'])+' ]\n'
+        script+='/usr/bin/timeout 50 '+core.q(remote_python)+" - <<'IC_VA_HEADER_AUDIT_PY'\n"+code+'\nIC_VA_HEADER_AUDIT_PY\n'
+        reply=core.ssh(site,script,timeout=60)
+        if reply.returncode or len(reply.stdout)>MAX_RESULT_BYTES:raise ValueError('Bounded standard header audit did not complete')
+        result=validate_veriloga_headers(json.loads(reply.stdout))
+        if result!=original:raise ValueError('Standard header bytes or include closure changed after observation')
+        return result
+
     @staticmethod
     def _validate_audit(audit,config):
         from spiceowl.integrations.model_dependencies import validate_audit_config
@@ -183,6 +198,25 @@ class ExperimentWorkflow:
             if alias in aliases and aliases[alias]!=path:alias+='_'+hashlib.sha256(path.encode()).hexdigest()[:8].upper()
             aliases[alias]=path;pins[alias]=checksum
         if not aliases:raise ValueError('Model audit returned no pinned dependencies')
+        header_audit=None
+        if recipe.get('veriloga_external_dependencies'):
+            from onboarding_veriloga import header_binding,staging_manifest
+            header_profile=profile.get('veriloga_headers')
+            try:
+                if not isinstance(header_profile,dict):raise ValueError('An observed standard header profile is required')
+                if any(site['spectre_bin']!=header_profile['spectre'] for site in sites.values()):
+                    raise ValueError('Header profile does not identify every selected Spectre installation')
+                header_audit=self._audit_headers(sites[audit_host],header_profile,profile.get('remote_python','/usr/bin/python'))
+                selected_headers,header_aliases=header_binding(header_audit,{edge['reference'] for edge in recipe['veriloga_external_dependencies']})
+                binding=recipe['agent_tb_manifest']['pdk_binding']
+                if (selected_headers!=header_profile['binding'] or header_aliases!=header_profile['aliases']
+                        or any(binding.get(key)!=value for key,value in selected_headers.items()) or set(aliases)&set(header_aliases)):
+                    raise ValueError('Standard header profile differs from this frozen testbench')
+                aliases.update(header_aliases)
+                pins.update({row['alias']:row['sha256'] for row in selected_headers['veriloga_header_closure']['files']})
+            except (ValueError,KeyError,TypeError):
+                return blocked(project,recipe_id,commit,[{'field':'veriloga_headers','code':'standard_header_audit_unverified',
+                    'message':'The selected header bytes and include graph must pass their exact fresh installation audit.'}])
         for site in sites.values():site['external_files']={**site.get('external_files',{}),**aliases}
         payload=dict(compiled['files'])
         recipe_raw=canonical(recipe)
@@ -201,6 +235,7 @@ class ExperimentWorkflow:
                 'files':[{'source':name,'destination':name,'sha256':hashlib.sha256(raw).hexdigest()} for name,raw in sorted(payload.items())],
                 'external_sha256':pins,'configuration':{'recipe_id':recipe_id,'manifest_sha256':qualification['manifest_sha256']},
                 'simulator':{'profile':'explicit-local-1cpu','args':['-64','+mt=1','+lqtimeout','60','-maxw','10','-maxn','10'],'output_format':'psfascii'}}
+        if header_audit is not None:bundle['veriloga_header_staging']=staging_manifest(recipe)
         source_hashes={path:hashlib.sha256(raw).hexdigest() for path,raw in sources.items()}
         compiler=digest({'workflow':filehash(__file__),'compiled_recipe':hashlib.sha256(recipe_raw).hexdigest()})
         bundle_path=ws.freeze_experiment(project,recipe_id,commit,payload,bundle,source_hashes,compiler)
@@ -210,6 +245,7 @@ class ExperimentWorkflow:
               'dependency_audit':audit,'dependency_profile_sha256':digest(profile),'sites':sites,
               'environment_pins':profile.get('environment_pins',{}),
               'requirements':pool.requirements,'spiceowl_data_dir':pool.data_dir}
+        if header_audit is not None:data['veriloga_header_audit']=header_audit
         plan_id=self._save_plan(data)
         return {'schema':'ic.experiment.plan.v1','state':'prepared','project_id':project,'recipe_id':recipe_id,
                 'source_commit':commit,'plan_id':plan_id,'missing':[],
@@ -392,6 +428,16 @@ class ExperimentWorkflow:
                 manifest=[line for line in external if line.endswith('  '+path)]
                 if manifest!=[checksum+'  '+path] or matching!=[path+': OK']:
                     raise ValueError('Native prelaunch dependency verification differs')
+            if bundle.get('veriloga_header_staging'):
+                from onboarding_veriloga import STAGING_ROOT
+                manifest=read('veriloga-staged.sha256',128*1024).decode().splitlines()
+                verified=read('veriloga-staged-checksums.log',128*1024).decode().splitlines()
+                header_files=bundle['veriloga_header_staging']['binding']['veriloga_header_closure']['files']
+                expected={STAGING_ROOT+'/'+row['name']:row['sha256'] for row in header_files}
+                if (sorted(manifest)!=sorted(sha+'  '+name for name,sha in expected.items())
+                        or sorted(verified)!=sorted(name+': OK' for name in expected)):
+                    raise ValueError('Native staged standard header verification differs')
+                payload.update({record['remote_directory']+'/'+name:sha for name,sha in expected.items()})
             log=read('psf/spectre.out',1024*1024).decode(errors='replace')
             agent_artifacts=None
             if data['recipe'].get('recipe')=='agent-testbench':
@@ -483,5 +529,6 @@ class ExperimentWorkflow:
             if row.get('sha256'):entry['evidence_sha256']=row['sha256']
             entries.append(entry)
         return {'run_id':record['run_id'],'scope_id':'declared-and-observed-model-tool-dependencies',
-                'manifest_sha256':digest(data['dependency_audit']),'run_bound':True,
+                'manifest_sha256':digest({'models':data['dependency_audit'],'veriloga_headers':data['veriloga_header_audit']}
+                    if data.get('veriloga_header_audit') else data['dependency_audit']),'run_bound':True,
                 'inventory_complete':audit.get('status')=='covered_by_declared_prelaunch_pins','entries':entries}

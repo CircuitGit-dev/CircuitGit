@@ -98,7 +98,15 @@ Use onboarding_netlist mode=agent-tb and read the exact DUT/support bytes with i
 and prepare its frozen source/TB/PDK/host review. Every edit invalidates the previous review.
 Only a human can approve the Testbench review and run it; never call an approval endpoint or forge a review signature.
 PDK LUT hits are observed host-bound metadata, not permission to run and not proof that dependencies are still valid.
+The full-library LUT can serve different required-device sets from one bounded host/root observation; report partial or missing coverage explicitly.
+Keep imported DUT support files separate from authored testbench.helper_files. Use relative literal include identities and freeze every helper byte.
+For standard Verilog-A headers, use ic_onboarding_veriloga_headers only with explicitly selected remote roots and a matching observed probe.
+Select its returned veriloga_header_id in the draft; do not guess installation paths or copy licensed standard headers into Git.
 Use ic_onboarding_analysis on exact saved job/catalog signal IDs for named FFT, sine-fit, calibration, linearity or transient metrics.
+For AC/DC, select the exact saved dataset_id. AC metrics use complex response/reference signals from that same dataset, with saved units.
+Only explicit loop gain, feedback convention and phase anchor support stability margins; an ordinary transfer is not a loop stability result.
+DC operating-point analysis uses saved device IDs plus explicit region/voltage contracts. Missing polarity, region evidence or supply measurements remain unknown.
+AC/DC analysis is an explicit saved-job operation; do not claim the transient automatic job acceptance path supports it.
 Analysis uses full-precision verified artifacts; UI downsampled curves are not measurement input. Report algorithm/backend/version,
 units and input/run/archive identity; distinguish invalid measurements from failed user specifications and unknown qualification.
 For library CI, ic_library_propose_testbench creates a pending proposal containing testbench, analysis source and manifest.

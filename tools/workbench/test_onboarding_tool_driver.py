@@ -106,7 +106,8 @@ class OnboardingToolDriverTests(_IntakeFixture):
         self.assertEqual(state['next_actions'][0]['arguments']['overrides']['setup_source_ids'],
                          {HOST: self.setup['source_id']})
 
-        def local_discovery(target, ssh_config, capture, requirements, search_paths, cds_lib_hint):
+        def local_discovery(target, ssh_config, capture, requirements, search_paths, cds_lib_hint, *, full_library=False):
+            self.assertTrue(full_library)
             self.assertEqual(target, HOST)
             self.assertEqual(ssh_config, self.cfg['onboarding']['ssh_config'])
             self.assertEqual(capture['private']['activation']['selected_source_id'], self.setup['source_id'])

@@ -30,7 +30,7 @@ LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/rev
 SIMULATION_ROUTE = '/api/simulation/execute'
 ONBOARDING_PREFIX = '/api/simulation/onboarding/'
 ONBOARDING_READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','source','agent-tb/review'}
-ONBOARDING_WRITES = {'netlist','probe','discover-pdk','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis'}
+ONBOARDING_WRITES = {'netlist','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis'}
 
 def onboarding_entry_origin(headers):
     # This header is provenance only. The bearer/pairing guards run first.
@@ -74,7 +74,7 @@ class GatewayOnboarding:
             raise PermissionError('Onboarding is unavailable on this connection')
         path=ONBOARDING_PREFIX+operation
         if not write and args:path+='?'+urlencode(args)
-        timeout=320 if operation=='run' else 300 if operation in ('probe','discover-pdk','prepare','agent-tb/prepare') else 45 if operation=='inspect' else 20
+        timeout=320 if operation=='run' else 300 if operation in ('probe','discover-pdk','veriloga-headers','prepare','agent-tb/prepare') else 45 if operation=='inspect' else 20
         data=self.gateway.request(path,args if write else None,
             onboarding_entry='native_agent' if origin=='native_agent' else None,
             onboarding_connection_id=self.connection_id,route_timeout=timeout)
@@ -82,7 +82,7 @@ class GatewayOnboarding:
             raise Failure('onboarding_response_mismatch','Onboarding response must be an object; do not replay mutations',75)
         if 'intake_id' in args and data.get('intake_id')!=args['intake_id']:
             raise Failure('onboarding_response_mismatch','Onboarding response belongs to another intake; do not replay mutations',75)
-        if operation in ('netlist','session','probe','discover-pdk','prepare','run','inspect','agent-tb','agent-tb/draft','agent-tb/prepare'):
+        if operation in ('netlist','session','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb','agent-tb/draft','agent-tb/prepare'):
             if data.get('schema')!='ic.onboarding.session.v1' or data.get('connection_id')!=self.connection_id:
                 raise Failure('onboarding_response_mismatch','Onboarding response belongs to another connection; do not replay mutations',75)
         return data

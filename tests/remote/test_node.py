@@ -69,6 +69,17 @@ class GatewayOnboardingTests(unittest.TestCase):
         self.gateway.request.assert_called_once_with('/api/simulation/onboarding/run',args,
             onboarding_entry=None,onboarding_connection_id=self.identity,route_timeout=320)
 
+    def test_header_probe_retains_its_remote_deadline_and_checks_connection(self):
+        self.proxy.refresh();self.gateway.reset_mock()
+        args={'intake_id':'intake_'+'b'*32,'revision':4,'probe_id':'probe_'+'c'*32,'roots':['/observed/headers']}
+        session={'schema':'ic.onboarding.session.v1','intake_id':args['intake_id'],'connection_id':self.identity}
+        self.gateway.request.return_value=session
+        self.assertEqual(self.proxy.write('veriloga-headers',args),session)
+        self.gateway.request.assert_called_once_with('/api/simulation/onboarding/veriloga-headers',args,
+            onboarding_entry=None,onboarding_connection_id=self.identity,route_timeout=300)
+        self.gateway.request.return_value={**session,'connection_id':'d'*32}
+        with self.assertRaisesRegex(node.Failure,'another connection'):self.proxy.write('veriloga-headers',args)
+
     def test_routes_and_returned_source_connection_are_checked_without_fallback(self):
         self.proxy.refresh();self.gateway.reset_mock()
         for operation in ('../../api/jobs','waveforms/../session','shell'):

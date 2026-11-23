@@ -3,6 +3,7 @@ import {readSimulationJson} from '../../../modules/simulation/http.js';
 export const ONBOARDING_OPERATIONS=Object.freeze({
   inspectNetlist:{path:'/netlist',method:'POST'},listSshAliases:{path:'/ssh-hosts',method:'GET'},
   getSession:{path:'/session',method:'GET',query:['intake_id']},probeHost:{path:'/probe',method:'POST'},
+  probeVerilogaHeaders:{path:'/veriloga-headers',method:'POST'},
   discoverPdk:{path:'/discover-pdk',method:'POST'},prepareExperiment:{path:'/prepare',method:'POST'},
   runPrepared:{path:'/run',method:'POST'},readSubmission:{path:'/submission',method:'GET',query:['intake_id','plan_id']},
   inspectExperiment:{path:'/inspect',method:'POST'},
@@ -16,7 +17,7 @@ const ONBOARDING_PREFIX='/simulation/onboarding';
 // Git calls capped at 20s and a 60s audit. Run reserves after two host checks
 // (30s doctor + 30s version/10s resources) and one 30s selected-host preflight.
 const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,getSession:20000,
-  probeHost:290000,discoverPdk:250000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000,
+  probeVerilogaHeaders:70000,probeHost:290000,discoverPdk:250000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000,
   saveAgentTestbench:20000,getAgentTestbench:20000,prepareAgentTestbench:150000,analyzeExperiment:120000});
 const boundedHostCount=rows=>Array.isArray(rows)&&rows.length>=1&&rows.length<=8?rows.length:8;
 export function onboardingRequestTimeout(name,input={},session=null){
@@ -42,9 +43,10 @@ export function isOnboardingRequest(path,method){
   if(parsed.origin!=='http://node.invalid'||path!==parsed.pathname+parsed.search||parsed.hash)return false;
   const wave=parsed.pathname.slice((ONBOARDING_PREFIX+'/waveforms/').length);
   if(method==='GET'&&parsed.pathname.startsWith(ONBOARDING_PREFIX+'/waveforms/')&&['catalog','mapping','window'].includes(wave)){
-    const required=['intake_id','job_id',...(wave==='window'?['signal_ids']:[])],allowed=[...required,...(wave==='window'?['start','stop','max_points']:[])];
+    const required=['intake_id','job_id',...(wave==='window'?['signal_ids']:[])],allowed=[...required,'dataset_id',...(wave==='window'?['start','stop','max_points']:[])];
     if([...parsed.searchParams.keys()].some(key=>!allowed.includes(key)||parsed.searchParams.getAll(key).length!==1)||required.some(key=>!parsed.searchParams.get(key)))return false;
     if(['intake_id','job_id'].some(key=>parsed.searchParams.get(key).length>512))return false;
+    if(parsed.searchParams.has('dataset_id')&&!/^ds_[a-f0-9]{32}$/.test(parsed.searchParams.get('dataset_id')))return false;
     if(wave==='window'){
       const ids=parsed.searchParams.get('signal_ids').split(',');if(ids.length>8||ids.some(id=>!id||id.length>512)||new Set(ids).size!==ids.length)return false;
       for(const key of ['start','stop'])if(parsed.searchParams.has(key)&&(parsed.searchParams.get(key).trim()===''||!Number.isFinite(Number(parsed.searchParams.get(key)))))return false;

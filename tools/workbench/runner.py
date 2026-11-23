@@ -203,7 +203,7 @@ class Runner:
         b,payload,proof=self.prepare(Path(bundle),site=site);sim=core.simulator_config(b)
         if expected_commit and proof['source_commit']!=expected_commit:raise ValueError('source_commit conflict')
         if Path(b['entrypoint']).parent!=Path('netlist'):raise ValueError('entrypoint must be within netlist/')
-        return {'schema':'ic.sim.plan.v2',**{k:b.get(k) for k in ['design_id','design_origin','library','top_cell','testbench','test','test_id','history','configuration','historical_reference']},**materialization_metadata(proof),'postprocess':postprocess_config(b.get('postprocess')),'entrypoint':b['entrypoint'],'simulator':sim,'provenance':proof,'external_sha256':core.external_pins(b),'reviewed_for_distribution':bool(b.get('reviewed_for_distribution')),'blockers':[s for c,s in [(not proof['source_clean'],'dirty_source'),(not proof['source_commit'],'uncommitted_source'),(not b.get('reviewed_for_distribution'),'review_required')] if c]}
+        return {'schema':'ic.sim.plan.v2',**{k:b.get(k) for k in ['design_id','design_origin','library','top_cell','testbench','test','test_id','history','configuration','historical_reference']},**materialization_metadata(proof),'postprocess':postprocess_config(b.get('postprocess')),'entrypoint':b['entrypoint'],'simulator':sim,'provenance':proof,'external_sha256':core.external_pins(b),**({'veriloga_header_staging_sha256':record_digest(b['veriloga_header_staging'])} if b.get('veriloga_header_staging') else {}),'reviewed_for_distribution':bool(b.get('reviewed_for_distribution')),'blockers':[s for c,s in [(not proof['source_clean'],'dirty_source'),(not proof['source_commit'],'uncommitted_source'),(not b.get('reviewed_for_distribution'),'review_required')] if c]}
     def preflight(self,bundle,expected_commit=None,site=None):
         site=validated_site(self.site if site is None else site)
         plan=self.plan(bundle,expected_commit,site=site);b,_,proof=self.prepare(Path(bundle),site=site);p=core.doctor(site)
@@ -250,7 +250,7 @@ class Runner:
                 check=self.preflight(r['bundle_path'],r['source_commit'],site=site);r['runtime_preflight']=check['probe'];self.save(r)
                 b,payload,proof=self.prepare(Path(r['bundle_path']),site=site)
                 if proof!=r['plan']['provenance']:raise ValueError('sources changed after reservation')
-                payload.update(core.scripts(site,b['entrypoint'],r['plan']['simulator']))
+                payload.update(core.scripts(site,b['entrypoint'],r['plan']['simulator'],veriloga_staging=b.get('veriloga_header_staging') is not None))
                 # Retain exact identity/config/model hashes on the server, no credentials.
                 payload['run.json']=json.dumps(r,indent=2).encode()
                 pins=[(h,site['external_files'][k]) for k,h in r['plan']['external_sha256'].items()]
@@ -327,13 +327,14 @@ test ! -f psf/spectre.out || tail -c 60000 psf/spectre.out
             site=self.execution_site(r)
             if r.get('remote_state') not in TERMINAL:raise ValueError('collection requires observed terminal run; no partial success claim')
             root=self.path(rid);remote=r['remote_directory'];r['collection_phase']='preparing';self.save(r)
+            header_exclusion=" --exclude='./netlist/__ic_va_headers__'" if r['plan'].get('veriloga_header_staging_sha256') else ''
             # Full run result tree, including generated solver outputs outside psf.
             # AHDL compiled cache is excluded; neither site env nor PDK bodies are copied.
             script=f'''cd {core.q(remote)} || exit 70
 mkdir -p exports || exit 70
 find . -type f ! -path './ahdl/*' ! -path './exports/*' ! -path './launch_once/*' -print0 | sort -z | xargs -0 sha256sum > exports/files.new || exit 71
 if test ! -f exports/full-results.tar.gz || ! cmp -s exports/files.new exports/files.sha256; then
-  tar czf exports/full-results.tar.gz.part --exclude='./ahdl' --exclude='./exports' --exclude='./launch_once' . || exit 71
+  tar czf exports/full-results.tar.gz.part --exclude='./ahdl' --exclude='./exports' --exclude='./launch_once'{header_exclusion} . || exit 71
   mv exports/full-results.tar.gz.part exports/full-results.tar.gz || exit 71
   mv exports/files.new exports/files.sha256 || exit 71
 fi

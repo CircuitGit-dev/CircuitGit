@@ -1,8 +1,5 @@
 """Optional simulation control: explicit operator scope, stored UI, one Runner."""
 import hashlib
-import csv
-import io
-import tarfile
 import importlib
 import json
 import re
@@ -298,75 +295,8 @@ class SimulationRuntime:
         raise ValueError('Unknown simulation operation')
 
     def derive_results(self, rid):
-        """Derive display data locally from a verified native archive; no OCEAN."""
-        record = self.app.runner.read(rid)
-        collection = record.get('collection') or {}
-        archive = Path(collection.get('archive', ''))
-        if not archive.is_file() or archive.is_symlink():
-            raise ValueError('A collected native archive is required')
-        from runner import filehash
-        if filehash(archive) != collection.get('sha256'):
-            raise ValueError('Native result archive digest changed')
-        folder = self.app.runner.path(rid)
-        inventory_path = folder / 'archive-files.json'
-        if not inventory_path.is_file() or inventory_path.is_symlink() or inventory_path.stat().st_size > 8*1024**2:
-            raise ValueError('A bounded collected archive inventory is required')
-        inventory_bytes = inventory_path.read_bytes()
-        inventory = json.loads(inventory_bytes)
-        with tarfile.open(archive, 'r:gz') as stream:
-            # Keep source logs private; only diagnostic redactions leave the API.
-            logs = []
-            entries = []
-            for member in stream:
-                if not member.isfile():
-                    continue
-                if member.name in ('./psf/spectre.out', './console.log') and member.size <= 1024**2:
-                    logs.append(stream.extractfile(member).read().decode(errors='replace'))
-                if member.name.startswith('./psf/') and member.name.endswith('.tran'):
-                    entries.append(member)
-            log = '\n'.join(logs)
-            target = folder/'spectre-diagnostics.log'
-            target.write_text(log); target.chmod(0o600)
-            if len(entries) != 1 or entries[0].size > 16*1024**2 or record['plan'].get('simulator',{}).get('output_format') != 'psfascii':
-                atomic(folder/'waveform-validity.json', {'data_validity':'unknown','specification':'unknown','reason':'native_format_not_supported','run_id':rid,'source_commit':record['source_commit']})
-                return
-            try:
-                raw_native = stream.extractfile(entries[0]).read()
-                member = entries[0]
-                expected_entry = {'path': member.name, 'bytes': member.size,
-                                  'sha256': hashlib.sha256(raw_native).hexdigest()}
-                if [row for row in inventory if row.get('path') == member.name] != [expected_entry]:
-                    raise ValueError('Native waveform and collected inventory disagree')
-                native = raw_native.decode()
-                module = importlib.import_module('spiceowl.integrations.spectre_results')
-                required = [row['name'] for row in (record['plan'].get('postprocess') or {}).get('signals',[])]
-                summary = module.summarize_psf_ascii(native, required_signals=required)
-                atomic(folder/'waveform-validity.json', {**summary,'run_id':rid,'source_commit':record['source_commit'],'native_archive_sha256':collection['sha256']})
-                if summary['data_validity'] != 'valid':
-                    return
-                wave = module.parse_psf_ascii(native)
-                if wave['units'].get('time') != 's':
-                    atomic(folder/'waveform-validity.json',{**summary,'data_validity':'unknown','specification':'unknown','reason':'unsupported_time_unit','run_id':rid,'source_commit':record['source_commit']})
-                    return
-            except (UnicodeError, ValueError):
-                atomic(folder/'waveform-validity.json', {'data_validity':'invalid','specification':'unknown','reason':'native_waveform_parse_failed','run_id':rid,'source_commit':record['source_commit']})
-                return
-        names = [name for name in wave['values'] if name != 'time' and wave['units'].get(name) in ('V','A')]
-        if required: names = [name for name in names if name in required]
-        if not 1 <= len(names) <= 32:
-            return
-        times = wave['values']['time']; output = io.StringIO(newline=''); writer = csv.writer(output)
-        writer.writerow([names[0]+' X']+[name+' Y' for name in names])
-        for index,t in enumerate(times):
-            writer.writerow([format(t,'.17g')]+[format(wave['values'][name][index],'.17g') for name in names])
-        raw = output.getvalue().encode(); path = folder/'waveforms.csv'; path.write_bytes(raw); path.chmod(0o600)
-        step=max(1,(len(times)+1599)//1600);indices=list(range(0,len(times),step))
-        if indices[-1] != len(times)-1:indices.append(len(times)-1)
-        metadata={'run_id':rid,'source_commit':record['source_commit'],'csv_sha256':hashlib.sha256(raw).hexdigest(),
-                  'native_archive_sha256':collection['sha256'],'csv_samples':len(times),'producer':'spiceowl.psf-ascii','waveforms':[{'name':name,'unit':wave['units'][name],'time_unit':'s','analysis':'tran','points':[[times[i],wave['values'][name][i]] for i in indices]} for name in names]}
-        atomic(folder/'waveforms.json', metadata)
-        record['postprocess_csv_sha256']=metadata['csv_sha256'];record['postprocess_phase']='complete';record['local_derivation']={'producer':'spiceowl.psf-ascii','run_id':rid,'source_commit':record['source_commit'],'native_archive_sha256':collection['sha256'],'csv_sha256':metadata['csv_sha256'],'metadata_sha256':filehash(folder/'waveforms.json'),'inventory_sha256':hashlib.sha256(inventory_bytes).hexdigest()}
-        self.app.runner.save(record)
+        from simulation_derivation import derive_results
+        return derive_results(self.app, rid)
 
     def snapshot(self, project, caller='local-studio'):
         if project not in self.app.workspace.projects:

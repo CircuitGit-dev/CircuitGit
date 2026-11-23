@@ -94,10 +94,10 @@ def safe_environment():
     return env
 
 
-def probe(python, run):
+def probe(python, run, modules=REQUIRED_MODULES):
     try:
         reply = run([str(python), '-I', '-B', '-c', PROBE_CODE,
-                     json.dumps(REQUIRED_MODULES)], capture_output=True, text=True,
+                     json.dumps(modules)], capture_output=True, text=True,
                     timeout=30, check=False, env=safe_environment())
         value = json.loads(reply.stdout) if reply.returncode == 0 else None
         if (isinstance(value, dict) and isinstance(value.get('version'), list)
@@ -113,7 +113,7 @@ def compatible(observation):
     return observation is not None and tuple(observation['version'][:2]) >= MIN_PYTHON
 
 
-def pinned(observation, environment, pin):
+def pinned(observation, environment, pin, modules=REQUIRED_MODULES):
     if not compatible(observation):
         return False
     try:
@@ -129,7 +129,7 @@ def pinned(observation, environment, pin):
                 and dependency.get('adctoolbox_version') == '0.9.3'
                 and within(dependency['location'], prefix)
                 and all(within(dependency['modules'][name], prefix)
-                        for name in REQUIRED_MODULES))
+                        for name in modules))
     except (AttributeError, KeyError, TypeError, ValueError):
         return False
 
@@ -185,30 +185,42 @@ def setup_lock(directory):
         yield
 
 
-def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None):
+def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None, extras=('adctools',)):
     root = Path(root).resolve()
     run = run or subprocess.run
     progress = progress or (lambda message: print('[CircuitGit] ' + message,
                                                 file=sys.stderr, flush=True))
     pin = read_pin(root)
-    digest = hashlib.sha256((pin['repository'] + '\n' + pin['commit']).encode()).hexdigest()[:16]
+    if not isinstance(extras, (tuple, list)) or not extras or any(value not in ('adctools','mcp') for value in extras) or 'adctools' not in extras:
+        raise BootstrapError('仅支持带 adctools 的固定依赖组合；开发环境可另外选择 mcp。')
+    extras = tuple(sorted(set(extras)))
+    modules = REQUIRED_MODULES + (('mcp',) if 'mcp' in extras else ())
+    # Keep existing launcher environments reusable. The developer SDK extra
+    # gets a distinct identity and can never upgrade another runtime in place.
+    identity = pin['repository'] + '\n' + pin['commit']
+    if extras != ('adctools',):identity += '\n' + ','.join(extras)
+    digest = hashlib.sha256(identity.encode()).hexdigest()[:16]
     cache = root / '.local/python'
     if not within(cache, root):
         raise BootstrapError('项目 .local/python 指向仓库以外；未修改外部环境。')
     with setup_lock(cache):
         existing = [root / '.venv'] + sorted(cache.glob('spiceowl-' + digest + '-py*'))
+        # A verified developer environment is also suitable for the launcher.
+        # Check capabilities and the exact pin before reusing another cache;
+        # never add extras to an existing environment in place.
+        existing = list(dict.fromkeys(existing + sorted(cache.glob('spiceowl-*-py*'))))
         observations = {}
         for environment in existing:
             python = environment / 'bin/python'
             if not within(environment, root) or not python.is_file():
                 continue
-            observation = observations[str(python)] = probe(python, run)
-            if pinned(observation, environment, pin):
+            observation = observations[str(python)] = probe(python, run, modules)
+            if pinned(observation, environment, pin, modules):
                 return python
         base = None
         for candidate in candidates if candidates is not None else interpreter_candidates(root):
             candidate = Path(candidate).absolute()
-            observation = observations.get(str(candidate)) or probe(candidate, run)
+            observation = observations.get(str(candidate)) or probe(candidate, run, modules)
             if compatible(observation):
                 base = candidate, observation
                 break
@@ -223,6 +235,7 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None):
         marker = environment / 'circuitgit-environment.json'
         ownership = {'schema': 'circuitgit.python-environment.v1', **pin,
                      'python_version': python_version}
+        if extras != ('adctools',):ownership['extras'] = list(extras)
         if environment.exists():
             try:
                 owned = json.loads(marker.read_text(encoding='utf-8')) == ownership
@@ -240,9 +253,10 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None):
         progress('安装锁定的 SpiceOwl ' + pin['commit'][:12] + '（首次需要网络）…')
         checked([python, '-I', '-B', '-m', 'pip', 'install', '--no-input',
                  '--disable-pip-version-check', '--no-cache-dir', '--force-reinstall',
-                 'spiceowl[adctools] @ git+' + pin['repository'] + '@' + pin['commit']],
+                 'adctoolbox==0.9.3',
+                 'spiceowl[' + ','.join(extras) + '] @ git+' + pin['repository'] + '@' + pin['commit']],
                 '安装 SpiceOwl', run, root, 900)
-        if not pinned(probe(python, run), environment, pin):
+        if not pinned(probe(python, run, modules), environment, pin, modules):
             raise BootstrapError('安装后校验失败：Python、SpiceOwl commit 或必需模块与锁定值不符；未启动应用。')
         progress('依赖已核验，后续启动会复用此环境。')
         return python

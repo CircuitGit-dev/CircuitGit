@@ -38,6 +38,7 @@ class LibraryTestbenchTools(unittest.TestCase):
         contents = {base + 'dut.scs': self.workflow._blob(self.workflow._head(), self.seed.path).decode(),
                     base + 'tb.scs': record['agent_manifest']['text'], base + 'agent-testbench.json': json.dumps(record['agent_manifest'])}
         contents.update({base + 'support/' + name: text for name, text in (support or {}).items()})
+        contents.update({base + 'helpers/' + name: text for name, text in record['agent_manifest'].get('helper_files', {}).items()})
         files = {path: {'text': text, 'sha256': hashlib.sha256(text.encode()).hexdigest()} for path, text in contents.items()}
         snapshot = {'schema': 'ic.agent-tb.review-snapshot.v1', 'source_commit': self.seed.binding['source_commit'],
                     'original_source_sha256': self.seed.binding['original_source_sha256'],
@@ -155,12 +156,55 @@ class LibraryTestbenchTools(unittest.TestCase):
         scope = self.workflow._scope('demo', 'gain')
         source = self.workflow._testbench_source(scope)
         self.assertEqual(_electrical_support(self.workflow, scope, path, source['files']), {'child.scs': self.seed.sha('// shared read-only source\n')})
-        for bad in ('include "../../../../outside.scs"', 'include computed_path', 'ahdl_include "child.scs"', '/*\ninclude "child.scs"\n*/'):
+        for bad in ('include "../../../../outside.scs"', 'include computed_path', 'ahdl_include "child.scs"'):
             self.seed.write(path, bad + '\n' + self.seed.before)
             self.seed.git('add', path); self.seed.git('commit', '-m', 'Synthetic unsupported include')
             scope = self.workflow._scope('demo', 'gain'); source = self.workflow._testbench_source(scope)
             with self.subTest(statement=bad), self.assertRaises((ValueError, Failure)):
                 _electrical_support(self.workflow, scope, path, source['files'])
+
+    def test_electrical_support_uses_owner_veriloga_closure_and_standard_header_edges(self):
+        helper_path = 'lib/demo/gain/netlist/models/behavior.va'
+        helper = '`include "disciplines.vams"\nmodule behavior(a,b);\ninout a,b; electrical a,b;\nanalog I(a,b) <+ V(a,b)/1000;\nendmodule\n'
+        dut = 'ahdl_include "models/behavior.va"\nsubckt gain a b\nB0 (a b) behavior\nends gain\n'
+        self.seed.write(self.seed.path, dut); self.seed.write(helper_path, helper)
+        self.seed.manifest['cells'][0]['views'][0]['files'].append(helper_path)
+        self.seed.write('lib/demo/library.json', self.seed.manifest)
+        self.seed.git('add', self.seed.path, helper_path, 'lib/demo/library.json')
+        self.seed.git('commit', '-m', 'Synthetic explicit VA closure')
+        scope = self.workflow._scope('demo', 'gain'); source = self.workflow._testbench_source(scope)
+        self.assertEqual(_electrical_support(self.workflow, scope, self.seed.path, source['files']),
+                         {'models/behavior.va': self.seed.sha(helper)})
+        self.seed.write(self.seed.path, '/*\nahdl_include "missing.va"\n*/\n' + self.seed.before)
+        self.seed.git('add', self.seed.path); self.seed.git('commit', '-m', 'Synthetic commented dependency')
+        scope = self.workflow._scope('demo', 'gain'); source = self.workflow._testbench_source(scope)
+        self.assertEqual(_electrical_support(self.workflow, scope, self.seed.path, source['files']), {})
+
+    def test_registered_helper_must_match_exact_historical_job_even_with_valid_review_digest(self):
+        args = self.seed.proposal_args()
+        bundle = self.workflow.get_testbenches('demo', 'gain')['bundles'][0]
+        record = json.loads(self.workflow._blob(self.workflow._head(), bundle['manifest_path']))
+        args['manifest'] = record['agent_manifest']
+        args['manifest']['text'] = 'include "stimulus.scs"\n' + args['manifest']['text']
+        args['manifest']['helper_files'] = {'stimulus.scs': '// reviewed TB-only helper\n'}
+        args['testbench'] = args['manifest']['text']
+        review = self.workflow.preview_testbench(**args)
+        receipt = self.workflow.confirm(review['review_id'], 'human-register-helper-version')
+        self.args['registration_commit'] = receipt['registration_commit']
+        self.seed.binding.update(registration_commit=receipt['registration_commit'],
+                                 testbench_sha256=review['payload']['binding']['testbench_sha256'])
+        self.make_evidence()
+        original = copy.deepcopy(self.review)
+        name = 'projects/' + self.args['intake_id'] + '/helpers/stimulus.scs'
+        self.review['snapshot']['files'][name] = {'text': '// different executed helper\n',
+                                                 'sha256': self.seed.sha('// different executed helper\n')}
+        digest = hashlib.sha256(json.dumps(self.review['snapshot'], sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+        self.review['review_digest'] = self.session['plans'][0]['review_digest'] = digest
+        with self.assertRaises(Failure): self.analyze()
+        self.assertFalse(any(row.args[0] == 'onboarding_analysis' for row in self.service.call.call_args_list))
+        self.review = original
+        self.session['plans'][0]['review_digest'] = original['review_digest']
+        self.assertEqual(self.analyze()['status'], 'passed')
 
 
 if __name__ == '__main__': unittest.main()

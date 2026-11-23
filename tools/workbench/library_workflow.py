@@ -274,6 +274,14 @@ class LibraryWorkflow:
                 prefix = directory + "/testbenches/" + tid + "/"
                 require(item.get("manifest_path") == prefix + "manifest.json", "Testbench manifest escaped its cell")
                 bundle_paths.update(prefix + name for name in ("testbench.scs", "analysis.py", "manifest.json"))
+                registered = self._blob(head, item["manifest_path"])
+                require(registered is not None and digest(registered) == item.get("manifest_sha256"),
+                        "Registered Testbench CI manifest integrity failed", "conflict", 409)
+                record = json.loads(registered)
+                helpers = self._testbench_helper_files(record.get("agent_manifest"))
+                expected = {name: prefix + "helpers/" + name for name in helpers}
+                require(record.get("helper_paths", {}) == expected, "Registered Testbench helper inventory differs")
+                bundle_paths.update(expected.values())
             bundle_paths.add(bundle_index)
             paths.update(bundle_paths); owned.update(bundle_paths)
         editable = {p for p in owned if PurePosixPath(p).suffix.lower() in TEXT
@@ -675,6 +683,15 @@ class LibraryWorkflow:
         require(bool(validated["criteria"]), "Explicit Testbench CI acceptance criteria are required")
         return validated["criteria"]
 
+    def _testbench_helper_files(self, manifest):
+        spec = importlib.util.spec_from_file_location("ic_agent_testbench_manifest", Path(__file__).with_name("agent_testbench_manifest.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        try:
+            return module.helper_files(module.validate_manifest(manifest))
+        except (ValueError, TypeError):
+            raise WorkflowError("invalid_testbench", "Testbench helpers must be bounded relative literal sources") from None
+
     def preview_testbench(self, library_id, cell_id, testbench_id, base_commit, testbench, analysis, manifest, title, body=""):
         """Freeze Agent-authored bytes for the existing correlated human Web review.
 
@@ -687,6 +704,7 @@ class LibraryWorkflow:
         require(isinstance(title, str) and 0 < len(title.strip()) <= 120 and not any(ord(c) < 32 for c in title), "Invalid Testbench CI title")
         require(isinstance(body, str) and len(body) <= 8000 and "\0" not in body and not PRIVATE.search(title + "\n" + body), "Invalid Testbench CI description")
         criteria = self._agent_testbench_manifest(manifest)
+        helpers = self._testbench_helper_files(manifest)
         require(manifest["text"] == testbench, "Manifest text must equal the complete reviewed testbench bytes")
         source = self._testbench_source(scope, require_clean=True)
         prefix = scope["cell"]["directory"] + "/testbenches/" + tid + "/"
@@ -704,13 +722,18 @@ class LibraryWorkflow:
                    "source_inventory_sha256": source["inventory_sha256"],
                    "testbench_sha256": digest(tb), "analysis_sha256": digest(script),
                    "manifest_sha256": digest(manifest), "criteria_sha256": digest(criteria)}
+        if helpers:
+            binding["helper_sha256"] = {name: digest(raw) for name, raw in helpers.items()}
         record = {"schema": "ic.testbench_ci.v1", "id": tid, "library_id": library_id, "cell_id": cell_id,
                   "source": source, "binding": binding, "agent_manifest": manifest,
                   "testbench_path": prefix + "testbench.scs", "analysis_path": prefix + "analysis.py",
                   "execution": "spiceowl_named_algorithm", "arbitrary_script_execution": False,
                   "title": title.strip(), "body": body, "simulation_started": False}
+        if helpers:
+            record["helper_paths"] = {name: prefix + "helpers/" + name for name in helpers}
         contents = {prefix + "testbench.scs": testbench, prefix + "analysis.py": analysis,
                     prefix + "manifest.json": json.dumps(record, ensure_ascii=False, indent=2) + "\n"}
+        contents.update({prefix + "helpers/" + name: raw.decode("utf-8") for name, raw in helpers.items()})
         index = self._testbench_index(scope)
         index["testbenches"] = [item for item in index["testbenches"] if item["id"] != tid]
         require(len(index["testbenches"]) < 64, "A cell can register at most 64 Testbench CI bundles")
@@ -769,6 +792,12 @@ class LibraryWorkflow:
                 require(content is not None and digest(content) == record["binding"].get(field), "Registered Testbench CI file integrity failed", "conflict", 409)
             require(digest(record["agent_manifest"]) == record["binding"].get("manifest_sha256")
                     and digest(self._agent_testbench_manifest(record["agent_manifest"])) == record["binding"].get("criteria_sha256"), "Registered criteria integrity failed")
+            helpers = self._testbench_helper_files(record["agent_manifest"])
+            require(record["binding"].get("helper_sha256", {}) == {name: digest(raw) for name, raw in helpers.items()},
+                    "Registered Testbench helper binding differs", "conflict", 409)
+            for name, expected in helpers.items():
+                content = self._blob(scope["head"], prefix + "helpers/" + name)
+                require(content == expected, "Registered Testbench helper bytes changed", "conflict", 409)
             commit = self._git("log", "-1", "--format=%H", scope["head"], "--", item["manifest_path"]).stdout.decode().strip()
             bundles.append({"id": item["id"], "title": record.get("title", item["id"]), "enabled": item.get("enabled") is True,
                             "manifest_path": item["manifest_path"], "registration_commit": commit, "binding": record["binding"],

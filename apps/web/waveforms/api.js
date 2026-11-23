@@ -5,6 +5,7 @@ export function waveformAPI({base=location.origin,fetchImpl=fetch}={}){
     const body=await response.json();if(!response.ok||!body.ok){const error=Error(body.error?.message||`HTTP ${response.status}`);error.code=body.error?.code;throw error;}return body.data;
   }
   const route=(run,suffix)=>`/api/jobs/${encodeURIComponent(run)}/${suffix}`;
-  return {jobs:opts=>get('/api/jobs',opts),catalog:(run,opts)=>get(route(run,'signals'),opts),mapping:(run,opts)=>get(route(run,'waveform-map'),opts),
-    waveform:(run,id,params={},opts)=>get(route(run,'waveform')+'?'+new URLSearchParams({signal_id:id,analysis:'tran',...params}),opts)};
+  const dataset=opts=>opts?.dataset_id?'?'+new URLSearchParams({dataset_id:opts.dataset_id}):'';
+  return {jobs:opts=>get('/api/jobs',opts),catalog:(run,opts)=>get(route(run,'signals')+dataset(opts),opts),mapping:(run,opts)=>get(route(run,'waveform-map')+dataset(opts),opts),
+    waveform:(run,id,params={},opts)=>get(route(run,'waveform')+'?'+new URLSearchParams({signal_id:id,...(!params.dataset_id?{analysis:'tran'}:{}),...params}),opts)};
 }

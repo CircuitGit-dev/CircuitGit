@@ -14,7 +14,8 @@ The browser injects an adapter into `modules/simulation/environment`; that modul
 | `listSshAliases` | GET `/ssh-hosts` | none |
 | `getSession` | GET `/session?intake_id=ID` | original intake ID |
 | `probeHost` | POST `/probe` | `{intake_id,revision,ssh_targets,overrides?}` |
-| `discoverPdk` | POST `/discover-pdk` | `{intake_id,revision,probe_ids,search_paths?,search_directory_ids?,cds_lib_hint?,refresh?}` |
+| `discoverPdk` | POST `/discover-pdk` | `{intake_id,revision,probe_ids,search_paths?,search_directory_ids?,cds_lib_hint?,refresh?,library_selection?}` |
+| `probeVerilogaHeaders` | POST `/veriloga-headers` | `{intake_id,revision,probe_id,roots}`; explicit standard-header include roots on an already observed host |
 | `prepareExperiment` | POST `/prepare` | selection and intent below |
 | `runPrepared` | POST `/run` | `{intake_id,revision,plan_id}` |
 | `readSubmission` | GET `/submission?intake_id=ID&plan_id=PLAN` | original intake and plan IDs |
@@ -24,7 +25,7 @@ The browser injects an adapter into `modules/simulation/environment`; that modul
 | `saveAgentTestbench` | POST `/agent-tb/draft` | `{intake_id,revision,testbench,selection?}` |
 | `prepareAgentTestbench` | POST `/agent-tb/prepare` | `{intake_id,revision,draft_id}` |
 | `readAgentTestbenchReview` | GET `/agent-tb/review?intake_id=ID&review_id=REVIEW` | exact frozen review |
-| `analyzeExperiment` | POST `/analysis` | `{intake_id,job_id,operation,inputs,parameters,criteria?}` |
+| `analyzeExperiment` | POST `/analysis` | `{intake_id,job_id,dataset_id?,operation,inputs,parameters,criteria?}` |
 
 `file_name` is a display label; it is never opened as a local path. The server stores only the supplied literal text. `ssh_targets` is a nonempty bounded list of explicit aliases or user-entered SSH targets. Before that selection, no SSH occurs. `overrides` is an optional bounded object of explicit setup/tool hints, not a path to an old configuration file. Its accepted fields are reported as capabilities; unknown fields fail closed.
 
@@ -226,13 +227,48 @@ submission. No lookup grants permission to resend an unknown run.
 ## Cached model lookup and analysis
 
 `discover-pdk` may reuse a matching private host-bound LUT observation and rebind
-it to the new source. `refresh:true` requests an explicit new scan. Public LUT
+it to the new source. A full-library observation indexes individual devices and
+serves different required-model combinations from the same server/root identity.
+Only its private remote transport and storage use a separate 16 MiB bound;
+source-bound queries and public sessions retain the 2 MiB HTTP envelope. Older
+filtered receipts retain their exact model scope. A multi-entry combination stays
+an explicit unaudited draft and cannot be promoted to a fabricated single entry.
+`refresh:true` requests an explicit new scan. Public LUT
 status retains observation age/coverage and the need for source rebinding and
 fresh preflight. Raw private recommendations are not HTTP responses.
 
-Analysis selectors are exact saved signal IDs (or `@time`), never paths, numeric
-vectors or commands. The resolver independently binds the original job, source,
-archive and full-resolution CSV. Backends are explicit and unsupported options
-fail. Results use `ic.onboarding.analysis.v1`, with independent measurement and
-criterion status, optional spectrum and a persisted artifact identity. See
+If a query is too large, `discovery.lut[]` (or that row's `projection` after a
+scan) contains `library_id` and bounded `entry_choices`. Send one returned
+`library_selection:{probe_id,library_id,library_candidate_id}` with that sole
+`probe_ids` entry. This preserves the original observed roots and library; it
+cannot be combined with new scan hints or `refresh:true`, and never starts SSH.
+
+`veriloga-headers` is an explicit bounded read of the named installation's header
+roots, never a compiler invocation. Select its returned `headers_<sha256>` ID
+through optional `selection.veriloga_header_id`. The selected PDK and headers
+must belong to the same current probe. The full original observation remains
+private; the draft/review binds standard names, aliases, hashes and reachable
+include layout. Missing, ambiguous or changed headers block preparation. A
+failed header observation returns `needs_input`; an invalid request leaves the
+existing revision intact.
+
+Analysis selectors are exact saved signal IDs (or transient `@time`) and DC
+operating-point device IDs, never paths, numeric vectors or commands. Native
+AC/DC requests explicitly select the original returned `dataset_id`; the same
+optional selector is accepted by waveform catalog/mapping/window reads. AC
+`inputs.response` and optional `inputs.reference` select complex data in that
+same frequency dataset. DC `inputs.devices` selects exact saved devices;
+`parameters.device_contracts` is keyed by those IDs. No dataset is chosen by
+"latest" or inferred from the current schematic.
+
+The resolver binds original job/source/archive/member/full-data identities.
+Transient input retains `csv_sha256`; native data uses `data_sha256` and
+`data_format: native_psf_json`. Units come from the saved data. Backends/options
+are explicit; AC/DC use `spiceowl`. Results use `ic.onboarding.analysis.v1`, with
+independent measurement/criterion status, optional spectrum or Bode curves,
+DC device results and a persisted report identity. Actual 0 Hz is required for
+DC gain, loop margin requires explicit feedback conventions, and region codes
+remain unknown without model-specific evidence. These explicit saved-job
+analyses do not change automatic Agent-TB acceptance, which still uses its
+single scalar transient measurement path. See
 [the complete analysis contract](onboarding-analysis.md).

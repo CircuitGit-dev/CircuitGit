@@ -18,3 +18,11 @@ test('bounded display sampling retains actual narrow positive and negative peaks
 test('null decibel bins remain gaps and are never converted to zero',()=>{
   const value={...spectrum(),amplitude:[null,-80,-40,null]},view=spectrumSeries(value);assert.deepEqual(view.points,[[0,null],[10,-80],[20,-40],[30,null]]);assert.equal(view.domain.ymax,-40);assert.equal(spectrumSeries({...value,amplitude:[null,null,null,null]}).domain,null);
 });
+
+test('omitted nulls and upstream segment breaks never join two finite Bode samples',()=>{
+  const n=10000,amplitude=Array(n).fill(0);amplitude[1]=null;amplitude[8]=-1;amplitude[9]=null;amplitude[15]=1;
+  const view=spectrumSeries({...spectrum(),frequency:Array.from({length:n},(_,i)=>i),amplitude},{maxDisplayPoints:1600});
+  for(let i=1;i<view.points.length;i++){const a=view.points[i-1][0],b=view.points[i][0];if(amplitude.slice(a+1,b+1).some(value=>value===null))assert(view.breakBeforeIndices.includes(i));}
+  const projected=spectrumSeries({...spectrum(),frequency:[0,8,15,9999],amplitude:[0,-1,1,0],breakBeforeIndices:[1,2]});
+  assert.deepEqual(projected.breakBeforeIndices,[1,2]);
+});

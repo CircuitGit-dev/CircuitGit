@@ -15,7 +15,7 @@ import experiment_workflow
 import onboarding_runtime
 import server
 from onboarding_review import BINDING_FIELDS,verify_authorization,HUMAN_RUN_PATH,DOMAIN
-from onboarding_testbench import validate_manifest,validate_selection
+from onboarding_testbench import validate_manifest,validate_selection,draft_record,validate_authored_testbench
 from test_onboarding_integration import _IntakeFixture,HOST,SECRET
 from workspace import Conflict
 
@@ -55,6 +55,18 @@ def manifest(text=TB):
 
 
 class AgentTestbenchTests(_IntakeFixture):
+    def test_helpers_bind_exact_bytes_and_cannot_shadow_source_support(self):
+        state=self.imported();folder=self.runtime._folder(state['intake_id'])
+        authored=manifest();authored['helper_files']={'stimulus.scs':'// exact reviewed helper\n'}
+        first=draft_record(folder,state,authored,None)
+        self.assertEqual(first['helper_sha256'],{'stimulus.scs':hashlib.sha256(authored['helper_files']['stimulus.scs'].encode()).hexdigest()})
+        authored['helper_files']['stimulus.scs']+='// changed\n'
+        self.assertNotEqual(first['draft_id'],draft_record(folder,state,authored,None)['draft_id'])
+        for name in ('stages.scs','STAGES.SCS','stages.scs/child.va'):
+            authored['helper_files']={name:'// conflicting bytes\n'}
+            with self.assertRaises(ValueError):draft_record(folder,state,authored,None)
+        self.ssh.assert_not_called()
+
     def imported(self):
         return self.runtime.write('netlist',{'file_name':'gain.scs','text':DUT,'mode':'agent-tb',
             'support_files':{'stages.scs':SUPPORT}},origin='test_harness')

@@ -1,0 +1,1433 @@
+{
+  "schema": "ic.onboarding.acdc-examples.v1",
+  "synthetic": true,
+  "evidence": "Synthetic PSF archive through actual SpiceOwl parser and numerical algorithms; no solver/SSH/model call.",
+  "intake_id": "intake_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "run_id": "derived-fixture-run",
+  "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source_sha256": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631",
+  "overview": {
+    "schema": "ic.waveforms.v1",
+    "run_id": "derived-fixture-run",
+    "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_hashes": {
+      "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+    },
+    "staged_sources": [],
+    "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+    "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+    "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+    "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+    "signals": [],
+    "analyses": [
+      {
+        "kind": "ac",
+        "name": "gain",
+        "native_type": "ac",
+        "producer_name": null,
+        "producer_type": null,
+        "simulator": "synthetic-fixture",
+        "simulator_version": "fixture-1"
+      },
+      {
+        "kind": "dc",
+        "name": "bias",
+        "native_type": "dc",
+        "producer_name": null,
+        "producer_type": null,
+        "simulator": null,
+        "simulator_version": null
+      },
+      {
+        "kind": "dc_op",
+        "name": "dcOpInfo",
+        "native_type": "info",
+        "producer_name": "bias",
+        "producer_type": "dcOp",
+        "simulator": "synthetic-fixture",
+        "simulator_version": "fixture-1"
+      }
+    ],
+    "datasets": [
+      {
+        "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+        "analysis": {
+          "kind": "ac",
+          "name": "gain",
+          "native_type": "ac",
+          "producer_name": null,
+          "producer_type": null,
+          "simulator": "synthetic-fixture",
+          "simulator_version": "fixture-1"
+        },
+        "native_member": {
+          "path": "./psf/gain.ac",
+          "bytes": 416,
+          "sha256": "3993ce7633e0072bea7c1afa2e48ffd2ee942d985d74f437c255e8e3f731266d"
+        },
+        "data_path": "datasets/ds_ea200fd908f18a4cf78b8b62251f4ec1.json",
+        "data_sha256": "9c3128f7aa400e66c2811523312c9ee36b2df0300c44605b425c250940ee4535",
+        "data_format": "native_psf_json",
+        "sample_count": 3,
+        "signal_count": 2,
+        "device_count": 0,
+        "axis": {
+          "name": "freq",
+          "unit": "Hz"
+        },
+        "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+        "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+        "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+        "source_hashes": {
+          "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+        },
+        "available_signal_ids": [
+          "s_130f1d16c4e53fd74f4c225f0b28e527",
+          "s_6fa6f736b0047283031694e4f0865485"
+        ],
+        "available_device_ids": [],
+        "available": true
+      },
+      {
+        "dataset_id": "ds_df526992016fcb63706f7db903aa267e",
+        "analysis": {
+          "kind": "dc",
+          "name": "bias",
+          "native_type": "dc",
+          "producer_name": null,
+          "producer_type": null,
+          "simulator": null,
+          "simulator_version": null
+        },
+        "native_member": {
+          "path": "./psf/bias.dc",
+          "bytes": 194,
+          "sha256": "f005d81ad441168814cb56e1277eb131fc9ecf2d3d6405ef4762103d651a73b5"
+        },
+        "data_path": "datasets/ds_df526992016fcb63706f7db903aa267e.json",
+        "data_sha256": "6d5db9a45e98596c3127d41e69aa7109ce820c49689040fdc5cec4d5f35aab0f",
+        "data_format": "native_psf_json",
+        "sample_count": 2,
+        "signal_count": 1,
+        "device_count": 0,
+        "axis": {
+          "name": "supply",
+          "unit": "V"
+        },
+        "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+        "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+        "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+        "source_hashes": {
+          "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+        },
+        "available_signal_ids": [
+          "s_816ebaec806515dc5637435beca0bdc6"
+        ],
+        "available_device_ids": [],
+        "available": true
+      },
+      {
+        "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e",
+        "analysis": {
+          "kind": "dc_op",
+          "name": "dcOpInfo",
+          "native_type": "info",
+          "producer_name": "bias",
+          "producer_type": "dcOp",
+          "simulator": "synthetic-fixture",
+          "simulator_version": "fixture-1"
+        },
+        "native_member": {
+          "path": "./psf/dcOpInfo.info",
+          "bytes": 698,
+          "sha256": "8e244bd0ffdc96ffa8d6668036fd10c101b8fb17c379824c0f2a9f89d7a01f8d"
+        },
+        "data_path": "datasets/ds_4f85242f7ff0af7d7467936cbce79a9e.json",
+        "data_sha256": "66e5dcfe07f229b759f002e6766ae61f4a4e564b4f1d20b162fbf0801dbfe803",
+        "data_format": "native_psf_json",
+        "sample_count": 1,
+        "signal_count": 0,
+        "device_count": 2,
+        "axis": null,
+        "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+        "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+        "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+        "source_hashes": {
+          "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+        },
+        "available_signal_ids": [],
+        "available_device_ids": [
+          "d_6e76516e9e4deb7226e63843435e5334",
+          "d_5b69da6d0c83c08df638ca14e8820031"
+        ],
+        "available": true
+      }
+    ],
+    "default_dataset_id": null,
+    "coverage": "independent_native_datasets",
+    "data_basis": "original_native_PSF_ASCII",
+    "unsupported_datasets": [],
+    "extraction": {
+      "enabled": false,
+      "state": "already_saved"
+    }
+  },
+  "descriptor": {
+    "schema": "ic.onboarding.waveform-descriptor.v1",
+    "intake_id": "intake_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "job_id": "derived-fixture-run",
+    "run_id": "derived-fixture-run",
+    "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+    "original_source_sha256": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631",
+    "compiled_source_sha256": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631",
+    "compiled_source_path": "design/source.scs",
+    "transformation": "none",
+    "available": true,
+    "source_binding_verified": true,
+    "available_signal_ids": [],
+    "read_only": true,
+    "probe": {
+      "enabled": false,
+      "reason": "current_geometry_context_unverified",
+      "current_geometry_context_verified": false
+    },
+    "source_hashes": {
+      "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+    },
+    "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+    "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+    "datasets": [
+      {
+        "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+        "analysis": {
+          "kind": "ac",
+          "name": "gain",
+          "native_type": "ac",
+          "producer_name": null,
+          "producer_type": null,
+          "simulator": "synthetic-fixture",
+          "simulator_version": "fixture-1"
+        },
+        "native_member": {
+          "path": "./psf/gain.ac",
+          "bytes": 416,
+          "sha256": "3993ce7633e0072bea7c1afa2e48ffd2ee942d985d74f437c255e8e3f731266d"
+        },
+        "data_path": "datasets/ds_ea200fd908f18a4cf78b8b62251f4ec1.json",
+        "data_sha256": "9c3128f7aa400e66c2811523312c9ee36b2df0300c44605b425c250940ee4535",
+        "data_format": "native_psf_json",
+        "sample_count": 3,
+        "signal_count": 2,
+        "device_count": 0,
+        "axis": {
+          "name": "freq",
+          "unit": "Hz"
+        },
+        "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+        "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+        "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+        "source_hashes": {
+          "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+        },
+        "available_signal_ids": [
+          "s_130f1d16c4e53fd74f4c225f0b28e527",
+          "s_6fa6f736b0047283031694e4f0865485"
+        ],
+        "available_device_ids": [],
+        "available": true
+      },
+      {
+        "dataset_id": "ds_df526992016fcb63706f7db903aa267e",
+        "analysis": {
+          "kind": "dc",
+          "name": "bias",
+          "native_type": "dc",
+          "producer_name": null,
+          "producer_type": null,
+          "simulator": null,
+          "simulator_version": null
+        },
+        "native_member": {
+          "path": "./psf/bias.dc",
+          "bytes": 194,
+          "sha256": "f005d81ad441168814cb56e1277eb131fc9ecf2d3d6405ef4762103d651a73b5"
+        },
+        "data_path": "datasets/ds_df526992016fcb63706f7db903aa267e.json",
+        "data_sha256": "6d5db9a45e98596c3127d41e69aa7109ce820c49689040fdc5cec4d5f35aab0f",
+        "data_format": "native_psf_json",
+        "sample_count": 2,
+        "signal_count": 1,
+        "device_count": 0,
+        "axis": {
+          "name": "supply",
+          "unit": "V"
+        },
+        "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+        "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+        "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+        "source_hashes": {
+          "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+        },
+        "available_signal_ids": [
+          "s_816ebaec806515dc5637435beca0bdc6"
+        ],
+        "available_device_ids": [],
+        "available": true
+      },
+      {
+        "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e",
+        "analysis": {
+          "kind": "dc_op",
+          "name": "dcOpInfo",
+          "native_type": "info",
+          "producer_name": "bias",
+          "producer_type": "dcOp",
+          "simulator": "synthetic-fixture",
+          "simulator_version": "fixture-1"
+        },
+        "native_member": {
+          "path": "./psf/dcOpInfo.info",
+          "bytes": 698,
+          "sha256": "8e244bd0ffdc96ffa8d6668036fd10c101b8fb17c379824c0f2a9f89d7a01f8d"
+        },
+        "data_path": "datasets/ds_4f85242f7ff0af7d7467936cbce79a9e.json",
+        "data_sha256": "66e5dcfe07f229b759f002e6766ae61f4a4e564b4f1d20b162fbf0801dbfe803",
+        "data_format": "native_psf_json",
+        "sample_count": 1,
+        "signal_count": 0,
+        "device_count": 2,
+        "axis": null,
+        "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+        "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+        "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+        "source_hashes": {
+          "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+        },
+        "available_signal_ids": [],
+        "available_device_ids": [
+          "d_6e76516e9e4deb7226e63843435e5334",
+          "d_5b69da6d0c83c08df638ca14e8820031"
+        ],
+        "available": true
+      }
+    ]
+  },
+  "catalogs": {
+    "ac": {
+      "schema": "ic.waveforms.v1",
+      "run_id": "derived-fixture-run",
+      "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_hashes": {
+        "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+      },
+      "staged_sources": [],
+      "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+      "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+      "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+      "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+      "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+      "analysis_id": "gain",
+      "analysis_kind": "ac",
+      "data_sha256": "9c3128f7aa400e66c2811523312c9ee36b2df0300c44605b425c250940ee4535",
+      "data_format": "native_psf_json",
+      "native_member_sha256": "3993ce7633e0072bea7c1afa2e48ffd2ee942d985d74f437c255e8e3f731266d",
+      "signals": [
+        {
+          "id": "s_130f1d16c4e53fd74f4c225f0b28e527",
+          "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+          "psf_name": "out",
+          "label": "out",
+          "analysis": "ac",
+          "analysis_id": "gain",
+          "value_kind": "complex",
+          "representation": "complex_real_imag",
+          "quantity": "voltage",
+          "unit": "V",
+          "x_unit": "Hz",
+          "status": "available",
+          "sample_count": 3,
+          "domain": [
+            0.0,
+            100.0
+          ],
+          "data_basis": "original_native_PSF_ASCII",
+          "name_evidence": "exact name in hash-bound same-run native dataset"
+        },
+        {
+          "id": "s_6fa6f736b0047283031694e4f0865485",
+          "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+          "psf_name": "reference",
+          "label": "reference",
+          "analysis": "ac",
+          "analysis_id": "gain",
+          "value_kind": "complex",
+          "representation": "complex_real_imag",
+          "quantity": "voltage",
+          "unit": "V",
+          "x_unit": "Hz",
+          "status": "available",
+          "sample_count": 3,
+          "domain": [
+            0.0,
+            100.0
+          ],
+          "data_basis": "original_native_PSF_ASCII",
+          "name_evidence": "exact name in hash-bound same-run native dataset"
+        }
+      ],
+      "operating_points": [],
+      "axis": {
+        "name": "freq",
+        "unit": "Hz"
+      },
+      "analyses": [
+        {
+          "kind": "ac",
+          "name": "gain",
+          "native_type": "ac",
+          "producer_name": null,
+          "producer_type": null,
+          "simulator": "synthetic-fixture",
+          "simulator_version": "fixture-1"
+        }
+      ],
+      "data_basis": "original_native_PSF_ASCII",
+      "sample_count": 3,
+      "coverage": "selected_native_dataset",
+      "full_resolution": true,
+      "display_downsampling_used": false,
+      "extraction": {
+        "enabled": false,
+        "state": "already_saved"
+      },
+      "warnings": []
+    },
+    "dc": {
+      "schema": "ic.waveforms.v1",
+      "run_id": "derived-fixture-run",
+      "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_hashes": {
+        "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+      },
+      "staged_sources": [],
+      "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+      "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+      "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+      "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+      "dataset_id": "ds_df526992016fcb63706f7db903aa267e",
+      "analysis_id": "bias",
+      "analysis_kind": "dc",
+      "data_sha256": "6d5db9a45e98596c3127d41e69aa7109ce820c49689040fdc5cec4d5f35aab0f",
+      "data_format": "native_psf_json",
+      "native_member_sha256": "f005d81ad441168814cb56e1277eb131fc9ecf2d3d6405ef4762103d651a73b5",
+      "signals": [
+        {
+          "id": "s_816ebaec806515dc5637435beca0bdc6",
+          "dataset_id": "ds_df526992016fcb63706f7db903aa267e",
+          "psf_name": "out",
+          "label": "out",
+          "analysis": "dc",
+          "analysis_id": "bias",
+          "value_kind": "real",
+          "representation": "real",
+          "quantity": "voltage",
+          "unit": "V",
+          "x_unit": "V",
+          "status": "available",
+          "sample_count": 2,
+          "domain": [
+            0.0,
+            1.0
+          ],
+          "data_basis": "original_native_PSF_ASCII",
+          "name_evidence": "exact name in hash-bound same-run native dataset"
+        }
+      ],
+      "operating_points": [],
+      "axis": {
+        "name": "supply",
+        "unit": "V"
+      },
+      "analyses": [
+        {
+          "kind": "dc",
+          "name": "bias",
+          "native_type": "dc",
+          "producer_name": null,
+          "producer_type": null,
+          "simulator": null,
+          "simulator_version": null
+        }
+      ],
+      "data_basis": "original_native_PSF_ASCII",
+      "sample_count": 2,
+      "coverage": "selected_native_dataset",
+      "full_resolution": true,
+      "display_downsampling_used": false,
+      "extraction": {
+        "enabled": false,
+        "state": "already_saved"
+      },
+      "warnings": []
+    },
+    "dc_op": {
+      "schema": "ic.waveforms.v1",
+      "run_id": "derived-fixture-run",
+      "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_hashes": {
+        "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+      },
+      "staged_sources": [],
+      "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+      "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+      "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+      "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+      "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e",
+      "analysis_id": "dcOpInfo",
+      "analysis_kind": "dc_op",
+      "data_sha256": "66e5dcfe07f229b759f002e6766ae61f4a4e564b4f1d20b162fbf0801dbfe803",
+      "data_format": "native_psf_json",
+      "native_member_sha256": "8e244bd0ffdc96ffa8d6668036fd10c101b8fb17c379824c0f2a9f89d7a01f8d",
+      "signals": [],
+      "operating_points": [
+        {
+          "name": "N1",
+          "model_type": "toy_mos",
+          "model": "authored_nmos",
+          "parameters": {
+            "vgs": {
+              "value": 0.7,
+              "unit": "V",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "vds": {
+              "value": 0.8,
+              "unit": "V",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "vth": {
+              "value": 0.3,
+              "unit": "V",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "vdsat": {
+              "value": 0.2,
+              "unit": "V",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "id": {
+              "value": 0.001,
+              "unit": "A",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "gm": {
+              "value": 0.01,
+              "unit": "S",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "gds": {
+              "value": 0.0001,
+              "unit": "S",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "region": {
+              "value": 2.0,
+              "unit": null,
+              "status": "valid",
+              "value_kind": "integer"
+            },
+            "unused_diagnostic": {
+              "value": null,
+              "unit": null,
+              "status": "undefined",
+              "value_kind": "real"
+            }
+          },
+          "id": "d_6e76516e9e4deb7226e63843435e5334",
+          "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e"
+        },
+        {
+          "name": "P1",
+          "model_type": "toy_mos",
+          "model": "authored_pmos",
+          "parameters": {
+            "vgs": {
+              "value": -0.7,
+              "unit": "V",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "vds": {
+              "value": -0.8,
+              "unit": "V",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "vth": {
+              "value": -0.3,
+              "unit": "V",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "vdsat": {
+              "value": -0.2,
+              "unit": "V",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "id": {
+              "value": -0.001,
+              "unit": "A",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "gm": {
+              "value": 0.01,
+              "unit": "S",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "gds": {
+              "value": 0.0001,
+              "unit": "S",
+              "status": "valid",
+              "value_kind": "real"
+            },
+            "region": {
+              "value": 2.0,
+              "unit": null,
+              "status": "valid",
+              "value_kind": "integer"
+            },
+            "unused_diagnostic": {
+              "value": null,
+              "unit": null,
+              "status": "undefined",
+              "value_kind": "real"
+            }
+          },
+          "id": "d_5b69da6d0c83c08df638ca14e8820031",
+          "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e"
+        }
+      ],
+      "axis": null,
+      "analyses": [
+        {
+          "kind": "dc_op",
+          "name": "dcOpInfo",
+          "native_type": "info",
+          "producer_name": "bias",
+          "producer_type": "dcOp",
+          "simulator": "synthetic-fixture",
+          "simulator_version": "fixture-1"
+        }
+      ],
+      "data_basis": "original_native_PSF_ASCII",
+      "sample_count": 1,
+      "coverage": "selected_native_dataset",
+      "full_resolution": true,
+      "display_downsampling_used": false,
+      "extraction": {
+        "enabled": false,
+        "state": "already_saved"
+      },
+      "warnings": [
+        "native_nonfinite_values_preserved_as_undefined_null"
+      ]
+    }
+  },
+  "windows": {
+    "ac": {
+      "schema": "ic.waveforms.v1",
+      "run_id": "derived-fixture-run",
+      "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_hashes": {
+        "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+      },
+      "staged_sources": [],
+      "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+      "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+      "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+      "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+      "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+      "analysis_id": "gain",
+      "analysis_kind": "ac",
+      "data_sha256": "9c3128f7aa400e66c2811523312c9ee36b2df0300c44605b425c250940ee4535",
+      "data_format": "native_psf_json",
+      "native_member_sha256": "3993ce7633e0072bea7c1afa2e48ffd2ee942d985d74f437c255e8e3f731266d",
+      "signal": {
+        "id": "s_130f1d16c4e53fd74f4c225f0b28e527",
+        "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+        "psf_name": "out",
+        "label": "out",
+        "analysis": "ac",
+        "analysis_id": "gain",
+        "value_kind": "complex",
+        "representation": "complex_real_imag",
+        "quantity": "voltage",
+        "unit": "V",
+        "x_unit": "Hz",
+        "status": "available",
+        "sample_count": 3,
+        "domain": [
+          0.0,
+          100.0
+        ],
+        "data_basis": "original_native_PSF_ASCII",
+        "name_evidence": "exact name in hash-bound same-run native dataset"
+      },
+      "representation": "complex_real_imag",
+      "complex_points": [
+        [
+          0.0,
+          20.0,
+          0.0
+        ],
+        [
+          10.0,
+          10.0,
+          -10.0
+        ],
+        [
+          100.0,
+          0.198019801980198,
+          -1.9801980198019802
+        ]
+      ],
+      "bode": {
+        "frequency_hz": [
+          0.0,
+          10.0,
+          100.0
+        ],
+        "magnitude_db": [
+          26.020599913279625,
+          23.010299956639813,
+          5.977386175453198
+        ],
+        "phase_deg": [
+          0.0,
+          -45.0,
+          -84.28940686250037
+        ],
+        "frequency_unit": "Hz",
+        "magnitude_unit": "dB re 1 V",
+        "response_unit": "V",
+        "phase_unit": "deg",
+        "response_kind": "transfer",
+        "label": "out",
+        "backend": "spiceowl",
+        "algorithm_version": "1.0.0",
+        "sample_count": 3,
+        "measurement_uses_full_data": true,
+        "break_before_indices": {
+          "magnitude_db": [],
+          "phase_deg": []
+        }
+      },
+      "axis": {
+        "name": "freq",
+        "unit": "Hz"
+      },
+      "window": {
+        "requested": [
+          0.0,
+          100.0
+        ],
+        "returned": [
+          0.0,
+          100.0
+        ],
+        "clipped": false
+      },
+      "display": {
+        "method": "native_saved_samples",
+        "decimated": false,
+        "input_points": 3,
+        "returned_points": 3,
+        "limit": 1600,
+        "break_before_indices": {
+          "real": [],
+          "imag": [],
+          "magnitude_db": [],
+          "phase_deg": []
+        },
+        "extrema_preserved": true,
+        "unpreserved_extrema_components": []
+      },
+      "data_basis": "original_native_PSF_ASCII",
+      "measurement": {
+        "basis": "original_native_PSF_ASCII",
+        "cursors": {},
+        "delta": null,
+        "interpolation": "not_performed"
+      }
+    },
+    "dc": {
+      "schema": "ic.waveforms.v1",
+      "run_id": "derived-fixture-run",
+      "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_hashes": {
+        "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+      },
+      "staged_sources": [],
+      "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+      "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+      "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+      "raw_signature_basis": "sorted archive inventory of ./psf/ members",
+      "dataset_id": "ds_df526992016fcb63706f7db903aa267e",
+      "analysis_id": "bias",
+      "analysis_kind": "dc",
+      "data_sha256": "6d5db9a45e98596c3127d41e69aa7109ce820c49689040fdc5cec4d5f35aab0f",
+      "data_format": "native_psf_json",
+      "native_member_sha256": "f005d81ad441168814cb56e1277eb131fc9ecf2d3d6405ef4762103d651a73b5",
+      "signal": {
+        "id": "s_816ebaec806515dc5637435beca0bdc6",
+        "dataset_id": "ds_df526992016fcb63706f7db903aa267e",
+        "psf_name": "out",
+        "label": "out",
+        "analysis": "dc",
+        "analysis_id": "bias",
+        "value_kind": "real",
+        "representation": "real",
+        "quantity": "voltage",
+        "unit": "V",
+        "x_unit": "V",
+        "status": "available",
+        "sample_count": 2,
+        "domain": [
+          0.0,
+          1.0
+        ],
+        "data_basis": "original_native_PSF_ASCII",
+        "name_evidence": "exact name in hash-bound same-run native dataset"
+      },
+      "representation": "real",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.5
+        ]
+      ],
+      "axis": {
+        "name": "supply",
+        "unit": "V"
+      },
+      "window": {
+        "requested": [
+          0.0,
+          1.0
+        ],
+        "returned": [
+          0.0,
+          1.0
+        ],
+        "clipped": false
+      },
+      "display": {
+        "method": "native_saved_samples",
+        "decimated": false,
+        "input_points": 2,
+        "returned_points": 2,
+        "limit": 1600,
+        "break_before_indices": {
+          "values": []
+        },
+        "extrema_preserved": true,
+        "unpreserved_extrema_components": []
+      },
+      "data_basis": "original_native_PSF_ASCII",
+      "measurement": {
+        "basis": "original_native_PSF_ASCII",
+        "cursors": {},
+        "delta": null,
+        "interpolation": "not_performed"
+      }
+    }
+  },
+  "requests": {
+    "ac": {
+      "intake_id": "intake_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "job_id": "derived-fixture-run",
+      "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+      "operation": "ac_metrics",
+      "inputs": {
+        "response": "s_130f1d16c4e53fd74f4c225f0b28e527",
+        "reference": "s_6fa6f736b0047283031694e4f0865485"
+      },
+      "parameters": {
+        "backend": "spiceowl",
+        "response_kind": "transfer",
+        "return_curves": true
+      },
+      "criteria": []
+    },
+    "dc_op": {
+      "intake_id": "intake_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "job_id": "derived-fixture-run",
+      "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e",
+      "operation": "dc_op_metrics",
+      "inputs": {
+        "devices": [
+          "d_6e76516e9e4deb7226e63843435e5334",
+          "d_5b69da6d0c83c08df638ca14e8820031"
+        ]
+      },
+      "parameters": {
+        "backend": "spiceowl",
+        "device_contracts": {
+          "d_6e76516e9e4deb7226e63843435e5334": {
+            "polarity": "nmos",
+            "saturation_method": "region",
+            "region_map": {
+              "2": "saturation"
+            },
+            "region_map_source": "Explicit original synthetic model convention"
+          },
+          "d_5b69da6d0c83c08df638ca14e8820031": {
+            "polarity": "pmos",
+            "saturation_method": "vdsat",
+            "voltage_convention": "signed_vgs_vds",
+            "vdsat_convention": "signed",
+            "require_above_threshold": true,
+            "minimum_headroom_v": 0.1
+          }
+        }
+      },
+      "criteria": []
+    }
+  },
+  "results": {
+    "ac": {
+      "schema": "ic.onboarding.analysis.v1",
+      "intake_id": "intake_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "job_id": "derived-fixture-run",
+      "run_id": "derived-fixture-run",
+      "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "original_source_sha256": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631",
+      "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+      "input": {
+        "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+        "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+        "source_hashes": {
+          "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+        },
+        "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+        "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+        "analysis_id": "gain",
+        "analysis_kind": "ac",
+        "data_sha256": "9c3128f7aa400e66c2811523312c9ee36b2df0300c44605b425c250940ee4535",
+        "data_format": "native_psf_json",
+        "native_member_sha256": "3993ce7633e0072bea7c1afa2e48ffd2ee942d985d74f437c255e8e3f731266d",
+        "sample_count": 3,
+        "data_basis": "original_native_PSF_ASCII",
+        "selection": {
+          "frequency_hz": {
+            "axis": "freq",
+            "unit": "Hz",
+            "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1"
+          },
+          "response": {
+            "id": "s_130f1d16c4e53fd74f4c225f0b28e527",
+            "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+            "psf_name": "out",
+            "label": "out",
+            "analysis": "ac",
+            "analysis_id": "gain",
+            "value_kind": "complex",
+            "representation": "complex_real_imag",
+            "quantity": "voltage",
+            "unit": "V",
+            "x_unit": "Hz",
+            "status": "available",
+            "sample_count": 3,
+            "domain": [
+              0.0,
+              100.0
+            ],
+            "data_basis": "original_native_PSF_ASCII",
+            "name_evidence": "exact name in hash-bound same-run native dataset"
+          },
+          "reference": {
+            "id": "s_6fa6f736b0047283031694e4f0865485",
+            "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1",
+            "psf_name": "reference",
+            "label": "reference",
+            "analysis": "ac",
+            "analysis_id": "gain",
+            "value_kind": "complex",
+            "representation": "complex_real_imag",
+            "quantity": "voltage",
+            "unit": "V",
+            "x_unit": "Hz",
+            "status": "available",
+            "sample_count": 3,
+            "domain": [
+              0.0,
+              100.0
+            ],
+            "data_basis": "original_native_PSF_ASCII",
+            "name_evidence": "exact name in hash-bound same-run native dataset"
+          }
+        },
+        "full_resolution": true,
+        "display_downsampling_used": false
+      },
+      "request": {
+        "operation": "ac_metrics",
+        "inputs": {
+          "response": "s_130f1d16c4e53fd74f4c225f0b28e527",
+          "reference": "s_6fa6f736b0047283031694e4f0865485"
+        },
+        "parameters": {
+          "backend": "spiceowl",
+          "response_kind": "transfer",
+          "return_curves": true
+        },
+        "criteria": [],
+        "dataset_id": "ds_ea200fd908f18a4cf78b8b62251f4ec1"
+      },
+      "request_sha256": "5d634af68baac9bbcab0d8ae0a81a6bd6bdc390ebe190eec6490e98563085ff3",
+      "evaluation_scope": "exploratory",
+      "result": {
+        "schema": "spiceowl.adctools.result.v1",
+        "operation": "ac_metrics",
+        "status": "valid",
+        "algorithm_version": "1.0.0",
+        "backend": "spiceowl",
+        "backend_version": "1.0.0",
+        "numerical_environment": {
+          "python": "3.12.14",
+          "numpy": "2.5.5",
+          "scipy": "1.18.1",
+          "adctoolbox": "0.9.3"
+        },
+        "parameters": {
+          "sample_count": 3,
+          "response_kind": "transfer",
+          "response_unit": "V",
+          "reference_unit": "V",
+          "has_reference": true,
+          "effective_response_unit": "1",
+          "dimensionless_gain": true,
+          "feedback_convention": null,
+          "phase_reference_deg": null,
+          "normalized_characteristic_denominator": null,
+          "interpolation": "linear_dB_and_unwrapped_phase_vs_log_frequency;linear_frequency_at_zero",
+          "phase_unwrap_assumption": "less_than_180_degrees_between_adjacent_samples",
+          "return_curves": true
+        },
+        "metrics": {
+          "dc_gain_db": {
+            "value": 20.0,
+            "unit": "dB",
+            "status": "valid"
+          },
+          "low_frequency_gain_db": {
+            "value": 20.0,
+            "unit": "dB",
+            "status": "valid"
+          },
+          "low_frequency_magnitude": {
+            "value": 10.0,
+            "unit": "1",
+            "status": "valid"
+          },
+          "low_frequency_hz": {
+            "value": 0.0,
+            "unit": "Hz",
+            "status": "valid"
+          },
+          "unity_gain_bandwidth_hz": {
+            "value": 99.41752048733693,
+            "unit": "Hz",
+            "status": "valid"
+          },
+          "phase_margin_deg": {
+            "value": null,
+            "unit": "deg",
+            "status": "undefined"
+          },
+          "gain_margin_db": {
+            "value": null,
+            "unit": "dB",
+            "status": "undefined"
+          }
+        },
+        "warnings": [
+          "sampled_response_only_no_extrapolation_or_closed_loop_stability_verdict"
+        ],
+        "specification_result": "not_evaluated",
+        "unity_crossings": [
+          {
+            "frequency_hz": 99.41752048733693,
+            "phase_deg": -84.18972678724589,
+            "classification": "crossing",
+            "scalar_eligible": true,
+            "phase_margin_deg": null,
+            "critical_phase_deg": null,
+            "bracket_hz": [
+              10.0,
+              100.0
+            ]
+          }
+        ],
+        "phase_crossings": [],
+        "stability_verdict": "not_evaluated",
+        "gbw_product_hz": null,
+        "curves": {
+          "frequency_hz": [
+            0.0,
+            10.0,
+            100.0
+          ],
+          "magnitude_db": [
+            20.0,
+            16.989700043360187,
+            -0.04321373782642656
+          ],
+          "phase_deg": [
+            0.0,
+            -45.0,
+            -84.28940686250037
+          ],
+          "frequency_unit": "Hz",
+          "magnitude_unit": "dB",
+          "response_unit": "1",
+          "phase_unit": "deg"
+        }
+      },
+      "evaluation": {
+        "specification_result": "not_evaluated",
+        "criteria": []
+      },
+      "network_operations": 0,
+      "solver_invocations": 0,
+      "changes_original_job_verdict": false,
+      "analysis_id": "335d4787400fdc64addf39eecd5f57e36a4a15ddfe911f3ef3d9d004a3f31aae",
+      "artifact": {
+        "id": "335d4787400fdc64addf39eecd5f57e36a4a15ddfe911f3ef3d9d004a3f31aae",
+        "sha256": "6ea42dda16c16c1e7c3df2f85d4ce04984907e1a42b80092abb01ea743e71aa6",
+        "format": "application/json",
+        "bytes": 6290,
+        "full_result": true
+      }
+    },
+    "dc_op": {
+      "schema": "ic.onboarding.analysis.v1",
+      "intake_id": "intake_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "job_id": "derived-fixture-run",
+      "run_id": "derived-fixture-run",
+      "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "original_source_sha256": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631",
+      "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+      "input": {
+        "raw_signature": "8fe40cad594989f9a07ea64f3ec88293fb917fddedb63d70616470c82bf792ce",
+        "archive_sha256": "b4fabdc4d878f552732d7ca1fc80d53ad47370de3f2f2fa975b1dd1cce6c0bb2",
+        "source_hashes": {
+          "design/source.scs": "74357f183a4c4702ae5cd2e6ee680b0e9af280be730e42d72df7d920ca3fd631"
+        },
+        "effective_config_sha256": "751b64a4fdab68d9469a7f6319af3093f1d3a2df85c90f3329d16cb875253488",
+        "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e",
+        "analysis_id": "dcOpInfo",
+        "analysis_kind": "dc_op",
+        "data_sha256": "66e5dcfe07f229b759f002e6766ae61f4a4e564b4f1d20b162fbf0801dbfe803",
+        "data_format": "native_psf_json",
+        "native_member_sha256": "8e244bd0ffdc96ffa8d6668036fd10c101b8fb17c379824c0f2a9f89d7a01f8d",
+        "sample_count": 1,
+        "data_basis": "original_native_PSF_ASCII",
+        "selection": {
+          "devices": [
+            {
+              "id": "d_6e76516e9e4deb7226e63843435e5334",
+              "name": "N1",
+              "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e"
+            },
+            {
+              "id": "d_5b69da6d0c83c08df638ca14e8820031",
+              "name": "P1",
+              "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e"
+            }
+          ]
+        },
+        "full_resolution": true,
+        "display_downsampling_used": false
+      },
+      "request": {
+        "operation": "dc_op_metrics",
+        "inputs": {
+          "devices": [
+            "d_6e76516e9e4deb7226e63843435e5334",
+            "d_5b69da6d0c83c08df638ca14e8820031"
+          ]
+        },
+        "parameters": {
+          "backend": "spiceowl",
+          "device_contracts": {
+            "d_6e76516e9e4deb7226e63843435e5334": {
+              "polarity": "nmos",
+              "saturation_method": "region",
+              "region_map": {
+                "2": "saturation"
+              },
+              "region_map_source": "Explicit original synthetic model convention"
+            },
+            "d_5b69da6d0c83c08df638ca14e8820031": {
+              "polarity": "pmos",
+              "saturation_method": "vdsat",
+              "voltage_convention": "signed_vgs_vds",
+              "vdsat_convention": "signed",
+              "require_above_threshold": true,
+              "minimum_headroom_v": 0.1
+            }
+          }
+        },
+        "criteria": [],
+        "dataset_id": "ds_4f85242f7ff0af7d7467936cbce79a9e"
+      },
+      "request_sha256": "4e3fb113650e43a9ea9e3412a2d3642309d4fb8b0b31fc19c2c75e7730d5e0b6",
+      "evaluation_scope": "exploratory",
+      "result": {
+        "schema": "spiceowl.adctools.result.v1",
+        "operation": "dc_op_metrics",
+        "status": "valid",
+        "algorithm_version": "1.0.0",
+        "backend": "spiceowl",
+        "backend_version": "1.0.0",
+        "numerical_environment": {
+          "python": "3.12.14",
+          "numpy": "2.5.5",
+          "scipy": "1.18.1",
+          "adctoolbox": "0.9.3"
+        },
+        "parameters": {
+          "required_devices": [
+            "N1",
+            "P1"
+          ],
+          "device_contracts": {
+            "N1": {
+              "polarity": "nmos",
+              "saturation_method": "region",
+              "region_map": {
+                "2": "saturation"
+              },
+              "region_map_source": "Explicit original synthetic model convention"
+            },
+            "P1": {
+              "polarity": "pmos",
+              "saturation_method": "vdsat",
+              "voltage_convention": "signed_vgs_vds",
+              "vdsat_convention": "signed",
+              "require_above_threshold": true,
+              "minimum_headroom_v": 0.1
+            }
+          },
+          "supply_power_scope": "explicit_selected_rails_only"
+        },
+        "metrics": {
+          "required_device_count": {
+            "value": 2,
+            "unit": "count",
+            "status": "valid"
+          },
+          "saturation_pass_count": {
+            "value": 2,
+            "unit": "count",
+            "status": "valid"
+          },
+          "saturation_fail_count": {
+            "value": 0,
+            "unit": "count",
+            "status": "valid"
+          },
+          "saturation_unknown_count": {
+            "value": 0,
+            "unit": "count",
+            "status": "valid"
+          },
+          "static_power_w": {
+            "value": null,
+            "unit": "W",
+            "status": "undefined"
+          }
+        },
+        "warnings": [
+          "model_region_and_voltage_conditions_do_not_establish_full_device_qualification"
+        ],
+        "specification_result": "not_evaluated",
+        "devices": [
+          {
+            "name": "N1",
+            "model_type": "toy_mos",
+            "contract": {
+              "polarity": "nmos",
+              "saturation_method": "region",
+              "region_map": {
+                "2": "saturation"
+              },
+              "region_map_source": "Explicit original synthetic model convention"
+            },
+            "observed": {
+              "vgs": {
+                "value": 0.7,
+                "unit": "V",
+                "status": "valid"
+              },
+              "vds": {
+                "value": 0.8,
+                "unit": "V",
+                "status": "valid"
+              },
+              "vth": {
+                "value": 0.3,
+                "unit": "V",
+                "status": "valid"
+              },
+              "vdsat": {
+                "value": 0.2,
+                "unit": "V",
+                "status": "valid"
+              },
+              "id": {
+                "value": 0.001,
+                "unit": "A",
+                "status": "valid"
+              },
+              "gm": {
+                "value": 0.01,
+                "unit": "S",
+                "status": "valid"
+              },
+              "gds": {
+                "value": 0.0001,
+                "unit": "S",
+                "status": "valid"
+              },
+              "gm_over_id": {
+                "value": 10.0,
+                "unit": "1/V",
+                "status": "valid"
+              },
+              "intrinsic_gain": {
+                "value": 100.0,
+                "unit": "1",
+                "status": "valid"
+              }
+            },
+            "region": {
+              "value": 2.0,
+              "unit": null,
+              "status": "valid",
+              "value_kind": "integer"
+            },
+            "region_label": "saturation",
+            "saturation_headroom_v": null,
+            "saturation_verdict": "pass",
+            "missing": [],
+            "scope": "declared_model_region_map"
+          },
+          {
+            "name": "P1",
+            "model_type": "toy_mos",
+            "contract": {
+              "polarity": "pmos",
+              "saturation_method": "vdsat",
+              "voltage_convention": "signed_vgs_vds",
+              "vdsat_convention": "signed",
+              "require_above_threshold": true,
+              "minimum_headroom_v": 0.1
+            },
+            "observed": {
+              "vgs": {
+                "value": -0.7,
+                "unit": "V",
+                "status": "valid"
+              },
+              "vds": {
+                "value": -0.8,
+                "unit": "V",
+                "status": "valid"
+              },
+              "vth": {
+                "value": -0.3,
+                "unit": "V",
+                "status": "valid"
+              },
+              "vdsat": {
+                "value": -0.2,
+                "unit": "V",
+                "status": "valid"
+              },
+              "id": {
+                "value": -0.001,
+                "unit": "A",
+                "status": "valid"
+              },
+              "gm": {
+                "value": 0.01,
+                "unit": "S",
+                "status": "valid"
+              },
+              "gds": {
+                "value": 0.0001,
+                "unit": "S",
+                "status": "valid"
+              },
+              "gm_over_id": {
+                "value": 10.0,
+                "unit": "1/V",
+                "status": "valid"
+              },
+              "intrinsic_gain": {
+                "value": 100.0,
+                "unit": "1",
+                "status": "valid"
+              }
+            },
+            "region": {
+              "value": 2.0,
+              "unit": null,
+              "status": "valid",
+              "value_kind": "integer"
+            },
+            "region_label": null,
+            "saturation_headroom_v": 0.6000000000000001,
+            "saturation_verdict": "pass",
+            "missing": [],
+            "scope": "declared_vdsat_voltage_condition"
+          }
+        ],
+        "supplies": [],
+        "saturation_result": "pass"
+      },
+      "evaluation": {
+        "specification_result": "not_evaluated",
+        "criteria": []
+      },
+      "network_operations": 0,
+      "solver_invocations": 0,
+      "changes_original_job_verdict": false,
+      "analysis_id": "73e30420099886b2b6871aae9622a8bad79ddc234cd687d7240c72d08f403bcd",
+      "artifact": {
+        "id": "73e30420099886b2b6871aae9622a8bad79ddc234cd687d7240c72d08f403bcd",
+        "sha256": "d0a13094837cce38b81e7f8dd75d1486d24c3ba7fd28bc6e712b9a1b200ebb8e",
+        "format": "application/json",
+        "bytes": 8382,
+        "full_result": true
+      }
+    }
+  }
+}
