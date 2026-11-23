@@ -136,6 +136,24 @@ class ContractCheckTests(unittest.TestCase):
         self.assertEqual(json.loads(output.getvalue()),
                          {'status': 'failed', 'code': 'commit_mismatch', 'message': 'Fixture mismatch.'})
 
+    def test_paired_runtime_schema_requires_bytes_digest_version_and_committed_content(self):
+        raw = b'{"x-contract-version":"1.0.0","type":"object"}\n'
+        own = self.local/'contracts/runtime.json'
+        other = self.external/'docs/contracts/runtime.json'
+        own.write_bytes(raw); other.write_bytes(raw)
+        self.git('add', '.'); self.commit('runtime contract')
+        self.lock['spiceowl']['commit'] = self.git('rev-parse', 'HEAD')
+        self.lock['runtime_contract'] = {'path':'contracts/runtime.json',
+            'upstream_path':'docs/contracts/runtime.json','version':'1.0.0','sha256':hashlib.sha256(raw).hexdigest()}
+        self.write_lock()
+        self.assertEqual(self.check()['runtime_contract_version'],'1.0.0')
+        own.write_bytes(raw + b' ')
+        self.assert_error('contract_drift')
+        other.write_bytes(raw + b' ')
+        self.assert_error('digest_mismatch')
+        self.lock['runtime_contract']['sha256'] = hashlib.sha256(raw+b' ').hexdigest()
+        self.write_lock(); self.assert_error('uncommitted_contract')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

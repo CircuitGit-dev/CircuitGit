@@ -250,14 +250,36 @@ class ResourcePool:
             raise ValueError('A regular simulation bundle file is required')
         return str(path.resolve()), filehash(path)
 
-    def prepare(self, runner, bundle, identity):
+    def preview(self, bundle, identity):
+        """Display materialized local settings; this is not an executable plan.
+
+        The caller materializes and verifies the source closure. Remote model
+        mappings and pins are checked only against the selected execution site.
+        """
+        bound = normalize_identity(identity)
+        _, checksum = self._bundle(bundle)
+        data = read_json(bundle)
+        if not isinstance(data, dict):
+            raise ValueError('A simulation bundle must be an object')
+        simulator = core.simulator_config(data)
+        validate_simulator_budget({'simulator': simulator}, self.requirements)
+        return {'schema': 'ic.sim.preview.v1', **bound, 'state': 'needs_remote_preflight',
+                'execution_mode': 'resource_pool', 'resource_selection_required': True,
+                'bundle_sha256': checksum, 'simulator': simulator,
+                'settings': copy.deepcopy(data.get('configuration', {})),
+                'inputs': [{'destination': row.get('destination'), 'source_sha256': row.get('sha256')}
+                           for row in data.get('files', [])], 'blockers': []}
+
+    def prepare(self, runner, bundle, identity, *, host_ids=None):
         bound_identity = normalize_identity(identity)
         bundle_path, bundle_hash = self._bundle(bundle)
-        local_plan = runner.plan(bundle, bound_identity['source_commit'])
-        validate_simulator_budget(local_plan, self.requirements)
-        selection = copy.deepcopy(self._backend().select(list(self.members), copy.deepcopy(self.requirements)))
+        local_plan = self.preview(bundle, bound_identity)
+        ids = list(self.members) if host_ids is None else host_ids
+        if not isinstance(ids, list) or not ids or len(set(ids)) != len(ids) or any(host not in self.members for host in ids):
+            raise ValueError('Select an explicit nonempty subset of configured pool hosts')
+        selection = copy.deepcopy(self._backend().select(ids, copy.deepcopy(self.requirements)))
         validate_selection(selection)
-        if selection['host_id'] not in self.members or selection['requirements'] != self.requirements:
+        if selection['host_id'] not in ids or selection['requirements'] != self.requirements:
             raise ValueError('SpiceOwl selected an unconfigured host or resource request')
         member = self.members[selection['host_id']]
         site_path = Path(member['site_file'])
@@ -271,7 +293,7 @@ class ResourcePool:
         if type(preflight) is not dict:
             raise ValueError('Runner preflight must return a record')
         validate_simulator_budget(preflight.get('plan'), self.requirements)
-        if preflight['plan']['simulator'] != local_plan['simulator']:
+        if core.simulator_config({'simulator': preflight['plan']['simulator']}) != local_plan['simulator']:
             raise ValueError('Spectre settings changed during resource preflight')
         proof = preflight.get('plan', {}).get('provenance', {})
         if proof.get('source_commit') != bound_identity['source_commit']:

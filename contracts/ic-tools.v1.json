@@ -436,6 +436,95 @@
         "idempotentHint": true,
         "openWorldHint": false
       }
+    },
+    {
+      "name": "ic_sim_runtime",
+      "description": "Read cached server resources, saved run monitoring, structured Spectre diagnostics and separate data/specification acceptance. No SSH or simulator action.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_sim_execute",
+      "description": "Execute a finite standalone Spectre operation only under an explicitly installed native-agent simulation grant. Stable keys required for submit/collect; existing manual requests are never approved or promoted. No arbitrary command, credentials or scope argument.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "submit",
+              "status",
+              "collect",
+              "watch",
+              "unwatch",
+              "resources_scan",
+              "runtime"
+            ]
+          },
+          "arguments": {
+            "type": "object",
+            "properties": {
+              "project_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              },
+              "configuration": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              },
+              "source_commit": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{40}$"
+              },
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              }
+            },
+            "required": [
+              "project_id"
+            ],
+            "additionalProperties": false
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "operation",
+          "arguments"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
     }
   ]
 }

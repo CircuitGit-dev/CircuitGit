@@ -275,6 +275,7 @@ class Runner:
             r=self.read(rid)
             try:site=self.execution_site(r)
             except ExecutionBindingError as e:
+                r['status_attempted_at']=stamp();r['status_transport']='blocked'
                 r['status_error']=str(e);r['status_error_code']=e.code;self.save(r);return r
             if r['state'] in ['queued','preflight','preflight_failed']:return r
             remote=r['remote_directory']
@@ -283,21 +284,40 @@ printf 'STATE '; cat state 2>/dev/null || true
 printf 'EXIT '; cat exit_code 2>/dev/null || true
 printf 'PID '; cat supervisor.pid 2>/dev/null || true
 if test -f supervisor.pid; then p=$(cat supervisor.pid); kill -0 "$p" 2>/dev/null && printf 'ALIVE yes\n' || printf 'ALIVE no\n'; fi
-test ! -f psf/spectre.out || tail -n 16 psf/spectre.out
+test ! -f psf/spectre.out || tail -c 60000 psf/spectre.out
 '''
             try:
-                p=core.ssh(site,script);txt=p.stdout.decode(errors='replace');s=re.search(r'^STATE (\S+)',txt,re.M);state=s[1] if s else 'unknown'
+                r['status_attempted_at']=stamp()
+                p=core.ssh(site,script)
+                if p.returncode:
+                    r['status_transport']='disconnected';r['status_error_code']='ssh_status_failed'
+                    r['status_error']='Remote status read failed with exit '+str(p.returncode)
+                    self.save(r);return r
+                txt=p.stdout.decode(errors='replace');s=re.search(r'^STATE (\S+)',txt,re.M);state=s[1] if s else 'unknown'
                 r['observed_at']=stamp();r['remote_state']=state;r['remote_status_exit']=p.returncode
+                r['status_transport']='connected';r.pop('status_error',None);r.pop('status_error_code',None)
                 r['process_observed_alive']='ALIVE yes' in txt
                 e=re.search(r'^EXIT (\d+)',txt,re.M);r['simulator_exit_code']=int(e[1]) if e else None
                 r['state']=state if state in TERMINAL else ('running_observed' if state=='running' and r['process_observed_alive'] else 'reconcile_required')
                 (self.path(rid)/'latest-status.log').write_text(txt)
-            except Exception as e:r['status_error']=str(e)
+            except Exception as e:r['status_transport']='disconnected';r['status_error_code']='ssh_status_failed';r['status_error']=str(e)
             self.save(r);return r
     def collect(self,rid):
         with locked(self.path(rid)/'collect.lock'):
             existing=self.read(rid)
             self.execution_site(existing)
+            if existing.get('collection_phase') and existing.get('collection_phase') != 'complete':
+                raise ValueError('Previous collection outcome requires reconciliation; automatic replay is disabled')
+            completed=existing.get('collection')
+            if completed and existing.get('collection_phase') == 'complete':
+                archive=Path(completed['archive'])
+                if not archive.is_file() or archive.is_symlink() or filehash(archive)!=completed.get('sha256'):
+                    raise ValueError('Collected native archive changed; reconcile before collecting again')
+                desired=existing.get('postprocess_csv_sha256')
+                local=(existing.get('local_derivation') or {}).get('native_archive_sha256')==completed['sha256']
+                inventory=json.loads((self.path(rid)/'archive-files.json').read_text())
+                if not desired or local or any(row.get('path','').endswith('/waveforms.csv') and row.get('sha256')==desired for row in inventory):
+                    return existing
             if existing.get('publication'):
                 c=existing.get('collection')
                 expected=(existing['publication'].get('full_archive_sha256') or (c or {}).get('sha256'))

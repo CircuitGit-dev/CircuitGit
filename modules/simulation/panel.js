@@ -1,6 +1,7 @@
 import {createController,parseConfiguration} from './model.js';
 import {safeReceiptLink,fullCollection} from './receipts.js';
 import {mountSupervision} from './supervision.js';
+import {mountRuntime} from './runtime.js';
 
 const ANALYSIS_FIELDS=[['stop','结束时间','s（n / p）'],['maxstep','最大步长','s（n / p）'],['errpreset','精度预设',''],['method','积分方法',''],['maxiters','迭代上限','次']];
 const RUN_LABELS={queued:'排队中',preflight:'预检中',submitted:'已提交',running:'运行中',running_observed:'运行中（已观察）',collecting:'收集中',archiving:'归档中',archived:'已归档',collected:'已收集',simulator_complete_pending_measurements:'仿真结束 · 待测量',simulator_failed:'仿真失败',input_hash_failure:'输入校验失败',job_setup_failed:'任务准备失败',preflight_failed:'预检失败',unknown:'状态未知',reconcile_required:'待核对'};
@@ -25,6 +26,10 @@ export function mount(host) {
   const supervisionRoot=document.createElement('section');
   const supervision=mountSupervision(supervisionRoot,{host});
   let controller=null,disposed=false,page='config',parameterQuery='',identity=null,targetKind='voltage',targetPath='',targetTerminal='';
+  const runtimeRoot=document.createElement('section');
+  const runtime=mountRuntime(runtimeRoot,{host,actions:{submit:()=>controller.runDirect(),collect:run=>controller.collectDirect(run.run_id)},
+    actionPolicy:run=>({submit:typeof controller?.runDirect==='function'&&!!controller.state.descriptor&&!controller.state.busy&&!controller.receipts.busy&&!controller.state.contextBlocked&&!controller.state.suspended&&!controller.draftDirty()&&!controller.directSubmissionBlocked(),
+      collect:typeof controller?.collectDirect==='function'&&!controller.state.busy&&!controller.receipts.busy&&!controller.state.contextBlocked&&!controller.state.suspended&&!!run&&controller.state.runs.some(row=>(row.run_id||row.job_id)===run.run_id&&row.source_commit===run.source_commit&&(row.associated_project_id||row.project_id)===controller.state.projectId)})});
   const opened=new Set(['analysis','parameters']);
   const el=(tag,text,cls)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;};
   const call=fn=>()=>{Promise.resolve().then(fn).catch(error=>host.notify(error.message||String(error),{kind:'error'}));};
@@ -84,14 +89,22 @@ export function mount(host) {
     note(root,s.projectId||'未选择项目','ic-sim-project');
     if(s.saveAttempt?.status==='unknown')note(root,'上次保存或推送结果未知，可能已产生提交。请核对回执；当前禁止重复保存。','ic-sim-error');
     if(s.error)note(root,s.error+' 后续写操作已停止；请核对后重新读取。','ic-sim-error');
+    if(s.directStorageError)note(root,'直接提交已暂停：'+s.directStorageError,'ic-sim-warning');
+    if(s.directPending){
+      const pending=section(root,'原提交结果待核对');pending.dataset.role='direct-pending';
+      note(pending,'此版本已有未确认提交，原键已保留。查询只读取保存的映射；未找到记录也不会重新提交。');
+      pending.append(button('只读核对原提交',()=>controller.lookupDirect(),!!s.busy||controller.receipts.busy||s.contextBlocked||!s.descriptor));
+      if(s.directLookup?.found===false)note(pending,'暂未找到原提交映射；请保留原键，继续核对网关记录。','ic-sim-warning');
+    }else if(s.directLookup?.found)note(root,'已找到原任务 '+s.directLookup.run_id+'，可以查看状态和收集结果。');
     if(s.contextBlocked)note(root,'项目正在加载、版本未对齐或源文件有未保存修改。配置操作已暂停。','ic-sim-note');
     if(s.saveReceipt)note(root,`${s.saveReceipt.configurationId} · `+(s.saveReceipt.pushStatus==='confirmed'?'配置提交与推送已确认。':s.saveReceipt.pushStatus==='not_requested'?'配置提交已确认，未请求推送。':'保存回执已返回，请在提交页核对。'),'ic-sim-note');
     const nav=el('nav',undefined,'ic-sim-nav');nav.setAttribute('aria-label','仿真工作流');
-    for(const [id,label] of [['config','配置'],['workflow','提交'],['jobs','运行 · '+projectRuns(s).length]]){
+    for(const [id,label] of [['config','配置'],['workflow','提交'],['jobs','运行 · '+projectRuns(s).length],['runtime','资源与监控']]){
       const tab=button(label,()=>showPage(id),false,page===id?'is-active':'');tab.dataset.field='page-'+id;tab.setAttribute('aria-pressed',String(page===id));nav.append(tab);
     }root.append(nav);
-    const configPage=el('div',undefined,'ic-sim-page'),workflowPage=el('div',undefined,'ic-sim-page'),jobsPage=el('div',undefined,'ic-sim-page');
-    for(const [node,id] of [[configPage,'config'],[workflowPage,'workflow'],[jobsPage,'jobs']]){node.dataset.page=id;node.hidden=page!==id;root.append(node);}
+    const configPage=el('div',undefined,'ic-sim-page'),workflowPage=el('div',undefined,'ic-sim-page'),jobsPage=el('div',undefined,'ic-sim-page'),runtimePage=el('div',undefined,'ic-sim-page');
+    for(const [node,id] of [[configPage,'config'],[workflowPage,'workflow'],[jobsPage,'jobs'],[runtimePage,'runtime']]){node.dataset.page=id;node.hidden=page!==id;root.append(node);}
+    runtimePage.append(runtimeRoot);runtime.setActive(page==='runtime');
     if(s.descriptor){
       let conf=null;try{conf=readDraft(s.draftText);}catch(error){note(configPage,'JSON：'+error.message,'ic-sim-error');}
       const effective=s.preview?.effective||s.descriptor.effective;
@@ -309,5 +322,5 @@ export function mount(host) {
     {id:'git.archive-run',menu:'git',label:'归档选中任务至私有 GitHub',run:call(()=>controller.receipts.archive(selectedReceipt())),enabled:()=>selectedPolicy().archive===true},
     {id:'simulation.receipt',menu:'simulation',label:'查看选中任务的本地回执',run:call(()=>{slot.setVisible(true);const id=selectedReceipt();page='jobs';opened.add('receipt-'+id);const box=[...root.querySelectorAll('[data-detail]')].find(e=>e.dataset.detail==='receipt-'+id);if(box)box.open=true;return controller.receipts.inspect(id);}),enabled:()=>!!controller.receipts.selectedId()&&!controller.receipts.busy}
   ].map(c=>host.registerCommand(c));
-  return {destroy(){disposed=true;window.removeEventListener('beforeunload',protectDrafts);controller.destroy();supervision.destroy();commands.forEach(remove=>remove());sheet.remove();root.remove();}};
+  return {destroy(){disposed=true;window.removeEventListener('beforeunload',protectDrafts);controller.destroy();supervision.destroy();runtime.destroy();commands.forEach(remove=>remove());sheet.remove();root.remove();}};
 }

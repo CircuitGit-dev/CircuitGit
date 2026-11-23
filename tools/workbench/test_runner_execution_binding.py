@@ -300,6 +300,27 @@ class FrozenExecutionTests(unittest.TestCase):
         self.assertNotIn('execution_site', result)
         self.assertEqual(self.ssh.call_args.args[0], site('a'))
 
+    def test_status_disconnect_retains_execution_and_success_clears_transport_error(self):
+        record = self.reserve()
+        self.mark(record, state='running_observed', remote_state='running', simulator_exit_code=None,
+                  observed_at='2026-11-23T00:00:00+00:00', process_observed_alive=True)
+        self.ssh.side_effect = [subprocess.CompletedProcess([], 255, b'', b'fixture disconnect'),
+                                TimeoutError('fixture timeout'),
+                                completed(b'STATE simulator_complete_pending_measurements\nEXIT 0\nALIVE no\n')]
+        for _ in range(2):
+            observed = self.runner.status(record['run_id'])
+            self.assertEqual(observed['state'], 'running_observed')
+            self.assertEqual(observed['remote_state'], 'running')
+            self.assertIsNone(observed['simulator_exit_code'])
+            self.assertEqual(observed['observed_at'], '2026-11-23T00:00:00+00:00')
+            self.assertEqual(observed['status_transport'], 'disconnected')
+        observed = self.runner.status(record['run_id'])
+        self.assertEqual(observed['state'], 'simulator_complete_pending_measurements')
+        self.assertEqual(observed['simulator_exit_code'], 0)
+        self.assertEqual(observed['status_transport'], 'connected')
+        self.assertNotIn('status_error', observed)
+        self.assertNotIn('status_error_code', observed)
+
     def test_signed_library_metadata_is_promoted_without_relabeling_legacy_fields(self):
         self.signed_bundle()
         plan = self.runner.plan(self.bundle, COMMIT, site=site('b'))
@@ -364,6 +385,18 @@ class FrozenExecutionTests(unittest.TestCase):
         self.assertEqual(result['collection']['sha256'], digest)
         self.assertEqual(result['collection_phase'], 'complete')
         self.process.assert_called_once()
+        self.ssh.reset_mock()
+        self.assertEqual(self.runner.collect(record['run_id'])['collection']['sha256'], digest)
+        self.ssh.assert_not_called()
+        self.process.assert_called_once()
+
+    def test_uncertain_collection_phase_is_not_replayed_by_another_entrypoint(self):
+        record = self.reserve(ctx=context())
+        self.mark(record, state='submitted', collection_phase='preparing')
+        with self.assertRaisesRegex(ValueError, 'reconciliation'):
+            self.runner.collect(record['run_id'])
+        self.ssh.assert_not_called()
+        self.process.assert_not_called()
 
     def test_postprocess_uses_frozen_setup_and_ocean_without_redirecting(self):
         record = self.reserve(ctx=context())

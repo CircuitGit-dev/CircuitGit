@@ -82,7 +82,8 @@ def check(spiceowl_root, root=ROOT):
     root = Path(root).resolve()
     external = Path(spiceowl_root).resolve()
     lock = parse_json(read_bytes(local_path(root, LOCK_PATH), 'lock_missing'))
-    require(set(lock) == {'schema', 'spiceowl', 'contract', 'resource_selection_profile', 'related_pull_requests'}
+    fields = {'schema', 'spiceowl', 'contract', 'resource_selection_profile', 'related_pull_requests'}
+    require(fields <= set(lock) and not set(lock) - fields - {'runtime_contract'}
             and lock['schema'] == LOCK_SCHEMA, 'invalid_lock', 'Unsupported integration lock structure or schema.')
     upstream, contract = lock['spiceowl'], lock['contract']
     require(isinstance(upstream, dict) and set(upstream) == {'repository', 'commit', 'contract_path', 'contract_sha256'}
@@ -116,8 +117,22 @@ def check(spiceowl_root, root=ROOT):
     require(pinned_bytes == upstream_bytes, 'uncommitted_contract', 'The external contract is not the content saved at the locked commit.')
     require(adapter.is_file(), 'adapter_missing', 'The local SpiceOwl CircuitGit resource adapter is missing.')
     git(external, 'cat-file', '-e', upstream['commit'] + ':' + ADAPTER_PATH)
+    runtime = lock.get('runtime_contract')
+    if runtime is not None:
+        require(isinstance(runtime, dict) and set(runtime) == {'path', 'upstream_path', 'version', 'sha256'}
+                and runtime['version'] == '1.0.0' and isinstance(runtime['sha256'], str)
+                and re.fullmatch('[a-f0-9]{64}', runtime['sha256']),
+                'invalid_lock', 'The runtime contract needs exact paths, version and SHA-256.')
+        own = read_bytes(local_path(root, runtime['path']), 'contract_missing')
+        other = read_bytes(local_path(external, runtime['upstream_path']), 'upstream_contract_missing')
+        require(own == other, 'contract_drift', 'The runtime contracts differ byte for byte.')
+        require(hashlib.sha256(own).hexdigest() == runtime['sha256'], 'digest_mismatch', 'The runtime contract differs from the locked SHA-256.')
+        require(parse_json(own).get('x-contract-version') == runtime['version'], 'version_mismatch', 'The runtime schema version differs from its lock.')
+        require(git(external, 'show', upstream['commit'] + ':' + runtime['upstream_path']) == other,
+                'uncommitted_contract', 'The runtime contract is not the content saved at the locked commit.')
     return {'status': 'passed', 'schema': LOCK_SCHEMA, 'spiceowl_commit': head,
             'contract_sha256': actual, 'contract_version': contract['version'],
+            'runtime_contract_version': runtime['version'] if runtime else None,
             'resource_selection_profile': lock['resource_selection_profile'], 'adapter': ADAPTER_PATH}
 
 

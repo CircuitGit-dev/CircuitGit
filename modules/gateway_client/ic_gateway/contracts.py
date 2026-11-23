@@ -50,8 +50,19 @@ DESCRIPTIONS = {
 
 
 
+SCHEMAS['sim_runtime'] = obj({'project_id': PID}, ('project_id',))
+SCHEMAS['sim_execute'] = obj({
+    'operation': {'type':'string','enum':['submit','status','collect','watch','unwatch','resources_scan','runtime']},
+    'arguments': obj({**IDENTITY,'run_id':PID}, ('project_id',)),
+    'idempotency_key': KEY,
+}, ('operation','arguments'))
+READ_ONLY.add('sim_runtime')
+DESCRIPTIONS['sim_runtime'] = 'Read cached server resources, saved run monitoring, structured Spectre diagnostics and separate data/specification acceptance. No SSH or simulator action.'
+DESCRIPTIONS['sim_execute'] = 'Execute a finite standalone Spectre operation only under an explicitly installed native-agent simulation grant. Stable keys required for submit/collect; existing manual requests are never approved or promoted. No arbitrary command, credentials or scope argument.'
+
+
 def tools():
     return [{'name': 'ic_' + name, 'description': DESCRIPTIONS[name], 'inputSchema': schema,
-             'annotations': {'readOnlyHint': name in READ_ONLY, 'destructiveHint': name in MUTATIONS,
-                             'idempotentHint': True, 'openWorldHint': name in {'sim_preflight', 'sim_status'} | MUTATIONS}}
+             'annotations': {'readOnlyHint': name in READ_ONLY, 'destructiveHint': name in MUTATIONS or name == 'sim_execute',
+                             'idempotentHint': True, 'openWorldHint': name in {'sim_preflight', 'sim_status','sim_execute'} | MUTATIONS}}
             for name, schema in SCHEMAS.items()]
