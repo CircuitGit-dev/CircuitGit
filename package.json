@@ -32,7 +32,7 @@
   "description": "AI-native circuit design, versioned on GitHub.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/joshuazeng713/CircuitGit.git"
+    "url": "https://github.com/CircuitGit-dev/CircuitGit.git"
   },
   "license": "MIT"
 }

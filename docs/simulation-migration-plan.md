@@ -45,4 +45,4 @@ python3 -B tools/workbench/ic_sim.py --site /absolute/site.local.json collect --
 
 公共 GitHub CI 可验证源码、配置、include 闭包和 RNL。真实 Spectre 需要已配置的授权执行环境，不能从静态检查通过推断模型或许可证可用。现行 TB 选择与工作流见[TB CI](circuit-ci.md)。
 
-2026-11-09 的 real-SAR、ideal 和 MDAC 导入使用各自原始设置与测量约定；历史波形和失败结论保持原样。Maestro/OA 导出在当时作为配置来源，不是当前执行依赖。原始迁移清单、采样/译码/FFT 约定及当时尚未完成的验证可查阅[固定历史版本](https://github.com/joshuazeng713/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/docs/simulation-migration-plan.md)。不要把历史未完成事项、私有路径或旧结果当作当前新运行的验收。
+2026-11-09 的 real-SAR、ideal 和 MDAC 导入使用各自原始设置与测量约定；历史波形和失败结论保持原样。Maestro/OA 导出在当时作为配置来源，不是当前执行依赖。原始迁移清单、采样/译码/FFT 约定及当时尚未完成的验证可查阅[固定历史版本](https://github.com/CircuitGit-dev/CircuitGit/blob/10e067bd341736d39cb1157562e76e9914a311e6/docs/simulation-migration-plan.md)。不要把历史未完成事项、私有路径或旧结果当作当前新运行的验收。

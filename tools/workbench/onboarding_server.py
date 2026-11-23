@@ -65,7 +65,7 @@ def _serve_onboarding(state,*,root,node_port,gateway_port,allow_origins,resume,n
         token,node_id,_=node_identity(node_state)
         gateway_url='http://127.0.0.1:'+str(gateway.server_port)
         node_url='http://127.0.0.1:'+str(browser.server_port)
-        node=Node(None,token,['https://joshuazeng713.github.io',gateway_url,*allow_origins],
+        node=Node(None,token,['https://circuitgit-dev.github.io',gateway_url,*allow_origins],
                   node_id,node_url,'仿真环境接入')
         node.onboarding=app.onboarding;node.onboarding_review_base=gateway_url;browser.node=node
         thread=threading.Thread(target=gateway.serve_forever,daemon=True);thread.start();gateway_started=True

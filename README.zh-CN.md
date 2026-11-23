@@ -4,7 +4,7 @@
 
 **AI 原生电路设计，让每一次电路修改都能在 GitHub 上追踪。**
 
-**[打开网页工作台 ↗](https://joshuazeng713.github.io/CircuitGit/)** · [连接 Codex 节点](docs/remote-node.md) · [安装与连接](docs/getting-started.md) · [English](README.md)
+**[打开网页工作台 ↗](https://circuitgit-dev.github.io/CircuitGit/)** · [连接 Codex 节点](docs/remote-node.md) · [安装与连接](docs/getting-started.md) · [English](README.md)
 
 CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管理放进同一个工作台。界面在 Rich Netlist Viewer 上扩展，通过 Dockview 将原理图、仿真、波形、AI 和版本管理窗口自由排列、浮动和关闭。
 
@@ -24,7 +24,7 @@ CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管
 
 ## 网页演示能做什么
 
-打开 [GitHub Pages 演示](https://joshuazeng713.github.io/CircuitGit/) 后，可拖动窗口、查看固定布局的 RC 原理图，在 Plot 菜单选择探针，再点击节点或 R0；波形支持滚轮缩放、拖动平移和游标。仿真面板可调整参数并导出网表与 JSON 配置。
+打开 [GitHub Pages 演示](https://circuitgit-dev.github.io/CircuitGit/) 后，可拖动窗口、查看固定布局的 RC 原理图，在 Plot 菜单选择探针，再点击节点或 R0；波形支持滚轮缩放、拖动平移和游标。仿真面板可调整参数并导出网表与 JSON 配置。
 
 **示例波形是浏览器计算的 RC 解析参考，不是 Spectre 运行结果。** 打开网页不会自动探测本机、启动模型或提交仿真。
 
@@ -39,7 +39,7 @@ AI 的连接、账户、工程、模型和思考强度统一放在聊天输入�
 ## 本地运行
 
 ```bash
-git clone https://github.com/joshuazeng713/CircuitGit.git
+git clone https://github.com/CircuitGit-dev/CircuitGit.git
 cd CircuitGit
 python3 -B tools/workbench/launch.py
 ```

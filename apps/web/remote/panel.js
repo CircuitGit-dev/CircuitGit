@@ -2,7 +2,7 @@ import {createNodeClient} from './client.js';
 import {pairLocal} from './pair.js';
 import {mount as mountAI} from '../studio/ai/index.js';
 
-const REPO='https://github.com/joshuazeng713/CircuitGit';
+const REPO='https://github.com/CircuitGit-dev/CircuitGit';
 const DOCS=REPO+'/blob/main/docs/remote-node.md';
 
 /** Remote chat owns its context; the public preview never supplies an engineering identity. */

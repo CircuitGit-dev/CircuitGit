@@ -175,8 +175,9 @@ class LibraryWorkflow:
         top = self._git("rev-parse", "--show-toplevel").stdout.decode().strip()
         require(Path(top).resolve() == self.root, "Configured directory is not the repository root", "repository_mismatch", 409)
         origin = self._git("config", "--local", "--get", "remote.origin.url").stdout.decode().strip()
-        require(origin in {"https://github.com/" + self.repository, "https://github.com/" + self.repository + ".git",
-                           "git@github.com:" + self.repository + ".git"}, "Repository origin differs from the configured GitHub repository", "repository_mismatch", 409)
+        require(origin in {prefix + self.repository + suffix
+                           for prefix in ("https://github.com/", "git@github.com:", "ssh://git@github.com/")
+                           for suffix in ("", ".git")}, "Repository origin differs from the configured GitHub repository", "repository_mismatch", 409)
         rewrites = self._git("config", "--includes", "--get-regexp", r"^url\..*\.(insteadof|pushinsteadof)$", check=False)
         require(rewrites.returncode == 1, "Repository URL rewrites are not supported", "repository_mismatch", 409)
 

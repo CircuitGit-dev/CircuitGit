@@ -2,7 +2,7 @@
 
 <h1 align="center">CircuitGit</h1>
 <p align="center"><strong>AI-native circuit design, versioned on GitHub.</strong></p>
-<p align="center"><a href="https://joshuazeng713.github.io/CircuitGit/"><strong>Open workbench ↗</strong></a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
+<p align="center"><a href="https://circuitgit-dev.github.io/CircuitGit/"><strong>Open workbench ↗</strong></a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
 
 CircuitGit brings schematics, text netlists, simulation configurations, waveforms, and circuit revision history into one workbench. AI agents can use the same engineering tools through MCP; Git records reviewable source and configuration changes.
 
@@ -16,7 +16,7 @@ The interface builds on [Rich Netlist](https://github.com/rich-netlist/rnl), wit
 
 ## Try it
 
-**[joshuazeng713.github.io/CircuitGit](https://joshuazeng713.github.io/CircuitGit/)**
+**[circuitgit-dev.github.io/CircuitGit](https://circuitgit-dev.github.io/CircuitGit/)**
 
 The GitHub Pages demo runs entirely in your browser. Drag panel tabs, float and return windows, inspect a fixed-layout RC schematic, select voltage/current probes, pan and zoom waveforms, and export a simulation configuration with its netlist.
 
@@ -48,7 +48,7 @@ Connection, account, project and model controls are grouped in the chat's **sett
 Requires Python **3.11+** and Git. The basic web/gateway build uses Python's standard library; Node **22+** is used for JavaScript tests. Simulation onboarding uses the exact SpiceOwl commit recorded in the integration lock. The optional SDK MCP adapter has its own dependency file.
 
 ```bash
-git clone https://github.com/joshuazeng713/CircuitGit.git
+git clone https://github.com/CircuitGit-dev/CircuitGit.git
 cd CircuitGit
 python3 -B tools/workbench/launch.py
 ```
