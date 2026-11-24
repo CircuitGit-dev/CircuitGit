@@ -255,6 +255,16 @@ an explicit unaudited draft and cannot be promoted to a fabricated single entry.
 status retains observation age/coverage and the need for source rebinding and
 fresh preflight. Raw private recommendations are not HTTP responses.
 
+A stored library can still return `partial` with `scan_required:false` when the
+current device set needs an explicit entry/section combination. The effective
+post-scan state is `lut.projection` when present; the outer LUT record retains
+the earlier lookup/refresh provenance. Public coverage then reports
+`phase:library_binding_pending`, keeps unknown coverage unknown, and lists binding
+and combined-audit gaps. Empty prepared candidates do not mean the index or host
+is unavailable. The UI and next actions do not recommend rescanning that index;
+the explicit advanced refresh action remains available. No combination is promoted
+to a single observed candidate or a runnable plan by this status projection.
+
 If a query is too large, `discovery.lut[]` (or that row's `projection` after a
 scan) contains `library_id` and bounded `entry_choices`. Send one returned
 `library_selection:{probe_id,library_id,library_candidate_id}` with that sole
