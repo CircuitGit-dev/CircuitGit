@@ -1,3 +1,4 @@
+import {createAgentAssistance} from '../ai/assistance.js';
 import {createLayout} from '../studio/layout.js';
 import {whenVisible} from '../studio/lazy-slot.js';
 import {openSource,showBuilt,adoptSource,isLoading} from '../vendor/rnl-viewer/open.js';
@@ -43,7 +44,7 @@ function dialog(title,content) {
 /** Static RC demo. A separate AI node connection starts only after explicit user authorization. */
 export async function mountStudio({ui:providedUI}={}) {
   const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url);document.head.append(css);
-  const ui=providedUI||await createLayout();document.body.classList.add('circuitgit-demo');document.title='CircuitGit · Interactive demo';
+  const ui=providedUI||await createLayout(),agentAssistance=createAgentAssistance({slot:ui.slots.ai,notify:ui.notify});document.body.classList.add('circuitgit-demo');document.title='CircuitGit · Interactive demo';
   // Dockview can temporarily detach inactive tab containers. Resolve owned controls
   // within their panel roots, including while restoring a saved layout.
   const $=id=>document.getElementById(id)||Object.values(ui.slots).map(slot=>slot.element?.querySelector('#'+id)).find(Boolean);
@@ -74,7 +75,7 @@ export async function mountStudio({ui:providedUI}={}) {
   const api={jobs:async()=>({jobs:referenceActive()?jobs:[]}),catalog:async run=>{requireReference(run);return {signals,source_commit:null,csv_sha256:null};},mapping:async run=>{requireReference(run);return mapping();},
     waveform:async(run,id,params)=>{requireReference(run);points ||= reference(parameters);if(!points[id])throw Error('Unknown reference signal');return referenceWindow(points[id],params);}};
   const register=item=>registerStudioCommand({...item,run:()=>Promise.resolve().then(item.run).catch(e=>ui.notify(e.message,{kind:'error'}))});
-  const host={version:1,slots:ui.slots,context:contextAdapter,notify:ui.notify,registerCommand:register,
+  const host={version:1,agentAssistance,requestAgentAssistance:request=>agentAssistance.request(request),slots:ui.slots,context:contextAdapter,notify:ui.notify,registerCommand:register,
     getRuns:()=>referenceActive()?jobs:[],refresh:async()=>{},selectRun:async id=>{requireReference(id);context.run={runId:id};emit();},
     plot:{attach(controller){plotController=controller;controller.setPlotMode(mode);return()=>controller.destroy();}}};
   host.libraryBridge=createLibraryBridge();
@@ -109,7 +110,7 @@ export async function mountStudio({ui:providedUI}={}) {
   const environmentLoader=whenVisible(ui.slots.simulation,async()=>{
     environmentRoot.textContent='正在打开环境配置…';
     try{const {mountEnvironmentWizard}=await import('../../../modules/simulation/environment/panel.js');
-      environmentMount=mountEnvironmentWizard(environmentRoot,{adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,notify:ui.notify,onRun:job=>ui.notify('仿真请求已登记：'+(job.job_id||job.run_id||'')+'；请在环境页查看原任务进度。')});
+      environmentMount=mountEnvironmentWizard(environmentRoot,{requestAgentAssistance:host.requestAgentAssistance,adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,notify:ui.notify,onRun:job=>ui.notify('仿真请求已登记：'+(job.job_id||job.run_id||'')+'；请在环境页查看原任务进度。')});
       unregisterEnvironment=host.onboardingSync.register(environmentMount.controller);return environmentMount;
     }catch(error){environmentRoot.textContent='环境配置加载失败：'+error.message;throw error;}
   },{onError:error=>ui.notify(error.message,{kind:'error'})});
@@ -118,7 +119,7 @@ export async function mountStudio({ui:providedUI}={}) {
   }
   function showReferenceConfiguration(){if(!referenceActive())return;simulationPage='reference';renderSimulationPage();ui.slots.simulation.setVisible(true);}
   environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
-  window.addEventListener('pagehide',()=>{environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
+  window.addEventListener('pagehide',()=>{agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
     if(waveformMount||!referenceActive()||onboardingWaves)return;
@@ -319,7 +320,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     $('studio-native-note').textContent='已导入网表 · 在 Simulation 配置服务器与 PDK';emit();void showEnvironment().catch(panelError);
     if(snapshot)void sha256(snapshot.text).then(hash=>{if(doc===openedDoc&&context.file?.path===openedDoc.path){context={...context,file:{...context.file,currentTextSha256:hash}};emit();}});
   });
-  whenVisible(ui.slots.ai,()=>import('../remote/panel.js').then(module=>module.mountRemoteNode(host)),{onError:panelError});
+  const aiLoader=whenVisible(ui.slots.ai,()=>import('../remote/panel.js').then(module=>module.mountRemoteNode(host)),{onError:panelError});agentAssistance.setLoader(()=>aiLoader.ensure());
   const versionLoader=whenVisible(ui.slots.versions,async()=>{const {mountLibraryVersions}=await import('../library/versions.js');libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});return libraryVersions;},{onError:panelError});
   setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});
   await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false);

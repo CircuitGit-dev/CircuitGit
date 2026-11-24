@@ -21,7 +21,7 @@ await context.route('**/*',async route=>{
       if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><style>body{margin:16px;font:13px system-ui}#host{width:480px;height:800px;border:1px solid #ddd}[hidden]{display:none!important}</style><div id="host"></div><script type="module">
       import {mountRemoteNode} from '/src/remote/panel.js';let visible=true;const element=document.querySelector('#host'),slot={element,setVisible:v=>visible=v,isVisible:()=>visible,toggle:()=>visible=!visible,setBadge(){}};window.app=mountRemoteNode({version:1,slots:{ai:slot},registerCommand:()=>()=>{}});window.ready=true;
       </script></html>`});
-      assert(url.pathname.startsWith('/src/'));const path=resolve(root,'apps/web',url.pathname.slice(5));assert(path.startsWith(resolve(root,'apps/web')+sep));return route.fulfill({contentType:path.endsWith('.css')?'text/css':'text/javascript',body:await readFile(path)});
+      const moduleSource=url.pathname.startsWith('/modules/');assert(moduleSource||url.pathname.startsWith('/src/'));const sourceRoot=resolve(root,moduleSource?'modules':'apps/web'),path=resolve(sourceRoot,url.pathname.slice(moduleSource?9:5));assert(path.startsWith(sourceRoot+sep));return route.fulfill({contentType:path.endsWith('.css')?'text/css':'text/javascript',body:await readFile(path)});
     }
     assert.equal(url.origin,node);
     if(url.pathname==='/connect'){

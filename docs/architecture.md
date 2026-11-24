@@ -15,6 +15,9 @@ modules/
   workspace/                 immutable shared context store
   gateway_client/ic_gateway/ finite Python gateway client and tool schemas
 contracts/                   context types, module catalog and generated MCP schema
+submodules/
+  rnl/                       official upstream source at the vendored renderer pin
+  spiceowl/                  official upstream source at the integration lock pin
 tools/
   dev/                       offline builds and boundary checks
   workbench/                 installed gateway/compiler/runner/publisher
@@ -39,6 +42,10 @@ Schematic metadata normalization and the bounded netlist index are shared. The f
 `modules/workspace/context.js` is the source of public context state. `apps/web/context/workbench.js` adapts browser state to it. Each future host must supply explicit project/commit/file/selection/run identity; do not route multiple tasks through a global active project.
 
 The finite gateway client is independent of Codex/RPC and has no model startup side effect. Its tool definitions are the single source for the CLI, MCP and optional web AI bridge. `apps/codex/icwb/service.py` is a compatibility import, not another implementation.
+
+The two official upstream sources are Git submodules. The RNL gitlink equals `apps/web/vendor/rnl-viewer/provenance.json`'s commit; the SpiceOwl gitlink equals `contracts/spiceowl-integration.lock.json`'s commit. Offline structure and paired-contract checks inspect the Git index, so a shallow or nonrecursive CI checkout can verify the pins without fetching sources. An initialized checkout must be clean and at its pin. Source archives without Git metadata report that gitlinks cannot be verified. Upstream source trees are outside `workspace.json` asset roots and all application packages. Browser and Pages builds keep using the checked-in compiled RNL JavaScript/Wasm; they never build Rust.
+
+`tools/dev/setup_env.py` initializes the official submodules before preparing Python. The bootstrap can install SpiceOwl from a verified local source archive at the pinned commit, without asking pip to clone the same repository again or writing build files into its checkout. Its project-local receipt binds the source archive, Git identity, pip provenance and installed package files. If no local source is available, installation can use the exact remote commit. Existing verified environments remain reusable; uncertain or mismatched environments and modified submodules are preserved, never overwritten in place.
 
 The optional `apps/mcp/server.py` adapter uses the official MCP Python SDK and delegates tools/resources/reviews to those same implementations. `tools/dev/build.py mcp` packages it separately under `dist/ic-workbench-mcp` with the existing backend beneath it. SDK dependencies do not enter the legacy plugin runtime. See [Agent connections](agent-connections.md) for the distinction between the current web chat, portable MCP tools, and a future ACP chat adapter.
 
@@ -92,6 +99,8 @@ The public library extension uses `lib/catalog.json` and per-library manifests. 
 Normal `server.py` and `connect_browser.py` entrypoints initialize or reopen their own onboarding store; `--fresh-onboarding` is no longer required for ordinary use. The store's persistent connection ID is shared by its HTTP and MCP surfaces. `X-IC-Onboarding-Entry: native_agent` records provenance only; Origin, token, intake revision and execution checks still apply. The browser helper can proxy a specifically configured existing gateway while preserving its connection ID and finite request deadlines.
 
 The browser onboarding synchronizer reads only the explicitly selected intake, checks its source hash against the displayed entry, and refreshes the Simulation controller without discarding local parameter edits. An AI-created intake is adopted only from that tool's result followed by an exact HTTP readback. A web AI turn carries `ic.onboarding.context.v1`; the server verifies its connection, intake, revision and source before starting the model, and subsequent onboarding calls stay within that turn's intake. Native and web tool results can update reports and open independently verified saved waveforms; they do not establish a graphical probe mapping. Same-revision job observations are refreshed, and uncertain submissions retain their original identities.
+
+Simulation assistance uses the same web AI session. Shared panels emit `host.requestAgentAssistance({kind, prompt, context})`; the browser owns opening the AI slot and adding an editable prompt with a bounded snapshot of the selected intake or run. The current draft, attachments and session remain intact. This action does not send a message, create a model session, connect another MCP service or approve a request. Submission still passes through the existing app-server dynamic tools and onboarding synchronizer; the snapshot is context, not authority to bypass a current source/revision check.
 
 ## Codex window lifecycle
 

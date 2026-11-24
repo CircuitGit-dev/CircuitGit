@@ -57,6 +57,19 @@ class ContractCheckTests(unittest.TestCase):
     def check(self):
         return checker.check(self.external, root=self.local)
 
+    def test_declared_submodules_must_match_the_integration_lock(self):
+        (self.local / '.gitmodules').write_text('[submodule "spiceowl"]\n')
+        with patch.object(checker, 'inspect_upstreams', side_effect=checker.UpstreamError('gitlink differs from lock')) as inspect:
+            self.assert_error('upstream_pin_mismatch')
+        inspect.assert_called_once_with(self.local)
+
+    def test_submodule_observation_is_reported_without_initializing_sources(self):
+        (self.local / '.gitmodules').write_text('[submodule "spiceowl"]\n')
+        observation={'status':'missing','sources':{'spiceowl':{'gitlink_verified':True,'status':'missing'}}}
+        with patch.object(checker, 'inspect_upstreams', return_value=observation) as inspect:
+            self.assertEqual(self.check()['upstreams'], observation)
+        inspect.assert_called_once_with(self.local)
+
     def assert_error(self, code):
         with self.assertRaises(checker.ContractError) as error:
             self.check()

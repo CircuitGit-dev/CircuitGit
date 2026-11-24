@@ -7,6 +7,7 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 import sys
+from upstream_sources import UpstreamError, inspect_upstreams
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -236,13 +237,20 @@ def check(spiceowl_root, root=ROOT):
         require(isinstance(run, dict) and isinstance(run.get('properties'), dict)
                 and run['properties'].get('report') == {'$ref': '#/$defs/simulation_report'},
                 'embedded_report_drift', 'Runtime runs must reference the pinned embedded report definition.')
+    sources = None
+    if (root / '.git').exists() or (root / '.gitmodules').exists():
+        try:
+            sources = inspect_upstreams(root)
+        except UpstreamError as error:
+            raise ContractError('upstream_pin_mismatch', str(error)) from None
     return {'status': 'passed', 'schema': LOCK_SCHEMA, 'spiceowl_commit': head,
             'contract_sha256': actual, 'contract_version': contract['version'],
             'runtime_contract_version': runtime['version'] if runtime else None,
             'simulation_report_contract_version': report['version'] if report else None,
             'simulation_report_contract_sha256': report['sha256'] if report else None,
             'resource_selection_profile': lock['resource_selection_profile'], 'adapter': ADAPTER_PATH,
-            'onboarding_api_version': onboarding['version'] if onboarding is not None else None}
+            'onboarding_api_version': onboarding['version'] if onboarding is not None else None,
+            'upstreams': sources}
 
 
 def main(argv=None):

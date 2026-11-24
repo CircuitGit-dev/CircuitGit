@@ -2,6 +2,8 @@
 
 现有网页聊天走 `/api/ai/* → Codex app-server → dynamicTools → Service → IC gateway`。已有 Codex 插件走 stdio MCP，直接复用同一 Service。只读 Dockview 预览中的 AI 是明确标注的界面 fixture，没有模型连接。
 
+仿真面板中的环境/PDK、测试平台和诊断辅助入口复用这个 AI 对话。点击后展开 AI 面板，将当前 intake、修订、源码或运行身份随问题加入输入框；已有草稿和图片保留，由用户检查后发送。尚未连接或没有选中的会话时，问题会留待连接或选择会话，不自动启动第二个 Agent。返回的 `ic_*` 工具结果通过已有 onboarding synchronizer 更新同一个仿真页面。SpiceOwl 提供直接 Python SDK 供工作台调用，无需另配一个 SpiceOwl MCP 聊天通道；独立 Codex 插件和通用 MCP 工具入口仍保留各自用途。
+
 GitHub Pages 在线入口现已增加**单用户运行节点**连接：`在线网页 → HTTPS 节点 /api/ai/* → 同一 Codex app-server adapter → IC gateway`。用户填写节点 URL 和节点访问码并明确授权后，才读取工程及会话；没有自动本机探测或订阅 OAuth。节点可以运行在自己的服务器上，凭据留在节点，网页访问码仅驻留内存。该入口不开放开发者模式，保留电路人工审批。详见 [在线节点配置](remote-node.md)。
 
 默认用户入口现为 **连接本机 Codex**：固定本机助手弹窗确认 → 临时浏览器授权 → 官方 `account/read` 检查。地址/访问码已收进高级设置。尚未登录时可通过 `account/login/start(type=chatgpt)` 打开官方返回的登录页，等待对应 `loginId` 的完成回执；不读取认证文件、不替换已有模型服务、不将 OpenAI token 传给网页。首次需要运行本机助手；这与面向公众的纯网站 OAuth 是两个独立流程。

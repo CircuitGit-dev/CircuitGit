@@ -22,7 +22,7 @@ class StructureTests(unittest.TestCase):
         self.assertEqual(payload['backend/lib/ic_gateway/service.py'],
                          (ROOT/'modules/gateway_client/ic_gateway/service.py').read_bytes())
         for name in payload:
-            self.assertFalse(any(part in ('.venv','state','runs','projects','design','results') for part in Path(name).parts))
+            self.assertFalse(any(part in ('.venv','state','runs','projects','design','results','submodules','.git') for part in Path(name).parts))
             self.assertFalse(name.endswith('.local.json'))
 
     def test_shared_dependencies_and_contract_drift(self):
@@ -40,6 +40,8 @@ class StructureTests(unittest.TestCase):
         self.assertIn('modules/workspace/context.js',first)
         manifest=json.loads(first['asset-manifest.json'])
         for row in manifest['files']:self.assertEqual(build.sha(first[row['path']]),row['sha256'])
+        self.assertFalse(any(row['source'].startswith('submodules/') for row in manifest['files']))
+        self.assertFalse(any(name.startswith('submodules/') or name=='.gitmodules' for name in first))
 
     def test_build_refuses_unmanaged_destination_and_preserves_user_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -56,7 +58,7 @@ class StructureTests(unittest.TestCase):
                 self.assertEqual(run.returncode,0,run.stderr)
                 schema.append(json.loads(run.stdout))
             self.assertEqual(schema[0],schema[1]);self.assertEqual(schema[0],schema[2])
-            for private in ['projects','design','results','config','runs']:
+            for private in ['projects','design','results','config','runs','submodules','.git']:
                 self.assertFalse((folder/private).exists())
             conf=Path(tmp)/'client.json'
             conf.write_text(json.dumps({'gateway_url':'http://127.0.0.1:1','state_dir':str(Path(tmp)/'state')}))

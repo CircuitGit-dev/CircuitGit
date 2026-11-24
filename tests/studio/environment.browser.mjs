@@ -7,7 +7,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
-const files=[...(await readdir(resolve(root,'modules/simulation/environment'))).filter(file=>/\.(js|css)$/.test(file)).map(file=>'modules/simulation/environment/'+file),'modules/simulation/style.css','modules/simulation/report.js','modules/schematic/netlist.js','modules/schematic/instance-properties.js','tests/studio/environment.fixture.mjs'];
+const files=[...(await readdir(resolve(root,'modules/simulation/environment'))).filter(file=>/\.(js|css)$/.test(file)).map(file=>'modules/simulation/environment/'+file),'modules/simulation/style.css','modules/simulation/report.js','modules/simulation/agent-assistance.js','modules/schematic/netlist.js','modules/schematic/instance-properties.js','tests/studio/environment.fixture.mjs'];
 const assets=new Map(await Promise.all(files.map(async path=>['/'+path,await readFile(resolve(root,path),'utf8')])));
 const html=`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/modules/simulation/style.css"><style>body{margin:0}.ic-sim-panel{padding:10px;box-sizing:border-box;min-width:0}input,select,textarea{box-sizing:border-box}button{max-width:100%}</style><div class="ic-sim-panel"><div id="environment"></div></div><script type="module">
 import {mountEnvironmentWizard} from '/modules/simulation/environment/panel.js';

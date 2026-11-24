@@ -2,14 +2,18 @@
 import contextlib
 import io
 import json
+import hashlib
+import base64
 from pathlib import Path
 import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from urllib.parse import unquote,urlsplit
 
 import bootstrap_python as bootstrap
+from test_upstream_sources import UpstreamFixture
 
 
 class Runtime:
@@ -18,6 +22,7 @@ class Runtime:
         self.calls = []
         self.fail_install = False
         self.wrong_commit = False
+        self.git_root = None
 
     def add(self, python, version=(3, 11, 9), pin=None, global_python=False):
         python.parent.mkdir(parents=True, exist_ok=True)
@@ -39,6 +44,10 @@ class Runtime:
 
     def run(self, command, **kwargs):
         self.calls.append((command, kwargs))
+        if command[0]=='git':
+            assert self.git_root is not None and bootstrap.within(command[command.index('-C')+1],self.git_root)
+            assert not any(action in command for action in ('submodule','clone','fetch','push','checkout','reset'))
+            return subprocess.run(command,**kwargs)
         if '-c' in command:
             value = self.observations.get(command[0])
             return subprocess.CompletedProcess(command, 0 if value else 1,
@@ -50,11 +59,18 @@ class Runtime:
         elif operation == 'pip':
             if self.fail_install:
                 return subprocess.CompletedProcess(command, 1, '', 'Synthetic network unavailable')
-            assert command[-1].startswith(('spiceowl[adctools] @ git+', 'spiceowl[adctools,mcp] @ git+'))
-            repository, commit = command[-1].split(' @ git+', 1)[1].rsplit('@', 1)
             observation = self.observations[command[0]]
-            observation['dependency'] = self.dependency(Path(observation['prefix']), {
-                'repository': repository, 'commit': 'f' * 40 if self.wrong_commit else commit})
+            if ' @ file:' in command[-1]:
+                url=command[-1].split(' @ ',1)[1];path=Path(unquote(urlsplit(url).path))
+                pin=bootstrap.read_pin(self.git_root)
+                observation['dependency']=self.dependency(Path(observation['prefix']),pin)
+                observation['dependency']['direct_url']={'url':url,'archive_info':{'hashes':{'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}}}
+                observation['dependency']['record']={'verified':True,'record_sha256':'1'*64,'files_sha256':'2'*64,'file_count':12}
+            else:
+                assert command[-1].startswith(('spiceowl[adctools] @ git+', 'spiceowl[adctools,mcp] @ git+'))
+                repository, commit = command[-1].split(' @ git+', 1)[1].rsplit('@', 1)
+                observation['dependency'] = self.dependency(Path(observation['prefix']), {
+                    'repository': repository, 'commit': 'f' * 40 if self.wrong_commit else commit})
             if command[-1].startswith('spiceowl[adctools,mcp]'):
                 observation['dependency']['modules']['mcp'] = str(Path(observation['prefix'])/'lib/site-packages/mcp/__init__.py')
         else:
@@ -72,7 +88,7 @@ class BootstrapTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name).resolve() / 'project with spaces'
         (self.root / 'contracts').mkdir(parents=True)
-        self.pin = {'repository': 'https://example.test/spiceowl.git', 'commit': 'a' * 40}
+        self.pin = {'repository': 'https://github.com/spiceowl-dev/spiceowl.git', 'commit': 'a' * 40}
         self.write_pin()
         self.runtime = Runtime()
         self.base = self.runtime.add(self.root.parent / 'python311/bin/python3', global_python=True)
@@ -311,6 +327,108 @@ class BootstrapTests(unittest.TestCase):
                 patch.object(bootstrap.subprocess,'call') as launch, contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(bootstrap.run_entrypoint(self.root/'launch.py',lambda:self.fail('Application must not start'),argv=[],root=self.root),1)
             launch.assert_not_called()
+
+
+class LocalSourceBootstrapTests(UpstreamFixture):
+    def setUp(self):
+        super().setUp();self.runtime=Runtime();self.runtime.git_root=self.root
+        self.base=self.runtime.add(self.temp/'python311/bin/python',global_python=True)
+        self.pin=bootstrap.read_pin(self.root)
+
+    def ensure(self):
+        return bootstrap.ensure_python(self.root,run=self.runtime.run,candidates=[self.base],progress=lambda _:None)
+
+    def test_local_commit_archive_is_noneditable_pinned_and_reused_without_mutating_source(self):
+        python=self.ensure();environment=python.parent.parent
+        requirement=self.runtime.installs[0][-1]
+        self.assertEqual(requirement,'spiceowl[adctools] @ '+(environment/'source/spiceowl.tar').as_uri())
+        self.assertNotIn('--force-reinstall',self.runtime.installs[0]);self.assertNotIn('--editable',self.runtime.installs[0])
+        receipt=json.loads((environment/'circuitgit-local-source.json').read_text())
+        self.assertEqual(receipt['archive']['source']['gitlink_commit'],self.pin['commit'])
+        self.assertTrue(bootstrap.pinned(self.runtime.observations[str(python)],environment,self.pin))
+        self.assertEqual(self.ensure(),python);self.assertEqual(len(self.runtime.installs),1)
+        self.assertEqual(self.git(self.root/'submodules/spiceowl','status','--porcelain'),'')
+
+    def test_arbitrary_file_url_without_our_install_receipt_is_not_accepted(self):
+        python=self.runtime.add(self.root/'.venv/bin/python',pin=self.pin)
+        observation=self.runtime.observations[str(python)]
+        observation['dependency']['direct_url']={'url':(self.root/'submodules/spiceowl').as_uri(),'dir_info':{}}
+        self.assertFalse(bootstrap.pinned(observation,python.parent.parent,self.pin))
+        selected=self.ensure();self.assertNotEqual(selected,python)
+        self.assertEqual(observation['dependency']['direct_url']['url'],(self.root/'submodules/spiceowl').as_uri())
+
+    def test_receipt_archive_pep610_and_installed_record_must_all_match(self):
+        python=self.ensure();environment=python.parent.parent;observation=self.runtime.observations[str(python)]
+        path=environment/'circuitgit-local-source.json';raw=path.read_bytes();receipt=json.loads(raw)
+        mutations=[('repository',lambda r:r['archive']['source'].update(repository='https://example.invalid/other.git')),
+            ('commit',lambda r:r['archive']['source'].update(commit='f'*40)),
+            ('gitlink',lambda r:r['archive']['source'].update(gitlink_commit='f'*40)),
+            ('tree',lambda r:r['archive']['source'].update(tree='invalid')),
+            ('environment',lambda r:r.update(environment='/other/environment')),
+            ('record',lambda r:r['installed_record'].update(files_sha256='3'*64))]
+        for label,change in mutations:
+            changed=json.loads(raw);change(changed);path.write_text(json.dumps(changed))
+            with self.subTest(label=label):self.assertFalse(bootstrap.pinned(observation,environment,self.pin))
+        path.write_bytes(raw)
+        dependency=observation['dependency'];url=dependency['direct_url']
+        dependency['direct_url']={**url,'dir_info':{'editable':True}}
+        self.assertFalse(bootstrap.pinned(observation,environment,self.pin));dependency['direct_url']=url
+        archive=environment/'source/spiceowl.tar';archive.write_bytes(archive.read_bytes()+b'changed')
+        self.assertFalse(bootstrap.pinned(observation,environment,self.pin))
+        self.assertEqual(receipt['archive']['source']['commit'],self.pin['commit'])
+
+    def test_invalid_existing_environment_is_preserved_and_attempts_are_bounded(self):
+        python=self.ensure();environment=python.parent.parent
+        before=(environment/'circuitgit-environment.json').read_bytes()
+        (environment/'circuitgit-local-source.json').unlink()
+        self.runtime.fail_install=True
+        for _ in range(2):
+            with self.assertRaises(bootstrap.BootstrapError):self.ensure()
+        count=len(self.runtime.installs)
+        with self.assertRaisesRegex(bootstrap.BootstrapError,'三个'):self.ensure()
+        self.assertEqual(len(self.runtime.installs),count)
+        self.assertEqual((environment/'circuitgit-environment.json').read_bytes(),before)
+        self.assertEqual(len(list((self.root/'.local/python').glob('spiceowl-*'))),3)
+        environments=[command[-1] for command,_ in self.runtime.calls if '-m' in command and command[command.index('-m')+1]=='venv']
+        self.assertEqual(len(environments),len(set(environments)))
+
+    def test_dirty_source_stops_before_installing_or_creating_an_environment(self):
+        path=self.root/'submodules/spiceowl/README.md';path.write_text('Keep local edits\n')
+        with self.assertRaisesRegex(bootstrap.BootstrapError,'local changes'):self.ensure()
+        self.assertEqual(self.runtime.installs,[]);self.assertEqual(path.read_text(),'Keep local edits\n')
+        self.assertFalse(list((self.root/'.local/python').glob('spiceowl-*')))
+
+
+class InstalledRecordTests(unittest.TestCase):
+    @unittest.skipIf(bootstrap.sys.version_info[:2] < bootstrap.MIN_PYTHON,
+                     'The real isolated installation probe requires Python 3.11+')
+    def test_real_record_verifier_detects_changed_installed_file_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            prefix=Path(tmp).resolve();site=prefix/'lib/site-packages';site.mkdir(parents=True)
+            module=site/'spiceowl.py';module.write_bytes(b'original fixture module\n')
+            checksum=base64.urlsafe_b64encode(hashlib.sha256(module.read_bytes()).digest()).rstrip(b'=').decode()
+            record='spiceowl.py,sha256='+checksum+','+str(module.stat().st_size)+'\n'
+            record+='spiceowl.dist-info/RECORD,,\n'
+            info=site/'spiceowl.dist-info';info.mkdir();(info/'RECORD').write_text(record)
+            prelude='''import importlib.metadata,json,pathlib,sys
+root=pathlib.Path(sys.argv[1])
+class Dist:
+    def locate_file(self,name):return root/name
+    def read_text(self,name):
+        if name=='direct_url.json':return json.dumps({'url':'file:///synthetic/source.tar'})
+        return (root/'spiceowl.dist-info'/name).read_text()
+importlib.metadata.distribution=lambda name:Dist()
+importlib.metadata.version=lambda name:'0.9.3'
+sys.prefix=sys.argv[2];sys.base_prefix='/synthetic/base'
+sys.argv=['probe','[]']
+'''
+            def probe():
+                result=subprocess.run([bootstrap.sys.executable,'-I','-B','-c',prelude+bootstrap.PROBE_CODE,str(site),str(prefix)],capture_output=True,text=True,check=True)
+                return json.loads(result.stdout)
+            self.assertTrue(probe()['dependency']['record']['verified'])
+            module.write_bytes(b'tampered fixture module\n')
+            changed=probe();self.assertEqual(changed['dependency_error'],'ValueError')
+            self.assertNotIn('record',changed['dependency'])
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 .ic-ai-sessions {
   box-sizing: border-box;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
   min-width: 0;
@@ -42,7 +42,7 @@
 .ic-ai-session-tab[aria-selected=true] { border-color: var(--accent, #327a9c); box-shadow: inset 0 -2px var(--accent, #327a9c); background: var(--panel, #fff); }
 .ic-ai-session-badge { color: var(--warning, #856019); font-size: 11px; }
 .ic-ai-sessions-message { padding: 3px 10px; overflow-wrap: anywhere; color: var(--error, #a3392e); }
-.ic-ai-session-panels { grid-row: 3; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
+.ic-ai-session-panels { grid-row: 4; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
 .ic-ai-sessions-empty { margin: 0; padding: 36px 16px; color: var(--muted, #687c87); text-align: center; }
 .ic-ai-session-panel { box-sizing: border-box; height: 100%; min-height: 0; min-width: 0; overflow: hidden; }
 .ic-ai-session-panel[hidden] { display: none !important; }
@@ -99,3 +99,5 @@
   .ic-ai-manager-toolbar { flex-wrap: wrap; }
   .ic-ai-manager-toolbar input { flex-basis: 100%; }
 }
+
+.ic-ai-sessions > .ic-ai-assistance-pending { grid-row: 3; }

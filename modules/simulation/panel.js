@@ -29,9 +29,10 @@ export function mount(host) {
   let controller=null,disposed=false,page='environment',pageIdentity=null,parameterQuery='',identity=null,targetKind='voltage',targetPath='',targetTerminal='';
   const runtimeRoot=document.createElement('section');
   const environmentRoot=document.createElement('section');
-  const environment=mountEnvironmentWizard(environmentRoot,{adapter:host.onboarding,pendingStore:host.onboarding?.pendingStore,getSource:host.getOnboardingSource,onRun:host.onboarding?.onRun,openWaveforms:host.openOnboardingWaveforms,canOpenWaveforms:host.canOpenOnboardingWaveforms,notify:host.notify});
+  const requestAgentAssistance=typeof host.requestAgentAssistance==='function'?request=>host.requestAgentAssistance(request):null;
+  const environment=mountEnvironmentWizard(environmentRoot,{adapter:host.onboarding,pendingStore:host.onboarding?.pendingStore,getSource:host.getOnboardingSource,onRun:host.onboarding?.onRun,openWaveforms:host.openOnboardingWaveforms,canOpenWaveforms:host.canOpenOnboardingWaveforms,requestAgentAssistance,notify:host.notify});
   const unregisterEnvironment=host.onboardingSync?.register(environment.controller);
-  const runtime=mountRuntime(runtimeRoot,{host,actions:{submit:()=>controller.runDirect(),collect:run=>controller.collectDirect(run.run_id)},
+  const runtime=mountRuntime(runtimeRoot,{host,requestAgentAssistance,actions:{submit:()=>controller.runDirect(),collect:run=>controller.collectDirect(run.run_id)},
     actionPolicy:run=>({submit:typeof controller?.runDirect==='function'&&!!controller.state.descriptor&&!controller.state.busy&&!controller.receipts.busy&&!controller.state.contextBlocked&&!controller.state.suspended&&!controller.draftDirty()&&!controller.directSubmissionBlocked(),
       collect:typeof controller?.collectDirect==='function'&&!controller.state.busy&&!controller.receipts.busy&&!controller.state.contextBlocked&&!controller.state.suspended&&!!run&&controller.state.runs.some(row=>(row.run_id||row.job_id)===run.run_id&&row.source_commit===run.source_commit&&(row.associated_project_id||row.project_id)===controller.state.projectId)})});
   const opened=new Set(['analysis','parameters']);

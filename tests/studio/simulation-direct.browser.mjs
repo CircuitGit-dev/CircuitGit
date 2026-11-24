@@ -1,11 +1,11 @@
 // Browser reload regression with intercepted local fixtures; no gateway or SSH.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,readdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
-const files=['modules/simulation/panel.js','modules/simulation/model.js','modules/simulation/receipts.js','modules/simulation/supervision.js','modules/simulation/runtime.js','modules/simulation/report.js','modules/simulation/http.js','modules/simulation/style.css','modules/simulation/environment/model.js','modules/simulation/environment/submission.js','modules/simulation/environment/panel.js','modules/simulation/environment/style.css','modules/schematic/netlist.js','modules/schematic/instance-properties.js','tests/studio/simulation-panel.fixture.mjs','tests/studio/runtime.fixture.mjs'];
+const files=['modules/simulation/panel.js','modules/simulation/model.js','modules/simulation/receipts.js','modules/simulation/supervision.js','modules/simulation/runtime.js','modules/simulation/report.js','modules/simulation/agent-assistance.js','modules/simulation/http.js','modules/simulation/style.css',...(await readdir(root+'modules/simulation/environment')).filter(file=>/\.(js|css)$/.test(file)).map(file=>'modules/simulation/environment/'+file),'modules/schematic/netlist.js','modules/schematic/instance-properties.js','tests/studio/simulation-panel.fixture.mjs','tests/studio/runtime.fixture.mjs'];
 const assets=new Map(await Promise.all(files.map(async file=>['/'+file,await readFile(root+file,'utf8')])));
 const html=`<!doctype html><meta charset="utf-8"><div id="simulation"></div><script type="module">
 import {mount} from '/modules/simulation/panel.js';

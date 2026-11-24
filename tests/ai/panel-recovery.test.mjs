@@ -163,3 +163,11 @@ test('remount after explicit recovery retains only the latest receipt model and 
   f.remount();await tick();await tick();
   assert.equal(f.root.querySelector('select').value,'');assert.equal(f.calls.filter(c=>c.method==='POST').length,postCount);
 });
+
+test('assistance append is idempotent by request identity and never changes images or model settings',async t=>{
+  const f=fixture(t);await until(()=>!f.model.disabled);f.input.value='Existing text';f.model.value='sol';
+  const draft={request_id:'synthetic-assistance',kind:'testbench',text:'Explicit synthetic intake and revision'};
+  assert.equal(f.panel.appendDraft(draft).status,'prepared');const once=f.input.value;assert(once.startsWith('Existing text\n\n────────'));
+  assert.equal(f.panel.appendDraft(draft).status,'prepared');assert.equal(f.input.value,once);assert.equal(f.model.value,'sol');
+  assert.throws(()=>f.panel.appendDraft({...draft,text:'Different contents'}),/请求身份/);assert.equal(f.input.value,once);assert.equal(f.calls.filter(row=>row.method==='POST').length,0);
+});

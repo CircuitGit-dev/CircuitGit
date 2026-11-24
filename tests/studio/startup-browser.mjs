@@ -32,6 +32,12 @@ try{
   assert.deepEqual(await page.evaluate(()=>startupFrames),[]);
   report.checks.push('schematic completes without waiting for AI/waveforms; standalone RNL startup is never executed');
   releaseOptional();await page.locator('.cg-node-welcome').waitFor({state:'attached'});await page.locator('.wf-trace[data-trace="vout:1"]').waitFor();
+  await page.locator('.studio-panel-simulation [data-agent-assistance="environment"]').click();
+  await page.locator('.studio-panel-ai .ic-ai-assistance-pending:not([hidden])').waitFor();
+  assert.match(await page.locator('.studio-panel-ai .ic-ai-assistance-pending').innerText(),/尚未连接/);
+  assert.match(await page.locator('.studio-panel-ai .ic-ai-assistance-pending pre').textContent(),/ic\.simulation\.agent-assistance\.v1/);
+  assert.equal(await page.locator('.cg-remote').count(),1);
+  report.checks.push('built simulation assistance opens the existing offline AI panel with a retained draft and no connection request');
   await page.evaluate(()=>{for(const id of ['ai','simulation','waveforms'])ICStudioDock.api.getPanel(id).api.close();});
   await page.waitForTimeout(250);report.requests=[];
   await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.body.dataset.workbenchState==='ready');

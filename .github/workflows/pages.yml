@@ -26,7 +26,12 @@ jobs:
       - name: Check source boundaries, reference math and browser-node transport
         run: |
           python -B tools/dev/check_structure.py
-          node --test tests/demo/*.test.mjs tests/remote/*.test.mjs tests/ai/*.test.mjs tests/studio/lazy-slot.test.mjs tests/viewer-vendor.test.mjs
+          python -B tools/workbench/test_upstream_sources.py
+          python -B tools/workbench/test_bootstrap_python.py
+          python -B tools/workbench/test_check_spiceowl_contract.py
+          python -B tests/architecture/test_setup_env.py
+          python -B tests/architecture/test_links.py
+          node --test tests/demo/*.test.mjs tests/remote/*.test.mjs tests/ai/*.test.mjs tests/studio/lazy-slot.test.mjs tests/studio/agent-assistance.test.mjs tests/viewer-vendor.test.mjs
           python -B tests/remote/test_node.py
           python -B tests/remote/test_pairing.py
           python -B tests/remote/test_helper.py

@@ -56,7 +56,7 @@ macOS / Linux 下用一个命令准备项目 Python 环境、构建网页与插�
 python3 -B tools/dev/setup_env.py
 ```
 
-脚本按 `contracts/spiceowl-integration.lock.json` 安装固定 commit 的 SpiceOwl `[mcp,adctools]` 与 **ADCToolbox 0.9.3**，重复执行会复用匹配的项目环境。它不修改全局 Python、不重启已有服务，也不安装 Node、浏览器、Cadence 或 PDK。可先加 `--plan` 查看步骤。解释器选择、失败恢复和可选外链审计见[开发环境说明](docs/dev-environment.md)。
+脚本初始化并同步官方 `submodules/rnl` 和 `submodules/spiceowl`，按 `contracts/spiceowl-integration.lock.json` 安装固定 commit 的 SpiceOwl `[mcp,adctools]` 与 **ADCToolbox 0.9.3**。优先从已核验的本地 SpiceOwl 子模块导出源码包供 pip 安装，避免重复下载 Git 仓库；重复执行复用匹配的项目环境。浏览器继续使用已编译的 RNL JavaScript/Wasm，普通使用及 Pages 构建不需要 Rust。它不修改全局 Python、不重启已有服务，也不安装 Node、浏览器、Cadence 或 PDK。可先加 `--plan` 查看步骤。解释器选择、失败恢复和可选外链审计见[开发环境说明](docs/dev-environment.md)。
 
 单独检查仓库文档内链与迁移后的第一方文档 URL：
 

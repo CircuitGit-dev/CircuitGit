@@ -5,6 +5,8 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from build import assets,web_payload
+sys.path.insert(0,str(ROOT/'tools/workbench'))
+from upstream_sources import inspect_upstreams
 
 IMPORT=re.compile(r'''(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(['"])([^'"\n]+)\1''')
 def imports(text):
@@ -12,8 +14,13 @@ def imports(text):
     return IMPORT.finditer(re.sub(r'/\*[\s\S]*?\*/','',text))
 
 def check():
+    # Git index gitlinks remain available in a nonrecursive/shallow checkout.
+    # Inspection is offline and never initializes or rewrites upstream sources.
+    upstreams=inspect_upstreams(ROOT)
     mapping=assets();count=0
     for path in mapping:
+        if path.is_relative_to(ROOT/'submodules'):
+            raise ValueError('Upstream source cannot be packaged as an application asset: '+str(path))
         if path.suffix not in ('.js','.mjs'):continue
         for match in imports(path.read_text()):
             value=match[2]
@@ -39,5 +46,5 @@ def check():
     registry=json.loads((ROOT/'contracts/modules.v1.json').read_text())
     for module in registry['modules']:
         if not (ROOT/module['entry']).is_file():raise ValueError('Missing module entry: '+module['id'])
-    return {'status':'passed','source_imports':count,'public_assets':len(mapping),'module_entries':len(registry['modules'])}
+    return {'status':'passed','source_imports':count,'public_assets':len(mapping),'module_entries':len(registry['modules']),'upstreams':upstreams}
 if __name__=='__main__':print(json.dumps(check()))

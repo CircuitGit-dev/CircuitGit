@@ -72,6 +72,7 @@ apps/codex/     CLI, plugin, MCP tools/resources, optional web AI bridge
 apps/mcp/       optional official-SDK MCP transport
 modules/        shared schematic, simulation, waveform and workspace logic
 contracts/      public tool and context contracts
+submodules/     official RNL and SpiceOwl source at their exact integration pins
 tools/          local gateway, runners, exporters, builds and checks
 projects/       redistributable circuit examples (RC)
 lib/            indexed circuit libraries: cells, native views and provenance
@@ -90,7 +91,7 @@ On macOS or Linux, prepare the project Python environment, build the web/plugin 
 python3 -B tools/dev/setup_env.py
 ```
 
-Setup installs the exact SpiceOwl commit in `contracts/spiceowl-integration.lock.json` with its `mcp,adctools` extras and **ADCToolbox 0.9.3**. Matching project environments are reused; global Python packages and active services are unchanged. Node, browsers, Cadence and PDKs are not installed. Use `--plan` to inspect the steps without running them. See the [developer environment guide](docs/dev-environment.md) for interpreter selection, recovery and optional external-link audits.
+Setup synchronizes the official RNL and SpiceOwl submodules, then installs the exact SpiceOwl commit in `contracts/spiceowl-integration.lock.json` with its `mcp,adctools` extras and **ADCToolbox 0.9.3**. A verified local SpiceOwl source archive avoids a second Git download by pip. Matching project environments are reused; global Python packages and active services are unchanged. Browser and Pages builds use the checked-in RNL JavaScript/Wasm and do not require Rust or initialized submodules. Node, browsers, Cadence and PDKs are not installed. Use `--plan` to inspect the steps without running them. See the [developer environment guide](docs/dev-environment.md) for interpreter selection, recovery and optional external-link audits.
 
 After setup, individual checks remain available:
 

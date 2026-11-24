@@ -12,14 +12,33 @@ One command prepares the Python dependencies, builds the browser and Codex packa
 
 ## What setup does / 执行步骤
 
-1. Reads the exact repository and commit from [the SpiceOwl integration lock](../contracts/spiceowl-integration.lock.json).
-2. Reuses an isolated project Python only after checking its version, package origin, installed commit, module locations and ADCToolbox version. Otherwise it creates an owned environment under `.local/python/` and installs `spiceowl[adctools,mcp]` from the lock plus `adctoolbox==0.9.3`.
+1. Reads the exact repository and commit from [the SpiceOwl integration lock](../contracts/spiceowl-integration.lock.json), and RNL's commit from `apps/web/vendor/rnl-viewer/provenance.json`. In a Git clone, verifies `.gitmodules` and the index gitlinks, synchronizes the official URLs and initializes missing submodules.
+2. Reuses an isolated project Python only after checking its version, package origin, installed commit, module locations and ADCToolbox version. Otherwise it creates an owned environment under `.local/python/` and installs `spiceowl[adctools,mcp]` from the lock plus `adctoolbox==0.9.3`. A clean local `submodules/spiceowl` at its exact pin is exported as a Git source archive for pip, avoiding another Git download and keeping upstream sources free of build artifacts. The install receipt binds that archive's hash and Git identity to pip's provenance and installed package files. When local source is unavailable, the exact remote commit remains the fallback.
 3. Runs `pip check`, `tools/dev/build.py all`, `tools/dev/build_pages.py`, `tools/dev/check_structure.py` and the offline `tools/dev/check_links.py`.
 4. Verifies the generated entrypoints and build markers in `web/`, `dist/ic-workbench/` and `site/`, then writes `.local/developer-setup.json` with the selected interpreter, pin and successful checks.
 
 The installer reuses the existing [Python bootstrap](../tools/workbench/bootstrap_python.py). A compatible `.venv` may be reused, but setup never upgrades an unrelated existing environment. A changed pin or missing extra gets its own managed environment; previous environments and active processes remain intact. The launcher can reuse the verified developer environment afterward. Packages are not installed globally and shell configuration is not changed.
 
 安装逻辑复用现有启动器：检查通过的项目环境直接复用；锁定版本变化或缺少额外依赖时创建新的独立环境，不在旧环境里原地升级。依赖失败时停止后续构建，保留已有环境及上一次成功回执。SpiceOwl commit 与 ADCToolbox 版本固定；其他依赖按该 commit 声明的约束安装，因此不同平台的完整 wheel 集合不保证逐字节相同。
+
+## Upstream source pins / 上游源码
+
+`submodules/rnl` points to the official `rich-netlist/rnl` repository; `submodules/spiceowl` points to `spiceowl-dev/spiceowl`. Their gitlinks are reviewed with the corresponding provenance/lock changes. RNL's existing compiled vendor JavaScript and Wasm remain the application assets: normal users, offline builds and GitHub Pages do not need Rust, and source submodules are never copied into web/plugin packages.
+
+Existing checkouts with local changes or a different HEAD stop setup with a concrete error; setup does not force-checkout or discard those changes. After preserving any intentional upstream work, the developer can explicitly align the checked-out sources:
+
+```bash
+git submodule sync -- submodules/rnl submodules/spiceowl
+git submodule update --init -- submodules/rnl submodules/spiceowl
+```
+
+`check_structure.py` validates gitlinks without downloading submodules. The paired contract check additionally compares upstream contracts at the same SpiceOwl commit:
+
+```bash
+python3 -B tools/workbench/check_spiceowl_contract.py --spiceowl-root submodules/spiceowl
+```
+
+A downloaded source archive has no Git index; it reports gitlink verification as unavailable and the Python bootstrap can still install the locked remote SpiceOwl commit. It must not be reported as a verified recursive checkout. Use a Git clone for the complete developer setup, whose Pages build also exports the repository's circuit history.
 
 ## Inspect or choose Python / 查看计划与选择解释器
 
