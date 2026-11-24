@@ -4,9 +4,23 @@
 
 **AI 原生电路设计，让每一次电路修改都能在 GitHub 上追踪。**
 
-**[打开网页工作台 ↗](https://circuitgit-dev.github.io/CircuitGit/)** · [真实电路全流程](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html) · [连接 Codex 节点](docs/remote-node.md) · [安装与连接](docs/getting-started.md) · [English](README.md)
+**[查看产品展示](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html)** · [打开网页工作台](https://circuitgit-dev.github.io/CircuitGit/) · [连接 Codex 节点](docs/remote-node.md) · [安装与连接](docs/getting-started.md) · [English](README.md)
 
-CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管理放进同一个工作台。界面在 Rich Netlist Viewer 上扩展，通过 Dockview 将原理图、仿真、波形、AI 和版本管理窗口自由排列、浮动和关闭。
+CircuitGit 是面向本地电路设计与 Git 电路版本管理的 AI-native 环境。Agent 直接读写本地 checkout 中的电路源，RNL 呈现原理图，Git 保存可审阅的设计变化。日常源编辑和看图不依赖在线 Virtuoso 会话；需要远端仿真时，由 SpiceOwl 工具协助准备环境、监督运行和分析结果。
+
+## 产品展示
+
+**[打开 CircuitGit 展示页：本地 AI 设计与 Git 电路管理](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html)**
+
+- 用架构图看清电路库、RNL、Agent、Git、测试平台 CI 和 SpiceOwl 六个部分如何协作。
+- 查看真实的“反相器增加一级成为缓冲器”拓扑修改、原生 RNL 渲染，以及保存、提交和恢复记录。
+- 对比 Virtuoso Bridge 与本地设计流程，了解 Agent 配置，以及如何通过网页开发者模式开发 CircuitGit 自身。
+
+展示页结合框图、电路与已有仿真结果，说明工作台的优势和底层工程投入。Bridge 对比展示工作流程，没有声称测量过两者耗时。
+
+**相关项目：** [SpiceOwl · 面向工程师与 Agent 的独立仿真管理工具](https://spiceowl-dev.github.io/spiceowl/workflow.html)。通过自己的控制台、CLI 和 SDK 管理服务器资源、PDK、任务监督与结果诊断，也可将其工具集成到 CircuitGit。
+
+## 仿真集成
 
 可选的 [SpiceOwl 仿真运行服务](docs/standalone-simulation-runtime.md) 会检查已注册服务器的资源，通过同一个 Runner 执行独立 Spectre、监控断线并从原生结果解析受支持的波形。CLI、本地网页和 Agent 使用操作员明确配置的权限；需安装配套固定版本，公开静态演示页本身不会执行远端仿真。
 
@@ -28,7 +42,7 @@ CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管
 
 **示例波形是浏览器计算的 RC 解析参考，不是 Spectre 运行结果。** 打开网页不会自动探测本机、启动模型或提交仿真。
 
-[交互流程指南](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html) 以真实 Bootstrap 采样开关实验和 CMOS 反相器串起十个阶段，列出公开源码摘录、工具与数据契约、人工操作及能力边界。Bootstrap 实验目前等待人工审阅，运行与分析阶段明确标为计划，不展示虚构波形或性能结果。
+[产品展示页](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html) 还包含独立 Bootstrap 与反相器运行所保存的原生 Spectre 波形及独立复算指标。先前的十阶段接入快照作为历史参考保留；这些后续运行不代表原快照的待审请求已经完成。
 
 从 **电路库** 打开 `lib → cell → view` 管理器，可以浏览已迁移的 ADC 电路、原始连线和元件布局，以及各自的说明文档。切换到 ADC 时会清除 RC 示例波形；缺少模型或仿真输入的快照会明确说明，不能直接当作可运行工程。[电路库使用与目录规范](docs/circuit-libraries.md) · [库清单](lib/README.md)
 

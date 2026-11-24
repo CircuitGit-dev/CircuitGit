@@ -2,9 +2,23 @@
 
 <h1 align="center">CircuitGit</h1>
 <p align="center"><strong>AI-native circuit design, versioned on GitHub.</strong></p>
-<p align="center"><a href="https://circuitgit-dev.github.io/CircuitGit/"><strong>Open workbench ↗</strong></a> · <a href="https://circuitgit-dev.github.io/CircuitGit/workflow/index.html">Real-circuit walkthrough</a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
+<p align="center"><a href="https://circuitgit-dev.github.io/CircuitGit/workflow/index.html"><strong>Explore the product showcase</strong></a> · <a href="https://circuitgit-dev.github.io/CircuitGit/">Open workbench</a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
 
-CircuitGit brings schematics, text netlists, simulation configurations, waveforms, and circuit revision history into one workbench. AI agents can use the same engineering tools through MCP; Git records reviewable source and configuration changes.
+CircuitGit is an AI-native environment for local circuit design and Git-based circuit versioning. Agents read and edit circuit source directly in a local checkout, RNL renders the schematic, and Git records reviewable design changes. Everyday source editing and schematic viewing do not require an online Virtuoso session; SpiceOwl provides tools for remote simulation preparation, supervision and analysis.
+
+## Product showcase
+
+**[Explore CircuitGit: local AI design and Git circuit management](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html)**
+
+- Explore the six-part architecture connecting libraries, RNL, Agent, Git, testbench CI and SpiceOwl.
+- Inspect a real inverter-to-buffer topology edit, native RNL rendering, and recorded Git save, commit and restore operations.
+- Compare the local design workflow with Virtuoso Bridge, configure an Agent, and see how developer mode lets the web chat develop CircuitGit itself.
+
+The guide uses diagrams, circuits and saved simulation results to explain the benefits and engineering behind the workbench. The Bridge comparison describes workflows; it is not a timed benchmark.
+
+**Related project:** [SpiceOwl — independent simulation management for engineers and Agents](https://spiceowl-dev.github.io/spiceowl/workflow.html). Use its own console, CLI and SDK for server capacity, PDK setup, run supervision and result diagnosis, or integrate its tools into CircuitGit.
+
+## Simulation integration
 
 The optional [SpiceOwl simulation runtime](docs/standalone-simulation-runtime.md) selects an eligible registered server, runs standalone Spectre through the existing Runner, monitors disconnections, and derives supported waveforms from collected native results. CLI, local web and native-agent operations share an explicit operator grant. Install the paired pinned packages to use this path; the public static demo does not execute remote simulations.
 
@@ -22,7 +36,7 @@ The GitHub Pages demo runs entirely in your browser. Drag panel tabs, float and 
 
 The demo waveforms are explicitly labeled **analytical RC references**, calculated in the browser. Opening the website does not contact your local machine or start an AI model or Spectre job.
 
-The [interactive workflow guide](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html) follows a real Bootstrap sampling-switch experiment and a CMOS inverter across ten stages. It includes reviewed public source excerpts, tool and data contracts, human actions and capability boundaries. The Bootstrap experiment is awaiting human review; its execution and analysis stages are labeled as planned, with no fabricated waveforms or performance results.
+The [product showcase](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html) also includes saved native Spectre waveforms and independently recomputed metrics from separate Bootstrap and inverter runs. The earlier ten-stage onboarding snapshot remains available as a historical reference; those later runs do not complete its pending review.
 
 Open **Libraries / 电路库** to browse library → cell → view. The published ADC snapshots preserve the exported Virtuoso component positions, wires and symbols. Their documentation identifies missing device models and replay inputs; browsing a snapshot does not register it as a runnable project. Selecting an ADC view clears the RC reference waveforms. See the [circuit library guide](docs/circuit-libraries.md) and [library catalog](lib/README.md).
 
