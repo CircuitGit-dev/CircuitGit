@@ -54,11 +54,19 @@ def next_actions(state):
                        description='Observe the original job and collect its terminal results. This does not submit another job.')]
     agent_mode = state.get('mode') == 'agent-tb'
     draft = state.get('agent_tb') or {}
+    discovery = state.get('discovery') or {}
+    binding_gaps=[];binding_probes=set()
+    for lut in discovery.get('lut',[]):
+        from onboarding_discovery import pending_library_binding
+        binding=pending_library_binding(lut)
+        if binding is not None:
+            binding_probes.add(lut['probe_id'])
+            binding_gaps.extend({**gap,'probe_id':lut['probe_id']} for gap in binding['missing'])
     if agent_mode and not draft:
         return [action('source', identity, reason='exact_source_required', description='Read the literal DUT and every supplied support source before authoring its testbench.'),
                 action('agent-tb/draft', current, ready=False,
                        missing=[missing('testbench', 'agent_authored_testbench_required',
-                           'Discuss objectives and criteria with the user, then provide the complete authored testbench manifest.')],
+                           'Discuss objectives and criteria with the user, then provide the complete authored testbench manifest.'),*binding_gaps],
                        reason='agent_testbench_draft_required',
                        description='Author the testbench, port bindings, stimuli, analyses and acceptance criteria for this exact circuit. No inverter topology or scientific intent is inferred.'),
                 action('ssh-hosts', {}, reason='ssh_alias_inventory_needed',
@@ -87,10 +95,13 @@ def next_actions(state):
                            description='Recover the existing job by its original plan identity.')]
         return [action('run', {**current, 'plan_id': prepared['plan_id']}, reason='frozen_plan_ready',
                        description='Submit this exact frozen plan once after checking resources in the selected host range.')]
-    discovery = state.get('discovery')
     if agent_mode and discovery:
         selection = draft.get('selection') or {}
-        gaps = list(state.get('missing') or [])
+        selected=next((row for row in discovery.get('candidates',[])
+                       if row['candidate_id']==selection.get('candidate_id')),None)
+        pending=binding_gaps if selected is None else [gap for gap in binding_gaps
+            if gap['probe_id']==selected['probe_id']]
+        gaps = list(state.get('missing') or [])+pending
         if not selection:
             gaps.append(missing('selection','explicit_pdk_selection_required','Choose the observed PDK entry, sections and host range, then save the complete draft again.'))
             return [action('agent-tb/draft', current, ready=False, missing=gaps,
@@ -116,6 +127,14 @@ def next_actions(state):
                            missing=discovery.get('recommendation_missing') or [missing('candidate_id', 'entry_choice_needed',
                                'Select one ranked entry; its remaining supported fields can be prefilled.')],
                            reason='model_entry_choice_needed', description='Choose an observed ranked model entry before preparing.')]
+        if binding_gaps:
+            gaps=binding_gaps+[gap for gap in discovery.get('missing',[])
+                if gap.get('probe_id') not in binding_probes]
+            return [action('session', identity, reason='cached_library_binding_pending',
+                           description='The library index is available. Inspect its cached binding gaps; no new discovery is needed for this index.'),
+                    action('prepare', current, ready=False, missing=gaps,
+                           reason='cached_library_binding_pending',
+                           description='Resolve the explicit cached entry and section combination and its dependency audit before preparation.')]
         directories = [row for row in discovery.get('search_directories', [])
                        if row.get('automatic_search_allowed') is True]
         if directories:

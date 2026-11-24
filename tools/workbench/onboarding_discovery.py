@@ -1,4 +1,5 @@
 """Bounded discovery transport and presentation, using only new probe evidence."""
+import copy
 import hashlib
 import json
 from pathlib import PurePosixPath
@@ -123,12 +124,44 @@ def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cd
     return result
 
 
+def pending_library_binding(lut):
+    """A saved inventory can need binding work without needing another scan."""
+    if not isinstance(lut,dict):return None
+    current=lut.get('projection') or lut
+    if (not isinstance(current,dict) or current.get('status')!='partial'
+            or current.get('scan_required') is not False
+            or not isinstance(current.get('library_id'),str)
+            or not re.fullmatch('[a-f0-9]{64}',current['library_id'])):
+        return None
+    gaps=[]
+    for item in [*current.get('missing',[]),*(current.get('combination') or {}).get('missing',[])]:
+        gap={key:copy.deepcopy(item[key]) for key in ('field','code','message','model_names') if key in item}
+        gap.setdefault('field','selection')
+        if gap not in gaps:gaps.append(gap)
+    if not gaps:
+        gaps=[{'field':'selection','code':'cached_library_binding_incomplete',
+               'message':'The library index is available; resolve its cached entry and section binding before preparation.'}]
+    observed=current.get('coverage') or {}
+    coverage={key:copy.deepcopy(observed[key]) for key in ('search_complete','results_omitted',
+        'unknown_count','candidate_count','complete_within_policy','whole_pdk_qualified',
+        'file_count','model_count','indexed_model_count') if key in observed}
+    # Absence is unknown, not proof that the whole library was covered.
+    coverage.setdefault('search_complete',None)
+    coverage.update(status='partial',phase='library_binding_pending',library_id=current['library_id'])
+    return {'coverage':coverage,'missing':gaps}
+
+
 def public_discovery(rows,discovery_id):
     """Only public candidate metadata; full dependency paths stay backend-side."""
     candidates=[];missing=[];ambiguities=[];coverage=[];directories=[]
     for row in rows:
         probe_id=row['probe_id'];data=row.get('result')
         if data is None:
+            binding=pending_library_binding(row.get('lut'))
+            if binding is not None:
+                missing.extend({**gap,'probe_id':probe_id} for gap in binding['missing'])
+                coverage.append({'probe_id':probe_id,**binding['coverage']})
+                continue
             missing.append({'field':'discovery','probe_id':probe_id,'code':row['error_code'],
                 'message':'No complete discovery observation; check the host or narrow the search directory.'})
             coverage.append({'probe_id':probe_id,'search_complete':False,'status':'unavailable'});continue
@@ -170,7 +203,11 @@ def public_discovery(rows,discovery_id):
             'results_omitted':data.get('results_omitted',False),'summary':data.get('summary'),
             'phase':data.get('phase'),'transport':data.get('transport'),
             'unknown_codes':list(dict.fromkeys(r['code'] for r in data.get('unknown',[])))})
-    if not candidates:missing.append({'field':'search_paths','code':'discovery_results_omitted' if any(r.get('results_omitted') for r in coverage) else 'no_model_candidates',
-        'message':'Select a narrower PDK directory or provide an optional cds.lib hint.'})
+    if not candidates:
+        for row in coverage:
+            if row.get('phase')=='library_binding_pending':continue
+            missing.append({'field':'search_paths','probe_id':row['probe_id'],
+                'code':'discovery_results_omitted' if row.get('results_omitted') else 'no_model_candidates',
+                'message':'Select a narrower PDK directory or provide an optional cds.lib hint for this probe.'})
     return {'discovery_id':discovery_id,'candidates':candidates,'ambiguities':ambiguities,
         'missing':missing,'coverage':coverage,'search_directories':directories,'selection_made':False,'simulation_started':False}
