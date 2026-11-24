@@ -4,7 +4,7 @@
 
 **AI 原生电路设计，让每一次电路修改都能在 GitHub 上追踪。**
 
-**[打开网页工作台 ↗](https://circuitgit-dev.github.io/CircuitGit/)** · [连接 Codex 节点](docs/remote-node.md) · [安装与连接](docs/getting-started.md) · [English](README.md)
+**[打开网页工作台 ↗](https://circuitgit-dev.github.io/CircuitGit/)** · [真实电路全流程](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html) · [连接 Codex 节点](docs/remote-node.md) · [安装与连接](docs/getting-started.md) · [English](README.md)
 
 CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管理放进同一个工作台。界面在 Rich Netlist Viewer 上扩展，通过 Dockview 将原理图、仿真、波形、AI 和版本管理窗口自由排列、浮动和关闭。
 
@@ -12,7 +12,7 @@ CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管
 
 [确定性实验流程](docs/deterministic-experiments.md) 提供已注册的 prepare → run → inspect 配方：运行前固定源码、条件与模型依赖，之后在已有报告视图中分别查看五个证据维度。文档附有默认禁用、只含虚构数据的操作员配置示例。
 
-[Agent 编写测试台](docs/agent-testbenches.md) 支持通用 DUT/TB 导入、运行前完整人工审阅、按服务器绑定的 PDK 缓存，以及已保存数据的 FFT/ADC 分析。审阅后的测试台按 `lib/<library>/<cell>/testbenches/` 版本化，并绑定同一电路与运行记录进行 CI 分析。后端显式选择 SpiceOwl 或固定版本 ADCToolbox；目前自动数据解析支持单个标量瞬态数据集。
+[Agent 编写测试台](docs/agent-testbenches.md) 支持通用 DUT/TB 导入、运行前完整人工审阅、按服务器绑定的 PDK 缓存，以及已保存数据的 FFT/ADC 分析。审阅后的测试台按 `lib/<library>/<cell>/testbenches/` 版本化，并绑定同一电路与运行记录进行 CI 分析。自动实验验收使用单个标量瞬态导出；单独选择原生 AC 或非扫描 DC 数据集，还可分析 Bode 曲线和工作点，但不会自动启用 AC/DC CI 验收。
 
 - **电路作为代码管理**：按 `lib / cell` 查看源码差异与历史；保存前后检查点、提交、创建或更新 PR、选择 TB CI，并将历史版本恢复为新修改。详见[电路版本流程](docs/circuit-libraries.md#cell-version-workflow)。
 - **保留原理图布局**：导入包含位置、方向和走线的几何数据，避免只靠网表自动排版。
@@ -27,6 +27,8 @@ CircuitGit 把原理图、文本网表、仿真配置、波形和电路版本管
 打开 [GitHub Pages 演示](https://circuitgit-dev.github.io/CircuitGit/) 后，可拖动窗口、查看固定布局的 RC 原理图，在 Plot 菜单选择探针，再点击节点或 R0；波形支持滚轮缩放、拖动平移和游标。仿真面板可调整参数并导出网表与 JSON 配置。
 
 **示例波形是浏览器计算的 RC 解析参考，不是 Spectre 运行结果。** 打开网页不会自动探测本机、启动模型或提交仿真。
+
+[交互流程指南](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html) 以真实 Bootstrap 采样开关实验和 CMOS 反相器串起十个阶段，列出公开源码摘录、工具与数据契约、人工操作及能力边界。Bootstrap 实验目前等待人工审阅，运行与分析阶段明确标为计划，不展示虚构波形或性能结果。
 
 从 **电路库** 打开 `lib → cell → view` 管理器，可以浏览已迁移的 ADC 电路、原始连线和元件布局，以及各自的说明文档。切换到 ADC 时会清除 RC 示例波形；缺少模型或仿真输入的快照会明确说明，不能直接当作可运行工程。[电路库使用与目录规范](docs/circuit-libraries.md) · [库清单](lib/README.md)
 

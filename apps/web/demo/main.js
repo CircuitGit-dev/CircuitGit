@@ -1,6 +1,7 @@
 import {createAgentAssistance} from '../ai/assistance.js';
 import {createLayout} from '../studio/layout.js';
 import {whenVisible} from '../studio/lazy-slot.js';
+import {mountWorkflowLink} from '../studio/workflow-link.js';
 import {openSource,showBuilt,adoptSource,isLoading} from '../vendor/rnl-viewer/open.js';
 import {doc,current,selected} from '../vendor/rnl-viewer/state.js';
 import {dirtyPaths,unappliedPaths,resetBuffers,hasBuffer,fileText} from '../vendor/rnl-viewer/edits.js';
@@ -78,6 +79,8 @@ export async function mountStudio({ui:providedUI}={}) {
   const host={version:1,agentAssistance,requestAgentAssistance:request=>agentAssistance.request(request),slots:ui.slots,context:contextAdapter,notify:ui.notify,registerCommand:register,
     getRuns:()=>referenceActive()?jobs:[],refresh:async()=>{},selectRun:async id=>{requireReference(id);context.run={runId:id};emit();},
     plot:{attach(controller){plotController=controller;controller.setPlotMode(mode);return()=>controller.destroy();}}};
+  const workflowLink=mountWorkflowLink(host);
+  window.addEventListener('pagehide',()=>workflowLink.destroy(),{once:true});
   host.libraryBridge=createLibraryBridge();
   host.onboarding=createOnboardingBridge({win:window});
   host.getOnboardingSource=()=>snapshotOnboardingSource(doc,{hasBuffer,fileText});

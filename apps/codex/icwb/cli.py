@@ -48,7 +48,7 @@ def main(argv=None):
     try:
         if a.command == 'schema':
             config = load_config(a.config) if a.config else {}
-            emit({'tools': tools() + library_tools(config)}, a.json, 'schema'); return 0
+            emit({'tools': tools(config if a.config else None) + library_tools(config)}, a.json, 'schema'); return 0
         service = Service(load_config(a.config))
         if a.command in ('library-read', 'library-execute'):
             raw = Path(a.arguments).read_bytes()

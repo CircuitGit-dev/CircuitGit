@@ -63,6 +63,7 @@ def codex_payload():
     for name in ('server.py','runner.py','spiceowl_pool.py','simulation_runtime.py','simulation_derivation.py','experiment_workflow.py','onboarding_runtime.py','onboarding_discovery.py','onboarding_pdk_scope.py','onboarding_prepare.py','onboarding_recipe.py','onboarding_waveforms.py','onboarding_guidance.py','onboarding_recommendations.py','onboarding_testbench.py','onboarding_review.py','agent_testbench_manifest.py','onboarding_lut.py','onboarding_veriloga.py','onboarding_analysis.py','simulation_monitor.py','workspace.py','configuration.py','publisher.py','geometry.py','waveforms.py','supervision.py','ic_sim.py','library_workflow.py','local_inputs.py','library_sources.py'):
         payload['gateway/'+name]=(ROOT/'tools/workbench'/name).read_bytes()
     payload['gateway/testbench_bundle.py']=(ROOT/'tools/ci/testbench_bundle.py').read_bytes()
+    payload['gateway/spiceowl_readonly.py']=(ROOT/'tools/workbench/spiceowl_readonly.py').read_bytes()
     payload['library-testbenches.json']=(ROOT/'config/library-testbenches.json').read_bytes()
     payload['gateway-web/index.html']=b'<!doctype html><meta charset="utf-8"><title>IC Workbench</title><p>IC Workbench gateway is running. Open the schematic, waveform or simulation window in Codex.</p>'
     return payload

@@ -12,6 +12,7 @@ from waveforms import WaveformService, WaveformError, dispatch as waveform_dispa
 from geometry import Geometry,InvalidGeometry
 from supervision import Supervision, execution_target
 from simulation_runtime import SimulationRuntime
+from spiceowl_readonly import SpiceReadAdapter,SpiceReadError
 
 def default_onboarding_configuration(cfg):
     """Add a separate intake store at public entrypoints, never to child runtimes."""
@@ -37,6 +38,7 @@ def onboarding_entry_origin(headers):
 
 class Application:
     def __init__(self,cfg,web_root):
+        self.spiceowl_reads=SpiceReadAdapter(cfg.get('spiceowl_readonly'))
         self.cfg=cfg;self.web=Path(web_root).resolve();runtime=Path(cfg['runtime_root']).resolve();runtime.mkdir(parents=True,exist_ok=True)
         keyfile=runtime/'signing.key'
         if not keyfile.exists():keyfile.write_bytes(secrets.token_bytes(32));os.chmod(keyfile,0o600)
@@ -65,6 +67,7 @@ class Application:
             from icwb.host import AiRoutes
             from icwb.service import Service,load_config
             client_config=load_config(cfg['ai_client_config'])
+            client_config={**client_config,'spiceowl_readonly':{'enabled':self.spiceowl_reads.enabled}}
             if self.onboarding.enabled:
                 client_config={**client_config,'onboarding_review_authority_key_file':str(self.onboarding.review_authority_key_file)}
             self.ai=AiRoutes(Service(client_config))
@@ -145,6 +148,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers();self.wfile.write(raw)
     def response(self,data,status=200):self.send(status,{'ok':True,'data':data})
     def error(self,e):
+        if isinstance(e,SpiceReadError):
+            return self.send(e.status,{'ok':False,'error':{'code':e.code,'message':str(e),'details':{}}})
         if isinstance(e,VersionControlError):
             return self.send(e.status,{'ok':False,'error':{'code':e.code,'message':str(e),'details':{}}})
         if isinstance(e,WaveformError):
@@ -183,7 +188,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response({'api_version':'1','mode':'live','mutation_token':self.app.token,
                     'connection_id':getattr(onboarding,'connection_id',None),
                     'ai_activity':{'running_summaries':self.app.ai.commit_summary_activity()['running_count'] if self.app.ai else 0},
-                    'capabilities':{'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'simulation_onboarding_native_entry':onboarding_enabled,'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
+                    'capabilities':{'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'spiceowl_readonly':getattr(getattr(self.app,'spiceowl_reads',None),'enabled',False),'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'simulation_onboarding_native_entry':onboarding_enabled,'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
+            if path.startswith('/api/spiceowl/read/'):
+                if len(u.query)>1024:raise ValueError('SpiceOwl read query exceeds its bound')
+                query=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=2) if u.query else {}
+                if any(len(values)!=1 for values in query.values()):raise ValueError('SpiceOwl read fields must be unique')
+                return self.response(self.app.spiceowl_reads.read(path[len('/api/spiceowl/read/'):],{key:values[0] for key,values in query.items()}))
             if path.startswith('/api/simulation/onboarding/'):
                 if len(u.query)>4096:raise ValueError('Onboarding query exceeds its bound')
                 qs=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=8) if u.query else {}
@@ -194,6 +204,11 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/simulation/runtime':
                 if set(qs)!={'project_id'} or len(qs['project_id'])!=1:raise ValueError('One explicit project_id is required')
                 return self.response(self.app.simulation.snapshot(get('project_id'),self.app.simulation.caller(self.headers,'GET',self.path)))
+            if path=='/api/simulation/saved-run':
+                query=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=2) if u.query else {}
+                if set(query)!={'project_id','run_id'} or any(len(values)!=1 or not values[0] for values in query.values()):
+                    raise ValueError('Exact saved project and run identity required')
+                return self.response(self.app.simulation.saved_run(query['project_id'][0],query['run_id'][0]))
             if path=='/api/supervision':
                 query=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=2,errors='strict')
                 if set(query)!={'project_id'} or len(query['project_id'])!=1 or not query['project_id'][0]:raise ValueError('One explicit project_id is required')

@@ -20,7 +20,7 @@ from icwb.elicitation import tools as review_tools
 
 
 def expected_tools():
-    return core_tools()+view_tools()+review_tools()
+    return core_tools({})+view_tools()+review_tools()
 
 
 class EntryTests(unittest.IsolatedAsyncioTestCase):

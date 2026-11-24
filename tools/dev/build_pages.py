@@ -20,6 +20,7 @@ def main():
 <script src="pages-redirect.js" defer></script></head><body>
 <h1>CircuitGit</h1><p>AI-native circuit design, versioned on GitHub.</p>
 <a href="studio/index.html?layout=dockview&amp;demo=1">Open interactive demo</a>
+<a href="workflow/index.html">Explore the real-circuit workflow and capability boundaries</a>
 </body></html>''')
     (OUTPUT / 'pages-redirect.js').write_text("location.replace(new URL('studio/index.html?layout=dockview&demo=1',location.href));\n")
     commits=[]

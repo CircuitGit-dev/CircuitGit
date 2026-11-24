@@ -163,6 +163,58 @@ class SimulationRuntime:
             return report if isinstance(report,dict) and report.get('schema')=='spiceowl.simulation-report.v1' and report.get('run_id')==record['run_id'] else None
         except (OSError,ValueError,TypeError):return None
 
+    def saved_run(self,project,run_id):
+        """Project one exact old Runner record; never start or query a monitor."""
+        from datetime import datetime
+        from supervision import read_json
+        if project not in self.app.workspace.projects:raise FileNotFoundError('Unknown simulation project')
+        record=self.app.supervision._read(run_id)
+        if self.app.supervision._association(record)[0]!=project:
+            raise FileNotFoundError('Saved run does not belong to this project')
+        projected=self.app.supervision._project(record)
+        archive=(record.get('collection') or {}).get('sha256')
+        report=None
+        if projected.get('source_commit') and isinstance(archive,str) and re.fullmatch('[a-f0-9]{64}',archive):
+            try:
+                candidate=self.saved_report(record)
+                if len(json.dumps(candidate,ensure_ascii=False,allow_nan=False).encode())<=512*1024:report=candidate
+            except (OSError,ValueError,TypeError,OverflowError,UnicodeError,RecursionError):pass
+        monitor={'status':'not_recorded','events':[],'events_truncated':False}
+        path=self.app.runner.path(run_id)/'monitor.json'
+        def timestamp(value):
+            if not isinstance(value,str) or len(value)>80:return None
+            try:return value if datetime.fromisoformat(value.replace('Z','+00:00')).utcoffset() is not None else None
+            except (ValueError,OverflowError):return None
+        if path.exists() or path.is_symlink():
+            try:
+                saved=read_json(path)
+                binding=saved.get('binding')
+                if (saved.get('schema')!='ic.sim.monitor.v1' or saved.get('run_id')!=run_id
+                        or not isinstance(binding,dict) or not projected.get('source_commit')
+                        or any(binding.get(key)!=record.get(key) for key in ('source_commit','execution_site_sha256'))
+                        or not isinstance(saved.get('events'),list)):
+                    raise ValueError('Saved monitor identity differs')
+                kinds={'armed','disarmed','collection_reconcile_required','collection_claimed',
+                    'collection_complete','collection_outcome_unknown','reconnected','connected',
+                    'terminal_observed','blocked','disconnected','backoff'}
+                events=[{'sequence':row.get('sequence') if type(row.get('sequence')) is int and row['sequence']>=0 else None,
+                    'at':timestamp(row.get('at')),'kind':row.get('kind') if row.get('kind') in kinds else 'unknown'}
+                    for row in saved['events'][-64:] if isinstance(row,dict)]
+                observation=saved.get('observation') if isinstance(saved.get('observation'),dict) else {}
+                monitor={'status':'stored','events':events,'events_truncated':len(saved['events'])>64,
+                    'watch_state':saved.get('watch_state') if saved.get('watch_state') in {'armed','stopped','terminal'} else 'unknown',
+                    'updated_at':timestamp(saved.get('updated_at')),
+                    'last_attempt_at':timestamp(observation.get('last_attempt_at')),
+                    'last_success_at':timestamp(observation.get('last_success_at'))}
+            except (OSError,ValueError,TypeError):
+                monitor={'status':'unavailable','reason':'saved_monitor_invalid_or_unbound','events':[],'events_truncated':False}
+        return {'schema':'ic.simulation.saved-run.v1','project_id':project,'run_id':run_id,
+            'source_commit':projected.get('source_commit'),'read_only':True,'active_query_performed':False,
+            'source':'circuitgit_runner','read_at':stamp(),'data_trust':'untrusted_evidence',
+            'run':projected,'report':report,'report_status':'stored_bound' if report is not None else 'not_available',
+            'monitor':monitor,'resource_history':[],'resource_history_status':'not_recorded_by_runner',
+            'resource_observation':projected.get('execution_target')}
+
     def pool_snapshot(self):
         path = self.root / 'pool.json'
         if path.is_file() and not path.is_symlink() and path.stat().st_size <= 65536:

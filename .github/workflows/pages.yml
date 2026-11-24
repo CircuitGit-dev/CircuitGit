@@ -31,7 +31,10 @@ jobs:
           python -B tools/workbench/test_check_spiceowl_contract.py
           python -B tests/architecture/test_setup_env.py
           python -B tests/architecture/test_links.py
-          node --test tests/demo/*.test.mjs tests/remote/*.test.mjs tests/ai/*.test.mjs tests/studio/lazy-slot.test.mjs tests/studio/agent-assistance.test.mjs tests/viewer-vendor.test.mjs
+          node --test tests/demo/*.test.mjs tests/remote/*.test.mjs tests/ai/*.test.mjs tests/workflow/*.test.mjs tests/studio/lazy-slot.test.mjs tests/studio/agent-assistance.test.mjs tests/viewer-vendor.test.mjs
+          python -B tests/workflow/test_evidence.py
+          python -B tests/ai/test_spiceowl_reads.py
+          python -B tools/workbench/test_spiceowl_readonly.py
           python -B tests/remote/test_node.py
           python -B tests/remote/test_pairing.py
           python -B tests/remote/test_helper.py

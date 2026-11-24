@@ -51,14 +51,43 @@ DESCRIPTIONS = {
 
 
 SCHEMAS['sim_runtime'] = obj({'project_id': PID}, ('project_id',))
+SCHEMAS['sim_saved_run'] = obj({'project_id': PID, 'run_id': {'type':'string','pattern':'^[A-Za-z0-9_-]{1,180}$'}}, ('project_id','run_id'))
 SCHEMAS['sim_execute'] = obj({
     'operation': {'type':'string','enum':['submit','status','collect','watch','unwatch','resources_scan','runtime','prepare','run','inspect']},
     'arguments': obj({**IDENTITY,'run_id':PID,'recipe_id':PID,'plan_id':HASH,'job_id':PID}, ('project_id',)),
     'idempotency_key': KEY,
 }, ('operation','arguments'))
-READ_ONLY.add('sim_runtime')
+READ_ONLY.update({'sim_runtime','sim_saved_run'})
 DESCRIPTIONS['sim_runtime'] = 'Read cached server resources, saved run monitoring, structured Spectre diagnostics and separate data/specification acceptance. No SSH or simulator action.'
+DESCRIPTIONS['sim_saved_run'] = 'Read one exact CircuitGit Runner record, source identity, stored five-dimensional report and bounded monitor event history, even outside the recent run list. No SSH, monitor startup, collection or derivation. Missing resource history stays explicitly unavailable; never substitute a SpiceOwl Store or another run.'
 DESCRIPTIONS['sim_execute'] = 'Use an installed simulation grant: prepare(project_id,recipe_id,source_commit) freezes a registered experiment; run(project_id,plan_id) selects a host and launches once; inspect(project_id,job_id) observes and collects terminal native results with five independent verdicts. Legacy submit/collect require stable keys; run derives its stable key from plan_id. Unknown actions are never replayed or approved. No arbitrary command, path, credentials or scope argument.'
+
+# Embedded SpiceOwl reads share the existing host/tool channel. Storage is
+# selected only by operator configuration; no tool has a path or transport field.
+SPICEOWL_ID = {'type':'string','minLength':1,'maxLength':96,'pattern':'^[A-Za-z0-9][A-Za-z0-9_-]{0,95}$'}
+SPICEOWL_IC_RUN = {'type':'string','minLength':1,'maxLength':180,'pattern':'^[A-Za-z0-9_-]{1,180}$'}
+SPICEOWL_READS = {
+    'spiceowl_status': obj(),
+    'spiceowl_list_runs': obj(),
+    'spiceowl_get_run': obj({'run_id':SPICEOWL_ID}, ('run_id',)),
+    'spiceowl_list_connections': obj(),
+    'spiceowl_list_hosts': obj(),
+    'spiceowl_list_ic_gateways': obj(),
+    'spiceowl_list_ic_runs': obj({'gateway_id':SPICEOWL_ID}, ('gateway_id',)),
+    'spiceowl_get_ic_run': obj({'gateway_id':SPICEOWL_ID,'run_id':SPICEOWL_IC_RUN}, ('gateway_id','run_id')),
+}
+SCHEMAS.update(SPICEOWL_READS)
+READ_ONLY.update(SPICEOWL_READS)
+DESCRIPTIONS.update({
+    'spiceowl_status':'Read the explicitly configured existing SpiceOwl Store version, read-only capabilities and record counts. No storage creation, migration, probing or model startup.',
+    'spiceowl_list_runs':'Read at most 25 saved SpiceOwl native run summaries, preserving synthetic labels and independent outcomes. Not the CircuitGit Runner list; no execution or refresh.',
+    'spiceowl_get_run':'Read one exact saved SpiceOwl native run, bounded events and resource history. Original observation timestamps remain unchanged; read_at is only this local read.',
+    'spiceowl_list_connections':'Read sanitized stored SpiceOwl fake connection metadata only. Never reveals credentials, probes a connection or starts another Agent.',
+    'spiceowl_list_hosts':'Read saved SpiceOwl host metadata, sanitized probe results and cached resources. No SSH or active host/resource probe.',
+    'spiceowl_list_ic_gateways':'Read at most 25 already registered SpiceOwl IC gateway cache entries without URLs or keys. Does not discover or synchronize gateways.',
+    'spiceowl_list_ic_runs':'Read at most 25 cached native IC run projections from one exact registered SpiceOwl gateway ID. No gateway sync, submission, collection or artifact fetch.',
+    'spiceowl_get_ic_run':'Read one exact cached IC run projection for its registered SpiceOwl gateway ID. CircuitGit retains execution ownership. Stored metrics do not establish measurement validity or authorize replay.',
+})
 
 
 # New-intake operations are separate from the registered-project simulation
@@ -227,9 +256,12 @@ DESCRIPTIONS['onboarding_netlist'] += ' Use mode:agent-tb for a general circuit 
 DESCRIPTIONS['onboarding_run'] += ' An agent-authored testbench returns a pending host-human review request; only the correlated human review can dispatch it. Never approve it as an agent.'
 
 
-def tools():
+def tools(config=None):
     return [{'name': 'ic_' + name, 'description': DESCRIPTIONS[name], 'inputSchema': schema,
              'annotations': {'readOnlyHint': name in READ_ONLY, 'destructiveHint': name in MUTATIONS or name in {'sim_execute','onboarding_probe','onboarding_run','onboarding_inspect'},
                              'idempotentHint': name not in {'onboarding_netlist','onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_select_pdk_scope','onboarding_prepare','onboarding_agent_tb_draft','onboarding_agent_tb_prepare'},
                              'openWorldHint': name in {'sim_preflight','sim_status','sim_execute','onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_prepare','onboarding_run','onboarding_inspect'} | MUTATIONS}}
-            for name, schema in SCHEMAS.items()]
+            for name, schema in SCHEMAS.items()
+            if name not in SPICEOWL_READS or config is None or
+                isinstance(config,dict) and isinstance(config.get('spiceowl_readonly'),dict) and
+                config['spiceowl_readonly'].get('enabled') is True]

@@ -1,0 +1,1371 @@
+{
+  "schema": "ic.workflow.overview.v1",
+  "title": "从电路到可审阅实验",
+  "subtitle": "用两份真实电路，逐步看清源文件、Agent 工具、模型依赖、测试台、审核和结果之间的关系。此页为公开流程说明，不会连接服务器或启动仿真。",
+  "observedOn": "2026-11-24",
+  "statusLegend": {
+    "verified": "已有证据（仅对应该步骤说明的事实）",
+    "review": "等待人工审核",
+    "planned": "尚未执行",
+    "illustrative": "解释性示意"
+  },
+  "evidenceSummary": [
+    {
+      "label": "Bootstrap",
+      "value": "7 步已有准备证据，1 步待审核",
+      "detail": "revision 10；尚无求解、波形或 FFT。"
+    },
+    {
+      "label": "CMOS Inverter",
+      "value": "独立源电路已存在",
+      "detail": "无预置环境、tb、运行或性能结果。"
+    },
+    {
+      "label": "公开方式",
+      "value": "手工选取事实 + 标记来源的副本",
+      "detail": "不发布运行状态全集、私有路径、账号、回执标识或模型实现。"
+    }
+  ],
+  "architecture": {
+    "title": "子模块分工与两种 Agent 宿主模式",
+    "summary": "CircuitGit 是用户工作台与工程流程宿主。submodules/rnl 提供网表、RNL 与可读绘图；submodules/spiceowl 提供仿真环境、依赖、数据和分析能力。Standalone 与 embedded_in_circuitgit 是 Agent 宿主模式合同，不是把同一窗口重新嵌入一次。",
+    "layers": [
+      {
+        "title": "CircuitGit 工程宿主",
+        "description": "统一电路源、lib、Git、窗口、对话与人工审核；组织具体 Runner 的提交和原生结果收集。",
+        "items": [
+          "同一个 windowAgent / chat 与 snapshot",
+          "按项目来源绑定工具调用",
+          "工程变更 → 审核 → 运行 → 证据"
+        ]
+      },
+      {
+        "title": "submodules/rnl",
+        "description": "复用上游网表/RNL与 Viewer；电气连接与位置/旋转/布线信息各有来源，不能把推断布局当原生几何。",
+        "items": [
+          "Spectre 与嵌入 @RNL",
+          "可读原理图、符号和层级",
+          "精确源身份与几何映射"
+        ]
+      },
+      {
+        "title": "submodules/spiceowl",
+        "description": "独立维护的仿真引擎能力：环境观察、PDK目录/审计、Agent-TB验证、原生数据和有名分析算法。",
+        "items": [
+          "受支持的确定性检查",
+          "原精度数据与来源",
+          "不自动推断科学目标或自批实验"
+        ]
+      }
+    ],
+    "modes": {
+      "standalone": {
+        "title": "SpiceOwl Standalone",
+        "description": "独立宿主模式的合同：SpiceOwl 自建 codex app-server 连接，通过 dynamicTools 暴露有限工具，通过 SSE 将会话事件送往独立界面。部署必须显式报告模式与能力；本公开页不启动这个 Agent。"
+      },
+      "embedded": {
+        "title": "embedded_in_circuitgit",
+        "description": "嵌入 CircuitGit 时，SpiceOwl 只注册工具并复用 CircuitGit 的同一个 AI 会话、上下文 和权限通路；不创建第二个 Agent，不再启动另一个 MCP 会话服务，不维护另一套凭据。"
+      }
+    }
+  },
+  "matrix": {
+    "columns": [
+      "阶段",
+      "Bootstrap + 采样保持",
+      "CMOS Inverter"
+    ],
+    "rows": [
+      [
+        "源电路与绘图",
+        "真实源，内嵌原生 RNL；部分保真",
+        "真实两管源，独立新绘图"
+      ],
+      [
+        "模型选择与依赖",
+        "3 sections、RH_64、fresh 静态审计已留证",
+        "仅声明 2 个模型，未绑定"
+      ],
+      [
+        "测试台",
+        "准确参数与 4096 点合同已冻结",
+        "未编写"
+      ],
+      [
+        "审核",
+        "revision 10 等待人工审核",
+        "未产生审核请求"
+      ],
+      [
+        "运行与原生数据",
+        "未执行，无 job",
+        "未执行"
+      ],
+      [
+        "FFT / AC / DC 结果",
+        "无实测结果；本文仅说明分析条件",
+        "无实测结果；按未来选择的分析解释"
+      ]
+    ]
+  },
+  "analysisBoundaries": [
+    {
+      "name": "FFT / 采样频谱",
+      "description": "Bootstrap 计划只分析 VOUT 的 4096 点均匀原始记录；FIN/FS=1811/4096。当前没有数据和频谱数值，示意图不能作为性能结果。"
+    },
+    {
+      "name": "AC / Bode",
+      "description": "已有原生 AC 数据通路，ac_metrics 使用明确 dataset_id、Hz 轴、复数 response 与显式单位；reference 可选且不得默认为 1 Vac。只有已知无量纲 loop_gain、反馈约定和相位锚点才可讨论裕度；普通增益曲线不能任意解释为 UGBW/PM。两个案例目前均无 AC 测量。"
+    },
+    {
+      "name": "DC / 工作点",
+      "description": "已有原生 DC 数据通路。dc_op_metrics 仅接受 unswept saved DC/DC_OP、axis=null 与精确保存器件ID；DC sweep可以显示曲线，不能冒充该工作点算法输入。此两案例均没有DC结果。"
+    },
+    {
+      "name": "图形与原精度",
+      "description": "窗口可对显示数据抽样以维持交互；计算始终使用受来源验证的完整原精度数据，不能把显示点列送入性能算法。"
+    },
+    {
+      "name": "模型与资格",
+      "description": "模型声明匹配、静态 include 闭包完整和平台标签都不等同模型授权、动态二进制加载成功、工艺可靠性或设计达标。"
+    },
+    {
+      "name": "本次实验与历史结果",
+      "description": "未借用其他项目或历史运行的波形。Bootstrap 案例是自举驱动器加外接采样保持；完整 9-bit ADC 尚未验收。"
+    }
+  ],
+  "cases": [
+    {
+      "id": "bootstrap-sample-hold",
+      "title": "Bootstrap + 采样保持",
+      "subtitle": "RS9_L5_9bit_Bootstrap · 9-bit SAR ADC 中的自举驱动单元 + 外接 MSAMPLE / CHOLD",
+      "summary": "真实的原生几何电路已经进入通用 agent-tb 流程。4 个所需模型通过所选闭包的静态匹配，完整采样测试台已冻结，目前等待人工审核；第 9、10 步未执行。",
+      "provenance": {
+        "label": "真实公开电路 + 脱敏待审实验",
+        "status": "awaiting_human_review",
+        "revision": 10,
+        "sourceCommit": "f4a2e45119f5bb68c6cd30a534af6064550fecc7",
+        "observedAt": "2026-11-24",
+        "sourceSha256": "9b879b2fb1c6918606317875f3bfc1370f2c6380b34c747c013a3cc9ff5f78b6",
+        "publicationSha256": "808da690214b9e8ee1c0b2ce05c4dbf7eda69d6d71a198776d3cd5c53597b2c0",
+        "sourceFormat": "Spectre .scs with embedded @RNL",
+        "simulationExecuted": false
+      },
+      "evidenceSummary": [
+        {
+          "label": "真实状态",
+          "value": "等待人工审核",
+          "detail": "revision 10；没有 job，没有 FFT。"
+        },
+        {
+          "label": "Fresh static audit",
+          "value": "4 files · 108 scopes · 4 required models",
+          "detail": "所选缓存 namespace 为 91 models；matched 不等于运行或工艺资格。"
+        },
+        {
+          "label": "采样合同",
+          "value": "4096 points · FS 1 GHz",
+          "detail": "FIN/FS=1811/4096；64.75 ns → 4.15975 µs。"
+        }
+      ],
+      "stages": [
+        {
+          "id": "step-1",
+          "number": 1,
+          "title": "选择电路与保留原理图",
+          "status": "verified",
+          "summary": "真实 DUT 来自 9-bit SAR ADC 设计中的自举开关。网表和原始绘图记录共存于同一 .scs 文件。",
+          "userActions": [
+            "在 Library Manager 选择 RS9_L5_9bit_Bootstrap，并选择同名层级。",
+            "查看 CLK、VBST、VDD、VIN、VSS 端口与 11 个 MOS、1 个 MOM 电容；检查原有位置和连线。"
+          ],
+          "agentActions": [
+            "读取明确选中的公开源和 provenance；把电气网络与绘图指令分别解释。",
+            "说明此次实验对象是自举驱动器加外接采样保持，不把名称中的 9bit 当作完整 ADC 验收。"
+          ],
+          "engineChecks": [
+            "来源 SHA-256 与已保存的公开源一致。",
+            "@PLACE、@ORIENT、@WIRE、符号端子仍由嵌入的 @RNL 记录提供。"
+          ],
+          "contracts": [
+            {
+              "name": "Spectre + embedded @RNL",
+              "description": "Spectre 语句描述器件、端口和参数；注释中的 RNL 保留绘图，不是重新推断的自动布局。"
+            },
+            {
+              "name": "circuitgit.adc-import.v1",
+              "description": "导出 provenance 记录原始几何、逐文件哈希和已知的部分保真损失。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "Bootstrap 原理图与网表（公开派生）",
+              "path": "data/sources/bootstrap-dut.publication.scs",
+              "href": "data/sources/bootstrap-dut.publication.scs"
+            },
+            {
+              "label": "原始与公开副本的哈希对应",
+              "path": "data/sources/source-manifest.json",
+              "href": "data/sources/source-manifest.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "源文件已核对",
+              "description": "12 个器件、5 个端口、61 条编号 wire 记录。",
+              "kind": "observed"
+            },
+            {
+              "label": "没有独立 DUT .rnl",
+              "description": "此案例的 RNL 数据内嵌在 .scs；共享 .rnl 包提供绘图符号和样式。",
+              "kind": "observed"
+            }
+          ],
+          "boundaries": [
+            "这是部分保真的原理图导出，不是 OpenAccess 备份。",
+            "动态 cdsParam/cdsTerm 标签缺失；物理引脚多重性及字体/样式尚未完全验证。",
+            "绘图符号不包含授权器件模型的实现。"
+          ],
+          "recovery": [
+            "文件根层级为空时选择具名 DUT 层级；不能用自动布线覆盖已有几何。",
+            "来源哈希或映射不符时停在源检查，重新绑定正确电路。"
+          ],
+          "code": {
+            "language": "spectre",
+            "title": "真实嵌入记录的节选（非独立可运行电路）",
+            "text": "subckt RS9_L5_9bit_Bootstrap CLK VBST VDD VIN VSS\n// @RNL(author=\"rnl-virtuoso\") {\n//   #\"M1\" @PLACE(-24, -6) => @ORIENT(\"R0\");\n//   #\"M3\" @PLACE(-5, 21) => @ORIENT(\"R270\");\n//   %p0 = (35, -3);\n//   %wire_0 = &\"VBST\" @WIRE(mode=\"straight\") {#\"M5\":2 %p0};\n// }"
+          }
+        },
+        {
+          "id": "step-2",
+          "number": 2,
+          "title": "确认子模块架构并导入独立 intake",
+          "status": "verified",
+          "summary": "先确认谁拥有 Agent 会话和工具，再将源导入独立 agent-tb intake；保持原始 DUT 字节和哈希。",
+          "userActions": [
+            "确认顶层子电路和端口顺序。",
+            "说明希望测量采样输出的失真、保存哪些信号以及允许使用的计算环境。"
+          ],
+          "agentActions": [
+            "在 embedded_in_circuitgit 模式复用同一个 AI 会话与上下文；SpiceOwl 只注册工具，RNL 负责电路显示，不创建第二个 Agent 或 MCP 会话。",
+            "用 ic_onboarding_netlist 导入字面网表，mode=agent-tb；随后用 ic_onboarding_source / ic_onboarding_session 读取精确源与 revision。",
+            "列出四个外部模型要求，不借用历史项目的 PDK 或服务器设置。",
+            "ic_sim_runtime 与 ic_sim_saved_run 读取 CircuitGit Runner 的缓存或精确历史记录；另行配置既有 SpiceOwl Store 后，ic_spiceowl_* 读取该 Store，二者身份保持分开。"
+          ],
+          "engineChecks": [
+            "检查源语法、子电路接口、外部 master 引用和每文件哈希。",
+            "新导入不能悄悄沿用其他电路的模型选择或运行配置。",
+            "固定上游子模块版本与集成合同；宿主模式属于配置，不由模型临时猜测。"
+          ],
+          "contracts": [
+            {
+              "name": "ic.onboarding.session.v1",
+              "description": "intake 保存源哈希、revision、选择和阶段；后续修改必须基于当前 revision。"
+            },
+            {
+              "name": "ic_onboarding_netlist",
+              "description": "file_name 只是显示标签；导入字面文本，不把模型传入的名字解释成任意本地读取路径。"
+            },
+            {
+              "name": "Host mode / submodule contract",
+              "description": "Standalone 模式有自己的 app-server + dynamicTools + SSE；embedded_in_circuitgit 复用 CircuitGit 的 Agent 通路。该模式说明不代表本页发起了任何连接。"
+            },
+            {
+              "name": "spiceowl.embedded.read_tool_definitions / dispatch_read_tool",
+              "description": "8 个有限只读入口映射为 ic_spiceowl_status、list_runs、get_run、list_connections、list_hosts、list_ic_gateways、list_ic_runs、get_ic_run（均使用 ic_spiceowl_ 前缀）。工具没有目录参数；原记录的观察时间不变。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "Bootstrap 原理图与网表（公开派生）",
+              "path": "data/sources/bootstrap-dut.publication.scs",
+              "href": "data/sources/bootstrap-dut.publication.scs"
+            },
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            },
+            {
+              "label": "原始与公开副本的哈希对应",
+              "path": "data/sources/source-manifest.json",
+              "href": "data/sources/source-manifest.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "DUT 源身份已保存",
+              "description": "原始 DUT 哈希在此流程与公开电路一致；当前快照为 revision 10。",
+              "kind": "observed"
+            }
+          ],
+          "boundaries": [
+            "解析与导入完成不表示可仿真。",
+            "模型名是依赖声明，既不是模型实现，也不是已获使用许可的证明。",
+            "未配置既有 SpiceOwl Store 时不可用，不从 CircuitGit 的 Runner 或 pool 路径猜测数据库，也不启动第二个 Agent。"
+          ],
+          "recovery": [
+            "端口或子电路选择错误时先修正输入并产生新的源身份。",
+            "revision 发生冲突时重读 session，再构造当前状态上的变更。"
+          ]
+        },
+        {
+          "id": "step-3",
+          "number": 3,
+          "title": "连接显式选择的仿真环境",
+          "status": "verified",
+          "summary": "本案例已有被选环境的观察记录。此页不公开服务器、账号、绝对路径或凭据。",
+          "userActions": [
+            "选择自己有权使用的执行环境；核对仿真器安装、模型访问和许可。",
+            "如环境需要启动脚本，查看并明确选择观察到的脚本。"
+          ],
+          "agentActions": [
+            "ic_onboarding_ssh_hosts 只列出已有配置中的别名；ic_onboarding_probe 仅检查用户选择的目标。",
+            "记录环境和平台观察，保留后续审核所需的绑定。"
+          ],
+          "engineChecks": [
+            "检查连接、可见环境和仿真器定位信息；不自动遍历未知服务器。",
+            "脚本激活是显式动作；探测不执行仿真器或许可占用命令。"
+          ],
+          "contracts": [
+            {
+              "name": "ic_onboarding_probe",
+              "description": "工具接收观察到的目标和可选 setup_source_ids；返回 revision 和环境观察。"
+            },
+            {
+              "name": "Execution environment observation",
+              "description": "平台和工具位置是特定时间的观察；运行前仍需核对冻结环境。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "平台选择依据",
+              "description": "已有远端 x86_64、CentOS/RHEL-family 观察，供后续 RH_64 TMI 选择解释使用。",
+              "kind": "observed"
+            }
+          ],
+          "boundaries": [
+            "环境探测不是一次求解，也不能证明模型二进制已在求解器内成功加载。",
+            "此公开演示不提供 SSH 或服务器执行入口。"
+          ],
+          "recovery": [
+            "连接、工具或权限不满足时暂停依赖它们的步骤；在用户修复后重新读取状态。",
+            "未知超时先查原操作状态，不通过更换请求标识重复执行。"
+          ]
+        },
+        {
+          "id": "step-4",
+          "number": 4,
+          "title": "观察 PDK 目录与依赖目录索引",
+          "status": "verified",
+          "summary": "初次发现没有得到完整单一候选，因此保留原始发现证据，转而检查已观察的 section 目录。",
+          "userActions": [
+            "选择自己获授权的模型范围。",
+            "查看未解析模型、候选覆盖和扫描是否完整；范围过大时选更明确的目录。"
+          ],
+          "agentActions": [
+            "ic_onboarding_discover_pdk 在给定边界内发现 include / model 元数据；已保存的 LUT 可供后续查询。",
+            "ic_onboarding_pdk_scopes 读取原保存目录；不因缺少完整候选而伪造 legacy candidate。"
+          ],
+          "engineChecks": [
+            "检查四个 required models 是否有可见声明。",
+            "把 incomplete scan、cached index、fresh dependency audit 分开记录；缓存时间较新不代表远端内容未变。"
+          ],
+          "contracts": [
+            {
+              "name": "ic.onboarding.pdk-lut.v1",
+              "description": "缓存保存观察过的模型和入口索引；catalog 查询不等于一次新的扫描。"
+            },
+            {
+              "name": "ic_onboarding_pdk_scopes",
+              "description": "entry / section 标识来自已有观察，按 next_offset 分页读取，不能拼造。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "发现不足被保留",
+              "description": "单一候选未完成覆盖；后续基于可见 scope 目录显式选择，原发现没有被改写为成功。",
+              "kind": "observed"
+            }
+          ],
+          "boundaries": [
+            "搜索结果只反映受支持语法与指定范围，不是整个 PDK 的可用性认证。",
+            "公开页只展示四个所需模型名，不包含 PDK 正文、完整命名空间或库路径。"
+          ],
+          "recovery": [
+            "无候选时扩大或收窄已授权范围，检查发现错误；不能跳到运行。",
+            "缓存失效或源哈希变化时重新获取目录证据，然后显式重新绑定草稿。"
+          ]
+        },
+        {
+          "id": "step-5",
+          "number": 5,
+          "title": "选择模型组合并核对 Verilog-A 依赖",
+          "status": "verified",
+          "summary": "显式选择同一观察入口中的 pre_simu、TTMacro_MOS_MOSCAP 和 TT_MOM，并保留 RH_64 的平台理由。 本 Bootstrap 没有 Verilog-A 依赖，header/staging 分支明确为 not_applicable。",
+          "userActions": [
+            "按模型文档和设计目的确认三个 section 的顺序。",
+            "确认 TMI 选择和目标平台；核对 MOS 与 MOM 都被覆盖。"
+          ],
+          "agentActions": [
+            "用 ic_onboarding_select_pdk_scope 保存真实观察到的 section 标识和 TMI 选项。",
+            "把选择绑定到源、目录、revision 和 required models，重新绑定后续测试台草稿。",
+            "对含 Verilog-A 的其他电路，ic_onboarding_veriloga_headers 只在明确选择的远端根目录观察 constants.vams / disciplines.vams 及字面 include 闭包；本 Bootstrap 不执行该分支。"
+          ],
+          "engineChecks": [
+            "缓存闭包为 3 个模型文件、108 scopes、91 个 namespace models；所需 4 模型均在覆盖内。",
+            "scope 选择仍标记需要 fresh audit，且 ready_to_run=false。",
+            "若存在 Verilog-A：校验模块/端口、标准头文件名称与哈希、闭包和被选环境，再冻结远端 staging 规则；不把任意路径当标准头。"
+          ],
+          "contracts": [
+            {
+              "name": "Observed PDK scope selection",
+              "description": "只选择一个已观察 entry 中的有序 sections；保持模型声明、文件哈希与 TMI 身份。"
+            },
+            {
+              "name": "Selection ≠ qualification",
+              "description": "名称覆盖、corner 名称和平台标签不能代替工艺适用性、可靠性和二进制运行验证。"
+            },
+            {
+              "name": "ic.veriloga-header-staging.v1",
+              "description": "头文件字节保留在被选仿真主机；远端 staging 及启动前验证绑定精确哈希。原始文件和临时 staging 副本均不得进入公开 Git/archive。此案例 not_applicable。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "显式 section 列表",
+              "description": "pre_simu + TTMacro_MOS_MOSCAP + TT_MOM",
+              "kind": "observed"
+            },
+            {
+              "label": "TMI 选择",
+              "description": "RH_64/libTMImodel.so；理由来自 x86_64、CentOS/RHEL-family 环境观察。",
+              "kind": "observed"
+            },
+            {
+              "label": "Verilog-A 分支",
+              "kind": "not_applicable",
+              "description": "真实 Bootstrap DUT/tb 未引用 Verilog-A，也未执行标准头文件观察或 staging。"
+            }
+          ],
+          "boundaries": [
+            "91 是所选缓存 namespace 中的模型数，不表示 91 个器件均通过仿真。",
+            "这里没有下载或发布模型卡、TMI 二进制和库实现。",
+            "constants.vams / disciplines.vams 只公开名称、闭包和哈希约定，不复制授权安装中的实现正文；不得伪称本例验证过这一分支。"
+          ],
+          "recovery": [
+            "模型缺失、目录哈希变化或 TMI 不适配时重新选择并重新审计。",
+            "旧审核不会随新模型选择继续有效。",
+            "其他电路若 header 缺失、哈希变化或 include 闭包不完整，应停在依赖阶段重新观察和审核，不发明替代标准头。"
+          ],
+          "code": {
+            "language": "json",
+            "title": "公开选择摘要（标识和私有路径已省略）",
+            "text": "{\n  \"sections\": [\n    \"pre_simu\",\n    \"TTMacro_MOS_MOSCAP\",\n    \"TT_MOM\"\n  ],\n  \"requiredModels\": [\n    \"cfmom_2t\",\n    \"nch_lvt_mac\",\n    \"nch_ulvt_mac\",\n    \"pch_ulvt_mac\"\n  ],\n  \"tmiLabel\": \"RH_64/libTMImodel.so\",\n  \"readyToRun\": false\n}"
+          }
+        },
+        {
+          "id": "step-6",
+          "number": 6,
+          "title": "编写测试台、刺激和采样合同",
+          "status": "verified",
+          "summary": "保留原 DUT。新增外接 MSAMPLE、100 fF CHOLD 和 1 GΩ RLEAK，测量 VOUT；VBST 只作为采样开关门极驱动。",
+          "userActions": [
+            "确认 1 V 电源、0.5 V 输入共模、0.45 V 峰值输入和 1 GHz 时钟适合自己的模型。",
+            "确认采样保持拓扑、4096 点 coherent 记录，以及需要报告的指标；本例没有用户给定的数值通过阈值。"
+          ],
+          "agentActions": [
+            "ic_onboarding_agent_tb_draft 保存完整 Spectre 测试台及结构化 interface / stimuli / analyses / postprocess。",
+            "明确区分 DUT 原字节、测试台新增器件与公开展示副本，不更改原源哈希。"
+          ],
+          "engineChecks": [
+            "端口绑定 CLK/VBST/VDD/VIN/VSS→CLK/VBST/VDD/VIN/0。",
+            "FIN=1811/4096 × FS=442138671.875 Hz；FS=1 GHz。",
+            "采样从 64.75 ns 到 4.15975 µs，共 4096 点，间隔 1 ns；先丢弃 64 个周期。",
+            "tran maxstep=5 ps，gear2only，conservative；上升/下降 10 ps、脉宽 230 ps。"
+          ],
+          "contracts": [
+            {
+              "name": "ic.agent_testbench.v1",
+              "description": "文本与结构化连接、刺激、分析、目标和后处理一起保存；任何修改都使旧审核失效。"
+            },
+            {
+              "name": "Exact sampled-data contract",
+              "description": "保存 CLK/VIN/VOUT/VBST/VDD/VDD0:p；频谱只使用原始 VOUT 均匀采样，VIN 为参考。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "Bootstrap 测试台（待审阅内容的公开派生）",
+              "path": "data/sources/bootstrap-tb.publication.scs",
+              "href": "data/sources/bootstrap-tb.publication.scs"
+            },
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            },
+            {
+              "label": "原始与公开副本的哈希对应",
+              "path": "data/sources/source-manifest.json",
+              "href": "data/sources/source-manifest.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "真实待审测试台",
+              "description": "tb.scs 已逐行核验。展示副本只添加 publication notice，主体字节保持不变。",
+              "kind": "observed"
+            },
+            {
+              "label": "设计目标尚无阈值",
+              "description": "criteria=[]，输出报告指标，不自动宣告性能达标。",
+              "kind": "observed"
+            }
+          ],
+          "boundaries": [
+            "该测试台是尚未提交的冻结草稿。",
+            "1 V 和自举后的电压需要人工核对 PDK 可靠性；语法正确不等于电气安全。",
+            "未启用 transient noise；采样相位数据不能支持全周期平均供电功耗。"
+          ],
+          "recovery": [
+            "任何采样点数、首末时刻、端口或刺激变化都需修改草稿并重新 prepare/review。",
+            "不能在分析时插值或静默裁剪数据来迎合 4096 点要求。"
+          ],
+          "code": {
+            "language": "spectre",
+            "title": "待审测试台：刺激、外接负载与采样（publication excerpt）",
+            "text": "parameters VDDVAL=1 VCM=0.5 AIN=0.45 FS=1G FIN=442138671.875\nVIN0 (VIN 0) vsource type=sine sinedc=VCM ampl=AIN freq=FIN\nVCLK0 (CLK 0) vsource type=pulse val0=0 val1=VDDVAL delay=0 rise=10p fall=10p width=230p period=1n\nXDUT (CLK VBST VDD VIN 0) RS9_L5_9bit_Bootstrap\n// MSAMPLE complete parameters are retained in the linked publication source.\nCHOLD (VOUT 0) capacitor c=100f\nRLEAK (VOUT 0) resistor r=1G\ntran_bootstrap tran stop=4.15975u maxstep=5p errpreset=conservative method=gear2only skipstart=64n skipstop=4.15975u strobedelay=750p strobeperiod=1n strobeoutput=strobeonly outputstart=64.75n\nsave CLK VIN VOUT VBST VDD VDD0:p"
+          }
+        },
+        {
+          "id": "step-7",
+          "number": 7,
+          "title": "FreshAudit 与输入冻结",
+          "status": "verified",
+          "summary": "准备过程已完成所选依赖闭包的 fresh 静态审计，并将实际审计与选择进行 matched 比较；它尚未运行求解器。",
+          "userActions": [
+            "核对生成的 DUT、tb、PDK wrapper、分析配方和依赖摘要。",
+            "确认动态库也进入依赖清单；查看任何缺失项和 scale-factor 备注。"
+          ],
+          "agentActions": [
+            "ic_onboarding_agent_tb_prepare 调用受支持的验证、依赖审计和 freeze 流程。",
+            "保留冻结输入和模型选择的绑定，供同一份人工审核使用。"
+          ],
+          "engineChecks": [
+            "审计覆盖 4 个文件（包含 TMI 动态库）、108 scopes；4 个所需模型声明匹配，无缺失 required model。",
+            "比较合同为 spiceowl.pdk-scope-audit-comparison.v1，matches_selection=true。",
+            "所选缓存 namespace 有 91 个模型；审计结果是 complete_for_supported_static_syntax，static_only=true。"
+          ],
+          "contracts": [
+            {
+              "name": "spiceowl.model-dependency-audit.v1",
+              "description": "记录支持的 include/section 静态闭包、文件身份、声明和未知指令；不是完整动态加载跟踪。"
+            },
+            {
+              "name": "spiceowl.pdk-scope-audit-comparison.v1",
+              "description": "比较选择与新审计；matched 不会把 scientific_compatibility 或 ready_to_run 自动置为通过。"
+            },
+            {
+              "name": "Frozen review input",
+              "description": "源、测试台、依赖、配置和资源选择一起冻结。后续执行必须与这一份冻结内容一致。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "静态审计已有证据",
+              "description": "4 文件 / 108 scopes / 91 个缓存 namespace models / 4 个 required models 匹配。",
+              "kind": "observed"
+            },
+            {
+              "label": "明确的未完成项",
+              "description": "scientific_compatibility=not_evaluated；ready_to_run=false；human_review_required=true。",
+              "kind": "observed"
+            }
+          ],
+          "boundaries": [
+            "文件可读、哈希一致和模型声明覆盖不证明 TMI 已运行加载，也不证明许可证可用。",
+            "重复 geoshrink 字面值已记录，不推断其最终有效值或把不同选项当成等价。"
+          ],
+          "recovery": [
+            "审计发现未知语法、缺失依赖、源变化或选择不匹配时停止冻结，修复后重新 prepare。",
+            "未知完成结果先查询原状态；不能通过改 key 把同一实验重复提交。"
+          ]
+        },
+        {
+          "id": "step-8",
+          "number": 8,
+          "title": "人工核对并决定提交",
+          "status": "review",
+          "summary": "当前真实进度：revision 10，awaiting_human_review。输入已冻结，人工审核仍为 pending，尚未提交求解。",
+          "userActions": [
+            "查看 DUT 端口、MSAMPLE/CHOLD、完整 tb、刺激和所保存的信号。",
+            "核对选中的 sections、RH_64 依据、fresh audit、模型授权及电压可靠性。",
+            "确认资源约束和分析口径，随后由人决定批准、拒绝或修订。"
+          ],
+          "agentActions": [
+            "用 ic_onboarding_agent_tb_review 读取这份冻结审核；把尚未解决的工程假设交给用户。",
+            "保持 pending 状态；Agent 不代表人点击批准，不自行恢复或派发任务。"
+          ],
+          "engineChecks": [
+            "审核必须匹配当前冻结输入、revision 和原计划；源或配置改变会失效。",
+            "实际配置是 Spectre +mt=1、pool admission 512 MiB 可用内存要求；无 OS 内存 hard cap 和 wall-time hard cap。",
+            "job=null、solverStarted=false；准备成功不显示为运行成功。"
+          ],
+          "contracts": [
+            {
+              "name": "ic.agent-tb.review.v1",
+              "description": "只有与冻结请求关联的真实人类审核响应能推进提交；页面和 Agent 不能自批。"
+            },
+            {
+              "name": "Explicit resource semantics",
+              "description": "准入条件不是资源隔离。早先设想的 2 GiB / 1800 s 不作为已经实施的限制。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "Bootstrap 测试台（待审阅内容的公开派生）",
+              "path": "data/sources/bootstrap-tb.publication.scs",
+              "href": "data/sources/bootstrap-tb.publication.scs"
+            },
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "当前保留状态",
+              "description": "revision 10 · awaiting_human_review · pending · 无 job。",
+              "kind": "observed"
+            }
+          ],
+          "boundaries": [
+            "网页演示中没有执行批准的按钮。",
+            "用户离开、审核弹窗取消、超时或宿主不支持，均不等于批准。",
+            "完整 9-bit ADC、噪声性能和量化精度均未验收。"
+          ],
+          "recovery": [
+            "若要求修改，回到草稿产生新 revision 并重新冻结；保留原审核证据。",
+            "权限不足时暂停依赖步骤，报告需要修正权限；不绕开审核通路。"
+          ]
+        },
+        {
+          "id": "step-9",
+          "number": 9,
+          "title": "提交、观察与收集原生结果",
+          "status": "planned",
+          "summary": "此 Bootstrap 实验尚未执行本步骤。下列说明是批准后的预期流程，当前没有 run、波形或 solver 结果。",
+          "userActions": [
+            "人工批准准确的冻结实验后，查看任务状态、日志和所选执行环境。",
+            "完成后查看求解结果、收集状态和数据有效性分别如何报告。"
+          ],
+          "agentActions": [
+            "ic_onboarding_run 以原冻结 plan 的稳定键提交；ic_onboarding_submission 查询原提交记录。",
+            "ic_onboarding_inspect 观察原任务，并在终态收集其原生结果；不自动重启或修复求解器。"
+          ],
+          "engineChecks": [
+            "绑定原计划、源、运行、归档和数据身份；收集对象必须是同一个原始任务。",
+            "execution、data validity、performance、qualification 和 dependency provenance 独立报告。"
+          ],
+          "contracts": [
+            {
+              "name": "Idempotent submission",
+              "description": "同一计划的重复调用只能核对原提交；unknown 或 found:false 不能授权重放。"
+            },
+            {
+              "name": "Original-run collection",
+              "description": "终态工件应保留日志、原生数据与来源，而不是仅剩展示图片。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "未执行",
+              "description": "无真实求解、无收集归档、无实验波形。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "此页面不会提交仿真、连接远端或读许可证。",
+            "其他项目或历史运行的波形不能作为本次实验结果。"
+          ],
+          "recovery": [
+            "提交超时先查询同一计划的原回执；不更换 key 重跑。",
+            "求解失败保留原日志和失败事实；只有明确修订实验并重新审核后才形成新的执行。"
+          ]
+        },
+        {
+          "id": "step-10",
+          "number": 10,
+          "title": "分析数据、迭代尺寸并形成工程版本",
+          "status": "planned",
+          "summary": "此实验还没有可分析的数据。计划在确认完整 4096 点原始记录后分析 VOUT，并输出来源明确的报告。",
+          "userActions": [
+            "打开同一运行的波形目录，选择 VOUT/VIN/VBST 和时钟进行时域核对。",
+            "核查采样相位、点数、单位和记录范围后再要求频谱报告。",
+            "根据指标选择是否调整器件尺寸；审核电路 diff、实验条件和下一次测试目标。"
+          ],
+          "agentActions": [
+            "ic_onboarding_waveforms_catalog / mapping / window 读取保存结果；只有来源和端子映射准确时才关联原理图探针。",
+            "ic_onboarding_analysis 使用有名称和版本的算法，对原精度数据执行 spec_analyze；显示 SFDR、SNDR 和正弦推导 ENOB。",
+            "提出尺寸修改时生成可审阅的电路差异和提交标题/说明；将电路、lib 描述、测试台和分析依据绑定到同一工程版本，再走 commit / PR / CI。"
+          ],
+          "engineChecks": [
+            "要求 4096 个有限值，采样率 1 GHz、首点 64.75 ns、末点 4.15975 µs；不能插值、补点或静默裁剪。",
+            "coherent bin=1811；rectangular window、bin_half_width=0、full_scale_peak=0.5 V、nf_method=3。",
+            "绘图降采样仅用于显示；算法输入必须来自完整原精度记录。",
+            "尺寸或拓扑变更产生新 source identity，并使原准备/审核失效；新版本重新验证、审核和运行，旧报告保留原身份。"
+          ],
+          "contracts": [
+            {
+              "name": "Verified saved-data analysis",
+              "description": "信号来自同一归档的 exact signal IDs，单位来自数据集；分析返回 source/archive/data provenance。"
+            },
+            {
+              "name": "Report-only acceptance",
+              "description": "没有数值验收阈值，所以得到指标也只能报告，不自动判定设计通过。"
+            },
+            {
+              "name": "Circuit change → lib → Git → PR → CI",
+              "description": "源修改先形成电路差异，lib/provenance 指向准确源版本，Git commit 和 PR 说明修改目的，CI 检查结构/合同/受支持验证；求解与性能结论仍需对应真实新实验。本例此链尚未执行。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "逐项选取的证据摘要",
+              "path": "data/sources/bootstrap-evidence.publication.json",
+              "href": "data/sources/bootstrap-evidence.publication.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "未执行",
+              "description": "没有 FFT、SFDR、SNDR 或 ENOB 数值；说明图不属于实测数据。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "不能对 VBST 进行采样输出的 FFT：它是门极驱动节点。",
+            "无 transient noise，结果不能冒充热噪声综合性能。",
+            "采样保持失真指标不能等同完整 ADC 分辨率；hold-phase strobe 不能给出全周期平均功耗。",
+            "Agent 生成提交标题是对实际 diff 的总结；CI 绿灯不能替代授权求解、模型资格或性能验收。"
+          ],
+          "recovery": [
+            "点数、首末时刻或采样均匀性不符时给出 data gap，回到数据检查或修订实验。",
+            "信号映射缺失时显示未验证，不猜测电流端子或把旧图映射到新源。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cmos-inverter",
+      "title": "CMOS Inverter",
+      "subtitle": "从两个真实器件开始的独立入门电路",
+      "summary": "M9/M10 完整器件语句来自公开 Bootstrap 源，端口提升为独立反相器，RNL 布局另行绘制。该单元尚未配置或运行独立仿真，步骤 2–10 展示需要完成的流程。",
+      "provenance": {
+        "label": "真实提取电路；未运行的入门流程",
+        "status": "source_only",
+        "sourceCommit": "090412560f2f324f54fe614421a357ae7815d90f",
+        "observedAt": "2026-11-24",
+        "sourceSha256": "05b72c015ebaec66d1fdf0700fe425d6c03c1791c1e4758ee2fb392544d2ffc7",
+        "publicationSha256": "d41d38c83de57359ea4bc9ecd07e0976cc4f9b2796e9eb8ceed235565e441db8",
+        "sourceFormat": "Spectre .scs with embedded newly authored @RNL",
+        "simulationExecuted": false
+      },
+      "evidenceSummary": [
+        {
+          "label": "电路",
+          "value": "2 MOS · 4 ports",
+          "detail": "原器件语句逐字节保留；新绘制简洁布局。"
+        },
+        {
+          "label": "仿真状态",
+          "value": "尚未开始",
+          "detail": "没有供电、负载、tb、执行环境或结果被预设。"
+        }
+      ],
+      "stages": [
+        {
+          "id": "step-1",
+          "number": 1,
+          "title": "选择独立两管反相器",
+          "status": "verified",
+          "summary": "CMOS_INVERTER 从公开 Bootstrap 源中完整提取 M9/M10，原器件语句保持逐字节一致；绘图布局为新绘制。",
+          "userActions": [
+            "打开 Library Manager → 基础电路 → CMOS 反相器 · 从电路开始。",
+            "查看 CLK 输入、CLKN 输出、VDD/VSS 电源，以及两管的所有参数。"
+          ],
+          "agentActions": [
+            "读取已公开源和提取 provenance，确认两条器件语句的来源哈希。",
+            "说明这是单独的基础电路，不继承完整 Bootstrap 的环境或性能结果。"
+          ],
+          "engineChecks": [
+            "M9=nch_ulvt_mac、M10=pch_ulvt_mac；均 l=30n、w=250.0n、multi=1、nf=1。",
+            "其他面积、周长及实例参数原样保留；原理图使用公开符号重新绘制。"
+          ],
+          "contracts": [
+            {
+              "name": "circuitgit.extracted-circuit.v1",
+              "description": "记录原始两管语句哈希、端口提升、绘图依赖与未运行状态。"
+            },
+            {
+              "name": "CMOS_INVERTER CLK CLKN VDD VSS",
+              "description": "将原内部 CLKN 暴露为独立反相器输出，原节点名不变。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            },
+            {
+              "label": "原始与公开副本的哈希对应",
+              "path": "data/sources/source-manifest.json",
+              "href": "data/sources/source-manifest.json"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "真实已存在电路",
+              "description": "公开 .scs 带嵌入 RNL；没有独立仿真项目、测试台、供电值或结果。",
+              "kind": "observed"
+            }
+          ],
+          "boundaries": [
+            "这是新绘制的简洁图，不声称复原原 Virtuoso 布局。",
+            "独立反相器尚未仿真；Bootstrap 的结果也不能作为它的验证。"
+          ],
+          "recovery": [
+            "若改变器件参数，保存新的电路版本和来源差异，不修改历史提取哈希。"
+          ],
+          "code": {
+            "language": "spectre",
+            "title": "真实接口与绘图记录节选",
+            "text": "subckt CMOS_INVERTER CLK CLKN VDD VSS\n// M9/M10 complete device statements are in the linked source.\n// @RNL(author=\"circuitgit-starter\") {\n//   #\"M10\" @SET-SYMBOL $PMOS_4TERM;\n//   #\"M10\" @PLACE(0, 10) => @ORIENT(\"R0\");\n//   #\"M9\" @SET-SYMBOL $NMOS_4TERM;\n//   #\"M9\" @PLACE(0, -10) => @ORIENT(\"R0\");\n// }"
+          }
+        },
+        {
+          "id": "step-2",
+          "number": 2,
+          "title": "复用统一 Agent 并导入新 intake",
+          "status": "planned",
+          "summary": "此入门电路还未建立本页面对应的仿真实验。先从明确接口和用户目标开始。",
+          "userActions": [
+            "选择 transient 开关响应、DC 转移或小信号 AC 中需要的分析。",
+            "说明负载、供电及可接受指标；没有给出的条件保持待补充。"
+          ],
+          "agentActions": [
+            "嵌入模式复用 CircuitGit 当前 Agent/chat；子模块工具注册与界面显示不另建 Agent 或 MCP 会话。",
+            "用 ic_onboarding_netlist 导入新的字面源，确认 CMOS_INVERTER 接口。",
+            "用 ic_onboarding_session / source 记录此次 source identity 与 revision。"
+          ],
+          "engineChecks": [
+            "确认 CLK/CLKN/VDD/VSS 四端口、两种外部模型和输入文件。"
+          ],
+          "contracts": [
+            {
+              "name": "Isolated source intake",
+              "description": "新电路不继承任意历史环境、模型路径、阈值或结果。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "尚未导入实验",
+              "description": "已公开源不等于已有可执行计划。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "不能从器件尺寸自动推出用户想要的电压、频率或速度目标。"
+          ],
+          "recovery": [
+            "接口或目标不完整时停留在输入阶段，补齐后再生成配方。"
+          ]
+        },
+        {
+          "id": "step-3",
+          "number": 3,
+          "title": "选择授权仿真环境",
+          "status": "planned",
+          "summary": "用户需要为这个独立实验明确选择可用的仿真器和执行环境。",
+          "userActions": [
+            "选择已有连接并核对环境，或配置自己的受控执行入口。"
+          ],
+          "agentActions": [
+            "ic_onboarding_ssh_hosts 列出可选别名，ic_onboarding_probe 检查明确选择的目标。"
+          ],
+          "engineChecks": [
+            "检查工具可见性和平台观察，并记录具体来源。"
+          ],
+          "contracts": [
+            {
+              "name": "Explicit environment binding",
+              "description": "仅使用用户选择的环境；启动脚本需要明确选择。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "没有反相器专属环境记录",
+              "description": "本公开案例不含服务器配置。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "不能因 Bootstrap 环境可见而默认为反相器选择同一环境。"
+          ],
+          "recovery": [
+            "环境不可用或权限不足时暂停，不构造假的可运行状态。"
+          ]
+        },
+        {
+          "id": "step-4",
+          "number": 4,
+          "title": "查找两种模型的依赖",
+          "status": "planned",
+          "summary": "需要自己提供能解析 nch_ulvt_mac 和 pch_ulvt_mac 的授权模型及文档。",
+          "userActions": [
+            "选择有使用权限的模型目录和文档。",
+            "查看两个模型的声明与可用 section。"
+          ],
+          "agentActions": [
+            "使用 ic_onboarding_discover_pdk 和保存目录查询，报告缺失项与覆盖范围。"
+          ],
+          "engineChecks": [
+            "模型端口、参数与实际实例兼容性需要验证；仅字符串同名不够。"
+          ],
+          "contracts": [
+            {
+              "name": "PDK discovery observation",
+              "description": "观察只在授权范围内进行；缓存与新审计分开。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "只有模型引用",
+              "description": "nch_ulvt_mac / pch_ulvt_mac 的实现不包含在公开电路中。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "不从名字推断工艺、电压域或 corner。"
+          ],
+          "recovery": [
+            "模型缺失时停止 prepare，向用户报告具体缺失名字及已检查范围。"
+          ]
+        },
+        {
+          "id": "step-5",
+          "number": 5,
+          "title": "确认模型组合及可选 Verilog-A 依赖",
+          "status": "planned",
+          "summary": "由模型文档和实验目的选择真实观察到的 sections；此反相器没有预置 TT 或 TMI。",
+          "userActions": [
+            "核对工艺选择、供电限制及平台要求。"
+          ],
+          "agentActions": [
+            "用 ic_onboarding_select_pdk_scope 保存实际观察到的 section / TMI 选择。",
+            "此两管源没有 Verilog-A；若未来加入行为模块，再用 ic_onboarding_veriloga_headers 审阅 constants.vams / disciplines.vams 的授权远端闭包。"
+          ],
+          "engineChecks": [
+            "检查 required models 覆盖、文件身份和目标平台。"
+          ],
+          "contracts": [
+            {
+              "name": "Observed scope IDs",
+              "description": "使用真实 catalog 标识，不能用 Bootstrap 的选择替代此实验。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "尚无模型选择",
+              "description": "该独立单元不携带 corner 或平台绑定。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "同名模型和相似尺寸不证明同一模型组合适用。",
+            "当前 Verilog-A 分支 not_applicable；未来标准头应只在远端 staging，不复制到公开 archive。"
+          ],
+          "recovery": [
+            "文件或模型选择改变时重新绑定草稿，并使旧审核失效。"
+          ]
+        },
+        {
+          "id": "step-6",
+          "number": 6,
+          "title": "补充电源、负载和分析配方",
+          "status": "planned",
+          "summary": "Agent 可以协助编写完整 tb，但必须把用户选择转成可检查的刺激、连接、保存信号和分析参数。",
+          "userActions": [
+            "提供 VDD、输入电平/波形、输出负载，以及 tran、dc 或 ac 的分析范围。",
+            "提供测量阈值；AC 需要明确偏置和输入小信号。"
+          ],
+          "agentActions": [
+            "ic_onboarding_agent_tb_draft 保存完整 tb 与结构化目标；不使用暗含固定电源的通用模板冒充已确认实验。"
+          ],
+          "engineChecks": [
+            "核对 CLK/CLKN/VDD/VSS 绑定、电源与衬底连接、负载、分析名称和保存信号。",
+            "AC 传递函数需要 response/reference 和单位；DC 需要 sweep 变量。"
+          ],
+          "contracts": [
+            {
+              "name": "ic.agent_testbench.v1",
+              "description": "刺激、分析、目标、验收标准及后处理与实际文本一起审阅。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "尚无测试台",
+              "description": "没有反相器电压或时间参数被自动推定。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "本页的功能说明图不构成 transient / AC / DC 测量。"
+          ],
+          "recovery": [
+            "缺少偏置、负载或阈值时先补全；不能输出虚构延迟或增益。"
+          ]
+        },
+        {
+          "id": "step-7",
+          "number": 7,
+          "title": "验证依赖并冻结输入",
+          "status": "planned",
+          "summary": "模型选择和测试台齐全后才能 prepare；当前没有反相器 fresh audit 或冻结运行包。",
+          "userActions": [
+            "查看原源、派生 tb、PDK wrapper、资源设置和 audit 摘要。"
+          ],
+          "agentActions": [
+            "ic_onboarding_agent_tb_prepare 校验实际输入并执行受支持的依赖闭包审计。"
+          ],
+          "engineChecks": [
+            "核对每文件哈希、模型声明、section、TMI 与选择一致性。"
+          ],
+          "contracts": [
+            {
+              "name": "Frozen source + dependencies",
+              "description": "freeze 不能修改原源来掩盖模型缺失，审计不足需显式报出。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "尚未 prepare",
+              "description": "Bootstrap 的 4/108/91 审计计数不属于这个反相器实验。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "不能沿用其他实验的通过计数、审核或源身份。"
+          ],
+          "recovery": [
+            "缺失、未知语法或哈希变化时修复后重新 prepare。"
+          ]
+        },
+        {
+          "id": "step-8",
+          "number": 8,
+          "title": "审阅新实验",
+          "status": "planned",
+          "summary": "此反相器没有待审批请求。待输入冻结后，由人审阅准确的工程条件再决定提交。",
+          "userActions": [
+            "确认端口、电源、负载、分析、模型授权及资源范围。"
+          ],
+          "agentActions": [
+            "ic_onboarding_agent_tb_review 展示准确的冻结字节和未解决假设。"
+          ],
+          "engineChecks": [
+            "批准需要对应同一 frozen plan；后续修改使批准失效。"
+          ],
+          "contracts": [
+            {
+              "name": "Human review",
+              "description": "Agent 不代批，不把用户查看页面或超时当成同意。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "尚无审阅请求",
+              "description": "这里的第 8 步是说明流程。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "不复用 Bootstrap 当前 pending 的审核请求。"
+          ],
+          "recovery": [
+            "拒绝或修改后回到草稿；不能从旧审核继续提交新实验。"
+          ]
+        },
+        {
+          "id": "step-9",
+          "number": 9,
+          "title": "运行并收集同一任务",
+          "status": "planned",
+          "summary": "当前没有独立反相器 job、求解日志或波形文件。",
+          "userActions": [
+            "批准后观察原任务的状态和收集结果。"
+          ],
+          "agentActions": [
+            "ic_onboarding_run / submission / inspect 管理同一冻结计划的提交、观察和结果收集。"
+          ],
+          "engineChecks": [
+            "保持原计划稳定键；执行、数据、性能与资格结论分开。"
+          ],
+          "contracts": [
+            {
+              "name": "No replay on uncertainty",
+              "description": "提交结果不明时查询原记录，而不是新建任务重试。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "未运行",
+              "description": "没有反相器专属求解或收集证据。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "任何其他电路的波形不能用作本次运行的结果。"
+          ],
+          "recovery": [
+            "失败时保留日志与来源；修订条件后按新计划重新审核。"
+          ]
+        },
+        {
+          "id": "step-10",
+          "number": 10,
+          "title": "测量、尺寸迭代与工程版本",
+          "status": "planned",
+          "summary": "有真实原生结果后，才按所选分析解释延迟、转移曲线或小信号响应。",
+          "userActions": [
+            "选择同一运行的数据集，查看 CLK 和 CLKN，再选择所需测量。"
+          ],
+          "agentActions": [
+            "ic_onboarding_waveforms_catalog / window 读取真实保存数据；ic_onboarding_analysis 使用支持的有名算法。",
+            "transient 边沿、DC 曲线和 AC Bode 分别使用对应数据和参数。",
+            "需要尺寸迭代时先生成电路 diff 和基于 diff 的标题/说明，再更新 lib 来源并走 commit / PR / CI；新源重新准备与审核。"
+          ],
+          "engineChecks": [
+            "单位、时间/频率轴、dataset_id、source/run/archive 身份和测量规则都要一致。",
+            "ac_metrics 使用已保存复数 response，可选同轴 reference；电压/电流响应不能暗假定 1 Vac 或无量纲。",
+            "dc_op_metrics 只接受 unswept saved DC/DC_OP（axis=null）与精确器件ID；DC sweep 可绘图，但不是工作点算法入口。",
+            "计算使用原精度数据；显示抽样不改变科学分析输入。"
+          ],
+          "contracts": [
+            {
+              "name": "Analysis-specific data",
+              "description": "AC 需原生复数响应及显式单位，reference 可选但传递比需正确约定；DC OP 必须无sweep；DC sweep绘图与工作点算法分开。瞬态延迟需明确边沿和阈值。"
+            },
+            {
+              "name": "Versioned circuit iteration",
+              "description": "保存旧源与旧运行来源；尺寸变更不能让旧结果自动变成新版本结果。此案例尚未进行迭代提交。"
+            }
+          ],
+          "sources": [
+            {
+              "label": "CMOS Inverter 电路（公开派生）",
+              "path": "data/sources/inverter-dut.publication.scs",
+              "href": "data/sources/inverter-dut.publication.scs"
+            }
+          ],
+          "evidence": [
+            {
+              "label": "无结果数值",
+              "description": "没有伪造时延、VTC、增益、相位或功耗。",
+              "kind": "not_run"
+            }
+          ],
+          "boundaries": [
+            "没有用户数值验收目标时，指标仅作报告。",
+            "仅凭两个晶体管的拓扑不能推出实测速度或功耗。"
+          ],
+          "recovery": [
+            "信号、单位或轴不满足算法要求时返回数据缺口，不自动转换成另一个实验。"
+          ]
+        }
+      ]
+    }
+  ],
+  "publication": {
+    "sourceManifest": "data/sources/source-manifest.json",
+    "method": "Manual allowlist construction, not a runtime dump.",
+    "staticOnly": true,
+    "privateRuntimeModified": false,
+    "historicalResultsReused": false
+  },
+  "responsibilityMatrix": {
+    "columns": [
+      "阶段",
+      "工程师",
+      "Agent",
+      "确定性引擎",
+      "禁止事项"
+    ],
+    "rows": [
+      [
+        "1 · 电路来源",
+        "选择电路和目标层级",
+        "解释接口与来源",
+        "哈希、拓扑及几何映射",
+        "猜测原生布局或宣称完整ADC验收"
+      ],
+      [
+        "2 · 宿主与导入",
+        "确定宿主模式和实验目标",
+        "在同一chat中注册/调用工具",
+        "独立intake与revision绑定",
+        "嵌入模式再启动第二Agent/MCP"
+      ],
+      [
+        "3 · 执行环境",
+        "选择有权使用的环境",
+        "对明确目标发起观察",
+        "工具/平台/身份观察",
+        "猜路径、读密钥或借历史环境"
+      ],
+      [
+        "4 · 模型发现",
+        "选择授权模型范围",
+        "解释覆盖和缺失",
+        "受界限约束的索引与目录",
+        "把缓存当新审计或完整PDK资格"
+      ],
+      [
+        "5 · 依赖选择",
+        "确认corner/TMI及VA依赖",
+        "绑定观察到的sections/headers",
+        "闭包、哈希和远端staging核对",
+        "公开PDK实现或标准头文件正文"
+      ],
+      [
+        "6 · 测试台",
+        "确认刺激、负载和指标",
+        "生成完整tb与结构化合同",
+        "端口、语法、保存信号一致性",
+        "猜测用户未给的条件或目标"
+      ],
+      [
+        "7 · 准备",
+        "核对生成输入和缺失项",
+        "请求验证/冻结",
+        "FreshAudit、选择比较、freeze",
+        "把静态通过当求解或性能通过"
+      ],
+      [
+        "8 · 人工审核",
+        "批准、拒绝或要求修改",
+        "展示冻结内容和风险假设",
+        "准确请求关联与状态核验",
+        "Agent代批或超时视为同意"
+      ],
+      [
+        "9 · 执行收集",
+        "观察运行与失败事实",
+        "查询原计划/任务",
+        "稳定键、Runner、原生收集",
+        "不确定提交自动换key重放"
+      ],
+      [
+        "10 · 分析迭代",
+        "解释指标并选择设计更新",
+        "报告、提议尺寸变化与提交标题",
+        "原精度分析、Git差异与CI",
+        "用示意图冒充测量或自动宣称达标"
+      ]
+    ]
+  }
+}
