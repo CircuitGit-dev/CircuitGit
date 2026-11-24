@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / 'apps/codex'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from icwb.host import AiRoutes
 from icwb.service import Service, Failure, load_config
+from ic_gateway.service import check_pdk_scope_response
 from browser_pairing import Pairing, confirmation_html
 from browser_login import LocalLogin
 from library_workflow import WorkflowError
@@ -29,8 +30,8 @@ POST_ROUTES = {'sessions', 'sessions/rename', 'sessions/delete', 'connect',
 LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/review-request', '/api/library/execute'}
 SIMULATION_ROUTE = '/api/simulation/execute'
 ONBOARDING_PREFIX = '/api/simulation/onboarding/'
-ONBOARDING_READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','source','agent-tb/review'}
-ONBOARDING_WRITES = {'netlist','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis'}
+ONBOARDING_READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','source','agent-tb/review','pdk-scopes'}
+ONBOARDING_WRITES = {'netlist','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis','select-pdk-scope'}
 
 def onboarding_entry_origin(headers):
     # This header is provenance only. The bearer/pairing guards run first.
@@ -82,6 +83,8 @@ class GatewayOnboarding:
             raise Failure('onboarding_response_mismatch','Onboarding response must be an object; do not replay mutations',75)
         if 'intake_id' in args and data.get('intake_id')!=args['intake_id']:
             raise Failure('onboarding_response_mismatch','Onboarding response belongs to another intake; do not replay mutations',75)
+        if operation in ('pdk-scopes','select-pdk-scope'):
+            check_pdk_scope_response(operation, data, args, self.connection_id)
         if operation in ('netlist','session','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb','agent-tb/draft','agent-tb/prepare'):
             if data.get('schema')!='ic.onboarding.session.v1' or data.get('connection_id')!=self.connection_id:
                 raise Failure('onboarding_response_mismatch','Onboarding response belongs to another connection; do not replay mutations',75)

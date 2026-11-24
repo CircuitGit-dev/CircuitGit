@@ -839,6 +839,112 @@
       }
     },
     {
+      "name": "ic_onboarding_pdk_scopes",
+      "description": "Read a bounded catalog from this intake’s original saved PDK library and probe. Omit entry_id to list entries; use an observed entry_id to list sections and next_offset to continue. IDs are opaque and bound to retained file hashes. No scan, SSH, new roots or execution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "probe_id": {
+            "type": "string",
+            "pattern": "^probe_[a-f0-9]{32}$"
+          },
+          "library_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "entry_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16384
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 128
+          }
+        },
+        "required": [
+          "intake_id",
+          "probe_id",
+          "library_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_onboarding_select_pdk_scope",
+      "description": "Save an ordered selection of 1–64 observed sections from one saved PDK entry, optionally with an observed TMI option. Uses the exact intake revision. It preserves prior drafts and requires explicit draft rebinding, a fresh dependency audit and human review. Coverage is not process qualification or permission to run. No scan, SSH or simulation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "pattern": "^intake_[a-f0-9]{32}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "probe_id": {
+            "type": "string",
+            "pattern": "^probe_[a-f0-9]{32}$"
+          },
+          "library_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "entry_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "section_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "minItems": 1,
+            "maxItems": 64,
+            "uniqueItems": true
+          },
+          "tmi_option_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "intake_id",
+          "revision",
+          "probe_id",
+          "library_id",
+          "entry_id",
+          "section_ids"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "ic_onboarding_prepare",
       "description": "Prepare from the current intake revision and server recommendation; optional accept_recommendation defaults to accepting the current recommendation. Optional recommendation_id/revision must match. Partial intent, model_contracts, sections or TMI overrides remain explicit. accept_recommendation:false requires the complete legacy discovery/candidate/sections/TMI/contracts/intent selection. Freezes source and dependencies for review; never launches.",
       "inputSchema": {
@@ -1378,77 +1484,111 @@
             "additionalProperties": false
           },
           "selection": {
-            "type": "object",
-            "properties": {
-              "discovery_id": {
-                "type": "string",
-                "pattern": "^discovery_[a-f0-9]{32}$"
-              },
-              "candidate_id": {
-                "type": "string",
-                "pattern": "^[a-f0-9]{64}$"
-              },
-              "sections": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "minItems": 1,
-                "maxItems": 64,
-                "uniqueItems": true
-              },
-              "tmi_candidate_id": {
-                "anyOf": [
-                  {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "discovery_id": {
+                    "type": "string",
+                    "pattern": "^discovery_[a-f0-9]{32}$"
+                  },
+                  "candidate_id": {
                     "type": "string",
                     "pattern": "^[a-f0-9]{64}$"
                   },
-                  {
-                    "type": "null"
+                  "sections": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "uniqueItems": true
+                  },
+                  "tmi_candidate_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "model_contracts": {
+                    "type": "object",
+                    "properties": {},
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "maxProperties": 128
+                    },
+                    "maxProperties": 128
+                  },
+                  "host_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 180
+                    },
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true
+                  },
+                  "veriloga_header_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 180
                   }
-                ]
+                },
+                "required": [],
+                "additionalProperties": false
               },
-              "model_contracts": {
+              {
                 "type": "object",
-                "properties": {},
-                "propertyNames": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,95}$"
+                "properties": {
+                  "scope_selection_id": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "host_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 180
+                    },
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true
+                  },
+                  "veriloga_header_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 180
+                  }
                 },
-                "additionalProperties": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "maxProperties": 128
-                },
-                "maxProperties": 128
-              },
-              "host_ids": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 180
-                },
-                "minItems": 1,
-                "maxItems": 8,
-                "uniqueItems": true
-              },
-              "veriloga_header_id": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 180
+                "required": [
+                  "scope_selection_id",
+                  "host_ids"
+                ],
+                "additionalProperties": false
               }
-            },
-            "required": [],
-            "additionalProperties": false
+            ]
           }
         },
         "required": [

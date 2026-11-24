@@ -85,6 +85,27 @@ class CachedBindingStateTests(_IntakeFixture):
         self.assertEqual(action['operation'],'agent-tb/prepare');self.assertFalse(action['ready'])
         self.assertIn('multi_entry_selection_required',{row['code'] for row in action['missing']})
 
+    def test_explicit_scope_uses_its_own_gaps_and_stale_draft_never_prepares(self):
+        state=self.stored_combination();state['mode']='agent-tb'
+        state['agent_tb']={'draft_id':'synthetic-draft','status':'draft',
+            'selection':{'scope_selection_id':'a'*64,'host_ids':[state['probes'][0]['ssh_target']]}}
+        state['pdk_scope_selection']={'selection_id':'a'*64,'status':'requires_audit','missing':[],
+            'probe_id':state['probes'][0]['probe_id']}
+        action=next_actions(state)[0]
+        self.assertEqual(action['operation'],'agent-tb/prepare');self.assertTrue(action['ready'])
+        self.assertEqual(action['reason_code'],'agent_testbench_scope_audit_required')
+        state['agent_tb']['selection']['host_ids']=['not-observed']
+        self.assertFalse(next_actions(state)[0]['ready'])
+        state['agent_tb']['selection']['host_ids']=[state['probes'][0]['ssh_target']]
+        state['pdk_scope_selection']['missing']=[{'code':'tmi_selection_required'}]
+        self.assertFalse(next_actions(state)[0]['ready'])
+        state['agent_tb']['status']='binding_stale'
+        action=next_actions(state)[0]
+        self.assertEqual(action['operation'],'agent-tb/draft');self.assertFalse(action['ready'])
+        self.assertEqual(action['reason_code'],'agent_testbench_binding_stale')
+        state['state']='select-pdk-scope'
+        self.assertEqual(next_actions(state)[0]['reason_code'],'operation_in_progress')
+
     def test_projection_coverage_keeps_unknowns_and_other_host_failure_separate(self):
         state=self.stored_combination();lut=copy.deepcopy(state['discovery']['lut'][0]);probe=lut['probe_id']
         lut['projection']['coverage'].update(search_complete=False,unknown_count=7,

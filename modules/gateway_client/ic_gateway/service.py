@@ -261,6 +261,76 @@ def validate(schema, value, label='arguments'):
 
 
 
+def check_pdk_scope_response(operation, result, arguments, connection):
+    """Check public transport identity; PDK semantics remain in SpiceOwl."""
+    def require(ok):
+        check(ok, 'PDK scope response does not match the original request; do not replay writes.',
+              'onboarding_response_mismatch', 75)
+    def hashed(value):
+        return isinstance(value, str) and re.fullmatch(r'[a-f0-9]{64}', value) is not None
+    require(isinstance(result, dict) and result.get('connection_id') == connection
+            and result.get('intake_id') == arguments['intake_id']
+            and type(result.get('revision')) is int and result['revision'] >= 1)
+    if operation == 'pdk-scopes':
+        require(result.get('schema') == 'ic.onboarding.pdk-scopes.v1'
+                and result.get('probe_id') == arguments['probe_id'])
+        catalog = result.get('catalog')
+        require(isinstance(catalog, dict))
+        require(catalog.get('schema') == 'spiceowl.pdk-scope-catalog.v1'
+                and catalog.get('library_id') == arguments['library_id']
+                and catalog.get('entry_id') == arguments.get('entry_id')
+                and catalog.get('kind') == ('sections' if arguments.get('entry_id') else 'entries')
+                and catalog.get('ready_to_run') is False
+                and catalog.get('status') in ('available', 'blocked')
+                and isinstance(catalog.get('missing'), list)
+                and type(catalog.get('library_complete_within_policy')) is bool)
+        items, total, following = catalog.get('items'), catalog.get('total'), catalog.get('next_offset')
+        offset, limit = int(arguments.get('offset', 0)), int(arguments.get('limit', 64))
+        require(isinstance(items, list) and len(items) <= limit and type(total) is int
+                and total >= 0 and offset + len(items) <= max(offset, total))
+        require(len(items) == min(limit, max(total-offset, 0)))
+        if offset + len(items) < total:
+            require(type(following) is int and following == offset + len(items) and following > offset)
+        else:
+            require(following is None)
+        key = 'section_id' if arguments.get('entry_id') else 'entry_id'
+        require(all(isinstance(row, dict) and hashed(row.get(key)) for row in items))
+        require(len({row[key] for row in items}) == len(items))
+        for row in items:
+            if key == 'entry_id':
+                require(isinstance(row.get('label'), str) and 0 < len(row['label']) <= 1000
+                        and hashed(row.get('entry_sha256'))
+                        and type(row.get('section_count')) is int and row['section_count'] >= 0)
+            else:
+                require('section' in row and (row['section'] is None or isinstance(row['section'], str))
+                        and type(row.get('has_include_targets')) is bool
+                        and type(row.get('observed_model_count')) is int and row['observed_model_count'] >= 0
+                        and isinstance(row.get('unknown_codes'), list))
+    else:
+        require(result.get('schema') == 'ic.onboarding.session.v1'
+                and result['revision'] == arguments['revision'] + 1)
+        selection = result.get('pdk_scope_selection')
+        require(isinstance(selection, dict))
+        require(hashed(selection.get('selection_id')) and selection.get('probe_id') == arguments['probe_id']
+                and selection.get('library_id') == arguments['library_id']
+                and selection.get('entry_id') == arguments['entry_id']
+                and selection.get('section_ids') == arguments['section_ids']
+                and selection.get('status') in ('blocked', 'requires_audit')
+                and selection.get('source_sha256') == result.get('source_sha256')
+                and hashed(selection.get('source_sha256'))
+                and selection.get('ready_to_run') is False
+                and selection.get('fresh_audit_required') is True)
+        require(hashed(selection.get('requirements_sha256'))
+                and selection.get('scientific_compatibility') == 'not_evaluated'
+                and selection.get('model_contracts_reused') is False
+                and isinstance(selection.get('sections'), list)
+                and len(selection['sections']) == len(arguments['section_ids'])
+                and all(isinstance(selection.get(key), list) for key in
+                    ('required_model_names','covered_model_names','missing_model_names','tmi_options','missing'))
+                and 'selected_tmi_option_id' in selection)
+        require(selection.get('selected_tmi_option_id') == arguments.get('tmi_option_id'))
+
+
 class Service:
     def __init__(self, config):
         self.config = config
@@ -494,10 +564,12 @@ class Service:
             path+='?'+urlencode(query)
         result=self.gateway.request(path,args if method=='POST' else None,
             onboarding_entry='native_agent',onboarding_connection_id=connection,
-            route_timeout=320 if op=='onboarding_run' else 300 if op in {'onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_prepare','onboarding_agent_tb_prepare'} else None)
+            route_timeout=320 if op=='onboarding_run' else 300 if op in {'onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_prepare','onboarding_agent_tb_prepare'} else 20 if op in {'onboarding_pdk_scopes','onboarding_select_pdk_scope'} else None)
         check(isinstance(result,dict),'Onboarding returned no structured object.','onboarding_response_mismatch',75)
         if 'intake_id' in args:
             check(result.get('intake_id')==args['intake_id'],'Onboarding response belongs to another intake.','onboarding_response_mismatch',75)
+        if op in ('onboarding_pdk_scopes','onboarding_select_pdk_scope'):
+            check_pdk_scope_response(route, result, args, connection)
         if op in ('onboarding_netlist','onboarding_session','onboarding_probe','onboarding_discover_pdk',
                   'onboarding_prepare','onboarding_run','onboarding_inspect',
                   'onboarding_agent_tb','onboarding_agent_tb_draft','onboarding_agent_tb_prepare','onboarding_veriloga_headers'):

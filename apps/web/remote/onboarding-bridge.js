@@ -1,5 +1,5 @@
 // Onboarding owns a transport and receipt scope independently of any AI session.
-import {createNodeClient,ONBOARDING_OPERATIONS,onboardingRequestTimeout} from './client.js';
+import {createNodeClient,ONBOARDING_OPERATIONS,onboardingRequestTimeout,pdkScopeQuery} from './client.js';
 import {pairLocal,LOCAL_CONNECTOR} from './pair.js';
 import {validatePreDispatchRejection} from '../../../modules/simulation/environment/submission.js';
 import {checkAnalysisResult} from '../../../modules/simulation/environment/analysis.js';
@@ -12,6 +12,16 @@ const hash=(value,length=64)=>typeof value==='string'&&new RegExp(`^[a-f0-9]{${l
 const signalId=value=>typeof value==='string'&&/^s_[a-f0-9]{32}$/.test(value);
 const requireValue=(condition,message,code='waveform_identity_mismatch')=>{if(!condition)throw failure(message,code);};
 const opaque=value=>typeof value==='string'&&value.length>0&&value.length<=512&&!/[\x00-\x1f\x7f]/.test(value);
+function sessionCanAdvance(previous,next){
+  if(!previous)return true;
+  if(next.revision<previous.revision||previous.source_sha256&&next.source_sha256!==previous.source_sha256)return false;
+  if(next.revision!==previous.revision)return true;
+  const before=previous.operation,after=next.operation;
+  if(before?.operation_id&&(after?.operation_id!==before.operation_id||
+    ['completed','reconciled'].includes(before.status)&&after.status==='active'))return false;
+  const previousTime=Date.parse(previous.updated_at),nextTime=Date.parse(next.updated_at);
+  return !Number.isFinite(previousTime)||!Number.isFinite(nextTime)||nextTime>=previousTime;
+}
 const pendingKey=row=>JSON.stringify([row.connectionId,row.intake_id,row.phase,row.phase==='run'?row.plan_id:row.revision]);
 const pendingFields=['schema','connectionId','intake_id','revision','phase','plan_id','submission_key','createdAt'];
 function checkedPending(row){
@@ -75,7 +85,7 @@ export function snapshotOnboardingSource(doc,{hasBuffer=()=>false,fileText=()=>'
 
 export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=pairLocal,clientFactory=createNodeClient,pendingStore=createOnboardingPendingStore(),selectionStore=createOnboardingSelectionStore()}={}){
   let transport=null,pairing=null,epoch=0,connecting=false,connectionId=null,storeIdentity=null,endpoint=null,error=null,capabilities={},selectedIntakeId=null,ownsTransport=false,bindingClient=null,selectionTicket=0;
-  const mode=gateway?'same-origin':'paired-local',listeners=new Set(),attempted=new Set(),intakes=new Set(),sessions=new Map();
+  const mode=gateway?'same-origin':'paired-local',listeners=new Set(),attempted=new Set(),intakes=new Set(),sessions=new Map(),scopeWrites=new Map();
   let selectionQueue=Promise.resolve();
   function saveSelection({scope,intake_id,generation,client,ticket,previous,isCurrent=()=>true}){
     const work=selectionQueue.catch(()=>{}).then(async()=>{
@@ -156,9 +166,12 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     requireValue(generation===epoch&&client===transport,'连接已变化，未采用旧 AI 结果。','connection_changed');
     requireValue(result?.schema==='ic.onboarding.session.v1'&&result.connection_id===connection_id&&result.intake_id===intake_id&&
       result.source_sha256===source_sha256&&Number.isInteger(result.revision)&&result.revision>=1,'AI 网表回读身份不匹配。','invalid_session_identity');
+    const notOlder=()=>sessionCanAdvance(sessions.get(intake_id),result);
+    requireValue(notOlder(),'此会话已有更新的版本；旧 AI 回读已丢弃。','stale_session_response');
     requireValue(await isCurrent(),'画布已变化，未切换到旧 AI 结果。','source_changed');
     requireValue(generation===epoch&&client===transport&&ticket===selectionTicket,'连接已变化。','connection_changed');
-    await saveSelection({scope,intake_id,generation,client,ticket,previous,isCurrent});
+    await saveSelection({scope,intake_id,generation,client,ticket,previous,isCurrent:async()=>await isCurrent()&&notOlder()});
+    requireValue(notOlder(),'此会话已有更新的版本；旧 AI 回读已丢弃。','stale_session_response');
     intakes.add(intake_id);selectedIntakeId=intake_id;sessions.set(intake_id,clone(result));publish();return clone(result);
   }
   async function request(name,args){
@@ -166,11 +179,16 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     if(!transport||!connectionId)throw failure('请先连接仿真环境。','onboarding_disconnected');
     const generation=epoch,scope=connectionId,client=transport,input=clone(args||{});
     const originalIntake=clone(sessions.get(input.intake_id));let originalPending=null;
+    const scopeWriteKey=JSON.stringify([scope,input.intake_id]);let scopeWrite=null;
+    const observedScopeWrite=scopeWrites.get(scopeWriteKey);
+    const scopeWasUnknown=observedScopeWrite?.status==='unknown';
     if(typeof input!=='object'||Array.isArray(input))throw failure('环境操作参数无效。','invalid_input');
     if(!['inspectNetlist','listSshAliases'].includes(name)&&!intakes.has(input.intake_id))throw failure('此网表不属于当前连接中已导入或恢复的会话。','intake_scope_mismatch');
     if(onboardingRecovery(originalIntake)&&operation.method==='POST')throw failure(recoveryMessage(originalIntake),'recovery_required');
+    if(observedScopeWrite&&operation.method==='POST')throw failure('PDK 保存正在进行或结果未知；请先读取原会话核对，未重复发送。','scope_reconciliation_required');
     let path=PREFIX+operation.path,options={method:operation.method,timeout:onboardingRequestTimeout(name,input,sessions.get(input.intake_id))};
-    if(operation.query){if(Object.keys(input).length!==operation.query.length||operation.query.some(key=>!opaque(input[key])))throw failure('请提供原始请求身份。','invalid_input');path+='?'+new URLSearchParams(input);}
+    if(name==='getPdkScopes')path+='?'+pdkScopeQuery(input);
+    else if(operation.query){if(Object.keys(input).length!==operation.query.length||operation.query.some(key=>!opaque(input[key])))throw failure('请提供原始请求身份。','invalid_input');path+='?'+new URLSearchParams(input);}
     else if(operation.method==='GET'){if(Object.keys(input).length)throw failure('本地 SSH 列表不接受过滤或路径参数。','invalid_input');}
     else options.body=input;
     if(name==='probeHost'&&(!Array.isArray(input.ssh_targets)||!input.ssh_targets.length||!input.ssh_targets.every(opaque)))throw failure('请明确选择需要探测的 SSH 主机。','invalid_input');
@@ -192,6 +210,9 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       originalPending=await pendingStore.put(record);if(generation!==epoch||scope!==connectionId)throw failure('连接已变化；原请求保留，未发送。','connection_changed');attempted.add(key);
     }
     try{
+      if(name==='selectPdkScope'){
+        scopeWrite={revision:input.revision,status:'sending'};scopeWrites.set(scopeWriteKey,scopeWrite);
+      }
       const result=await client.request(path,options);
       if(generation!==epoch||scope!==connectionId)throw failure(operation.method==='POST'?'连接已变化；请用原身份核对结果，未重发。':'连接已变化；旧响应已丢弃。',operation.method==='POST'?'transport_unknown':'connection_changed');
       if(name==='inspectNetlist'){
@@ -201,9 +222,44 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
         intakes.add(result.intake_id);
         selectedIntakeId=result.intake_id;publish();
       }
-      if(['getSession','getAgentTestbench','probeVerilogaHeaders','probeHost','discoverPdk','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared','inspectExperiment'].includes(name)){
-        const advances=['probeVerilogaHeaders','probeHost','discoverPdk','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared'].includes(name);
+      if(name==='getPdkScopes'){
+        const catalog=result?.catalog,items=catalog?.items,offset=input.offset??0,limit=input.limit??64;
+        const idKey=input.entry_id?'section_id':'entry_id';
+        requireValue(result?.schema==='ic.onboarding.pdk-scopes.v1'&&result.connection_id===storeIdentity&&
+          result.intake_id===input.intake_id&&result.probe_id===input.probe_id&&Number.isSafeInteger(result.revision)&&result.revision>=1&&
+          (!originalIntake||result.revision===originalIntake.revision)&&
+          (!sessions.has(input.intake_id)||result.revision===sessions.get(input.intake_id).revision)&&
+          catalog?.schema==='spiceowl.pdk-scope-catalog.v1'&&catalog.library_id===input.library_id&&
+          catalog.entry_id===(input.entry_id??null)&&catalog.kind===(input.entry_id?'sections':'entries')&&catalog.ready_to_run===false&&
+          ['available','blocked'].includes(catalog.status)&&Array.isArray(catalog.missing)&&typeof catalog.library_complete_within_policy==='boolean'&&
+          Array.isArray(items)&&items.length<=limit&&items.every(row=>row&&hash(row[idKey]))&&new Set(items.map(row=>row[idKey])).size===items.length&&
+          items.every(row=>input.entry_id?('section' in row&&(row.section===null||opaque(row.section))&&typeof row.has_include_targets==='boolean'&&
+            Number.isSafeInteger(row.observed_model_count)&&row.observed_model_count>=0&&Array.isArray(row.unknown_codes)):
+            (opaque(row.label)&&hash(row.entry_sha256)&&Number.isSafeInteger(row.section_count)&&row.section_count>=0))&&
+          Number.isSafeInteger(catalog.total)&&catalog.total>=0&&offset+items.length<=Math.max(offset,catalog.total)&&
+          items.length===Math.min(limit,Math.max(catalog.total-offset,0))&&
+          (offset+items.length>=catalog.total?catalog.next_offset===null:
+            Number.isSafeInteger(catalog.next_offset)&&catalog.next_offset===offset+items.length&&catalog.next_offset>offset),
+          'PDK 目录与原始库、主机或版本不一致；未采用旧目录。','pdk_scope_mismatch');
+      }
+      if(['getSession','getAgentTestbench','probeVerilogaHeaders','probeHost','discoverPdk','selectPdkScope','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared','inspectExperiment'].includes(name)){
+        const advances=['probeVerilogaHeaders','probeHost','discoverPdk','selectPdkScope','prepareExperiment','saveAgentTestbench','prepareAgentTestbench','runPrepared'].includes(name);
         if(result?.schema!=='ic.onboarding.session.v1'||result.connection_id!==storeIdentity||result.intake_id!==input.intake_id||!Number.isInteger(result.revision)||result.revision<0||advances&&result.revision!==input.revision+1)throw failure('助手返回了不同的会话或版本；请核对原会话。','invalid_session_identity');
+      }
+      if(name==='selectPdkScope'){
+        const selection=result.pdk_scope_selection;
+        requireValue(selection&&hash(selection.selection_id)&&selection.probe_id===input.probe_id&&
+          (!sessions.has(input.intake_id)||sessions.get(input.intake_id).revision<=result.revision)&&
+          selection.library_id===input.library_id&&selection.entry_id===input.entry_id&&
+          JSON.stringify(selection.section_ids)===JSON.stringify(input.section_ids)&&
+          hash(selection.source_sha256)&&selection.source_sha256===result.source_sha256&&
+          (!originalIntake?.source_sha256||selection.source_sha256===originalIntake.source_sha256)&&
+          ['blocked','requires_audit'].includes(selection.status)&&selection.ready_to_run===false&&selection.fresh_audit_required===true&&
+          hash(selection.requirements_sha256)&&selection.scientific_compatibility==='not_evaluated'&&selection.model_contracts_reused===false&&
+          Array.isArray(selection.sections)&&selection.sections.length===input.section_ids.length&&
+          ['required_model_names','covered_model_names','missing_model_names','tmi_options','missing'].every(key=>Array.isArray(selection[key]))&&
+          selection.selected_tmi_option_id===(input.tmi_option_id??null),
+          'PDK 选择回执与原始 section 或来源不符；请读取原会话核对。','pdk_scope_mismatch');
       }
       const rejectionClaim=name==='runPrepared'?(result?.state==='pre_dispatch_rejected'||result?.submission?.dispatch_outcome==='pre_dispatch_rejected'||!!result?.submission?.rejection):
         name==='readSubmission'&&(result?.dispatch_outcome==='pre_dispatch_rejected'||!!result?.rejection);
@@ -241,9 +297,24 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
         result.request?.operation===input.operation&&result.result?.operation===input.operation,
         '分析结果的源码、任务或数据归档身份不一致。','analysis_scope_mismatch');
       if(name==='analyzeExperiment')try{checkAnalysisResult(result,originalIntake);}catch{throw failure('分析原始数据来源或指标回执不完整。','analysis_scope_mismatch');}
-      if(result?.schema==='ic.onboarding.session.v1'){sessions.set(result.intake_id,clone(result));publish();}
+      if(result?.schema==='ic.onboarding.session.v1'){
+        const latest=sessions.get(result.intake_id);
+        requireValue(sessionCanAdvance(latest,result),
+          '此会话已有更新的版本；旧回读已丢弃。','stale_session_response');
+        sessions.set(result.intake_id,clone(result));
+        if(scopeWrite)scopeWrites.delete(scopeWriteKey);
+        // Only a read started after an unknown save may reconcile it. A read
+        // overlapping a still-pending write cannot unlock another mutation.
+        if(name==='getSession'&&scopeWasUnknown&&scopeWrites.get(scopeWriteKey)===observedScopeWrite&&
+          !onboardingRecovery(result)&&result.operation?.status!=='active')scopeWrites.delete(scopeWriteKey);
+        publish();
+      }
       return result;
     }catch(problem){
+      if(scopeWrite){
+        if(problem.data?.commit_status==='not_committed')scopeWrites.delete(scopeWriteKey);
+        else scopeWrite.status='unknown';
+      }
       if(generation!==epoch||scope!==connectionId)throw failure(operation.method==='POST'?'连接已变化；请用原身份核对结果，未重发。':'连接已变化；旧响应已丢弃。',operation.method==='POST'?'transport_unknown':'connection_changed');
       if(name==='analyzeExperiment'&&problem.data?.code==='analysis_scope_mismatch')throw problem;
       if(operation.method==='POST'&&(!problem.status||problem.code==='response_size_limit'||problem.data?.code==='response_size_limit')&&!['replay_forbidden','connection_changed'].includes(problem.data?.code)){

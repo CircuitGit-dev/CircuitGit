@@ -16,6 +16,8 @@ The browser injects an adapter into `modules/simulation/environment`; that modul
 | `probeHost` | POST `/probe` | `{intake_id,revision,ssh_targets,overrides?}` |
 | `discoverPdk` | POST `/discover-pdk` | `{intake_id,revision,probe_ids,search_paths?,search_directory_ids?,cds_lib_hint?,refresh?,library_selection?}` |
 | `probeVerilogaHeaders` | POST `/veriloga-headers` | `{intake_id,revision,probe_id,roots}`; explicit standard-header include roots on an already observed host |
+| `getPdkScopes` | GET `/pdk-scopes` | `{intake_id,probe_id,library_id,entry_id?,offset?,limit?}` |
+| `selectPdkScope` | POST `/select-pdk-scope` | `{intake_id,revision,probe_id,library_id,entry_id,section_ids,tmi_option_id?}` |
 | `prepareExperiment` | POST `/prepare` | selection and intent below |
 | `runPrepared` | POST `/run` | `{intake_id,revision,plan_id}` |
 | `readSubmission` | GET `/submission?intake_id=ID&plan_id=PLAN` | original intake and plan IDs |
@@ -87,14 +89,15 @@ manual search hints remain supported after the automatic limit. A fresh probe
 invalidates its old search history. When reactivating selected hosts, guidance
 preserves every already selected setup ID and rechecks its current source hash.
 
-The eighteen generated MCP tools mirror the routes above and waveform routes:
+The twenty-one generated MCP tools mirror the routes above and waveform routes:
 `ic_onboarding_netlist`, `ic_onboarding_ssh_hosts`, `ic_onboarding_session`,
 `ic_onboarding_probe`, `ic_onboarding_discover_pdk`, `ic_onboarding_prepare`,
 `ic_onboarding_run`, `ic_onboarding_submission`, `ic_onboarding_inspect`,
 `ic_onboarding_waveforms_catalog`, `ic_onboarding_waveforms_mapping`, and
 `ic_onboarding_waveforms_window`, `ic_onboarding_source`, `ic_onboarding_agent_tb`,
 `ic_onboarding_agent_tb_draft`, `ic_onboarding_agent_tb_prepare`,
-`ic_onboarding_agent_tb_review`, and `ic_onboarding_analysis`. Their `structuredContent` remains
+`ic_onboarding_agent_tb_review`, `ic_onboarding_analysis`, `ic_onboarding_veriloga_headers`,
+`ic_onboarding_pdk_scopes`, and `ic_onboarding_select_pdk_scope`. Their `structuredContent` remains
 `{ok:true,data:result}`; session results retain all binding fields and guidance.
 The Service records `native_agent` using a fixed transport header, verifies the
 gateway connection identity and capability, and keeps the original run journal.
@@ -121,6 +124,53 @@ or a benchmark of a particular language model.
 `probeHost` returns a session with `probes: [{probe_id,ssh_target,observed_at,environment}]`. The environment contains observed tool presence/version, license **configuration presence** with checkout not attempted, CPU/memory observations, missing items, warnings and bounded coverage. Raw license values and private environment/script paths stay in private state. Unexecuted declarations are discovery hints, not proof of a working environment.
 
 `discoverPdk` returns the **nested** `session.discovery` object containing `discovery_id`, `candidates`, `ambiguities`, `missing` and `coverage`; these fields are not flattened onto the session. Each candidate has `candidate_id`, `probe_id`, `label`, `entry_role`, `available_sections`, `section_candidates`, `master_coverage`, `model_contracts`, `tmi_candidates`, `evidence` and `missing`. Identifiers are opaque. Definitions and usable include entrypoints are distinguished. Candidate lists and section names come from scanned source, not a built-in foundry table. An incomplete or timed-out search remains incomplete; a match is not an automatic selection.
+
+## Cached section selection from one PDK entry
+
+`getPdkScopes` reads the exact current probe's retained library without SSH or a
+new scan. Omit `entry_id` to list entries; pass an observed entry ID to list its
+sections. `offset` is 0–16384, `limit` is 1–128 (default 64); continue only with
+the returned `next_offset`. All entry, section, library and TMI identifiers are
+opaque 64-hex values. The response is `ic.onboarding.pdk-scopes.v1` with the
+connection, intake, revision and probe identities plus the SDK's public catalog.
+Absolute model paths and file bodies are never sent to the browser.
+
+`selectPdkScope` saves 1–64 distinct section IDs, in the user's explicit order,
+from a single observed entry. An optional `tmi_option_id` must be observed; omit
+it when none is selected, rather than sending null. This operation uses local
+revision CAS and a 20-second route budget. It neither refreshes discovery nor
+chooses a corner, TMI platform or additional search root automatically.
+
+The resulting `session.pdk_scope_selection` contains the SDK public projection
+and `probe_id`. It is either `blocked` or `requires_audit`, always with
+`ready_to_run:false`, `fresh_audit_required:true` and scientific compatibility
+unevaluated. The global library may remain partial when the selected closure
+is complete. Selection saves immutable private evidence and a separate binding
+to this connection, source requirements, probe capture and discovery. Preparation
+verifies both and recomputes the projection from the retained library.
+
+When an explicit discovery request hits the cache, CircuitGit retains the exact
+SDK-exported library snapshot in that intake after verifying its cache ID,
+content fingerprint, observed server and root set. The catalog never searches
+another intake or silently falls back to the global cache. Older discovery
+records without this private binding require an explicit cache-only
+`library_selection` query; missing or stale cache evidence fails without a new
+remote scan. Original discovery records remain unchanged.
+
+An agent testbench uses the independent selection variant
+`{scope_selection_id,host_ids,veriloga_header_id?}`. Legacy discovery/candidate IDs,
+section names and model contracts must not be mixed into that variant. Changing
+scope keeps the old draft text, selection and digest intact, marks it
+`binding_stale`, and requires an explicit new draft save. It invalidates the
+current preparation and review but preserves historical receipts. Unresolved
+submissions block selection changes.
+
+Prepare performs the actual remote dependency audit with the normalized selected
+configuration. SpiceOwl verifies the exact file/hash set, visited scopes,
+declarations and TMI evidence. CircuitGit binds this comparison to the real audit
+call and frozen source/configuration; a pure comparison alone never proves a
+fresh remote observation. Review retains the public scope and comparison. A
+matched audit still requires the existing human review before a solver run.
 
 ## Preparing and running
 
