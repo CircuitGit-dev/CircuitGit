@@ -219,7 +219,7 @@ class Gateway:
             conn.close()
 
 
-from .contracts import SCHEMAS, MUTATIONS, READ_ONLY, DESCRIPTIONS, IDENTITY, ONBOARDING_ROUTES, tools
+from .contracts import SCHEMAS, MUTATIONS, READ_ONLY, DESCRIPTIONS, IDENTITY, ONBOARDING_ROUTES, SPICEOWL_READS, tools
 
 
 def validate(schema, value, label='arguments'):
@@ -334,6 +334,10 @@ def check_pdk_scope_response(operation, result, arguments, connection):
 class Service:
     def __init__(self, config):
         self.config = config
+        spiceowl=config.get('spiceowl_readonly')
+        check(spiceowl is None or isinstance(spiceowl,dict) and set(spiceowl)=={'enabled'}
+              and type(spiceowl['enabled']) is bool,
+              'Client spiceowl_readonly accepts only an explicit boolean enabled; storage paths belong to gateway configuration.')
         self.gateway = Gateway(config['gateway_url'], config.get('timeout_seconds', 30))
         self.state = Path(config['state_dir']).expanduser().resolve()
         self.state.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -729,6 +733,39 @@ class Service:
         check(op not in self.disabled, 'Operation disabled by installed policy', 'forbidden', 4)
         a = arguments
         if op in ONBOARDING_ROUTES:return self.onboarding(op,a)
+        if op in SPICEOWL_READS:
+            check((self.config.get('spiceowl_readonly') or {}).get('enabled') is True,
+                  'SpiceOwl stored reads are not enabled in this installed client.', 'spiceowl_read_unavailable', 4)
+            result=self.gateway.request('/api/spiceowl/read/'+op+('?' + urlencode(a) if a else ''))
+            check(isinstance(result,dict) and result.get('read_only') is True
+                  and result.get('source')=='stored_local_state' and result.get('data_trust')=='untrusted_evidence',
+                  'SpiceOwl returned an unverified read-only envelope.', 'spiceowl_read_response_mismatch', 4)
+            try:check(len(canonical(result).encode())<=2*1024*1024,'SpiceOwl read exceeds 2 MiB','spiceowl_read_response_mismatch',4)
+            except (ValueError,TypeError,OverflowError,UnicodeError,RecursionError):
+                raise Failure('spiceowl_read_response_mismatch','SpiceOwl returned invalid finite JSON.',4) from None
+            if op in ('spiceowl_get_run','spiceowl_get_ic_run'):
+                check(isinstance(result.get('run'),dict) and result['run'].get('run_id')==a['run_id'],
+                      'SpiceOwl returned another run.', 'spiceowl_read_response_mismatch', 4)
+            if op=='spiceowl_list_ic_runs':
+                check(result.get('gateway_id')==a['gateway_id'],'SpiceOwl returned another gateway.','spiceowl_read_response_mismatch',4)
+            if op=='spiceowl_get_ic_run':
+                check(result['run'].get('gateway_id')==a['gateway_id'],'SpiceOwl returned another gateway.','spiceowl_read_response_mismatch',4)
+            return result
+        if op == 'sim_saved_run':
+            result=self.gateway.request('/api/simulation/saved-run?' + urlencode(a))
+            try:check(len(canonical(result).encode())<=2*1024*1024,'Saved simulation read exceeds 2 MiB','simulation_read_response_mismatch',4)
+            except (ValueError,TypeError,OverflowError,UnicodeError,RecursionError):
+                raise Failure('simulation_read_response_mismatch','Saved simulation evidence is not bounded finite JSON.',4) from None
+            check(isinstance(result,dict) and result.get('schema')=='ic.simulation.saved-run.v1'
+                  and result.get('project_id')==a['project_id'] and result.get('run_id')==a['run_id']
+                  and result.get('read_only') is True and result.get('active_query_performed') is False
+                  and isinstance(result.get('run'),dict) and result['run'].get('run_id')==a['run_id']
+                  and result['run'].get('project_id')==a['project_id']
+                  and result.get('source_commit')==result['run'].get('source_commit')
+                  and (result.get('source_commit') is None and result.get('report') is None
+                       or isinstance(result.get('source_commit'),str) and re.fullmatch('[a-f0-9]{40}',result['source_commit'])),
+                  'Saved simulation response belongs to another run or is not read-only.','conflict',3)
+            return result
         if op == 'sim_runtime':
             direct=self.config.get('simulation_direct') or {}
             granted=direct.get('enabled') and 'native-agent' in direct.get('callers',[]) and a['project_id'] in direct.get('projects',[])

@@ -32,6 +32,10 @@ try{
   assert.deepEqual(await page.evaluate(()=>startupFrames),[]);
   report.checks.push('schematic completes without waiting for AI/waveforms; standalone RNL startup is never executed');
   releaseOptional();await page.locator('.cg-node-welcome').waitFor({state:'attached'});await page.locator('.wf-trace[data-trace="vout:1"]').waitFor();
+  assert.equal(await page.locator('.studio-workflow-link').count(),1);
+  assert.equal(await page.locator('.studio-workflow-link').getAttribute('href'),prefix+'workflow/index.html');
+  assert(!report.requests.some(p=>p.includes('/workflow/')),'guide is navigable without loading it during workbench startup');
+  report.checks.push('static workflow guide is linked from the workbench without loading guide data during startup');
   await page.locator('.studio-panel-simulation [data-agent-assistance="environment"]').click();
   await page.locator('.studio-panel-ai .ic-ai-assistance-pending:not([hidden])').waitFor();
   assert.match(await page.locator('.studio-panel-ai .ic-ai-assistance-pending').innerText(),/尚未连接/);

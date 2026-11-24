@@ -102,6 +102,10 @@ The browser onboarding synchronizer reads only the explicitly selected intake, c
 
 Simulation assistance uses the same web AI session. Shared panels emit `host.requestAgentAssistance({kind, prompt, context})`; the browser owns opening the AI slot and adding an editable prompt with a bounded snapshot of the selected intake or run. The current draft, attachments and session remain intact. This action does not send a message, create a model session, connect another MCP service or approve a request. Submission still passes through the existing app-server dynamic tools and onboarding synchronizer; the snapshot is context, not authority to bypass a current source/revision check.
 
+The optional `spiceowl_readonly` gateway setting binds an existing external SpiceOwl Store. Eight `ic_spiceowl_*` reads share the existing Agent/Service channel through a finite SDK dispatcher, with input-schema checks and no model/MCP startup. CircuitGit Runner records remain separate: `ic_sim_saved_run` reads one exact historical run and bounded monitor evidence without an active query. See [embedded Agent reads](spiceowl-agent.md) for client enablement and evidence boundaries.
+
+`apps/web/workflow/` is a separate static walkthrough linked from the toolbar, Help menu and Pages entry. It loads only its own public evidence and branding assets, without initializing RNL, connecting a gateway or executing an Agent. Source excerpts have separate original/publication hashes. The guide labels the Bootstrap experiment as awaiting human review and its execution/analysis stages as planned; UI navigation does not alter that state.
+
 ## Codex window lifecycle
 
 Each open tool creates a view with explicit project/source/run identity. Related views share an explicit workspace ID. Selections carry native geometry pins and are independently checked against saved waveform mappings. State changes use view compare-and-swap revisions; workspace revision, request receipts and package availability are separately observed live fields. Closing a component disposes its renderer, listeners and polling without deleting engineering data or another view's state.

@@ -129,6 +129,13 @@ Preparation rechecks dependencies. Run/inspect use the original plan/job; on unk
 The onboarding runtime enforces its own configured execution scope; next_actions does not grant permission.
 Report execution, measurement, function, operating qualification and dependency provenance separately.
 The graphical source remains separate from imported-netlist waveforms unless an exact geometry mapping is verified.'''
+INSTRUCTIONS += '''\nWhen advertised, ic_spiceowl_* reads one existing operator-selected SpiceOwl Store through this same conversation.
+Those tools never start another Agent/MCP, probe hosts, synchronize gateways or execute simulations. Preserve original
+observation times and synthetic labels; read_at is only a local read. SpiceOwl native run IDs, cached IC projections,
+and CircuitGit Runner records are separate identities. Use ic_sim_runtime for the current CircuitGit project's cached
+host/resources and diagnostics, and ic_sim_saved_run for an exact saved Runner run and its report/history. Missing
+resource history remains unavailable. Use the existing ic_onboarding_* and ic_sim_* execution/review chain for actions;
+read-only evidence never approves a plan, grants execution scope, or authorizes replay.'''
 
 
 def session_operation(method=None, *, callback=False):
@@ -526,7 +533,7 @@ class AiSession:
                   'developerInstructions': self._instructions(developer, development_access),
                   'config': restricted,
                   'dynamicTools': [{'type': 'function', 'name': t['name'], 'description': t['description'],
-                                    'inputSchema': t['inputSchema']} for t in tools() + library_tools(self.service.config)]}
+                                    'inputSchema': t['inputSchema']} for t in tools(self.service.config) + library_tools(self.service.config)]}
         if full: params.update(approvalPolicy='never', approvalsReviewer='user')
         result = self.rpc.call('thread/start', params)
         self.thread_id = result['thread']['id']

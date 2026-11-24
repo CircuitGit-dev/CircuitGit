@@ -2,7 +2,7 @@
 
 <h1 align="center">CircuitGit</h1>
 <p align="center"><strong>AI-native circuit design, versioned on GitHub.</strong></p>
-<p align="center"><a href="https://circuitgit-dev.github.io/CircuitGit/"><strong>Open workbench ↗</strong></a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
+<p align="center"><a href="https://circuitgit-dev.github.io/CircuitGit/"><strong>Open workbench ↗</strong></a> · <a href="https://circuitgit-dev.github.io/CircuitGit/workflow/index.html">Real-circuit walkthrough</a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
 
 CircuitGit brings schematics, text netlists, simulation configurations, waveforms, and circuit revision history into one workbench. AI agents can use the same engineering tools through MCP; Git records reviewable source and configuration changes.
 
@@ -10,7 +10,7 @@ The optional [SpiceOwl simulation runtime](docs/standalone-simulation-runtime.md
 
 [Deterministic experiments](docs/deterministic-experiments.md) add registered prepare → run → inspect recipes: freeze the source, conditions and model dependencies before launch, then read five separate evidence dimensions in the existing report view. The guide includes a disabled synthetic configuration example for operators.
 
-[Agent-authored testbenches](docs/agent-testbenches.md) add general DUT/TB imports, full human review before execution, host-bound PDK lookup and saved-data FFT/ADC analysis. Reviewed cell bundles can be versioned under `lib/<library>/<cell>/testbenches/` and evaluated against an exactly matching run. Analysis uses an explicit SpiceOwl or pinned ADCToolbox backend; the supported automatic data path is a single scalar transient dataset.
+[Agent-authored testbenches](docs/agent-testbenches.md) add general DUT/TB imports, full human review before execution, host-bound PDK lookup and saved-data FFT/ADC analysis. Reviewed cell bundles can be versioned under `lib/<library>/<cell>/testbenches/` and evaluated against an exactly matching run. Automatic experiment acceptance uses a single scalar transient export. Separately selected native AC and unswept DC datasets support saved-data Bode and operating-point analysis; they do not automatically enable AC/DC CI acceptance.
 
 The interface builds on [Rich Netlist](https://github.com/rich-netlist/rnl), with movable, closable Dockview panels for schematics, simulation, waveforms, AI, and version history.
 
@@ -21,6 +21,8 @@ The interface builds on [Rich Netlist](https://github.com/rich-netlist/rnl), wit
 The GitHub Pages demo runs entirely in your browser. Drag panel tabs, float and return windows, inspect a fixed-layout RC schematic, select voltage/current probes, pan and zoom waveforms, and export a simulation configuration with its netlist.
 
 The demo waveforms are explicitly labeled **analytical RC references**, calculated in the browser. Opening the website does not contact your local machine or start an AI model or Spectre job.
+
+The [interactive workflow guide](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html) follows a real Bootstrap sampling-switch experiment and a CMOS inverter across ten stages. It includes reviewed public source excerpts, tool and data contracts, human actions and capability boundaries. The Bootstrap experiment is awaiting human review; its execution and analysis stages are labeled as planned, with no fabricated waveforms or performance results.
 
 Open **Libraries / 电路库** to browse library → cell → view. The published ADC snapshots preserve the exported Virtuoso component positions, wires and symbols. Their documentation identifies missing device models and replay inputs; browsing a snapshot does not register it as a runnable project. Selecting an ADC view clears the RC reference waveforms. See the [circuit library guide](docs/circuit-libraries.md) and [library catalog](lib/README.md).
 

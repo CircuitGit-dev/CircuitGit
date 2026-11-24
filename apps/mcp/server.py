@@ -76,7 +76,7 @@ def create_adapter(service, *, views=None, lifecycle=None, review_timeout=120.0)
             self.review_open = False
             self.raw_rejection_epoch = 0
             self.review_scope = None
-            self.catalog = core_tools() + view_tools() + review_tools() + library_tools(getattr(service, 'config', {})) + (lifecycle.tools() if lifecycle else [])
+            self.catalog = core_tools(getattr(service, 'config', {})) + view_tools() + review_tools() + library_tools(getattr(service, 'config', {})) + (lifecycle.tools() if lifecycle else [])
             self.schemas = {tool['name']: tool['inputSchema'] for tool in self.catalog}
             self.server = Server(
                 'ic-workbench-portable', version='1.0.0', instructions=INSTRUCTIONS,

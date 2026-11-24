@@ -462,6 +462,35 @@
       }
     },
     {
+      "name": "ic_sim_saved_run",
+      "description": "Read one exact CircuitGit Runner record, source identity, stored five-dimensional report and bounded monitor event history, even outside the recent run list. No SSH, monitor startup, collection or derivation. Missing resource history stays explicitly unavailable; never substitute a SpiceOwl Store or another run.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "run_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,180}$"
+          }
+        },
+        "required": [
+          "project_id",
+          "run_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "ic_sim_execute",
       "description": "Use an installed simulation grant: prepare(project_id,recipe_id,source_commit) freezes a registered experiment; run(project_id,plan_id) selects a host and launches once; inspect(project_id,job_id) observes and collects terminal native results with five independent verdicts. Legacy submit/collect require stable keys; run derives its stable key from plan_id. Unknown actions are never replayed or approved. No arbitrary command, path, credentials or scope argument.",
       "inputSchema": {
@@ -541,6 +570,168 @@
         "destructiveHint": true,
         "idempotentHint": true,
         "openWorldHint": true
+      }
+    },
+    {
+      "name": "ic_spiceowl_status",
+      "description": "Read the explicitly configured existing SpiceOwl Store version, read-only capabilities and record counts. No storage creation, migration, probing or model startup.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_spiceowl_list_runs",
+      "description": "Read at most 25 saved SpiceOwl native run summaries, preserving synthetic labels and independent outcomes. Not the CircuitGit Runner list; no execution or refresh.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_spiceowl_get_run",
+      "description": "Read one exact saved SpiceOwl native run, bounded events and resource history. Original observation timestamps remain unchanged; read_at is only this local read.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,95}$"
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_spiceowl_list_connections",
+      "description": "Read sanitized stored SpiceOwl fake connection metadata only. Never reveals credentials, probes a connection or starts another Agent.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_spiceowl_list_hosts",
+      "description": "Read saved SpiceOwl host metadata, sanitized probe results and cached resources. No SSH or active host/resource probe.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_spiceowl_list_ic_gateways",
+      "description": "Read at most 25 already registered SpiceOwl IC gateway cache entries without URLs or keys. Does not discover or synchronize gateways.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_spiceowl_list_ic_runs",
+      "description": "Read at most 25 cached native IC run projections from one exact registered SpiceOwl gateway ID. No gateway sync, submission, collection or artifact fetch.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "gateway_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,95}$"
+          }
+        },
+        "required": [
+          "gateway_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "ic_spiceowl_get_ic_run",
+      "description": "Read one exact cached IC run projection for its registered SpiceOwl gateway ID. CircuitGit retains execution ownership. Stored metrics do not establish measurement validity or authorize replay.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "gateway_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,95}$"
+          },
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180,
+            "pattern": "^[A-Za-z0-9_-]{1,180}$"
+          }
+        },
+        "required": [
+          "gateway_id",
+          "run_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
       }
     },
     {

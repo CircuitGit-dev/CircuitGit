@@ -73,7 +73,12 @@ class StructureTests(unittest.TestCase):
             self.assertEqual(run.returncode,0,run.stderr)
             replies=[json.loads(line) for line in run.stdout.splitlines()]
             tools=next(r['result']['tools'] for r in replies if r['id']==2)
-            core=schema[0]['data']['tools']
+            configured=subprocess.run([sys.executable,'-B',str(folder/'ic_workbench.py'),'--config',str(conf),'--json','schema'],
+                cwd=tmp,capture_output=True,text=True)
+            self.assertEqual(configured.returncode,0,configured.stderr)
+            core=json.loads(configured.stdout)['data']['tools']
+            self.assertTrue(any(tool['name'].startswith('ic_spiceowl_') for tool in schema[0]['data']['tools']))
+            self.assertFalse(any(tool['name'].startswith('ic_spiceowl_') for tool in tools))
             core_names={tool['name'] for tool in core}
             self.assertEqual([tool for tool in tools if tool['name'] in core_names],core)
             self.assertEqual(len({tool['name'] for tool in tools}),len(tools))

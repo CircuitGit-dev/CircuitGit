@@ -57,7 +57,7 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(init.protocol_version, '2025-11-25')
             self.assertIsNone(init.capabilities.prompts)
             result = await session.list_tools()
-            expected = core_tools()+view_tools()+review_tools()+PluginRuntime.tools(None)
+            expected = core_tools({})+view_tools()+review_tools()+PluginRuntime.tools(None)
             self.assertEqual([wire(t) for t in result.tools], expected)
             names={tool.name for tool in result.tools}
             self.assertTrue({'ic_sim_runtime','ic_sim_execute'} <= names)
@@ -161,7 +161,7 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
         for flag,path in [('--config',config),('--settings',settings)]:
             async with self.client(command=[str(ROOT/'apps/mcp/server.py'),flag,str(path)]) as (session,_):
                 listed=(await session.list_tools()).tools
-                expected=core_tools()+view_tools()+review_tools()+(PluginRuntime.tools(None) if flag=='--settings' else [])
+                expected=core_tools({})+view_tools()+review_tools()+(PluginRuntime.tools(None) if flag=='--settings' else [])
                 self.assertEqual([wire(tool) for tool in listed],expected)
                 self.assertFalse({'ic_library_read','ic_library_execute'} & {tool.name for tool in listed})
                 self.assertEqual(len((await session.list_resources()).resources),4)

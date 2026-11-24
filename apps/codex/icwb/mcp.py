@@ -150,7 +150,7 @@ def run(service, stdin=None, stdout=None, views=None, lifecycle=None, *, review_
                 send({'id': rid, 'error': {'code': -32002, 'message': 'Initialize and initialized required'}})
             elif method == 'tools/list':
                 with contextlib.redirect_stdout(sys.stderr):
-                    listed = core_tools() + view_tools() + review_tools() + library_tools(getattr(service, 'config', {})) + (lifecycle.tools() if lifecycle is not None else [])
+                    listed = core_tools(getattr(service, 'config', {})) + view_tools() + review_tools() + library_tools(getattr(service, 'config', {})) + (lifecycle.tools() if lifecycle is not None else [])
                 send({'id': rid, 'result': {'tools': listed}})
             elif method == 'resources/list':
                 with contextlib.redirect_stdout(sys.stderr):
