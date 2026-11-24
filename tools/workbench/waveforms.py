@@ -39,14 +39,14 @@ def signal_id(run_id, analysis, name):
 
 def run_identity(record, inventory):
     members = sorted(({'path': row['path'], 'sha256': row['sha256'], 'bytes': row['bytes']}
-                      for row in inventory if row['path'].startswith('./psf/')), key=lambda row: row['path'])
+                      for row in inventory if row['path'].startswith(('./psf/', './raw/'))), key=lambda row: row['path'])
     plan = record.get('plan', {}); provenance = plan.get('provenance', {})
     return {'run_id': record['run_id'], 'source_commit': record.get('source_commit'),
             'source_hashes': provenance.get('materialization', {}).get('source_sha256', {}),
             'staged_sources': [{k: f.get(k) for k in ('destination', 'source_sha256', 'staged_sha256')} for f in provenance.get('files', [])],
             'effective_config_sha256': object_hash({'configuration': plan.get('configuration'), 'postprocess': plan.get('postprocess')}),
             'archive_sha256': (record.get('collection') or {}).get('sha256'), 'raw_signature': object_hash(members),
-            'raw_signature_basis': 'sorted archive inventory of ./psf/ members'}
+            'raw_signature_basis': 'sorted archive inventory of ./psf/ and ./raw/ members'}
 
 
 def derived_cache_key(p):
@@ -289,10 +289,11 @@ class WaveformService:
             raise WaveformError('csv_schema', 'CSV row count disagrees with export receipt', 422)
         inventory_bytes = bounded_file(root/'archive-files.json', 8*1024*1024)
         index = json.loads(inventory_bytes)
-        if meta.get('producer') == 'spiceowl.psf-ascii':
-            # Local PSF derivations retain the native archive; never invent a
+        producer = meta.get('producer')
+        if producer in ('spiceowl.psf-ascii', 'circuitgit.ngspice-raw', 'circuitgit.xyce-raw'):
+            # Local derivations retain the native archive; never invent a
             # remote archive member for the locally generated display CSV.
-            expected = {'producer':'spiceowl.psf-ascii','run_id':rid,'source_commit':record.get('source_commit'),
+            expected = {'producer':producer,'run_id':rid,'source_commit':record.get('source_commit'),
                         'native_archive_sha256':(record.get('collection') or {}).get('sha256'),'csv_sha256':csv_hash,
                         'metadata_sha256':digest(metadata_bytes),'inventory_sha256':digest(inventory_bytes)}
             if (record.get('local_derivation') != expected or meta.get('native_archive_sha256') != expected['native_archive_sha256']
@@ -300,7 +301,7 @@ class WaveformService:
                 raise WaveformError('hash_mismatch','Local waveform derivation is not bound to this native archive',409)
         elif not any(i.get('path', '').endswith('/waveforms.csv') and i.get('sha256') == csv_hash for i in index):
             raise WaveformError('hash_mismatch', 'CSV absent from immutable archive inventory', 409)
-        raw_members = sorted(({'path':i['path'],'sha256':i['sha256'],'bytes':i['bytes']} for i in index if i['path'].startswith('./psf/')), key=lambda i:i['path'])
+        raw_members = sorted(({'path':i['path'],'sha256':i['sha256'],'bytes':i['bytes']} for i in index if i['path'].startswith(('./psf/', './raw/'))), key=lambda i:i['path'])
         plan = record.get('plan', {})
         provenance = plan.get('provenance', {})
         identity = {
@@ -309,15 +310,17 @@ class WaveformService:
             'staged_sources': [{k:f.get(k) for k in ('destination','source_sha256','staged_sha256')} for f in provenance.get('files', [])],
             'effective_config_sha256': object_hash({'configuration':plan.get('configuration'), 'postprocess':plan.get('postprocess')}),
             'archive_sha256': (record.get('collection') or {}).get('sha256'),
-            'raw_signature': object_hash(raw_members), 'raw_signature_basis': 'sorted archive inventory of ./psf/ members',
+            'raw_signature': object_hash(raw_members), 'raw_signature_basis': 'sorted archive inventory of ./psf/ and ./raw/ members',
             'csv_sha256': csv_hash,
         }
-        basis = 'local_PSF_ASCII_derivation' if meta.get('producer')=='spiceowl.psf-ascii' else ('OCEAN_resampled_CSV' if 'interpolated wth step=' in header[0] else 'OCEAN_exported_CSV')
+        basis = ('local_SPICE_RAW_derivation' if producer in ('circuitgit.ngspice-raw', 'circuitgit.xyce-raw')
+                 else 'local_PSF_ASCII_derivation' if producer=='spiceowl.psf-ascii'
+                 else ('OCEAN_resampled_CSV' if 'interpolated wth step=' in header[0] else 'OCEAN_exported_CSV'))
         signals = [{'id':signal_id(rid, 'tran', w['name']), 'psf_name':w['name'], 'label':w['name'],
                     'analysis':'tran', 'quantity':'voltage' if w['unit']=='V' else 'current',
                     'unit':w['unit'], 'polarity':None, 'status':'available', 'sample_count':len(rows),
                     'domain':[rows[0][0],rows[-1][0]], 'x_unit':'s', 'data_basis':basis,
-                    'name_evidence':('exact name in same-run native PSF ASCII and hash-bound local CSV' if meta.get('producer')=='spiceowl.psf-ascii' else 'exact name in same-run OCEAN export receipt and matching CSV header')} for w in waves]
+                    'name_evidence':('exact name in same-run native SPICE rawfile and hash-bound local CSV' if producer in ('circuitgit.ngspice-raw', 'circuitgit.xyce-raw') else 'exact name in same-run native PSF ASCII and hash-bound local CSV' if producer=='spiceowl.psf-ascii' else 'exact name in same-run OCEAN export receipt and matching CSV header')} for w in waves]
         return record, identity, signals, rows, basis
 
     def _derived(self, rid, identity):
@@ -524,12 +527,12 @@ class WaveformService:
         vectors = {'real': native['real'], 'imag': native['imag']} if native['value_kind'] == 'complex' else {'values': native['values']}
         bode = None
         if identity['analysis_kind'] == 'ac' and native['value_kind'] == 'complex' and isinstance(native.get('unit'), str):
-            from spiceowl.adctools import ac_metrics
             try:
+                from spiceowl.adctools import ac_metrics
                 result = ac_metrics(xs, native['real'], native['imag'], backend='spiceowl', response_kind='transfer', response_unit=native['unit'], return_curves=True)
-            except ValueError:
-                # Preserve saved complex gaps/one-point data even when a Bode
-                # calculation is undefined; the viewer can show raw components.
+            except (ImportError, ValueError):
+                # Preserve saved complex gaps/one-point data even when SpiceOwl
+                # or a Bode calculation is unavailable; the viewer can show raw components.
                 result = {}
             if result.get('status') == 'valid' and isinstance(result.get('curves'), dict):
                 bode = {**result['curves'], 'response_kind': 'transfer', 'label': signal['label'], 'backend': result['backend'],

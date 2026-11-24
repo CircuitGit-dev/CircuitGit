@@ -1,0 +1,11 @@
+{
+  "description": "Local ngspice DC voltage transfer characteristic (VTC) sweep for open CMOS inverter",
+  "parameters": {},
+  "analysis": {},
+  "simulator": {
+    "profile": "ngspice-default",
+    "args": [],
+    "output_format": "spice-raw-ascii"
+  },
+  "postprocess": null
+}

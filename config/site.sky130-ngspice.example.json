@@ -1,0 +1,13 @@
+{
+  "schema": "ic.sim.local-site.v1",
+  "transport": "local",
+  "engine": "ngspice",
+  "simulator_bin": "/opt/homebrew/bin/ngspice",
+  "runs_root": "/path/to/ic_on_github_runs",
+  "open_pdk": {
+    "pdk": "sky130",
+    "root": "/path/to/pdk/sky130A",
+    "corner": "tt"
+  },
+  "external_files": {}
+}

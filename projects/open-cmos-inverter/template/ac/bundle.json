@@ -1,0 +1,32 @@
+{
+  "schema": "ic.sim.bundle.v1",
+  "design_origin": "text-netlist",
+  "design_id": "open-cmos-inverter",
+  "test_id": "open-cmos-inverter-ac",
+  "test": "ac",
+  "source_root": ".",
+  "entrypoint": "netlist/input.scs",
+  "reviewed_for_distribution": true,
+  "external_sha256": {},
+  "simulator": {
+    "profile": "ngspice-default",
+    "args": [],
+    "output_format": "spice-raw-ascii"
+  },
+  "configuration": {
+    "analysis": "ac",
+    "vdd_v": 1.8
+  },
+  "files": [
+    {
+      "source": "netlist/input.scs",
+      "destination": "netlist/input.scs",
+      "sha256": "6de75ecb30afb9e894685b1cbc1a76f2a97c4da68138c4a4ff00c898628786b4"
+    },
+    {
+      "source": "netlist/project.scs",
+      "destination": "netlist/project.scs",
+      "sha256": "4c523d717c6411236556309edaf2b5e0974af9c13be4d856b00b876feafae680"
+    }
+  ]
+}

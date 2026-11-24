@@ -15,10 +15,65 @@
             "destination": "netlist/input.scs"
           }
         ]
+      },
+      {
+        "id": "TRAN_NGSPICE",
+        "name": "Transient12ns (ngspice local)",
+        "configuration_path": "projects/rc-smoke/configurations/TRAN_NGSPICE.json",
+        "bundle_template": "projects/rc-smoke/template/bundle.json",
+        "source_replacements": [
+          {
+            "source": "projects/rc-smoke/circuit.scs",
+            "destination": "netlist/input.scs"
+          }
+        ]
       }
     ],
     "library_id": "basics",
     "cell_id": "rc-smoke"
+  },
+  {
+    "id": "open-cmos-inverter",
+    "name": "Open CMOS Inverter (ngspice)",
+    "source_path": "projects/open-cmos-inverter/circuit.scs",
+    "configurations": [
+      {
+        "id": "TRAN_NGSPICE",
+        "name": "Transient Switching (ngspice)",
+        "configuration_path": "projects/open-cmos-inverter/configurations/TRAN_NGSPICE.json",
+        "bundle_template": "projects/open-cmos-inverter/template/tran/bundle.json",
+        "source_replacements": [
+          {
+            "source": "projects/open-cmos-inverter/circuit.scs",
+            "destination": "netlist/project.scs"
+          }
+        ]
+      },
+      {
+        "id": "DC_NGSPICE",
+        "name": "DC Transfer Curve (ngspice)",
+        "configuration_path": "projects/open-cmos-inverter/configurations/DC_NGSPICE.json",
+        "bundle_template": "projects/open-cmos-inverter/template/dc/bundle.json",
+        "source_replacements": [
+          {
+            "source": "projects/open-cmos-inverter/circuit.scs",
+            "destination": "netlist/project.scs"
+          }
+        ]
+      },
+      {
+        "id": "AC_NGSPICE",
+        "name": "AC Small-Signal Bode (ngspice)",
+        "configuration_path": "projects/open-cmos-inverter/configurations/AC_NGSPICE.json",
+        "bundle_template": "projects/open-cmos-inverter/template/ac/bundle.json",
+        "source_replacements": [
+          {
+            "source": "projects/open-cmos-inverter/circuit.scs",
+            "destination": "netlist/project.scs"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "pipetisar-real-TB_PIPE_RS9_N06",

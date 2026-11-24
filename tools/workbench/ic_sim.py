@@ -19,8 +19,14 @@ def relpath(s):
     p=PurePosixPath(s)
     if not SAFE.fullmatch(s) or p.is_absolute() or '..' in p.parts or str(p)=='.':fail('Unsafe relative path: '+s)
     return str(p)
+def is_local_site(site):
+    return isinstance(site,dict) and (site.get('schema')=='ic.sim.local-site.v1' or site.get('transport')=='local')
 def site_load(path):
-    s=json.loads(path.read_text());allowed={'schema','ssh_target','remote_runs_root','cadence_cshrc','spectre_bin','ocean_bin','external_files','expected_host','expected_user'}
+    s=json.loads(path.read_text())
+    if is_local_site(s):
+        from local_sim import validate_local_site
+        return validate_local_site(s)
+    allowed={'schema','ssh_target','remote_runs_root','cadence_cshrc','spectre_bin','ocean_bin','external_files','expected_host','expected_user'}
     if set(s)-allowed:fail('Unexpected site keys; credentials must remain in SSH/site environment')
     for key in ['ssh_target','remote_runs_root','cadence_cshrc','spectre_bin']:
         if not isinstance(s.get(key),str) or not SAFE.fullmatch(s[key]) or s[key].startswith('-'):fail('Invalid site '+key)
@@ -76,9 +82,13 @@ def prepare(bundle,site):
     return b,payload,proof
 def simulator_config(bundle):
     sim=dict(bundle.get('simulator',{}));profile=sim.get('profile','spectre-default')
-    defaults=['-64','+aps','+mt=2','+lqtimeout','900','-maxw','5','-maxn','5'] if profile=='nov6-aps2' else ['-64']
-    sim.setdefault('profile',profile);sim.setdefault('args',defaults);sim.setdefault('output_format','psfxl')
-    if sim['output_format'] not in ['psfxl','psfascii','psfbin']:fail('Unsupported output_format')
+    if profile.startswith(('ngspice','xyce')):
+        defaults=[];default_fmt='spice-raw-ascii'
+    else:
+        defaults=['-64','+aps','+mt=2','+lqtimeout','900','-maxw','5','-maxn','5'] if profile=='nov6-aps2' else ['-64']
+        default_fmt='psfxl'
+    sim.setdefault('profile',profile);sim.setdefault('args',defaults);sim.setdefault('output_format',default_fmt)
+    if sim['output_format'] not in ['psfxl','psfascii','psfbin','spice-raw-ascii']:fail('Unsupported output_format')
     if not isinstance(sim['args'],list) or any(not isinstance(x,str) or '\n' in x or '\x00' in x for x in sim['args']):fail('simulator.args must be single-line argv strings')
     if any(x.split('=')[0] in ['+log','-raw','-format','-ahdllibdir','-param'] for x in sim['args']):fail('Output paths and -param are reserved; parameterize the source deck')
     return sim
@@ -161,6 +171,9 @@ def stage_command(site,remote):
 def launch_command(remote):
     return f'cd {q(remote)} || exit 70\nmkdir launch_once 2>/dev/null || exit 75\nnohup /bin/sh job.sh >/dev/null 2>&1 </dev/null &\necho $! > supervisor.pid\n'
 def doctor(site):
+    if is_local_site(site):
+        from local_sim import doctor as local_doctor
+        return local_doctor(site)
     checks={'cadence_setup':site['cadence_cshrc'],'spectre':site['spectre_bin'],**site.get('external_files',{})}
     script='hostname\nid -un\n'
     for cmd in ['tar','nohup','sha256sum']:

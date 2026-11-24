@@ -1,0 +1,26 @@
+{
+  "description": "Local ngspice transient switching testbench for open CMOS inverter (no PDK)",
+  "parameters": {},
+  "analysis": {},
+  "simulator": {
+    "profile": "ngspice-default",
+    "args": [],
+    "output_format": "spice-raw-ascii"
+  },
+  "postprocess": {
+    "signals": [
+      {
+        "name": "in",
+        "unit": "V"
+      },
+      {
+        "name": "out",
+        "unit": "V"
+      }
+    ],
+    "start_s": 0,
+    "end_s": 1e-08,
+    "step_s": 1e-11,
+    "max_display_points": 1600
+  }
+}

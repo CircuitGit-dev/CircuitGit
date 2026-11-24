@@ -1,0 +1,12 @@
+simulator lang=spectre
+global 0
+include "project.scs"
+
+VVDD (vdd 0) vsource type=dc dc=1.8
+VIN (in 0) vsource type=dc dc=0.9 mag=1
+XINV (in out vdd 0) OPEN_CMOS_INVERTER
+CLOAD (out 0) capacitor c=50f
+
+ac_bode ac dec=20 start=1k stop=10G
+save in out
+saveOptions options save=selected

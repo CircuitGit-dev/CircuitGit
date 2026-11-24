@@ -14,6 +14,16 @@ from supervision import Supervision, execution_target
 from simulation_runtime import SimulationRuntime
 from spiceowl_readonly import SpiceReadAdapter,SpiceReadError
 
+def simulation_backend_info(site):
+    """Non-secret summary of the configured simulator backend for health/project views."""
+    if not isinstance(site,dict):return None
+    if core.is_local_site(site):
+        pdk=site.get('open_pdk')
+        return {'transport':'local','engine':site.get('engine','ngspice'),'license_required':False,
+                'open_pdk':{'pdk':pdk.get('pdk'),'corner':pdk.get('corner')} if isinstance(pdk,dict) else None}
+    return {'transport':'ssh','engine':'spectre','license_required':True,'open_pdk':None}
+
+
 def default_onboarding_configuration(cfg):
     """Add a separate intake store at public entrypoints, never to child runtimes."""
     if 'onboarding' in cfg:return cfg
@@ -89,13 +99,16 @@ class Application:
             if p.exists():artifacts.append({'name':name,'bytes':p.stat().st_size,'url':'/api/jobs/'+rid+'/artifacts/'+name,'sha256':c['sha256'] if name=='full-results.tar.gz' and c else None})
         summary=c.get('summary',{}) if c else {}
         wavefile=self.runner.path(rid)/'waveforms.json';wave_data=json.loads(wavefile.read_text()) if wavefile.exists() else {};waves=wave_data.get('waveforms',[])
-        waveform_status=('local PSF ASCII derivation from this run native archive' if wave_data.get('producer')=='spiceowl.psf-ascii' else 'actual OCEAN export from this run PSFXL') if waves else r.get('postprocess_error','native results retained; supported waveform export not yet complete')
+        producer=wave_data.get('producer')
+        waveform_status=('local open-source SPICE rawfile derivation from this run native archive' if producer in ('circuitgit.ngspice-raw','circuitgit.xyce-raw') else 'local PSF ASCII derivation from this run native archive' if producer=='spiceowl.psf-ascii' else 'actual OCEAN export from this run PSFXL') if waves else r.get('postprocess_error','native results retained; supported waveform export not yet complete')
         metrics=list(r.get('scientific_metrics',[]))
         if r.get('simulator_exit_code') is not None:metrics.append({'name':'simulator_exit_code','value':r['simulator_exit_code'],'unit':'code','scope':'execution'})
         report=self.simulation.saved_report(r) if hasattr(self,'simulation') else None
         return {'job_id':rid,'state':'collected' if c else 'not_collected','collection':{k:v for k,v in c.items() if k!='archive'} if c else None,'metrics':metrics,'summary':summary,'waveforms':waves,'waveform_status':waveform_status,'artifacts':artifacts,'publication':self.publication_view(r),**({'report':report} if report is not None else {})}
     def collect_with_postprocess(self,rid):
         r=self.runner.status(rid)
+        if core.is_local_site(self.runner.execution_site(r)):
+            return self.runner.collect(rid)
         if r.get('remote_state')=='simulator_complete_pending_measurements':
             try:self.runner.postprocess(rid)
             except Exception as e:
@@ -188,7 +201,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response({'api_version':'1','mode':'live','mutation_token':self.app.token,
                     'connection_id':getattr(onboarding,'connection_id',None),
                     'ai_activity':{'running_summaries':self.app.ai.commit_summary_activity()['running_count'] if self.app.ai else 0},
-                    'capabilities':{'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'spiceowl_readonly':getattr(getattr(self.app,'spiceowl_reads',None),'enabled',False),'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'simulation_onboarding_native_entry':onboarding_enabled,'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
+                    'capabilities':{'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'spiceowl_readonly':getattr(getattr(self.app,'spiceowl_reads',None),'enabled',False),'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'simulation_onboarding_native_entry':onboarding_enabled,'simulation_backend':simulation_backend_info(getattr(self.app,'site',None)),'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
             if path.startswith('/api/spiceowl/read/'):
                 if len(u.query)>1024:raise ValueError('SpiceOwl read query exceeds its bound')
                 query=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=2) if u.query else {}
@@ -200,7 +213,7 @@ class Handler(BaseHTTPRequestHandler):
                 if any(len(v)!=1 for v in qs.values()):raise ValueError('Onboarding query fields must be unique')
                 return self.response(self.app.onboarding.read(path[len('/api/simulation/onboarding/'):],{k:v[0] for k,v in qs.items()},origin=onboarding_entry_origin(self.headers)))
             if path=='/api/project':
-                data=self.app.workspace.describe();data['capabilities']['viewer']=(self.app.web/'viewer-adapter/index.js').exists();return self.response(data)
+                data=self.app.workspace.describe();data['capabilities']['viewer']=(self.app.web/'viewer-adapter/index.js').exists();data['simulation_backend']=simulation_backend_info(getattr(self.app,'site',None));return self.response(data)
             if path=='/api/simulation/runtime':
                 if set(qs)!={'project_id'} or len(qs['project_id'])!=1:raise ValueError('One explicit project_id is required')
                 return self.response(self.app.simulation.snapshot(get('project_id'),self.app.simulation.caller(self.headers,'GET',self.path)))

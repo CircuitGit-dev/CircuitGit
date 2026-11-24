@@ -1,0 +1,11 @@
+{
+  "description": "Local ngspice AC small-signal Bode frequency response at inverter switching threshold",
+  "parameters": {},
+  "analysis": {},
+  "simulator": {
+    "profile": "ngspice-default",
+    "args": [],
+    "output_format": "spice-raw-ascii"
+  },
+  "postprocess": null
+}

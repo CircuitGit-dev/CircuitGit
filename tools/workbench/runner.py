@@ -142,8 +142,11 @@ def native_result_files(plan,inventory):
     result=[]
     for name,row in files.items():
         directory,leaf=posixpath.split(name)
-        if directory!='psf':continue
         lowered=leaf.lower()
+        if directory=='raw' and lowered.endswith('.raw'):
+            result.append(row)
+            continue
+        if directory!='psf':continue
         if (re.fullmatch(r'.+\.(?:tran|ac|dc|dcop)',lowered)
                 or lowered=='dcopinfo.info'):
             result.append(row)
@@ -301,6 +304,14 @@ class Runner:
                 check=self.preflight(r['bundle_path'],r['source_commit'],site=site);r['runtime_preflight']=check['probe'];self.save(r)
                 b,payload,proof=self.prepare(Path(r['bundle_path']),site=site)
                 if proof!=r['plan']['provenance']:raise ValueError('sources changed after reservation')
+                if core.is_local_site(site):
+                    from local_sim import stage_and_launch_local
+                    r['state']='staging_outcome_unknown';self.save(r)
+                    r['state']='launch_outcome_unknown';r['launch_attempts']=1;self.save(r)
+                    launched=stage_and_launch_local(site,r['remote_directory'],b,payload,r,check['probe'])
+                    r['spice_transpile']=launched['transpile_manifest']
+                    r['state']='submitted';r['submitted_at']=stamp();self.save(r)
+                    return r
                 payload.update(core.scripts(site,b['entrypoint'],r['plan']['simulator'],veriloga_staging=b.get('veriloga_header_staging') is not None))
                 # Retain exact identity/config/model hashes on the server, no credentials.
                 payload['run.json']=json.dumps(r,indent=2).encode()
@@ -329,6 +340,22 @@ class Runner:
                 r['status_attempted_at']=stamp();r['status_transport']='blocked'
                 r['status_error']=str(e);r['status_error_code']=e.code;self.save(r);return r
             if r['state'] in ['queued','preflight','preflight_failed']:return r
+            if core.is_local_site(site):
+                from local_sim import local_status
+                r['status_attempted_at']=stamp()
+                obs=local_status(r['remote_directory'])
+                if not obs.get('ok'):
+                    r['status_transport']='disconnected';r['status_error_code']='local_status_failed'
+                    r['status_error']=obs.get('error','Local run status read failed')
+                    self.save(r);return r
+                state=obs['remote_state']
+                r['observed_at']=stamp();r['remote_state']=state;r['remote_status_exit']=0
+                r['status_transport']='local';r.pop('status_error',None);r.pop('status_error_code',None)
+                r['process_observed_alive']=obs['process_observed_alive']
+                r['simulator_exit_code']=obs['simulator_exit_code']
+                r['state']=state if state in TERMINAL else ('running_observed' if state=='running' and r['process_observed_alive'] else 'reconcile_required')
+                (self.path(rid)/'latest-status.log').write_text(obs['log_text'])
+                self.save(r);return r
             remote=r['remote_directory']
             script=f'''cd {core.q(remote)} || exit 70
 printf 'STATE '; cat state 2>/dev/null || true
@@ -378,6 +405,20 @@ test ! -f psf/spectre.out || tail -c 60000 psf/spectre.out
             site=self.execution_site(r)
             if r.get('remote_state') not in TERMINAL:raise ValueError('collection requires observed terminal run; no partial success claim')
             root=self.path(rid);remote=r['remote_directory'];r['collection_phase']='preparing';self.save(r)
+            if core.is_local_site(site):
+                from local_sim import collect_local_archive
+                from spice_raw import derive_spice_results
+                out=root/'full-results.tar.gz'
+                collected=collect_local_archive(remote,out)
+                inventory=collected['inventory'];logs=collected['logs'];expected=collected['sha256'];size=collected['bytes']
+                if r['remote_state']=='simulator_complete_pending_measurements':native_result_files(r['plan'],inventory)
+                summary={'execution_success':r['remote_state']=='simulator_complete_pending_measurements','scientific_acceptance':False,'source_commit':r['source_commit'],'configuration':r['plan'].get('configuration'),'metrics':r.get('scientific_metrics',[]),'postprocess_phase':r.get('postprocess_phase'),'engine':site['engine'],'transport':'local','simulator_footer':[]}
+                atomic(root/'result-summary.json',summary);atomic(root/'archive-files.json',inventory)
+                inventory_bytes=(root/'archive-files.json').read_bytes()
+                r['collection']={'archive':str(out),'sha256':expected,'bytes':size,'file_count':len(inventory),'contains_full_raw':True,'included':'all regular files from local run tree except declared exclusions','excluded':['exports packaging scratch','launch_once directory'],'excluded_paths':['exports','launch_once'],'summary':summary,'collected_at':stamp()};r['collection_phase']='complete'
+                if r['remote_state']=='simulator_complete_pending_measurements':
+                    derive_spice_results(root,r,out,inventory,inventory_bytes,engine=site['engine'])
+                self.save(r);return r
             exclusions=[('ahdl','ahdl compiled cache'),('exports','exports packaging scratch'),('launch_once','launch_once directory')]
             if r['plan'].get('veriloga_header_staging_sha256'):
                 exclusions.append((VA_HEADER_STAGING,'Verilog-A standard header staging'))
