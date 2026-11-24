@@ -1,3 +1,4 @@
+import {createAssistanceQueue} from '../../ai/assistance.js';
 // Session selector only. The AI owner mounts one independent panel per explicit server id.
 const idle=()=>({phase:'idle',connected:false,contextStale:false,pendingApprovalCount:0,suspendedApprovalCount:0});
 const mounted=new WeakMap();
@@ -17,6 +18,9 @@ export function mountSessions(host,{createPanel}={}) {
   add.setAttribute('aria-label','新建 AI 对话');manage.setAttribute('aria-label','管理 AI 对话');retry.hidden=true;
   message.setAttribute('role','status');message.hidden=true;empty.hidden=true;body.append(empty);actions.append(add,manage,retry);bar.append(tabs,actions);root.append(bar,message,body);slot.element.replaceChildren(root);
   let activeId=null,loading=true,busy=false,destroyed=false,limit=8,editDialog=null,manager=null,sequence=0,controller,hostState=null;
+  const applyDraft=draft=>{const record=records.get(activeId);if(!record?.panel?.appendDraft)return {status:'queued',message:'请选择或新建对话；请求已保留，尚未发送。'};return record.panel.appendDraft(draft,{focus:slot.isVisible()});};
+  const draftQueue=createAssistanceQueue({element:root,apply:applyDraft,getAvailability:()=>({available:!loading&&!busy&&!!records.get(activeId)?.panel?.appendDraft,message:loading?'正在读取对话；请求已保留，随后请选择目标对话。':!activeId?'请选择或新建对话；请求已保留，尚未发送。':'请求尚未发送；可加入当前对话，或先切换目标对话。'})});
+  root.insertBefore(draftQueue.element,body);
   const running=state=>['starting','running'].includes(state.phase);
   const number=value=>Number.isInteger(value)&&value>0?value:0;
   function status(state){
@@ -51,7 +55,7 @@ export function mountSessions(host,{createPanel}={}) {
     empty.hidden=loading||records.size>0;
     const snapshot={count:records.size,activeSessionId:activeId,loading},signature=JSON.stringify(snapshot);
     if(hostState!==signature){hostState=signature;host.aiSettings?.onSessionsChanged?.(snapshot);}
-    syncManager();
+    syncManager();draftQueue.render();
   }
   function failure(error){if(destroyed)return;message.hidden=false;message.textContent=error.message||String(error);}
   function clearMessage(){message.hidden=true;message.textContent='';}
@@ -158,6 +162,7 @@ export function mountSessions(host,{createPanel}={}) {
     activeId=id;publish();
     const record=records.get(id);record.button.scrollIntoView?.({block:'nearest',inline:'nearest'});
     if(focus&&slot.isVisible())record.panel.focusInput();
+    draftQueue.flush();
   }
   tabs.addEventListener('keydown',event=>{
     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
@@ -215,8 +220,8 @@ export function mountSessions(host,{createPanel}={}) {
     visibilityObserver.disconnect();
     closeManager();
     if(editDialog){editDialog.close();editDialog.remove();editDialog=null;}
-    for(const record of records.values())record.panel.destroy();records.clear();root.remove();slot.setBadge(null);mounted.delete(slot.element);
+    draftQueue.destroy();for(const record of records.values())record.panel.destroy();records.clear();root.remove();slot.setBadge(null);mounted.delete(slot.element);
   }
-  controller=Object.freeze({show,hide,toggle,openManager,openCreate(){editName('create');},openDetails(){if(!destroyed){show();records.get(activeId)?.panel.openDetails();}},getState(){return Object.freeze({...idle(),...records.get(activeId)?.panel.getState()});},destroy});
+  controller=Object.freeze({show,hide,toggle,openManager,queueDraft(draft){if(!loading&&!busy&&activeId){try{const result=applyDraft(draft);if(result.status==='prepared')return result;}catch(error){failure(error);}}return draftQueue.enqueue(draft);},takePendingDrafts:()=>draftQueue.take(),openCreate(){editName('create');},openDetails(){if(!destroyed){show();records.get(activeId)?.panel.openDetails();}},getState(){return Object.freeze({...idle(),...records.get(activeId)?.panel.getState()});},destroy});
   mounted.set(slot.element,{host,controller});publish();void load();return controller;
 }

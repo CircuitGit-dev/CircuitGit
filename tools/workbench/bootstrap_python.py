@@ -17,10 +17,13 @@ import subprocess
 import sys
 from urllib.parse import urlsplit
 
+from upstream_sources import UPSTREAMS, UpstreamError, archive_source, spiceowl_source
+
 
 ROOT = Path(__file__).resolve().parents[2]
 MIN_PYTHON = (3, 11)
 REQUIRED_MODULES = (
+    'spiceowl.read_api',
     'spiceowl.onboarding.pdk_discovery',
     'spiceowl.onboarding.environment',
     'spiceowl.onboarding.ssh_discovery',
@@ -34,7 +37,41 @@ REQUIRED_MODULES = (
 # Isolated introspection imports only the pinned package's ordinary modules.
 # It never invokes any of their operations or looks at site/SSH configuration.
 PROBE_CODE = r'''
-import importlib, importlib.metadata, json, pathlib, sys
+import base64, csv, hashlib, importlib, importlib.metadata, io, json, pathlib, sys
+def record_evidence(dist):
+    raw = dist.read_text('RECORD')
+    if not raw or len(raw.encode()) > 8 * 1024 * 1024:
+        raise ValueError('Missing bounded installation record')
+    rows = list(csv.reader(io.StringIO(raw)))
+    if not 1 <= len(rows) <= 20000:
+        raise ValueError('Installation record is oversized')
+    files = {}; seen = set(); total = 0; prefix = pathlib.Path(sys.prefix).resolve()
+    for row in rows:
+        if len(row) != 3 or row[0] in seen:
+            raise ValueError('Invalid installation record')
+        name, checksum, size = row
+        seen.add(name)
+        path = pathlib.Path(dist.locate_file(name))
+        if path.is_symlink() or prefix not in path.resolve().parents or not path.is_file():
+            raise ValueError('Installed file is outside this environment')
+        if not checksum:
+            if not (name.endswith('.dist-info/RECORD') or name.endswith('.pyc')):
+                raise ValueError('Installed file has no digest')
+            continue
+        if not checksum.startswith('sha256=') or not size.isdigit():
+            raise ValueError('Unsupported installation digest')
+        total += int(size)
+        if total > 512 * 1024 * 1024 or path.stat().st_size != int(size):
+            raise ValueError('Installed file size differs')
+        digest = hashlib.sha256(path.read_bytes()).digest()
+        if base64.urlsafe_b64encode(digest).rstrip(b'=').decode() != checksum[7:]:
+            raise ValueError('Installed file digest differs')
+        files[name] = digest.hex()
+    if not files:
+        raise ValueError('Installation record has no verified files')
+    return {'verified': True, 'record_sha256': hashlib.sha256(raw.encode()).hexdigest(),
+            'files_sha256': hashlib.sha256(json.dumps(files, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+            'file_count': len(files)}
 out = {'version': list(sys.version_info[:3]), 'prefix': sys.prefix,
        'base_prefix': sys.base_prefix, 'dependency': None}
 if sys.version_info[:2] >= (3, 11) and sys.prefix != sys.base_prefix:
@@ -48,6 +85,8 @@ if sys.version_info[:2] >= (3, 11) and sys.prefix != sys.base_prefix:
         out['dependency'] = {'direct_url': direct,
             'location': str(pathlib.Path(dist.locate_file('')).resolve()),
             'modules': modules, 'adctoolbox_version': importlib.metadata.version('adctoolbox')}
+        if direct.get('url', '').startswith('file:'):
+            out['dependency']['record'] = record_evidence(dist)
     except Exception as error:
         out['dependency_error'] = type(error).__name__
 print(json.dumps(out))
@@ -73,6 +112,7 @@ def read_pin(root):
             raise ValueError('Invalid repository or commit')
         url = urlsplit(repository)
         valid = (lock.get('schema') == 'circuitgit.spiceowl-integration.v1'
+                 and repository == UPSTREAMS['spiceowl']['repository']
                  and url.scheme == 'https' and bool(url.hostname)
                  and not url.username and not url.password and not url.query
                  and not url.fragment and url.path.endswith('.git')
@@ -121,18 +161,72 @@ def pinned(observation, environment, pin, modules=REQUIRED_MODULES):
         prefix = Path(observation['prefix']).resolve()
         dependency = observation['dependency']
         direct = dependency['direct_url']
-        vcs = direct['vcs_info']
-        return (prefix == environment.resolve()
+        isolated = (prefix == environment.resolve()
                 and prefix != Path(observation['base_prefix']).resolve()
-                and direct.get('url') == pin['repository']
-                and vcs.get('vcs') == 'git' and vcs.get('commit_id') == pin['commit']
-                and vcs.get('requested_revision') == pin['commit']
                 and dependency.get('adctoolbox_version') == '0.9.3'
                 and within(dependency['location'], prefix)
                 and all(within(dependency['modules'][name], prefix)
                         for name in modules))
+        if not isolated:return False
+        if direct.get('url', '').startswith('file:'):
+            return local_install_pinned(dependency,environment,pin)
+        vcs = direct['vcs_info']
+        return (direct.get('url') == pin['repository']
+                and not direct.get('dir_info')
+                and vcs.get('vcs') == 'git' and vcs.get('commit_id') == pin['commit']
+                and vcs.get('requested_revision') == pin['commit'])
     except (AttributeError, KeyError, TypeError, ValueError):
         return False
+
+
+def archive_matches(direct,archive):
+    info=direct.get('archive_info') or {}
+    checksum=(info.get('hashes') or {}).get('sha256')
+    if checksum is None and isinstance(info.get('hash'),str) and info['hash'].startswith('sha256='):
+        checksum=info['hash'][7:]
+    return (direct.get('url')==archive['url'] and checksum==archive['sha256']
+            and 'dir_info' not in direct and 'vcs_info' not in direct
+            and ('hash' not in info or info['hash']=='sha256='+archive['sha256']))
+
+
+def local_install_pinned(dependency,environment,pin):
+    """A file URL alone never identifies a trusted local source installation."""
+    try:
+        receipt=environment/'circuitgit-local-source.json';marker=environment/'circuitgit-environment.json'
+        archive=environment/'source'/'spiceowl.tar'
+        if any(path.is_symlink() or not path.is_file() for path in (receipt,marker,archive)):
+            return False
+        if archive.parent.is_symlink():return False
+        saved=json.loads(receipt.read_text(encoding='utf-8'));owned=json.loads(marker.read_text(encoding='utf-8'))
+        source=saved['archive']['source'];record=dependency['record']
+        return (saved.get('schema')=='circuitgit.local-source-install.v1'
+                and environment.parent.name=='python' and environment.parent.parent.name=='.local'
+                and saved.get('environment')==str(environment.resolve())
+                and owned.get('schema')=='circuitgit.python-environment.v1'
+                and all(owned.get(key)==value and source.get(key)==value for key,value in pin.items())
+                and source.get('name')=='spiceowl' and source.get('relative_path')==UPSTREAMS['spiceowl']['relative_path']
+                and source.get('path')==str(environment.parents[2]/UPSTREAMS['spiceowl']['relative_path'])
+                and source.get('gitlink_verified') is True and source.get('status')=='ready'
+                and source.get('head_commit')==pin['commit'] and source.get('gitlink_commit')==pin['commit']
+                and re.fullmatch('[a-f0-9]{40}',source.get('tree','')) is not None
+                and saved['archive'].get('schema')=='circuitgit.upstream-archive.v1'
+                and saved['archive']['url']==archive.resolve().as_uri()
+                and saved['archive']['sha256']==hashlib.sha256(archive.read_bytes()).hexdigest()
+                and archive_matches(dependency['direct_url'],saved['archive'])
+                and record.get('verified') is True and record==saved['installed_record'])
+    except (AttributeError,KeyError,TypeError,ValueError,OSError):return False
+
+
+def save_local_install(environment,pin,archive,observation):
+    dependency=(observation or {}).get('dependency') or {};record=dependency.get('record') or {}
+    if (not archive_matches(dependency.get('direct_url') or {},archive) or record.get('verified') is not True
+            or any(archive['source'].get(key)!=value for key,value in pin.items())):
+        raise BootstrapError('本地源码安装缺少匹配的归档来源或文件校验记录；未启动应用。')
+    receipt={'schema':'circuitgit.local-source-install.v1','environment':str(environment.resolve()),
+        'archive':archive,'installed_record':record}
+    path=environment/'circuitgit-local-source.json'
+    if path.exists() or path.is_symlink():raise BootstrapError('本地安装回执已存在；不会覆盖。')
+    path.write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8');path.chmod(0o600)
 
 
 def interpreter_candidates(root):
@@ -229,35 +323,47 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None, extras
             raise BootstrapError('需要 Python 3.11+；当前可用解释器版本不足或无法运行。请安装 Python 3.11+ 后再次双击启动。')
         if not shutil.which('git'):
             raise BootstrapError('需要 Git 来安装锁定的 SpiceOwl commit，请安装 Git 后重试。')
+        try:local_source=spiceowl_source(root,pin,run=run)
+        except UpstreamError as error:raise BootstrapError(str(error)) from error
         python_version = base[1]['version'][:2]
-        environment = cache / ('spiceowl-' + digest + '-py' + '.'.join(map(str, python_version)))
-        if environment.is_symlink() or not within(environment, cache):
-            raise BootstrapError('项目 Python 环境指向其他位置；未修改该目录。')
+        name='spiceowl-' + digest + '-py' + '.'.join(map(str, python_version))
+        environment=None
+        # A failed or foreign environment is evidence, not a directory to repair
+        # in place. Bound retries and preserve every prior installation attempt.
+        for attempt in range(1,4):
+            candidate=cache/(name+('-attempt'+str(attempt) if attempt>1 else ''))
+            if candidate.is_symlink() or not within(candidate,cache):
+                raise BootstrapError('项目 Python 环境指向其他位置；未修改该目录。')
+            if not candidate.exists():environment=candidate;break
+        if environment is None:
+            raise BootstrapError('此依赖已有三个未通过校验的安装目录；请检查并保留已有环境，未原地重装。')
         marker = environment / 'circuitgit-environment.json'
         ownership = {'schema': 'circuitgit.python-environment.v1', **pin,
                      'python_version': python_version}
         if extras != ('adctools',):ownership['extras'] = list(extras)
-        if environment.exists():
-            try:
-                owned = json.loads(marker.read_text(encoding='utf-8')) == ownership
-            except (OSError, ValueError):
-                owned = False
-            if not owned:
-                raise BootstrapError('环境目录已存在且不属于此依赖初始化：' + str(environment))
-        else:
-            environment.mkdir(mode=0o700)
-            marker.write_text(json.dumps(ownership, indent=2) + '\n', encoding='utf-8')
+        environment.mkdir(mode=0o700)
+        marker.write_text(json.dumps(ownership, indent=2) + '\n', encoding='utf-8')
         progress('创建项目 Python 环境（首次启动；不修改全局 Python）…')
         checked([base[0], '-I', '-B', '-m', 'venv', environment],
                 '创建虚拟环境', run, root, 120)
         python = environment / 'bin/python'
-        progress('安装锁定的 SpiceOwl ' + pin['commit'][:12] + '（首次需要网络）…')
+        archive=None
+        requirement='spiceowl[' + ','.join(extras) + '] @ git+' + pin['repository'] + '@' + pin['commit']
+        if local_source is not None:
+            source_dir=environment/'source';source_dir.mkdir(mode=0o700)
+            try:archive=archive_source(root,local_source,source_dir/'spiceowl.tar',run=run)
+            except UpstreamError as error:raise BootstrapError(str(error)) from error
+            requirement='spiceowl['+','.join(extras)+'] @ '+archive['url']
+            progress('从已核验的本地子模块安装 SpiceOwl '+pin['commit'][:12]+'…')
+        else:progress('安装锁定的 SpiceOwl ' + pin['commit'][:12] + '（首次需要网络）…')
         checked([python, '-I', '-B', '-m', 'pip', 'install', '--no-input',
-                 '--disable-pip-version-check', '--no-cache-dir', '--force-reinstall',
+                 '--disable-pip-version-check', '--no-cache-dir',
                  'adctoolbox==0.9.3',
-                 'spiceowl[' + ','.join(extras) + '] @ git+' + pin['repository'] + '@' + pin['commit']],
+                 requirement],
                 '安装 SpiceOwl', run, root, 900)
-        if not pinned(probe(python, run, modules), environment, pin, modules):
+        installed=probe(python,run,modules)
+        if archive is not None:save_local_install(environment,pin,archive,installed)
+        if not pinned(installed, environment, pin, modules):
             raise BootstrapError('安装后校验失败：Python、SpiceOwl commit 或必需模块与锁定值不符；未启动应用。')
         progress('依赖已核验，后续启动会复用此环境。')
         return python

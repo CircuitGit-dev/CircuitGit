@@ -1,3 +1,4 @@
+import {createAgentAssistance} from '../ai/assistance.js';
 import {Gateway} from '../api.js';
 import {sha256,lineRange} from '../core.js';
 import {createWorkbenchContext} from '../context/workbench.js';
@@ -30,6 +31,7 @@ const $=id=>document.getElementById(id);
 export async function mountStudio({ui:providedUI}={}){
   if(window.ICRNLStudio)return window.ICRNLStudio;
   const ui=providedUI||await createLayout(),api=new Gateway();
+  const agentAssistance=createAgentAssistance({slot:ui.slots.ai,notify:ui.notify});
   const healthReady=api.health().catch(error=>({error}));
   const state={mode:'connecting',project:null,active:null,file:null,files:[],baseline:'',dirty:false,jobs:[],job:null,projectLoadState:'idle',nativeFiles:[]};
   let text='',contextSelection=null,nativePayload=null,nativeState=null,nativeModel=null,nativeEntry=null,manifest=null;
@@ -180,9 +182,9 @@ export async function mountStudio({ui:providedUI}={}){
   const getOnboardingSource=()=>snapshotOnboardingSource(doc,{hasBuffer,fileText});
   const onboardingSync=createOnboardingSync({bridge:onboarding,getSource:getOnboardingSource,openWaveforms:ui.slots.waveforms?openOnboardingWaveforms:undefined});
   const getSimulationMode=()=>!state.active?.configurations?.length||!!doc&&(!manifest||!doc.path.startsWith('/'+manifest.id+'/'))?'environment':'project';
-  const host=Object.freeze({version:1,context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,onboardingSync,getSimulationMode,
+  const host=Object.freeze({version:1,agentAssistance,requestAgentAssistance:request=>agentAssistance.request(request),context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,onboardingSync,getSimulationMode,
     ...(ui.slots.waveforms?{openOnboardingWaveforms}:{}),getOnboardingSource,getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
-  window.addEventListener('pagehide',()=>{onboardingSync.destroy();onboarding.disconnect();},{once:true});
+  window.addEventListener('pagehide',()=>{agentAssistance.destroy();onboardingSync.destroy();onboarding.disconnect();},{once:true});
   Object.defineProperty(window,'ICRNLStudio',{value:host,writable:false});
   register({id:'project.choose',menu:'project',label:'选择项目…',run:()=>$('studio-project').focus()});
   register({id:'project.source',menu:'project',label:'Canonical 源码…',run:()=>openCanonicalEditor(),enabled:()=>!!state.file});
@@ -289,7 +291,7 @@ export async function mountStudio({ui:providedUI}={}){
         if(kind){const root=ui.slots[kind].element,message=document.createElement('p'),retry=document.createElement('button');message.textContent='面板加载失败：'+error.message;retry.textContent='重试';retry.onclick=()=>void loader.retry().catch(()=>{});root.replaceChildren(message,retry);}
       };
       let loader;
-      if(kind){loader=whenVisible(ui.slots[kind],mount,{onError});
+      if(kind){loader=whenVisible(ui.slots[kind],mount,{onError});if(kind==='ai')agentAssistance.setLoader(()=>loader.ensure());
         // Commands must remain discoverable even when a panel was closed in the saved layout.
         const actions=kind==='waveforms'?[['plot.run','plot','打开已有运行 (O)'],['plot.signals','plot','添加信号 (L)'],['plot.measurements','plot','波形测量 (M)'],['plot.shortcuts','plot','波形快捷键 (?)']]:kind==='versions'?[['git.versions','git','版本管理…'],['window.versions','window','版本管理']]:kind==='ai'?[['ai.toggle','window','AI：显示 / 隐藏对话'],['ai.show','window','AI：聚焦对话输入'],['ai.inspect','window','AI执行详情'],['ai.manage','window','AI：对话管理器…']]:kind==='simulation'?[['simulation.environment','simulation','连接仿真环境…']]:[];
         for(const [id,menu,label] of actions)placeholders.push(register({id,menu,label,run:async()=>{ui.slots[kind].setVisible(true);const value=await loader.ensure();if(!value?.unavailable&&!['window.versions','ai.toggle'].includes(id))command(id);}}));

@@ -56,7 +56,7 @@ export function mount(host) {
     details.addEventListener('scroll',()=>{follow=details.scrollTop+details.clientHeight>=details.scrollHeight-8;});
     const observer=new MutationObserver(()=>{if(follow)details.scrollTop=details.scrollHeight;});
     observer.observe(details,{subtree:true,childList:true,characterData:true});
-    return Object.freeze({getState:panel.getState,focusInput:panel.focusInput,openDetails:panel.openDetails,setVisible:panel.setVisible,
+    return Object.freeze({getState:panel.getState,appendDraft:panel.appendDraft,focusInput:panel.focusInput,openDetails:panel.openDetails,setVisible:panel.setVisible,
       destroy(){observer.disconnect();panel.destroy();root.remove();}});
   }
   function destroy(){if(destroyed)return;destroyed=true;for(const remove of unregister.reverse())remove();wrapper?.destroy();releaseStyle();mounted.delete(slot.element);}
@@ -66,8 +66,9 @@ export function mount(host) {
     unregister.push(host.registerCommand({id:'ai.show',menu:'window',label:'AI：聚焦对话输入',run:()=>wrapper.show()}));
     unregister.push(host.registerCommand({id:'ai.inspect',menu:'window',label:'AI执行详情',run:()=>wrapper.openDetails()}));
     unregister.push(host.registerCommand({id:'ai.manage',menu:'window',label:'AI：对话管理器…',run:()=>wrapper.openManager()}));
+    const unregisterDrafts=host.agentAssistance?.registerReceiver(draft=>wrapper.queueDraft(draft));if(unregisterDrafts)unregister.push(unregisterDrafts);
   }catch(error){destroy();throw error;}
-  const controller=Object.freeze({show:()=>wrapper.show(),hide:()=>wrapper.hide(),toggle:()=>wrapper.toggle(),getState:()=>wrapper.getState(),destroy});
+  const controller=Object.freeze({show:()=>wrapper.show(),hide:()=>wrapper.hide(),toggle:()=>wrapper.toggle(),getState:()=>wrapper.getState(),queueDraft:draft=>wrapper.queueDraft(draft),takePendingDrafts:()=>wrapper.takePendingDrafts(),destroy});
   mounted.set(slot.element,{host,controller});
   return controller;
 }

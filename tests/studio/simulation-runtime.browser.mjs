@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
-const files=['modules/simulation/runtime.js','modules/simulation/report.js','modules/simulation/http.js','modules/simulation/style.css','tests/studio/runtime.fixture.mjs','tests/studio/simulation-report.fixture.mjs'];
+const files=['modules/simulation/runtime.js','modules/simulation/report.js','modules/simulation/agent-assistance.js','modules/simulation/http.js','modules/simulation/style.css','tests/studio/runtime.fixture.mjs','tests/studio/simulation-report.fixture.mjs'];
 const assets=new Map(await Promise.all(files.map(async path=>['/'+path,await readFile(resolve(root,path),'utf8')])));
 const html='<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/modules/simulation/style.css"><style>body{margin:0}</style><section class="ic-sim-panel"><div id="runtime"></div></section><script type="module">import {mountRuntime} from "/modules/simulation/runtime.js";import {runtimeFixture} from "/tests/studio/runtime.fixture.mjs";window.fixture=runtimeFixture();window.runtime=mountRuntime(document.getElementById("runtime"),{host:fixture.host,actions:fixture.actions,actionPolicy:()=>fixture.policy});</script>';
 

@@ -1,6 +1,7 @@
 // Runtime reads are cached evidence. Only the explicit scan action asks for SSH resource checks.
 import {simulationReportView,appendSimulationReport} from './report.js';
 import {SIMULATION_RESPONSE_LIMIT} from './http.js';
+import {runtimeAgentAssistance} from './agent-assistance.js';
 const COMMIT=/^[a-f0-9]{40}$/, PLAN=/^[a-f0-9]{64}$/, ID=/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,179}$/;
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 // JSON Schema maxLength counts Unicode code points, not UTF-16 code units.
@@ -159,7 +160,7 @@ export function createRuntimeController(host,{changed=()=>{},isVisible=()=>true,
 const time=value=>value||'未记录';
 const metric=(value,suffix='',divisor=1)=>value===null?'未知':`${Number((value/divisor).toFixed(1))}${suffix}`;
 
-export function mountRuntime(root,{host,actions={},actionPolicy=()=>({})}){
+export function mountRuntime(root,{host,actions={},actionPolicy=()=>({}),requestAgentAssistance=host?.requestAgentAssistance}){
   const doc=root.ownerDocument;let controller=null,disposed=false,actionBusy=false;
   const opened=new Set();
   function el(tag,value,className){const node=doc.createElement(tag);if(value!==undefined)node.textContent=value;if(className)node.className=className;return node;}
@@ -224,6 +225,12 @@ export function mountRuntime(root,{host,actions={},actionPolicy=()=>({})}){
       const card=el('article',undefined,'ic-sim-card ic-runtime-run');card.dataset.runtimeRun=run.run_id;
       const title=el('div',undefined,'ic-sim-section-head');title.append(el('h3',run.configuration||run.run_id),el('span',run.execution.state,'ic-sim-status'));card.append(title);
       note(card,run.run_id+' · 源码 '+(run.source_commit?run.source_commit.slice(0,12):'未记录'));
+      const identity={project_id:state.projectId,run_id:run.run_id,source_commit:run.source_commit,configuration:run.configuration};
+      const assistance=button('请 Agent 诊断此运行',()=>{
+        if(readyProject(host.context.getContext())!==identity.project_id)throw Error('当前项目已变化，请重新选择要诊断的运行。');
+        return requestAgentAssistance(runtimeAgentAssistance(controller.state,identity));
+      },typeof requestAgentAssistance!=='function','diagnosis');
+      assistance.dataset.agentAssistance='diagnosis';assistance.title=typeof requestAgentAssistance==='function'?'将此运行上下文填入 Agent 草稿，确认后发送':'此宿主尚未连接统一 Agent 对话入口';card.append(assistance);
       if(run.execution_target?.host_id)note(card,'运行服务器：'+run.execution_target.host_id);
       appendSimulationReport(card,{report:run.report,runId:run.run_id,detail});
       note(card,'退出码：'+(run.execution.exit_code===null?'未记录':run.execution.exit_code));

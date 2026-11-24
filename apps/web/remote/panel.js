@@ -1,3 +1,4 @@
+import {createAssistanceQueue} from '../ai/assistance.js';
 import {createNodeClient} from './client.js';
 import {pairLocal} from './pair.js';
 import {mount as mountAI} from '../studio/ai/index.js';
@@ -46,6 +47,8 @@ export function mountRemoteNode(host) {
   initialToggle.onclick=()=>{settingsHome.hidden=!settingsHome.hidden;initialToggle.setAttribute('aria-expanded',String(!settingsHome.hidden));if(!settingsHome.hidden)connectionSettings.open=true;};
   let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true,ownerWindow=null,ownerTimer=null,ownerResolve=null,inflightTurns=0;
   let nodeConnectionId=null,onboardingChoice=null,choiceTask=null;
+  const pendingDrafts=createAssistanceQueue({element:root,apply:draft=>ai?.queueDraft(draft)||{status:'queued',message:'请先连接并选择现有对话；请求已保留。'},getAvailability:()=>({available:!!ai,message:!client?'尚未连接；请手动连接 Codex，仿真请求已保留。':!ai?'请选择工程并打开对话；请求已保留，不会自动新建。':'请选择或新建目标对话；请求已保留，尚未发送。'})});root.insertBefore(pendingDrafts.element,chat);
+  const queueDraft=draft=>{if(ai)return ai.queueDraft(draft);showConnectionSettings();return pendingDrafts.enqueue(draft);};
   const listeners=new Set();
   const contextAdapter={getContext:()=>context&&structuredClone(context),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
     async readSelection(){throw Error('示例画布未绑定到本机工程，请让 AI 读取当前工程源码。');}};
@@ -79,7 +82,7 @@ export function mountRemoteNode(host) {
     if(p?.libraryId&&p?.cellId)return 'library:'+p.libraryId+'/'+p.cellId;
     return !p||p.id==='rc-demo'?'library:basics/rc-smoke':null;
   }
-  function drop(){++epoch;host.libraryBridge?.unbind();if(client)host.onboarding?.unbindClient(client);nodeConnectionId=null;onboardingChoice=null;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;client?.close();client=null;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);}
+  function drop(){for(const draft of ai?.takePendingDrafts?.()||[])pendingDrafts.enqueue(draft);++epoch;host.libraryBridge?.unbind();if(client)host.onboarding?.unbindClient(client);nodeConnectionId=null;onboardingChoice=null;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;client?.close();client=null;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);pendingDrafts.render();}
   async function refreshOnboardingChoice(){
     if(choiceTask)return choiceTask;
     const generation=epoch;
@@ -147,7 +150,7 @@ export function mountRemoteNode(host) {
       try{await refreshAccount(generation);}catch(error){if(generation===epoch&&!destroyed){accountReady=false;openButton.disabled=true;message(error.message,true);return;}}
       if(generation!==epoch||destroyed)return;
     }
-    message(accountReady?'已连接。选择工程后打开对话。':'请在官方页面完成登录，然后继续。');
+    message(accountReady?'已连接。选择工程后打开对话。':'请在官方页面完成登录，然后继续。');pendingDrafts.render();
   }
 
   localButton.onclick=async()=>{
@@ -214,7 +217,8 @@ export function mountRemoteNode(host) {
       for(const listener of listeners)listener(structuredClone(context));
       const slot={...parent,element:chat,setVisible:value=>parent.setVisible(value),isVisible:()=>parent.isVisible(),setBadge:value=>parent.setBadge(value),toggle:()=>parent.toggle()};
       const onSessionsChanged=({count,loading})=>{if(loading)return;initialSettings.hidden=count>0;if(!count){settingsHome.append(connectionSettings);initialHint.textContent='连接设置';settingsHome.hidden=true;initialToggle.setAttribute('aria-expanded','false');}else settingsHome.hidden=true;};
-      if(!ai)ai=mountAI({...host,context:contextAdapter,prepareAiContext,aiSettings:{element:connectionSettings,configureDevelopment,onSessionsChanged},slots:{...host.slots,ai:slot},gateway:{request:requestAI}});
+      if(!ai)ai=mountAI({...host,agentAssistance:null,context:contextAdapter,prepareAiContext,aiSettings:{element:connectionSettings,configureDevelopment,onSessionsChanged},slots:{...host.slots,ai:slot},gateway:{request:requestAI}});
+      for(const draft of pendingDrafts.take())ai.queueDraft(draft);
       $('.cg-context-label').textContent=next.onboarding?'AI 与仿真面板共用网表：'+next.file.path:`AI 电路：${id} · ${next.project.sourceCommit.slice(0,8)}`+(next.library?' · 编辑无需 PDK；写入权限由本机配置决定。':' · 使用已配置的节点工程。');
       projects.disabled=false;openButton.textContent='切换 / 刷新电路';projects.title='新回合使用这里选定的电路';
       $('.cg-node-project').hidden=false;settingsHome.hidden=true;connectionSettings.open=false;message('');
@@ -280,5 +284,6 @@ export function mountRemoteNode(host) {
     }catch(error){popup.close();ownerWindow=null;throw error;}
   }
   const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 Codex',run:()=>{parent.setVisible(true);if(!context){showConnectionSettings();(connected.hidden?localButton:openButton).focus();}else ai?.show();}});
-  return {destroy(){if(destroyed)return;destroyed=true;offOnboarding?.();offCanvas?.();drop();off?.();css.remove();root.remove();}};
+  const offAssistance=host.agentAssistance?.registerReceiver(queueDraft);
+  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],destroy(){if(destroyed)return;destroyed=true;offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
 }

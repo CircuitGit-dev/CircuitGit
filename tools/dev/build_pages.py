@@ -31,7 +31,7 @@ def main():
     published_library_files = {item['path'] for item in library['files']}
     history = publish_library_history(ROOT, OUTPUT)
     published_library_files.add('lib/history.json')
-    forbidden={'projects','design','results','runs','validation','config','.local','.git'}
+    forbidden={'projects','design','results','runs','validation','config','.local','.git','.gitmodules','submodules'}
     for path in OUTPUT.rglob('*'):
         rel=path.relative_to(OUTPUT)
         indexed = rel.parts[0] == 'library-files'

@@ -16,6 +16,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools/workbench'))
 import bootstrap_python as bootstrap
+from upstream_sources import ensure_upstreams,UpstreamError
 
 EXTRAS = ('adctools', 'mcp')
 STEPS = (
@@ -77,9 +78,11 @@ def setup(root=ROOT, *, python=None, run=None, ensure=None, progress=None):
     if not bootstrap.within(root / '.local/developer-setup', root):
         raise bootstrap.BootstrapError('开发环境锁目录超出当前项目。')
     with bootstrap.setup_lock(root / '.local/developer-setup'):
+        try:upstreams=ensure_upstreams(root,run=run,progress=progress)
+        except UpstreamError as error:raise bootstrap.BootstrapError(str(error)) from error
         interpreter = ensure(root, run=run, candidates=[Path(python)] if python else None,
                              extras=EXTRAS, progress=progress)
-        stages = []
+        stages = [{'stage':'upstreams','status':upstreams['status']}]
         for name, arguments, timeout in STEPS:
             progress(name)
             bootstrap.checked([interpreter, *arguments], name + ' ', run, root, timeout)
@@ -87,6 +90,7 @@ def setup(root=ROOT, *, python=None, run=None, ensure=None, progress=None):
         report = {'schema':'circuitgit.developer-setup.v1','status':'ready',
                   'checked_at':datetime.now(timezone.utc).isoformat(),
                   'python':str(interpreter),'spiceowl':pin,'extras':list(EXTRAS),
+                  'upstreams':upstreams,
                   'adctoolbox_version':'0.9.3','checks':stages,'artifacts':artifact_health(root),
                   'external_links_checked':False,'services_started':False,
                   'model_calls':0,'ssh_calls':0,'solver_invocations':0}
@@ -104,7 +108,7 @@ def main(argv=None, *, root=ROOT):
             report = {'schema':'circuitgit.developer-setup-plan.v1',
                       'spiceowl':bootstrap.read_pin(Path(root)),'extras':list(EXTRAS),
                       'adctoolbox_version':'0.9.3',
-                      'stages':['project-local Python installation', *[name for name, _args, _timeout in STEPS], 'artifact health'],
+                      'stages':['official upstream submodule verification and initialization', 'project-local Python installation', *[name for name, _args, _timeout in STEPS], 'artifact health'],
                       'services_started':False}
         else:
             report = setup(root, python=options.python)

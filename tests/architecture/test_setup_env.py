@@ -18,8 +18,12 @@ class SetupTests(unittest.TestCase):
     def setUp(self):
         folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)
         self.root=Path(folder.name).resolve()/'project with spaces';(self.root/'contracts').mkdir(parents=True)
-        self.pin={'repository':'https://example.test/spiceowl.git','commit':'a'*40}
+        self.pin={'repository':'https://github.com/spiceowl-dev/spiceowl.git','commit':'a'*40}
         (self.root/'contracts/spiceowl-integration.lock.json').write_text(json.dumps({'schema':'circuitgit.spiceowl-integration.v1','spiceowl':self.pin}))
+        (self.root/'tools/viewer').mkdir(parents=True)
+        (self.root/'tools/viewer/upstream-lock.json').write_text(json.dumps({'upstream_repository':'https://github.com/rich-netlist/rnl','upstream_commit':'b'*40}))
+        (self.root/'apps/web/vendor/rnl-viewer').mkdir(parents=True)
+        (self.root/'apps/web/vendor/rnl-viewer/provenance.json').write_text(json.dumps({'upstream':'https://github.com/rich-netlist/rnl','commit':'b'*40}))
         self.calls=[];self.ensures=[];self.failure_stage=None
     def ensure(self,root,**options):
         self.ensures.append(options)
@@ -39,7 +43,8 @@ class SetupTests(unittest.TestCase):
     def test_one_command_orders_install_build_pages_and_offline_health_without_launch(self):
         result=self.setup()
         self.assertEqual(self.ensures[0]['extras'],('adctools','mcp'))
-        self.assertEqual([row['stage'] for row in result['checks']],['dependencies','build','pages','structure','links'])
+        self.assertEqual([row['stage'] for row in result['checks']],['upstreams','dependencies','build','pages','structure','links'])
+        self.assertEqual(result['upstreams']['status'],'unchecked')
         self.assertEqual(result['spiceowl'],self.pin);self.assertFalse(result['services_started']);self.assertFalse(result['external_links_checked'])
         self.assertEqual(result,json.loads((self.root/'.local/developer-setup.json').read_text()))
         for command,options in self.calls:
@@ -74,6 +79,21 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(self.ensures[0]['candidates'],[Path('/synthetic/python3.11')])
         self.assertNotEqual(result['python'],'/synthetic/python3.11')
         for _,options in self.calls:self.assertNotIn('PIP_TARGET',options['env']);self.assertNotIn('PYTHONPATH',options['env'])
+    def test_submodules_finish_before_environment_setup_and_a_failure_stops_everything(self):
+        order=[]
+        def upstreams(root,**options):
+            order.append('upstreams')
+            return {'schema':'circuitgit.upstream-sources.v1','status':'ready','sources':{}}
+        def ensure(root,**options):
+            order.append('python');return self.ensure(root,**options)
+        with patch.object(setup_env,'ensure_upstreams',side_effect=upstreams):
+            result=setup_env.setup(self.root,run=self.run_command,ensure=ensure,progress=lambda _:None)
+        self.assertEqual(order,['upstreams','python']);self.assertEqual(result['checks'][0],{'stage':'upstreams','status':'ready'})
+        before=(self.root/'.local/developer-setup.json').read_bytes();self.calls=[];self.ensures=[]
+        with patch.object(setup_env,'ensure_upstreams',side_effect=setup_env.UpstreamError('dirty upstream preserved')):
+            with self.assertRaisesRegex(setup_env.bootstrap.BootstrapError,'dirty upstream'):self.setup()
+        self.assertEqual(self.calls,[]);self.assertEqual(self.ensures,[])
+        self.assertEqual((self.root/'.local/developer-setup.json').read_bytes(),before)
 
 
 if __name__=='__main__':unittest.main()

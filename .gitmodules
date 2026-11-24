@@ -1,0 +1,6 @@
+[submodule "rnl"]
+	path = submodules/rnl
+	url = https://github.com/rich-netlist/rnl.git
+[submodule "spiceowl"]
+	path = submodules/spiceowl
+	url = https://github.com/spiceowl-dev/spiceowl.git

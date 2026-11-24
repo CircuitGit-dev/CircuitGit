@@ -18,6 +18,13 @@ class LinkTests(unittest.TestCase):
     def write(self,name,text):
         path=self.root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text,encoding='utf-8');return path
     def audit(self,**args):return links.audit(self.root,**args)
+    def test_upstream_submodules_are_not_scanned_as_project_documents(self):
+        self.write('README.md','# Local guide\n')
+        self.write('submodules/rnl/README.md','[upstream-only asset](missing-upstream.png)\n')
+        self.write('submodules/spiceowl/docs/guide.md','[upstream-only guide](missing.md)\n')
+        result=self.audit()
+        self.assertEqual(result['status'],'passed')
+        self.assertTrue(any(row['path']=='submodules' for row in result['coverage']['skipped_paths']))
     def test_markdown_html_references_unicode_anchors_and_nested_parentheses(self):
         self.write('docs/My Report_(new).md','# 快速 `setup`\n\n## Repeated\n\n## Repeated\n\n<span id="custom"></span>\n')
         self.write('docs/chart.svg','<svg><g id="plot"></g></svg>')

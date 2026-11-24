@@ -1,5 +1,6 @@
 import {mountImageComposer, createImageHistory} from './image-composer.js';
 import {checkImageRequest, imageModelError} from './images.js';
+import {appendAssistanceText} from './assistance.js';
 
 /** Small Markdown subset. All text stays in DOM text nodes; raw HTML is never parsed. */
 function renderAnswer(target, text) {
@@ -559,5 +560,13 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     if(!visible){for(const element of dialogs)if(element.open)element.close();}
     else if(clean&&!catalogAttempted)loadModels();
   }
-  return {showError,getState,openDetails,setVisible,focusInput(){if(!destroyed){setVisible(true);input.focus({preventScroll:true});}},inspectConnection,destroy(){if(destroyed)return;destroyed=true;inputObserver?.disconnect();imageComposer?.destroy();if(currentRun)clearInterval(currentRun.timer);events?.close();unsubscribe?.();for(const element of dialogs){if(element.open)element.close();element.remove();}root.replaceChildren();}};
+  const appliedDrafts=new Map();
+  function appendDraft(draft,{focus=true}={}){
+    if(destroyed)throw Error('当前对话已关闭，仿真请求尚未加入。');
+    if(appliedDrafts.has(draft?.request_id)){if(appliedDrafts.get(draft.request_id)!==draft.text)throw Error('请求身份与已加入的内容不一致，未重复追加。');return {status:'prepared',session_id:sessionId,message:'此请求已在当前对话草稿中处理，未重复追加。'};}
+    if(posting||uncertain||reconciling||resuming)return {status:'queued',message:'当前发送结果正在核对；仿真请求已保留，未修改原草稿。'};
+    input.value=appendAssistanceText(input.value,draft);appliedDrafts.set(draft.request_id,draft.text);resizeInput();changed();if(focus)input.focus({preventScroll:true});
+    return {status:'prepared',session_id:sessionId,message:'已追加到当前对话草稿；文字、图片和模型设置已保留，请检查后发送。'};
+  }
+  return {showError,getState,openDetails,setVisible,appendDraft,focusInput(){if(!destroyed){setVisible(true);input.focus({preventScroll:true});}},inspectConnection,destroy(){if(destroyed)return;destroyed=true;inputObserver?.disconnect();imageComposer?.destroy();if(currentRun)clearInterval(currentRun.timer);events?.close();unsubscribe?.();for(const element of dialogs){if(element.open)element.close();element.remove();}root.replaceChildren();}};
 }

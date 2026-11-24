@@ -141,7 +141,7 @@ def document_paths(root, selected=None):
                 retained=[]
                 for name in dirs:
                     path=Path(folder)/name;parts=path.relative_to(root).parts
-                    if path.is_symlink() or name.startswith('.') and name!='.github' or name in ('node_modules','__pycache__') or len(parts)==1 and name in GENERATED or name in ('vendor','third_party'):
+                    if path.is_symlink() or name.startswith('.') and name!='.github' or name in ('node_modules','__pycache__') or len(parts)==1 and name in GENERATED|{'submodules'} or name in ('vendor','third_party'):
                         skipped.append({'path':path.relative_to(root).as_posix(),'reason':'symlink, generated, cache or third-party directory'})
                     else:retained.append(name)
                 dirs[:]=retained
