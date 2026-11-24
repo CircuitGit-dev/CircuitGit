@@ -1,0 +1,153 @@
+{
+  "schema": "circuitgit.local-design-demonstration.v1",
+  "date": "2026-11-24",
+  "case": "Public CMOS inverter to two-stage buffer",
+  "implementation": "Actual LibraryWorkflow read_file / execute(save, commit, restore) in isolated Git fixture",
+  "baseline_commit": "956772eda64e2cc97f674f7a7601aa83b44e6195",
+  "variant_commit": "600481f8d7afa41ba709e67b11edb6880ac03afe",
+  "saved": "complete",
+  "committed": "complete",
+  "restored": "complete",
+  "history_preserved": true,
+  "git_reset_used": false,
+  "remote_operations": 0,
+  "virtuoso_processes_started": 0,
+  "simulations_submitted": 0,
+  "source_sha256": "05b72c015ebaec66d1fdf0700fe425d6c03c1791c1e4758ee2fb392544d2ffc7",
+  "variant_sha256": "4a15567c72abacbe1337a21aacce14a218b77e3d408c6b1cde62cd6be2b2f82f",
+  "restored_sha256": "05b72c015ebaec66d1fdf0700fe425d6c03c1791c1e4758ee2fb392544d2ffc7",
+  "diff": "diff --git a/lib/basics/cmos-inverter/schematic/cmos-inverter.scs b/lib/basics/cmos-inverter/schematic/cmos-inverter.scs\nindex 0fd1053..8713528 100644\n--- a/lib/basics/cmos-inverter/schematic/cmos-inverter.scs\n+++ b/lib/basics/cmos-inverter/schematic/cmos-inverter.scs\n@@ -6,7 +6,7 @@\n //   @USE-PACKAGE(name=\"eda-style\", version=\"0.1\", path=\"eda-style.rnl\")\n // }\n simulator lang=spectre\n-subckt CMOS_INVERTER CLK CLKN VDD VSS\n+subckt CMOS_INVERTER CLK BUFOUT VDD VSS\n     M9 (CLKN CLK VSS VSS) nch_ulvt_mac l=30n w=250.0n multi=1 nf=1 sd=100n \\\n         ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \\\n         nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \\\n@@ -21,13 +21,37 @@ subckt CMOS_INVERTER CLK CLKN VDD VSS\n         spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \\\n         spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \\\n         spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60\n+    M11 (BUFOUT CLKN VSS VSS) nch_ulvt_mac l=30n w=250.0n multi=1 nf=1 sd=100n \\\n+        ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=1.338763 \\\n+        nrs=1.338763 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \\\n+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \\\n+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \\\n+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \\\n+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60\n+    M12 (BUFOUT CLKN VDD VDD) pch_ulvt_mac l=30n w=250.0n multi=1 nf=1 \\\n+        sd=100n ad=1.875e-14 as=1.875e-14 pd=650.0n ps=650.0n nrd=0.777777 \\\n+        nrs=0.777777 sa=75.0n sb=75.0n sa1=75.0n sa2=75.0n sa3=75.0n \\\n+        sa4=75.0n sb1=75.0n sb2=75.0n sb3=75.0n spa=100n spa1=100n \\\n+        spa2=100n spa3=100n sap=91.9776n sapb=114.444n spba=115.715n \\\n+        spba1=117.043n dfm_flag=0 spmt=1.11111e+15 spomt=0 \\\n+        spomt1=1.11111e+60 spmb=1.11111e+15 spomb=0 spomb1=1.11111e+60\n // @RNL(author=\"circuitgit-starter\") {\n+//   #\"M12\" @SET-SYMBOL $PMOS_4TERM;\n+//   #\"M12\" @PLACE(50, 10) => @ORIENT(\"R0\");\n+//   #\"M11\" @SET-SYMBOL $NMOS_4TERM;\n+//   #\"M11\" @PLACE(50, -10) => @ORIENT(\"R0\");\n+//   &\"BUFOUT\" @WIRE(mode=\"straight\") {#\"M12\":1 (50, 0) #\"M11\":1};\n+//   &\"BUFOUT\" @WIRE(mode=\"straight\") {(50, 0) %out:1};\n+//   &\"VDD\" @WIRE(mode=\"straight\") {#\"M12\":3 (50, 18) %vp};\n+//   &\"VDD\" @WIRE(mode=\"straight\") {#\"M12\":4 (68, 10) (68, 18) (50, 18)};\n+//   &\"VSS\" @WIRE(mode=\"straight\") {#\"M11\":3 (50, -18) %vn};\n+//   &\"VSS\" @WIRE(mode=\"straight\") {#\"M11\":4 (68, -10) (68, -18) (50, -18)};\n //   #\"M10\" @SET-SYMBOL $PMOS_4TERM;\n //   #\"M10\" @PLACE(0, 10) => @ORIENT(\"R0\");\n //   #\"M9\" @SET-SYMBOL $NMOS_4TERM;\n //   #\"M9\" @PLACE(0, -10) => @ORIENT(\"R0\");\n //   %in = $IO_PORT @ATTACH &\"CLK\" => @PLACE(-18, 0) => @ORIENT(\"R0\");\n-//   %out = $IO_PORT @ATTACH &\"CLKN\" => @PLACE(26, 0) => @ORIENT(\"R180\");\n+//   %out = $IO_PORT @ATTACH &\"BUFOUT\" => @PLACE(76, 0) => @ORIENT(\"R180\");\n //   %vdd = $IO_PORT @ATTACH &\"VDD\" => @PLACE(0, 22) => @ORIENT(\"R270\");\n //   %vss = $IO_PORT @ATTACH &\"VSS\" => @PLACE(0, -22) => @ORIENT(\"R90\");\n //   %gin = (-10, 0);\n@@ -45,7 +69,8 @@ subckt CMOS_INVERTER CLK CLKN VDD VSS\n //   &\"CLK\" @WIRE(mode=\"straight\") {%gp #\"M10\":2};\n //   &\"CLK\" @WIRE(mode=\"straight\") {%gn #\"M9\":2};\n //   &\"CLKN\" @WIRE(mode=\"straight\") {#\"M10\":1 %d #\"M9\":1};\n-//   &\"CLKN\" @WIRE(mode=\"straight\") {%d %out:1};\n+//   &\"CLKN\" @WIRE(mode=\"straight\") {%d (40, 0) (40, 10) #\"M12\":2};\n+//   &\"CLKN\" @WIRE(mode=\"straight\") {(40, 0) (40, -10) #\"M11\":2};\n //   &\"VDD\" @WIRE(mode=\"straight\") {#\"M10\":3 %vp %vdd:1};\n //   &\"VDD\" @WIRE(mode=\"straight\") {#\"M10\":4 %bp %bprail %vp};\n //   &\"VSS\" @WIRE(mode=\"straight\") {#\"M9\":3 %vn %vss:1};",
+  "source_inspection": {
+    "schema": "spiceowl.netlist-model-requirements.v1",
+    "mode": "agent-tb",
+    "source_id": "dut.scs",
+    "source_sha256": "4a15567c72abacbe1337a21aacce14a218b77e3d408c6b1cde62cd6be2b2f82f",
+    "status": "parsed",
+    "instances": [
+      {
+        "name": "M9",
+        "master": "nch_ulvt_mac",
+        "ordered_nets": [
+          "CLKN",
+          "CLK",
+          "VSS",
+          "VSS"
+        ],
+        "port_count": 4,
+        "dimensions": {},
+        "line": 10,
+        "path": "dut.scs",
+        "scope": [
+          "CMOS_INVERTER"
+        ],
+        "polarity": null,
+        "terminal_semantics": null
+      },
+      {
+        "name": "M10",
+        "master": "pch_ulvt_mac",
+        "ordered_nets": [
+          "CLKN",
+          "CLK",
+          "VDD",
+          "VDD"
+        ],
+        "port_count": 4,
+        "dimensions": {},
+        "line": 17,
+        "path": "dut.scs",
+        "scope": [
+          "CMOS_INVERTER"
+        ],
+        "polarity": null,
+        "terminal_semantics": null
+      },
+      {
+        "name": "M11",
+        "master": "nch_ulvt_mac",
+        "ordered_nets": [
+          "BUFOUT",
+          "CLKN",
+          "VSS",
+          "VSS"
+        ],
+        "port_count": 4,
+        "dimensions": {},
+        "line": 24,
+        "path": "dut.scs",
+        "scope": [
+          "CMOS_INVERTER"
+        ],
+        "polarity": null,
+        "terminal_semantics": null
+      },
+      {
+        "name": "M12",
+        "master": "pch_ulvt_mac",
+        "ordered_nets": [
+          "BUFOUT",
+          "CLKN",
+          "VDD",
+          "VDD"
+        ],
+        "port_count": 4,
+        "dimensions": {},
+        "line": 31,
+        "path": "dut.scs",
+        "scope": [
+          "CMOS_INVERTER"
+        ],
+        "polarity": null,
+        "terminal_semantics": null
+      }
+    ],
+    "interfaces": [
+      {
+        "name": "CMOS_INVERTER",
+        "ports": [
+          "CLK",
+          "BUFOUT",
+          "VDD",
+          "VSS"
+        ],
+        "path": "dut.scs",
+        "line": 9,
+        "scope": []
+      }
+    ],
+    "required_masters": [
+      "nch_ulvt_mac",
+      "pch_ulvt_mac"
+    ],
+    "includes": [],
+    "veriloga_modules": [],
+    "veriloga_external_dependencies": [],
+    "info_requests": [],
+    "issues": [],
+    "confirmation_required": [
+      "authored_testbench_and_objectives"
+    ],
+    "dimensions_scope": "generic source inventory only; no parameter evaluation or terminal-role inference"
+  },
+  "limits": [
+    "Static source inspection is not a PDK or simulation pass.",
+    "RNL geometry source was edited; no native GUI equivalence or analog performance claim.",
+    "Bridge side is source-verified operation comparison; no remote Bridge benchmark was performed."
+  ],
+  "native_rnl_build": [
+    {
+      "case": "baseline",
+      "status": "passed",
+      "renderer": "bundled RNL WebAssembly",
+      "level": "CMOS_INVERTER",
+      "geometry_hits": 36
+    },
+    {
+      "case": "buffer",
+      "status": "passed",
+      "renderer": "bundled RNL WebAssembly",
+      "level": "CMOS_INVERTER",
+      "geometry_hits": 57
+    }
+  ]
+}

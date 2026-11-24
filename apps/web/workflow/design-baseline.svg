@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="835" height="826" viewBox="-357.11 -413.11 834.65 826.21" font-family="Noto Sans SC, Noto Sans CJK SC, Source Han Sans SC, sans-serif" style="font-kerning:none;font-variant-ligatures:none;text-spacing-trim:space-all;text-autospace:no-autospace">
+<rect class="backdrop" x="-357.11" y="-413.11" width="834.65" height="826.21" fill="#ffffff"/>
+<g data-id="wire-0"><path d="M-252.00,-0.00 L-140.00,-0.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-1"><path d="M-140.00,-140.00 L-140.00,-0.00 L-140.00,140.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-2"><path d="M-140.00,-140.00 L-56.00,-140.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-3"><path d="M-140.00,140.00 L-56.00,140.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-4"><path d="M0.00,-98.00 L0.00,-0.00 L0.00,98.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-5"><path d="M0.00,-0.00 L364.00,-0.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-6"><path d="M0.00,-182.00 L0.00,-252.00 L0.00,-308.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-7"><path d="M0.00,-140.00 L252.00,-140.00 L252.00,-252.00 L0.00,-252.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-8"><path d="M0.00,182.00 L0.00,252.00 L0.00,308.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="wire-9"><path d="M0.00,140.00 L252.00,140.00 L252.00,252.00 L0.00,252.00" fill="none" stroke="#1d1d1f" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-0"><path d="M-28.00,119.00 L0.00,119.00 L0.00,98.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-0"><path d="M-28.00,161.00 L-28.00,119.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-0"><path d="M-14.00,154.00 L0.00,161.00 L-14.00,168.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-0"><path d="M-56.00,140.00 L-35.00,140.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-0"><path d="M-35.00,119.00 L-35.00,161.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-0"><path d="M-28.00,140.00 L0.00,140.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-0"><path d="M-28.00,161.00 L0.00,161.00 L0.00,182.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-1"><path d="M-35.00,-161.00 L-35.00,-119.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-1"><path d="M-28.00,-119.00 L0.00,-119.00 L0.00,-98.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-1"><path d="M-28.00,-161.00 L0.00,-161.00 L0.00,-182.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-1"><path d="M-56.00,-140.00 L-35.00,-140.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-1"><path d="M-4.20,-168.00 L-18.20,-161.00 L-4.20,-154.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-1"><path d="M-28.00,-140.00 L0.00,-140.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="item-1"><path d="M-28.00,-119.00 L-28.00,-161.00" fill="none" stroke="#00cc66" stroke-width="1.20" vector-effect="non-scaling-stroke"/></g>
+<g data-id="#M9::name"><text x="7.00" y="112.00" font-size="14.00" font-family="Lucida Console, Monaco, DejaVu Sans Mono, Consolas, monospace" textLength="16.87" lengthAdjust="spacingAndGlyphs" fill="#ff0000" xml:space="preserve">M9</text></g>
+<g data-id="#M9::model"><text x="7.00" y="165.20" font-size="14.00" font-family="Lucida Console, Monaco, DejaVu Sans Mono, Consolas, monospace" textLength="101.23" lengthAdjust="spacingAndGlyphs" fill="#ff0000" xml:space="preserve">nch_ulvt_mac</text></g>
+<g data-id="#M10::name"><text x="7.00" y="-168.00" font-size="14.00" font-family="Lucida Console, Monaco, DejaVu Sans Mono, Consolas, monospace" textLength="25.31" lengthAdjust="spacingAndGlyphs" fill="#ff0000" xml:space="preserve">M10</text></g>
+<g data-id="#M10::model"><text x="7.00" y="-114.80" font-size="14.00" font-family="Lucida Console, Monaco, DejaVu Sans Mono, Consolas, monospace" textLength="101.23" lengthAdjust="spacingAndGlyphs" fill="#ff0000" xml:space="preserve">pch_ulvt_mac</text></g>
+<g data-id="item-2"><path d="M-252.00,-0.00 L-264.60,12.60 L-278.60,12.60 L-291.20,-0.00 L-278.60,-12.60 L-264.60,-12.60 L-252.00,-0.00 Z" fill="#ff0000" stroke="none"/></g>
+<g data-id="item-3"><path d="M364.00,-0.00 L376.60,-12.60 L390.60,-12.60 L403.20,-0.00 L390.60,12.60 L376.60,12.60 L364.00,-0.00 Z" fill="#ff0000" stroke="none"/></g>
+<g data-id="item-4"><path d="M0.00,-308.00 L-12.60,-320.60 L-12.60,-334.60 L0.00,-347.20 L12.60,-334.60 L12.60,-320.60 L0.00,-308.00 Z" fill="#ff0000" stroke="none"/></g>
+<g data-id="item-5"><path d="M0.00,308.00 L12.60,320.60 L12.60,334.60 L0.00,347.20 L-12.60,334.60 L-12.60,320.60 L0.00,308.00 Z" fill="#ff0000" stroke="none"/></g>
+<g data-id="%in::name"><text x="-322.11" y="6.10" font-size="14.00" font-family="Lucida Console, Monaco, DejaVu Sans Mono, Consolas, monospace" textLength="25.31" lengthAdjust="spacingAndGlyphs" fill="#ff0000" xml:space="preserve">CLK</text></g>
+<g data-id="%out::name"><text x="408.80" y="6.10" font-size="14.00" font-family="Lucida Console, Monaco, DejaVu Sans Mono, Consolas, monospace" textLength="33.74" lengthAdjust="spacingAndGlyphs" fill="#ff0000" xml:space="preserve">CLKN</text></g>
+<g data-id="%vdd::name"><text x="6.10" y="-352.80" font-size="14.00" font-family="Lucida Console, Monaco, DejaVu Sans Mono, Consolas, monospace" transform="rotate(-90 6.10 -352.80)" textLength="25.31" lengthAdjust="spacingAndGlyphs" fill="#ff0000" xml:space="preserve">VDD</text></g>
+<g data-id="%vss::name"><text x="6.10" y="378.11" font-size="14.00" font-family="Lucida Console, Monaco, DejaVu Sans Mono, Consolas, monospace" transform="rotate(-90 6.10 378.11)" textLength="25.31" lengthAdjust="spacingAndGlyphs" fill="#ff0000" xml:space="preserve">VSS</text></g>
+<rect x="-5.60" y="92.40" width="11.20" height="11.20" fill="#ff0000" stroke="none"/>
+<rect x="-61.60" y="134.40" width="11.20" height="11.20" fill="#ff0000" stroke="none"/>
+<rect x="-5.60" y="176.40" width="11.20" height="11.20" fill="#ff0000" stroke="none"/>
+<rect x="-5.60" y="134.40" width="11.20" height="11.20" fill="#ff0000" stroke="none"/>
+<rect x="-5.60" y="-103.60" width="11.20" height="11.20" fill="#ff0000" stroke="none"/>
+<rect x="-61.60" y="-145.60" width="11.20" height="11.20" fill="#ff0000" stroke="none"/>
+<rect x="-5.60" y="-187.60" width="11.20" height="11.20" fill="#ff0000" stroke="none"/>
+<rect x="-5.60" y="-145.60" width="11.20" height="11.20" fill="#ff0000" stroke="none"/>
+</svg>
