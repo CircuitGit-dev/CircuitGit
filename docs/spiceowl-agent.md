@@ -9,6 +9,12 @@ Standalone SpiceOwl has its own explicitly connected Agent channel. Its owner
 bindings and human review remain separate from the embedded data reader. Choosing
 standalone versus embedded changes who owns the chat, not who may approve a run.
 
+Registered `prepare → run → inspect` experiments use deterministic tools and
+contracts. This does not establish that a weaker model can reliably author a
+correct testbench for an arbitrary new circuit; that needs a separate end-to-end
+evaluation. Tool tests and the walkthrough's static evidence do not measure
+that success rate.
+
 ## CircuitGit's own runs
 
 Ask the existing AI panel to inspect an explicit project or run, or use the
