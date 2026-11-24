@@ -169,6 +169,43 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(len(self.runtime.installs), 2)
         self.assertEqual(self.runtime.installs[-1][-1], 'spiceowl[adctools] @ git+' + self.pin['repository'] + '@' + self.pin['commit'])
 
+    def test_default_upgrade_uses_cached_interpreter_when_path_only_has_old_python(self):
+        old_pin=dict(self.pin)
+        cached=self.runtime.add(self.root/'.local/python/spiceowl-old-pin-py3.12/bin/python',
+                                version=(3,12,4),pin=old_pin)
+        # A missing newly required read_api makes the package probe incomplete,
+        # while the already observed interpreter version remains usable.
+        self.runtime.observations[str(cached)]['dependency']=None
+        cached.write_bytes(b'old environment executable is preserved')
+        (cached.parent.parent/'circuitgit-environment.json').write_text(json.dumps(old_pin))
+        (cached.parent.parent/'user-state.txt').write_text('existing service environment')
+        before={str(path.relative_to(cached.parent.parent)):path.read_bytes()
+                for path in cached.parent.parent.rglob('*') if path.is_file()}
+        self.pin={**self.pin,'commit':'b'*40};self.write_pin()
+        old_system=self.runtime.add(self.root.parent/'system39/bin/python3',version=(3,9,6),global_python=True)
+        with patch.object(bootstrap,'interpreter_candidates',return_value=iter([old_system])):
+            selected=bootstrap.ensure_python(self.root,run=self.runtime.run,progress=self.progress.append)
+        self.assertNotEqual(selected,cached);self.assertIn('-py3.12',str(selected))
+        creation=[command for command,_ in self.runtime.calls if '-m' in command and command[command.index('-m')+1]=='venv']
+        self.assertEqual(creation[0][0],str(cached));self.assertEqual(self.runtime.installs[0][0],str(selected))
+        self.assertTrue(bootstrap.pinned(self.runtime.observations[str(selected)],selected.parent.parent,self.pin))
+        self.assertEqual(before,{str(path.relative_to(cached.parent.parent)):path.read_bytes()
+            for path in cached.parent.parent.rglob('*') if path.is_file()})
+        self.assertIsNone(self.runtime.observations[str(cached)]['dependency'])
+
+    def test_explicit_creation_candidates_do_not_fall_back_to_cached_interpreters(self):
+        self.runtime.add(self.root/'.local/python/spiceowl-old-pin-py3.12/bin/python',
+                         version=(3,12,4),pin={**self.pin,'commit':'b'*40})
+        old_system=self.runtime.add(self.root.parent/'system39/bin/python3',version=(3,9,6),global_python=True)
+        with patch.object(bootstrap,'interpreter_candidates',side_effect=AssertionError('Explicit candidates only')):
+            for candidates in ([],[old_system]):
+                with self.subTest(candidates=candidates),self.assertRaisesRegex(bootstrap.BootstrapError,'Python 3.11'):
+                    bootstrap.ensure_python(self.root,run=self.runtime.run,candidates=candidates)
+            self.assertEqual(self.runtime.installs,[])
+            selected=bootstrap.ensure_python(self.root,run=self.runtime.run,candidates=[self.base],progress=self.progress.append)
+        creation=[command for command,_ in self.runtime.calls if '-m' in command and command[command.index('-m')+1]=='venv']
+        self.assertEqual(creation[0][0],str(self.base));self.assertIn('-py3.11',str(selected))
+
     def test_old_python_is_skipped_and_only_old_python_fails_before_install(self):
         old = self.runtime.add(self.root / '.venv/bin/python', version=(3, 9, 6), pin=self.pin)
         with self.assertRaisesRegex(bootstrap.BootstrapError, 'Python 3.11'):

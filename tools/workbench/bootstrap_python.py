@@ -8,6 +8,7 @@ by --setup-only. Existing project environments are inspected, never upgraded.
 import argparse
 from contextlib import contextmanager
 import hashlib
+from itertools import chain
 import json
 import os
 from pathlib import Path
@@ -313,7 +314,12 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None, extras
             if pinned(observation, environment, pin, modules):
                 return python
         base = None
-        for candidate in candidates if candidates is not None else interpreter_candidates(root):
+        if candidates is None:
+            # A previous pin may lack current modules but still provides a valid
+            # interpreter for creating a separate environment. Never upgrade it.
+            candidates = chain((Path(path) for path, observation in observations.items()
+                                if compatible(observation)), interpreter_candidates(root))
+        for candidate in candidates:
             candidate = Path(candidate).absolute()
             observation = observations.get(str(candidate)) or probe(candidate, run, modules)
             if compatible(observation):
