@@ -106,10 +106,16 @@ def create_child_config(folder,state,compiled_selection,hosts):
     atomic(root/'pool.json',pool)
     audit_probe=next(p for p in state['probes'] if p['probe_id']==compiled_selection['probe_id'])
     audit_host=audit_probe['ssh_target']
+    scope_selection=compiled_selection.get('scope_selection')
+    if scope_selection is not None:
+        if 'candidate' in compiled_selection:raise ValueError('A PDK scope cannot also carry a candidate selection')
+        expected_main_sha256=scope_selection['private']['entry_sha256']
+    else:expected_main_sha256=compiled_selection['candidate']['entry_sha256']
     profile={'electrical':compiled['electrical'],'dependencies':compiled_selection['audit'],
-        'expected_main_sha256':compiled_selection['candidate']['entry_sha256'],
+        'expected_main_sha256':expected_main_sha256,
         'audit_host':audit_host,'remote_python':hosts[audit_host]['python'],
         'environment_pins':{host:{'cadence_setup':row['setup_sha256']} for host,row in hosts.items()}}
+    if scope_selection is not None:profile['scope_selection']=scope_selection
     if compiled_selection.get('veriloga_headers'):
         headers=compiled_selection['veriloga_headers']
         if hosts[audit_host]['site']['spectre_bin']!=headers['spectre']:

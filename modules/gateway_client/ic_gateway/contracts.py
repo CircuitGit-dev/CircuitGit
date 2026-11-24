@@ -104,6 +104,8 @@ ONBOARDING_ROUTES = {
     'onboarding_session':('GET','session'), 'onboarding_probe':('POST','probe'),
     'onboarding_discover_pdk':('POST','discover-pdk'), 'onboarding_prepare':('POST','prepare'),
     'onboarding_veriloga_headers':('POST','veriloga-headers'),
+    'onboarding_pdk_scopes':('GET','pdk-scopes'),
+    'onboarding_select_pdk_scope':('POST','select-pdk-scope'),
     'onboarding_run':('POST','run'), 'onboarding_submission':('GET','submission'),
     'onboarding_inspect':('POST','inspect'), 'onboarding_waveforms_catalog':('GET','waveforms/catalog'),
     'onboarding_waveforms_mapping':('GET','waveforms/mapping'), 'onboarding_waveforms_window':('GET','waveforms/window'),
@@ -122,6 +124,12 @@ SCHEMAS.update({
             ('probe_id','library_id','library_candidate_id'))},('intake_id','revision','probe_ids')),
     'onboarding_veriloga_headers':obj({'intake_id':INTAKE,'revision':REVISION,'probe_id':PROBE,
         'roots':array(SEARCH_DIRECTORY,1,8)},('intake_id','revision','probe_id','roots')),
+    'onboarding_pdk_scopes':obj({'intake_id':INTAKE,'probe_id':PROBE,'library_id':HASH,
+        'entry_id':HASH,'offset':{'type':'integer','minimum':0,'maximum':16384},
+        'limit':{'type':'integer','minimum':1,'maximum':128}},('intake_id','probe_id','library_id')),
+    'onboarding_select_pdk_scope':obj({'intake_id':INTAKE,'revision':REVISION,'probe_id':PROBE,
+        'library_id':HASH,'entry_id':HASH,'section_ids':array(HASH,1,64),'tmi_option_id':HASH},
+        ('intake_id','revision','probe_id','library_id','entry_id','section_ids')),
     'onboarding_prepare':obj({'intake_id':INTAKE,'revision':REVISION,
         'accept_recommendation':{'type':'boolean'},'recommendation_id':HASH,'recommendation_revision':REVISION,
         'discovery_id':DISCOVERY,'candidate_id':HASH,
@@ -153,6 +161,8 @@ DESCRIPTIONS.update({
     'onboarding_waveforms_mapping':'Read the saved original job signal mapping. Missing geometry remains unverified. No SSH, collection or simulation.',
     'onboarding_waveforms_window':'Read bounded samples for exact signals of one original saved dataset. start/stop use its declared axis unit (s for transient, Hz for AC); AC/DC require explicit dataset_id. No signal expressions, paths, SSH, collection or execution.',
     'onboarding_veriloga_headers':'Observe the standard Verilog-A headers and literal include closure only within explicitly selected remote roots on one already probed host. Saves hashes for later human review and fresh dependency audit. No simulator or automatic root guessing.',
+    'onboarding_pdk_scopes':'Read a bounded catalog from this intake’s original saved PDK library and probe. Omit entry_id to list entries; use an observed entry_id to list sections and next_offset to continue. IDs are opaque and bound to retained file hashes. No scan, SSH, new roots or execution.',
+    'onboarding_select_pdk_scope':'Save an ordered selection of 1–64 observed sections from one saved PDK entry, optionally with an observed TMI option. Uses the exact intake revision. It preserves prior drafts and requires explicit draft rebinding, a fresh dependency audit and human review. Coverage is not process qualification or permission to run. No scan, SSH or simulation.',
 })
 
 
@@ -168,11 +178,14 @@ TB_MANIFEST = obj({
     'helper_files':dictionary({'type':'string','minLength':1,'maxLength':524288},
         {'type':'string','minLength':1,'maxLength':240},48),
 },('schema','text','interface','analyses','stimuli','objectives','criteria','postprocess'))
-TB_SELECTION = obj({'discovery_id':DISCOVERY,'candidate_id':HASH,
+TB_LEGACY_SELECTION = obj({'discovery_id':DISCOVERY,'candidate_id':HASH,
     'sections':array({'anyOf':[PORT,{'type':'null'}]},1,64),
     'tmi_candidate_id':{'anyOf':[HASH,{'type':'null'}]},
     'model_contracts':dictionary(SEMANTIC_OBJECT,PORT,128),
     'host_ids':array(PID,1,8),'veriloga_header_id':PID},())
+TB_SELECTION = {'anyOf':[TB_LEGACY_SELECTION,
+    obj({'scope_selection_id':HASH,'host_ids':array(PID,1,8),'veriloga_header_id':PID},
+        ('scope_selection_id','host_ids'))]}
 SCHEMAS['onboarding_netlist']['properties'].update({
     'mode':{'type':'string','enum':['agent-tb']},
     'support_files':dictionary({'type':'string','maxLength':1048576},
@@ -217,6 +230,6 @@ DESCRIPTIONS['onboarding_run'] += ' An agent-authored testbench returns a pendin
 def tools():
     return [{'name': 'ic_' + name, 'description': DESCRIPTIONS[name], 'inputSchema': schema,
              'annotations': {'readOnlyHint': name in READ_ONLY, 'destructiveHint': name in MUTATIONS or name in {'sim_execute','onboarding_probe','onboarding_run','onboarding_inspect'},
-                             'idempotentHint': name not in {'onboarding_netlist','onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_prepare','onboarding_agent_tb_draft','onboarding_agent_tb_prepare'},
+                             'idempotentHint': name not in {'onboarding_netlist','onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_select_pdk_scope','onboarding_prepare','onboarding_agent_tb_draft','onboarding_agent_tb_prepare'},
                              'openWorldHint': name in {'sim_preflight','sim_status','sim_execute','onboarding_probe','onboarding_discover_pdk','onboarding_veriloga_headers','onboarding_prepare','onboarding_run','onboarding_inspect'} | MUTATIONS}}
             for name, schema in SCHEMAS.items()]

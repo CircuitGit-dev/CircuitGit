@@ -3,6 +3,7 @@ import {appendSimulationReport} from '../report.js';
 import {appendAgentTestbench,appendVerilogaHeaders} from './testbench-panel.js';
 import {createAnalysisPanel} from './analysis-panel.js';
 import {appendPdkLut} from './lut.js';
+import {checkPdkScopeSelection} from './agent-testbench.js';
 import {recoveryMessage} from './recovery.js';
 
 const labels={idle:'待设置',loading:'处理中',complete:'已读取',error:'未完成',unknown:'待核对'};
@@ -27,6 +28,37 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
   const resultError=(parent,step)=>{if(step.error)note(parent,step.error,true);};
   const appendAnalysis=createAnalysisPanel({render,opened,onError:reason=>{error=reason.message;notify(error,{kind:'error'});render();}});
   function evidence(parent,value){const list=el('dl',undefined,'ic-env-observations'),rows=Array.isArray(value)?value.map((item,index)=>[String(index+1),item]):Object.entries(value||{});for(const [key,item]of rows.slice(0,32))list.append(el('dt',key),el('dd',format(item)));parent.append(list);}
+  function appendScopePicker(parent,s,locked,connected){
+    const libraries=(s.session?.discovery?.lut||[]).filter(row=>/^[a-f0-9]{64}$/.test((row.projection||row).library_id)&&s.session.probes?.some(probe=>probe.probe_id===row.probe_id));
+    if(!libraries.length)return;
+    const box=detail(parent,'pdk-scope-picker','已有索引：选择入口与有序 section');box.dataset.pdkScopePicker='';
+    const choice=s.scopeChoice,entries=s.scopeEntries.result?.catalog,sections=s.scopeSections.result?.catalog,unknown=s.scopeSave.status==='unknown',disabled=locked||!connected||s.setupDirty||unknown;let saved=null;try{saved=checkPdkScopeSelection(s.session);}catch(reason){note(box,reason.message,true);}
+    note(box,'读取已保存的索引，明确选择同一入口中的 section，并按列出的顺序包含。保存后仍需新的依赖审计。');
+    const libraryKey=row=>JSON.stringify([row.probe_id,(row.projection||row).library_id]);
+    select(box,'已保存模型库','scope-library',[{value:'',label:'明确选择一个模型库'},...libraries.map(row=>({value:libraryKey(row),label:(s.session.probes.find(probe=>probe.probe_id===row.probe_id)?.ssh_target||row.probe_id)+' · '+(row.projection||row).library_id.slice(0,12)}))],choice.libraryId?JSON.stringify([choice.probeId,choice.libraryId]):'',value=>{const row=libraries.find(row=>libraryKey(row)===value);if(row)controller.selectScopeLibrary({probe_id:row.probe_id,library_id:(row.projection||row).library_id});else controller.selectScopeLibrary();},disabled);
+    const readEntries=button(entries?'重新读取入口目录':'读取入口目录',()=>controller.readPdkScopes({kind:'entries'}),disabled||!choice.libraryId||!controller.has('getPdkScopes'));readEntries.dataset.pdkScopeReadEntries='';box.append(readEntries);resultError(box,s.scopeEntries);
+    if(entries){
+      note(box,'入口 '+entries.items.length+' / '+entries.total+' · '+entries.status);
+      select(box,'模型入口','scope-entry',[{value:'',label:'明确选择一个入口'},...entries.items.map(row=>({value:row.entry_id,label:row.label+' · '+row.section_count+' 个 section'}))],choice.entryId,value=>controller.selectScopeEntry(value),disabled);
+      if(entries.next_offset!==null){const more=button('读取更多入口',()=>controller.readPdkScopes({kind:'entries',more:true}),disabled);more.dataset.pdkScopeMoreEntries='';box.append(more);}
+    }
+    if(choice.entryId){const read=button(sections?'重新读取 section':'读取所选入口的 section',()=>controller.readPdkScopes({kind:'sections'}),disabled||!controller.has('getPdkScopes'));read.dataset.pdkScopeReadSections='';box.append(read);}
+    resultError(box,s.scopeSections);
+    if(sections){
+      const fields=el('fieldset',undefined,'ic-env-sections');fields.dataset.pdkScopeSections='';fields.append(el('legend','Section · 勾选顺序即包含顺序（最多 64）'));
+      for(const row of sections.items){const label=el('label'),check=el('input');check.type='checkbox';check.dataset.pdkScopeSection=row.section_id;check.dataset.environmentField='scope-section-'+row.section_id;check.checked=choice.sectionIds.includes(row.section_id);check.disabled=disabled||!check.checked&&choice.sectionIds.length>=64;check.addEventListener('change',call(()=>controller.selectScopeSections(check.checked?[...choice.sectionIds,row.section_id]:choice.sectionIds.filter(id=>id!==row.section_id))));label.append(check,doc.createTextNode((row.section===null?'全局作用域':row.section)+' · '+row.observed_model_count+' 个已观察型号'+(row.unknown_codes.length?' · 有待核对项':'')));fields.append(label);}box.append(fields);
+      note(box,'Section '+sections.items.length+' / '+sections.total+' · '+sections.status);
+      if(sections.next_offset!==null){const more=button('读取更多 section',()=>controller.readPdkScopes({kind:'sections',more:true}),disabled);more.dataset.pdkScopeMoreSections='';box.append(more);}
+      if(choice.sectionIds.length){const order=el('ol');order.dataset.pdkScopeOrder='';for(const [index,sectionId]of choice.sectionIds.entries()){const row=sections.items.find(item=>item.section_id===sectionId),item=el('li');item.dataset.pdkScopeOrdered=sectionId;item.append(el('span',row?.section===null?'全局作用域':row?.section||'待核对的 section'));const move=delta=>{const next=[...choice.sectionIds];[next[index],next[index+delta]]=[next[index+delta],next[index]];controller.selectScopeSections(next);};item.append(button('上移',()=>move(-1),disabled||index===0),button('下移',()=>move(1),disabled||index===choice.sectionIds.length-1));order.append(item);}box.append(order);}
+    }
+    const matching=saved&&saved.probe_id===choice.probeId&&saved.library_id===choice.libraryId&&saved.entry_id===choice.entryId&&JSON.stringify(saved.section_ids)===JSON.stringify(choice.sectionIds);
+    if(matching&&saved.tmi_options?.length)select(box,'TMI 选项','scope-tmi',[{value:'',label:'明确选择观察到的 TMI 选项'},...saved.tmi_options.map(row=>({value:row.tmi_option_id,label:row.label}))],choice.tmiOptionId||'',value=>controller.selectScopeTmi(value||null),disabled);
+    const save=button(s.busy==='pdk-scope-save'?'保存中…':'保存作用域 · 待依赖审计',()=>controller.savePdkScope(),disabled||!choice.sectionIds.length||controller.agentEditor.dirty||controller.agentEditor.conflict||!controller.has('selectPdkScope'));save.dataset.pdkScopeSave='';box.append(save);resultError(box,s.scopeSave);
+    if(controller.agentEditor.dirty||controller.agentEditor.conflict)note(box,'当前测试平台草稿仍保留；先保存或核对草稿，再保存作用域。');
+    if(unknown)note(box,'保存结果未知。请刷新原实验读取回执，不要重复保存。',true);
+    if(saved){const report=el('div');report.dataset.pdkScopeSaved='';note(report,saved.status==='requires_audit'?'作用域已保存 · 仍需新依赖审计':'作用域已保存 · 有阻断项',saved.status!=='requires_audit');evidence(report,{'包含顺序':saved.sections,'覆盖型号':saved.covered_model_names,'缺失型号':saved.missing_model_names});for(const gap of saved.missing||[])note(report,gap.message||gap.code||'待核对项');note(report,'尚未获得运行就绪回执。采用后需重新保存测试平台，并按原流程生成审阅计划。');
+      if(s.session.agent_tb){const adopt=button('采用此作用域到测试平台',()=>controller.adoptPdkScope(),disabled||controller.agentEditor.conflict||saved.status!=='requires_audit');adopt.dataset.pdkScopeAdopt='';report.append(adopt);note(report,'保留测试平台原文、说明和已填写的允许主机，仅替换 PDK 绑定。');}box.append(report);}
+  }
   function environmentSummary(parent,value){
     const rows={},tools=Array.isArray(value.tools)?value.tools:[];
     for(const [kind,label]of [['spectre','Spectre'],['python','Python']]){const tool=tools.find(item=>item.kind===kind);rows[label]=!tool?'未知':(tool.configured?'已找到配置':'未找到配置')+(tool.version?' · '+tool.version:'')+(tool.usable==='probe_executed'?' · 已执行探测':'');}
@@ -85,7 +117,7 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     const lutRows=s.discovery.result?.discovery.lut||[],pendingLibraries=lutRows.filter(row=>{const current=row.projection||row;return /^[a-f0-9]{64}$/.test(current.library_id)&&current.status==='partial'&&current.scan_required===false;});
     const pdkCard=card(root,3,generic?'PDK 依据':'实验推荐',generic?'测试平台中明确选择':s.recommendationMode?'等待确认':'手动设置'),recommendation=generic?null:controller.recommendation,shown=generic?s.session?.agent_tb?.selection:s.recommendationMode?recommendation:{candidate_id:s.candidateId,sections:s.sections,intent:s.intent},choice=s.discovery.result?.discovery.candidates.find(item=>item.candidate_id===shown?.candidate_id);
     const recommendationBox=el('div',undefined,'ic-env-recommendation');recommendationBox.dataset.environmentRecommendation='';
-    if(generic){note(recommendationBox,'扫描结果是模型选择依据。实际 PDK、Corner 与运行主机随测试平台草稿保存和审阅。');if(shown)evidence(recommendationBox,{PDK:choice?.label||shown.candidate_id,Corner:shown.sections,主机:shown.host_ids});}
+    if(generic){note(recommendationBox,'扫描结果是模型选择依据。实际 PDK、Corner 与运行主机随测试平台草稿保存和审阅。');let shownScope=null;try{shownScope=checkPdkScopeSelection(s.session);}catch{}if(shown)evidence(recommendationBox,{PDK:shown.scope_selection_id?shownScope?.selection_id===shown.scope_selection_id?'已保存作用域 '+shown.scope_selection_id.slice(0,12):'作用域绑定已失效，需重新保存':choice?.label||shown.candidate_id,Corner:shown.scope_selection_id?shownScope?.selection_id===shown.scope_selection_id?shownScope.sections:'待重新绑定':shown.sections,主机:shown.host_ids});}
     else if(shown&&choice){const values=shown.intent||{};evidence(recommendationBox,{'PDK':choice.label,'Corner':(shown.sections||[]).map(value=>value===null?'全局':value).join('、')||'未确定','端口':values.input_port&&values.output_port?values.input_port+' → '+values.output_port:'待确认','供电 / V':values.supply_v??'待确认','频率 / Hz':values.frequency_hz??'待确认','温度 / °C':values.temperature_c??'待确认','周期数':values.cycles??'待确认'});}
     if(recommendation){
       note(recommendationBox,recommendation.ready_for_prepare?'建议已齐备，确认后准备并提交；提交前仍会检查依赖和资源。':'建议尚不完整，请核对缺失项或打开高级设置。');
@@ -110,6 +142,7 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     for(const key of libraryChoiceIds.keys())if(!libraryKeys.has(key))libraryChoiceIds.delete(key);
     if(generic)appendVerilogaHeaders(pdkCard,{controller,opened,onChange:render,onError:reason=>{error=reason.message;notify(error,{kind:'error'});render();}});
     const pdk=detail(pdkCard,'pdk-advanced','高级：候选、搜索范围与模型接口'),hints=detail(pdk,'pdk-hints','可选搜索提示');field(hints,'搜索路径','search-paths',s.hints.search_paths,value=>controller.setHint('search_paths',value),{disabled:locked,placeholder:'每行一个搜索范围',multiline:true});field(hints,'cds.lib 提示','cds-lib',s.hints.cds_lib_hint,value=>controller.setHint('cds_lib_hint',value),{disabled:locked});
+    appendScopePicker(pdk,s,locked,connected);
     if(pdkProbes.length){const batch=el('fieldset',undefined,'ic-env-sections');batch.dataset.pdkProbeBatch='';batch.append(el('legend','本批 PDK 匹配主机（选择 1–2 台）'));for(const probe of pdkProbes){const row=el('label'),check=el('input');check.type='checkbox';check.checked=pdkBatch.ids.includes(probe.probe_id);check.dataset.environmentField='pdk-probe-'+probe.probe_id;check.disabled=locked||s.setupDirty||!check.checked&&pdkBatch.ids.length>=2;check.addEventListener('change',()=>{pdkBatch.ids=check.checked?[...pdkBatch.ids,probe.probe_id]:pdkBatch.ids.filter(id=>id!==probe.probe_id);render();});row.append(check,doc.createTextNode(probe.ssh_target));batch.append(row);}pdk.append(batch);note(pdk,'仅匹配本批明确勾选的主机。长扫描可能需要约 5 分钟；请求未确认时先核对原实验。');}
     const pdkBatchReady=pdkBatch.ids.length>=1&&pdkBatch.ids.length<=2&&pdkBatch.ids.every(id=>pdkProbes.some(probe=>probe.probe_id===id));
     pdk.append(button(s.busy==='pdk'?'正在匹配…':'按网表模型匹配 PDK',()=>controller.matchPdk({probe_ids:[...pdkBatch.ids]}),locked||!connected||s.probe.status!=='complete'||s.setupDirty||!pdkBatchReady));

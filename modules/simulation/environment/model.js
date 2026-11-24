@@ -1,9 +1,10 @@
 // Clean-slate onboarding state. The host owns transport and durable pending state.
 // No URL construction, historical configuration, SSH or model call lives here.
+import {parseEnvironmentJson} from './json.js';
 import {indexSpectre} from '../../schematic/netlist.js';
 import {literalDimensions} from '../../schematic/instance-properties.js';
 import {validatePreDispatchRejection} from './submission.js';
-import {createAgentDraftEditor,checkAgentTestbench,agentReviewIdentity} from './agent-testbench.js';
+import {createAgentDraftEditor,checkAgentTestbench,agentReviewIdentity,checkPdkScopeSelection} from './agent-testbench.js';
 import {checkAnalysisResult,ANALYSIS_OPERATIONS} from './analysis.js';
 import {onboardingRecovery,recoveryMessage} from './recovery.js';
 
@@ -119,9 +120,24 @@ function pendingRecord(value,connectionId){
   return clone(value);
 }
 
+const emptyScopeChoice=()=>({probeId:'',libraryId:'',entryId:'',sectionIds:[],tmiOptionId:null});
+const scopeContext=value=>canonical([value?.connection_id,value?.intake_id,value?.source_sha256,value?.probes?.map(row=>row.probe_id),value?.discovery?.lut?.map(row=>[row.probe_id,(row.projection||row).library_id])]);
+function scopeCatalog(value,current,choice,{kind,offset,limit},previous){
+  const catalog=value?.catalog,entry=kind==='sections'?choice.entryId:null;
+  if(value?.schema!=='ic.onboarding.pdk-scopes.v1'||value.connection_id!==current.connection_id||value.intake_id!==current.intake_id||value.revision!==current.revision||value.probe_id!==choice.probeId||catalog?.schema!=='spiceowl.pdk-scope-catalog.v1'||catalog.library_id!==choice.libraryId||catalog.kind!==kind||catalog.entry_id!==entry||!Array.isArray(catalog.items)||catalog.items.length>limit||!Number.isSafeInteger(catalog.total)||catalog.total<0||catalog.total<offset+catalog.items.length||!['blocked','available'].includes(catalog.status)||!Array.isArray(catalog.missing)||typeof catalog.library_complete_within_policy!=='boolean'||catalog.ready_to_run!==false)throw Error('保存的 PDK 索引页与当前实验、入口或页码不一致。');
+  if(catalog.next_offset!==null&&(!Number.isSafeInteger(catalog.next_offset)||catalog.next_offset!==offset+catalog.items.length||catalog.next_offset<=offset||catalog.next_offset>=catalog.total||catalog.next_offset>16384)||catalog.next_offset===null&&offset+catalog.items.length!==catalog.total)throw Error('PDK 索引分页缺少有效的后续位置，未猜测下一页。');
+  const key=kind==='entries'?'entry_id':'section_id',seen=new Set(previous?.catalog.items.map(row=>row[key])||[]);
+  if(previous&&(previous.catalog.total!==catalog.total||previous.catalog.kind!==kind||previous.catalog.entry_id!==entry||previous.catalog.library_id!==choice.libraryId||previous.probe_id!==choice.probeId||previous.revision!==value.revision))throw Error('PDK 索引分页依据已变化，请重新读取目录。');
+  for(const row of catalog.items){
+    if(!object(row)||!sha(row[key])||seen.has(row[key]))throw Error('PDK 索引包含重复或无效的条目身份。');seen.add(row[key]);
+    if(kind==='entries'?(!text(row.label,1000)||!row.label||!sha(row.entry_sha256)||!Number.isSafeInteger(row.section_count)||row.section_count<0):(row.section!==null&&!id(row.section)||typeof row.has_include_targets!=='boolean'||!Number.isSafeInteger(row.observed_model_count)||row.observed_model_count<0||!Array.isArray(row.unknown_codes)||row.unknown_codes.some(code=>!id(code))))throw Error('PDK 索引条目缺少完整的已观察信息。');
+  }
+  return {...clone(value),catalog:{...clone(catalog),items:[...(previous?.catalog.items||[]),...clone(catalog.items)]}};
+}
+
 export function createEnvironmentController({adapter=null,pendingStore=null,changed=()=>{},onRun=()=>{}}={}){
   let disposed=false,epoch=0,source=null,unsubscribe=null,restoring=null;
-  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),refresh:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,recommendationMode:true,preparation:step(),run:step(),agentSave:step(),agentReview:step(),analysis:step(),analysisCatalog:step(),headerScan:step(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
+  const state={source:null,session:null,connection:{connected:false,connectionId:null},boundConnectionId:null,intake:step(),refresh:step(),aliases:step(),targets:[],setupSourceIds:{},setupDirty:false,probe:step(),hints:{search_paths:'',cds_lib_hint:''},searchDirectoryIds:[],searchScopeDirty:false,discovery:step(),candidateId:'',sections:[],tmiCandidateId:null,modelContracts:{},intent:emptyIntent(),intentConfirmed:false,recommendationMode:true,preparation:step(),run:step(),agentSave:step(),agentReview:step(),analysis:step(),analysisCatalog:step(),headerScan:step(),scopeEntries:step(),scopeSections:step(),scopeSave:step(),scopeChoice:emptyScopeChoice(),rejectedSubmissionKeys:[],pending:[],storageError:null,storageReady:false,busy:null};
   const emit=()=>{if(!disposed)changed();};
   const agentEditor=createAgentDraftEditor({changed:emit});
   const has=name=>typeof adapter?.[name]==='function';
@@ -132,18 +148,21 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   const notifyRun=async receipt=>{try{await onRun(receipt);}catch(error){state.run.notificationError=message(error);}};
   const rememberRejection=receipt=>{if(!state.rejectedSubmissionKeys.includes(receipt.submission_key))state.rejectedSubmissionKeys.push(receipt.submission_key);};
   const requestLocked=()=>!!state.busy||!!state.pending.length||!!state.storageError||(connected()&&!state.storageReady)||state.preparation.status==='unknown'||state.run.status==='unknown';
-  const locked=()=>requestLocked()||!!onboardingRecovery(state.session);
-  const editable=()=>{if(onboardingRecovery(state.session))throw Error(recoveryMessage(state.session));if(disposed||locked())throw Error('请先核对原请求；当前输入与重复提交已暂停。');};
+  const locked=()=>requestLocked()||state.scopeSave.status==='unknown'||!!onboardingRecovery(state.session);
+  const editable=()=>{if(state.scopeSave.status==='unknown')throw Error('上次 PDK 作用域保存结果未知，请刷新原实验核对；当前写操作已暂停。');if(onboardingRecovery(state.session))throw Error(recoveryMessage(state.session));if(disposed||locked())throw Error('请先核对原请求；当前输入与重复提交已暂停。');};
   const clearPrepared=()=>{state.intentConfirmed=false;state.preparation=step();state.run=step();};
   const clearCandidate=()=>{state.candidateId='';state.sections=[];state.tmiCandidateId=null;state.modelContracts={};clearPrepared();};
-  const clearDiscovery=()=>{state.discovery=step();state.searchDirectoryIds=[];state.searchScopeDirty=false;clearCandidate();};
+  const clearScope=({preserveSave=false}={})=>{state.scopeEntries=step();state.scopeSections=step();if(!preserveSave)state.scopeSave=step();state.scopeChoice=emptyScopeChoice();};
+  const invalidateScope=next=>{if(scopeContext(next)!==scopeContext(state.session))clearScope();};
+  const clearDiscovery=()=>{clearScope();state.discovery=step();state.searchDirectoryIds=[];state.searchScopeDirty=false;clearCandidate();};
   const candidate=()=>state.discovery.result?.discovery.candidates.find(item=>item.candidate_id===state.candidateId)||null;
   const recommendation=()=>state.session&&state.discovery.result?.discovery&&!state.setupDirty&&!state.searchScopeDirty&&state.discovery.result.discovery.discovery_id===state.session.discovery?.discovery_id?recommended(state.session):null;
-  const formSnapshot=()=>canonical([state.targets,state.setupSourceIds,state.hints,state.searchDirectoryIds,state.candidateId,state.sections,state.tmiCandidateId,state.modelContracts,state.intent,state.intentConfirmed,state.recommendationMode,agentEditor.state]);
+  const formSnapshot=()=>canonical([state.targets,state.setupSourceIds,state.hints,state.searchDirectoryIds,state.candidateId,state.sections,state.tmiCandidateId,state.modelContracts,state.intent,state.intentConfirmed,state.recommendationMode,state.scopeChoice,agentEditor.state]);
+  const scopeBound=current=>sameConnection()&&state.session?.intake_id===current.intake_id&&state.session?.source_sha256===current.source_sha256&&(!state.connection.selectedIntakeId||state.connection.selectedIntakeId===current.intake_id);
   const identity=()=>{if(!state.session)throw Error('请先核对独立网表。');return {intake_id:state.session.intake_id,revision:state.session.revision};};
   const analysisScope=value=>canonical([value?.connection_id,value?.intake_id,value?.source_sha256,value?.job?.job_id,value?.job?.source_commit,value?.job?.waveforms]);
   const invalidateAnalysis=next=>{if(analysisScope(next)!==analysisScope(state.session)){state.analysis=step();state.analysisCatalog=step();}};
-  const acceptSession=(value,options={})=>{const next=session(value,state.session,options);invalidateAnalysis(next);state.session=next;agentEditor.observe(next);state.intake={status:'complete',result:next,error:null};return next;};
+  const acceptSession=(value,options={})=>{const next=session(value,state.session,options);invalidateAnalysis(next);invalidateScope(next);state.session=next;agentEditor.observe(next);state.intake={status:'complete',result:next,error:null};return next;};
   function hydrate(current){
     const selection=current.selection||{},choice=current.discovery?.candidates.find(item=>item.candidate_id===selection.candidate_id);
     state.targets=clone(current.execution_scope?.selected_ssh_targets||current.probes?.map(probe=>probe.ssh_target)||[]);
@@ -161,7 +180,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       if(current.state!=='pre_dispatch_rejected'||current.job!==null)throw Error('保存的提交前拒绝状态不完整。');
       rejection=validatePreDispatchRejection(current.submission,{intake:current,plan:current.prepared});
     }
-    invalidateAnalysis(current);state.session=current;state.boundConnectionId=state.connection.connectionId;agentEditor.observe(current);if(state.agentSave.status==='unknown')state.agentSave=step();
+    invalidateAnalysis(current);invalidateScope(current);state.session=current;state.boundConnectionId=state.connection.connectionId;agentEditor.observe(current);if(state.agentSave.status==='unknown')state.agentSave=step();if(state.scopeSave.status==='unknown')state.scopeSave=step();
     if(!preserveDraft){hydrate(current);state.recommendationMode=!(current.prepared&&current.selection);state.preparation=current.prepared?{status:'complete',result:current,error:null}:step();}
     else if(state.preparation.status==='complete')state.preparation.result=current;
     state.intake={status:'complete',result:current,error:null};state.run=rejection?{status:'rejected',result:null,error:null,rejection}:current.job?{status:'complete',result:clone(current.job),error:null}:step();if(rejection)rememberRejection(rejection);
@@ -194,7 +213,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
   }
   function connectAdapter(value){
     unsubscribe?.();adapter=value;state.connection=clone(adapter?.getState?.()||{connected:false,connectionId:null});
-    unsubscribe=adapter?.subscribe?.(()=>{if(disposed)return;const next=clone(adapter.getState());const changed=next.connectionId!==state.connection.connectionId;state.connection=next;if(changed){state.storageReady=false;if(!state.pending.length)void loadPending();}emit();})||null;
+    unsubscribe=adapter?.subscribe?.(()=>{if(disposed)return;const next=clone(adapter.getState());const changed=next.connectionId!==state.connection.connectionId;state.connection=next;if(changed){clearScope({preserveSave:true});state.storageReady=false;if(!state.pending.length)void loadPending();}emit();})||null;
     if(connected())void loadPending();
   }
   async function persist(phase){
@@ -264,7 +283,7 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
     },
     async prepareAgentTestbench(){
       editable();requireAdapter('prepareAgentTestbench');const draft=checkAgentTestbench(state.session),editor=agentEditor.state;
-      if(!draft||editor.dirty||editor.conflict||editor.error||state.agentSave.status==='unknown')throw Error('请先保存并核对当前测试平台草稿。');
+      if(!draft||draft.status==='binding_stale'||editor.dirty||editor.conflict||editor.error||state.agentSave.status==='unknown')throw Error('请先保存并核对当前测试平台草稿。');
       const input={...identity(),draft_id:draft.draft_id};
       return action('agent-prepare',state.preparation,async()=>{const record=await persist('prepare'),next=prepared(session(await guarded(()=>adapter.prepareAgentTestbench(input)),state.session,{mutating:true}));
         if(next.agent_tb?.draft_id!==draft.draft_id||next.prepared.recipe_id!=='agent-testbench'||next.prepared.state==='prepared'&&!agentReviewIdentity(next))throw Error('审阅计划不属于当前测试平台草稿。');
@@ -276,6 +295,59 @@ export function createEnvironmentController({adapter=null,pendingStore=null,chan
       if(editor.dirty||editor.conflict||editor.error||!review||review.state!=='pending'||review.revision!==state.session.revision)throw Error('请先保存草稿并生成当前版本的人工审阅计划。');
       const result=adapter.openAgentTestbenchReview({intake_id:state.session.intake_id,revision:state.session.revision,review_id:review.review_id,review_digest:review.review_digest,plan_id:review.plan_id},{event});
       state.agentReview={status:'opened',result,error:null};emit();return result;
+    },
+    selectScopeLibrary({probe_id,library_id}={}){
+      editable();if(state.scopeSave.status==='unknown')throw Error('上次作用域保存结果未知，请先刷新原实验核对。');
+      if(probe_id===undefined&&library_id===undefined){clearScope();emit();return;}
+      if(!sha(library_id)||!state.session?.probes?.some(row=>row.probe_id===probe_id)||!state.session.discovery?.lut?.some(row=>row.probe_id===probe_id&&(row.projection||row).library_id===library_id))throw Error('请选择当前实验已保存的 PDK 索引。');
+      clearScope();state.scopeChoice={...emptyScopeChoice(),probeId:probe_id,libraryId:library_id};emit();
+    },
+    selectScopeEntry(entryId){
+      editable();if(state.scopeSave.status==='unknown')throw Error('请先刷新原实验核对作用域保存结果。');
+      if(entryId!==''&&!state.scopeEntries.result?.catalog.items.some(row=>row.entry_id===entryId))throw Error('请选择当前索引中已读取的入口。');
+      state.scopeChoice={...state.scopeChoice,entryId,sectionIds:[],tmiOptionId:null};state.scopeSections=step();state.scopeSave=step();emit();
+    },
+    selectScopeSections(sectionIds){
+      editable();if(state.scopeSave.status==='unknown')throw Error('请先刷新原实验核对作用域保存结果。');
+      if(!Array.isArray(sectionIds)||sectionIds.length>64||new Set(sectionIds).size!==sectionIds.length||sectionIds.some(sectionId=>!state.scopeSections.result?.catalog.items.some(row=>row.section_id===sectionId)))throw Error('请从已读取的当前入口中依次选择至多 64 个不同 section。');
+      state.scopeChoice.sectionIds=clone(sectionIds);state.scopeChoice.tmiOptionId=null;state.scopeSave=step();emit();
+    },
+    selectScopeTmi(tmiOptionId){
+      editable();if(state.scopeSave.status==='unknown')throw Error('请先刷新原实验核对作用域保存结果。');const saved=checkPdkScopeSelection(state.session),choice=state.scopeChoice;
+      if(!saved||saved.probe_id!==choice.probeId||saved.library_id!==choice.libraryId||saved.entry_id!==choice.entryId||canonical(saved.section_ids)!==canonical(choice.sectionIds)||tmiOptionId!==null&&!saved.tmi_options.some(row=>row.tmi_option_id===tmiOptionId))throw Error('请选择当前已保存作用域返回的 TMI 选项。');
+      state.scopeChoice.tmiOptionId=tmiOptionId;emit();
+    },
+    async readPdkScopes({kind,more=false}={}){
+      editable();requireAdapter('getPdkScopes');if(!['entries','sections'].includes(kind)||state.setupDirty||state.scopeSave.status==='unknown')throw Error('请核对当前观察与原作用域请求。');
+      if(!more){state.scopeChoice={...state.scopeChoice,...(kind==='entries'?{entryId:''}:{}),sectionIds:[],tmiOptionId:null};if(kind==='entries')state.scopeSections=step();state.scopeSave=step();}
+      const current=state.session,choice=clone(state.scopeChoice),context=scopeContext(current),target=kind==='entries'?state.scopeEntries:state.scopeSections,previous=more?target.result:null;
+      if(!current?.probes?.some(row=>row.probe_id===choice.probeId)||!current.discovery?.lut?.some(row=>row.probe_id===choice.probeId&&(row.projection||row).library_id===choice.libraryId)||kind==='sections'&&!state.scopeEntries.result?.catalog.items.some(row=>row.entry_id===choice.entryId))throw Error('请先明确选择已保存索引及入口。');
+      const offset=more?previous?.catalog.next_offset:0,limit=64;if(!Number.isSafeInteger(offset)||offset<0||offset>16384)throw Error('没有可读取的下一页。');
+      const args={intake_id:current.intake_id,probe_id:choice.probeId,library_id:choice.libraryId,...(kind==='sections'?{entry_id:choice.entryId}:{}),offset,limit};
+      return action('pdk-scope-'+kind,target,async()=>{const raw=await guarded(()=>adapter.getPdkScopes(args));if(!scopeBound(current)||scopeContext(state.session)!==context||canonical(choice)!==canonical(state.scopeChoice)||state.session.revision!==current.revision)throw Error('实验或选择已变化，未采用旧索引页。');return scopeCatalog(raw,current,choice,{kind,offset,limit},previous);});
+    },
+    async savePdkScope(){
+      editable();requireAdapter('selectPdkScope');if(state.scopeSave.status==='unknown')throw Error('上次作用域保存结果未知，请先刷新原实验，禁止重复保存。');
+      const current=state.session,choice=clone(state.scopeChoice),editor=agentEditor.state;
+      if(!scopeBound(current))throw Error('实验已切换，请先读取当前实验，未提交旧作用域。');
+      if(editor.dirty||editor.conflict)throw Error('请先保存或核对测试平台草稿，再保存新的 PDK 作用域。');
+      if(!choice.sectionIds.length||choice.sectionIds.length>64||!state.scopeEntries.result?.catalog.items.some(row=>row.entry_id===choice.entryId)||choice.sectionIds.some(sectionId=>!state.scopeSections.result?.catalog.items.some(row=>row.section_id===sectionId)))throw Error('请明确选择当前入口与有序 section。');
+      const args={...identity(),probe_id:choice.probeId,library_id:choice.libraryId,entry_id:choice.entryId,section_ids:clone(choice.sectionIds),...(choice.tmiOptionId?{tmi_option_id:choice.tmiOptionId}:{})};let unknown=false;
+      return action('pdk-scope-save',state.scopeSave,async()=>{let raw;try{unknown=true;raw=await guarded(()=>adapter.selectPdkScope(args));if(!scopeBound(current))throw Error('实验已切换，作用域保存结果需回到原实验核对。');const next=session(raw,state.session,{mutating:true}),saved=checkPdkScopeSelection(next);
+        if(!saved||saved.probe_id!==args.probe_id||saved.library_id!==args.library_id||saved.entry_id!==args.entry_id||canonical(saved.section_ids)!==canonical(args.section_ids)||saved.selected_tmi_option_id!==(args.tmi_option_id??null))throw Error('PDK 作用域保存回执改变了明确选择，请刷新原实验核对。');
+        if(current.pdk_scope_selection&&(args.tmi_option_id??null)!==current.pdk_scope_selection.selected_tmi_option_id&&saved.selection_id===current.pdk_scope_selection.selection_id)throw Error('TMI 变化没有生成新的作用域绑定身份。');
+        if(current.agent_tb&&canonical({...next.agent_tb,status:null})!==canonical({...current.agent_tb,status:null}))throw Error('作用域保存改变了已有测试平台，未覆盖本地草稿，请核对原实验。');
+        acceptSession(next);state.preparation=step();state.run=step();state.agentReview=step();unknown=false;return clone(saved);
+      }catch(error){if(error?.data?.commit_status==='not_committed')unknown=false;throw error;}},{uncertain:()=>unknown});
+    },
+    adoptPdkScope({host_ids}={}){
+      editable();if(state.scopeSave.status==='unknown')throw Error('请先刷新原实验核对作用域保存结果。');const scope=checkPdkScopeSelection(state.session),editor=agentEditor.state;
+      if(!scopeBound(state.session))throw Error('实验已切换，请先读取当前实验。');
+      if(!scope||scope.status!=='requires_audit'||editor.conflict||!state.session.agent_tb)throw Error('请先保存完整作用域并核对当前测试平台草稿。');
+      const previous=parseEnvironmentJson(editor.selection),hosts=host_ids===undefined?previous.host_ids:host_ids;
+      if(!Array.isArray(hosts)||!hosts.length||hosts.length>8||hosts.some(value=>!id(value))||new Set(hosts).size!==hosts.length)throw Error('请在 PDK 与主机选择中明确填写 1–8 个允许的主机身份。');
+      const selection={scope_selection_id:scope.selection_id,host_ids:clone(hosts),...(previous.veriloga_header_id?{veriloga_header_id:previous.veriloga_header_id}:{})};
+      agentEditor.edit('selection',JSON.stringify(selection,null,2)+'\n');state.agentReview=step();emit();
     },
     async probeVerilogaHeaders(args){
       editable();requireAdapter('probeVerilogaHeaders');const current=identity(),editor=agentEditor.state;

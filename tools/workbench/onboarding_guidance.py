@@ -33,7 +33,7 @@ def next_actions(state):
         return [action('submission', {**identity, 'plan_id': p['plan_id']}, reason='original_submission_unresolved',
                        description='Read the original submission receipt. Do not create another plan or replay run.')
                 for p in unresolved]
-    if state.get('state') in {'probe', 'discover-pdk', 'prepare', 'agent-tb/draft', 'agent-tb/prepare', 'submitting'}:
+    if state.get('state') in {'probe', 'discover-pdk', 'select-pdk-scope', 'prepare', 'agent-tb/draft', 'agent-tb/prepare', 'submitting'}:
         return [action('session', identity, reason='operation_in_progress',
                        description='Read this intake after the current operation finishes; do not start another mutation.')]
     job = state.get('job')
@@ -71,6 +71,12 @@ def next_actions(state):
                        description='Author the testbench, port bindings, stimuli, analyses and acceptance criteria for this exact circuit. No inverter topology or scientific intent is inferred.'),
                 action('ssh-hosts', {}, reason='ssh_alias_inventory_needed',
                        description='List local SSH aliases without contacting a server.')]
+    if agent_mode and draft.get('status') == 'binding_stale':
+        return [action('agent-tb/draft', current, ready=False,
+            missing=[missing('selection','testbench_binding_stale',
+                'Preserve the authored testbench and save a new draft with the current explicit PDK scope.')],
+            reason='agent_testbench_binding_stale',
+            description='Model or probe selection changed. The previous draft remains preserved; explicitly rebind and save it before preparation.')]
     prepared = state.get('prepared') or {}
     if prepared.get('state') == 'prepared' and prepared.get('plan_id'):
         plan = next((p for p in plans if p['plan_id'] == prepared['plan_id']), {})
@@ -97,6 +103,25 @@ def next_actions(state):
                        description='Submit this exact frozen plan once after checking resources in the selected host range.')]
     if agent_mode and discovery:
         selection = draft.get('selection') or {}
+        if 'scope_selection_id' in selection:
+            scope = state.get('pdk_scope_selection') or {}
+            gaps = list(scope.get('missing') or [])
+            hosts = selection.get('host_ids') or []
+            observed = {row['ssh_target']:row['probe_id'] for row in state.get('probes', [])}
+            if not hosts or set(hosts)-set(observed):
+                gaps.append(missing('host_ids','host_scope_not_observed',
+                    'Select only hosts from the current intake probe observations, then save the draft again.'))
+            if scope.get('probe_id') not in [observed[host] for host in hosts if host in observed]:
+                gaps.append(missing('host_ids','audit_host_outside_scope',
+                    'The selected host range must include the host that observed this exact PDK scope.'))
+            if scope.get('selection_id') != selection['scope_selection_id'] or scope.get('status') != 'requires_audit':
+                gaps.append(missing('scope_selection_id','pdk_scope_not_auditable',
+                    'Select an observed same-entry scope, resolve its missing evidence, and save the exact draft binding.'))
+            if prepared.get('state') == 'blocked':
+                gaps.extend(prepared.get('missing') or [])
+            return [action('agent-tb/prepare', {**current, 'draft_id': draft['draft_id']}, ready=not gaps,
+                missing=gaps, reason='agent_testbench_scope_audit_required',
+                description='Freshly audit the exact cached PDK scope and freeze this authored testbench for human review. No simulation is launched.')]
         selected=next((row for row in discovery.get('candidates',[])
                        if row['candidate_id']==selection.get('candidate_id')),None)
         pending=binding_gaps if selected is None else [gap for gap in binding_gaps

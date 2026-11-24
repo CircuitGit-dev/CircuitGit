@@ -42,10 +42,30 @@ export function preserveHelperLineEndings(previous,next){
   return previous.slice(0,offsets[start])+next.slice(start,next.length-end).replace(/\n/g,newline)+previous.slice(offsets[normalized.length-end]);
 }
 
+// A saved scope is evidence for an explicit binding, never permission to run.
+export function checkPdkScopeSelection(session){
+  const value=session?.pdk_scope_selection;if(value==null)return null;
+  const library=session.discovery?.lut?.find(row=>row.probe_id===value.probe_id&&(row.projection||row).library_id===value.library_id);
+  if(!object(value)||!['blocked','requires_audit'].includes(value.status)||!['selection_id','library_id','source_sha256','requirements_sha256','entry_id'].every(key=>sha(value[key]))||value.source_sha256!==session.source_sha256||!session.probes?.some(row=>row.probe_id===value.probe_id)||!library||!Array.isArray(value.section_ids)||!value.section_ids.length||value.section_ids.length>64||value.section_ids.some(item=>!sha(item))||new Set(value.section_ids).size!==value.section_ids.length||!Array.isArray(value.sections)||value.sections.length!==value.section_ids.length||value.sections.some(item=>item!==null&&!id(item))||!Array.isArray(value.tmi_options)||value.tmi_options.length>128||value.tmi_options.some(item=>!sha(item?.tmi_option_id)||!id(item.label))||new Set(value.tmi_options.map(item=>item.tmi_option_id)).size!==value.tmi_options.length||value.selected_tmi_option_id!==null&&!value.tmi_options.some(item=>item.tmi_option_id===value.selected_tmi_option_id)||!Array.isArray(value.missing)||value.fresh_audit_required!==true||value.ready_to_run!==false||typeof value.library_complete_within_policy!=='boolean')throw Error('PDK 作用域绑定缺少当前源码、索引或主机观察依据，请刷新原实验核对。');
+  return clone(value);
+}
+
+export function testbenchSelectionProbe(selection,session){
+  if(!selection)return null;
+  if(Object.hasOwn(selection,'scope_selection_id')){
+    const scope=checkPdkScopeSelection(session);
+    if(!sha(selection.scope_selection_id)||!scope||selection.scope_selection_id!==scope.selection_id||Object.keys(selection).some(key=>!['scope_selection_id','host_ids','veriloga_header_id'].includes(key))||!Array.isArray(selection.host_ids)||!selection.host_ids.length||selection.host_ids.length>8||selection.host_ids.some(value=>!id(value))||new Set(selection.host_ids).size!==selection.host_ids.length)throw Error('测试平台作用域绑定已变化或不完整；请采用当前已保存绑定并明确选择主机，再保存草稿。');
+    if(scope.status!=='requires_audit')throw Error('所选 PDK 作用域仍有缺失项，请先核对绑定。');
+    return scope.probe_id;
+  }
+  return session?.discovery?.candidates?.find(row=>row.candidate_id===selection.candidate_id)?.probe_id||null;
+}
+
 export function checkTestbenchHeaderSelection(selection,session){
+  const probeId=testbenchSelectionProbe(selection,session);
   if(!selection||!Object.hasOwn(selection,'veriloga_header_id'))return;
-  const candidate=session?.discovery?.candidates?.find(row=>row.candidate_id===selection.candidate_id),header=session?.veriloga_headers?.find(row=>row.id===selection.veriloga_header_id);
-  if(!header||!candidate||!/^headers_[a-f0-9]{64}$/.test(selection.veriloga_header_id)||header.probe_id!==candidate.probe_id||!session.probes?.some(row=>row.probe_id===header.probe_id))throw Error('标准头文件必须来自所选 PDK 对应的当前主机观察。');
+  const header=session?.veriloga_headers?.find(row=>row.id===selection.veriloga_header_id);
+  if(!header||!probeId||!/^headers_[a-f0-9]{64}$/.test(selection.veriloga_header_id)||header.probe_id!==probeId||!session.probes?.some(row=>row.probe_id===header.probe_id))throw Error('标准头文件必须来自所选 PDK 对应的当前主机观察。');
   if(header.status!=='observed'||header.coverage?.complete!==true||!Array.isArray(header.missing)||header.missing.length)throw Error('标准头文件观察不完整；请核对缺失项后重新探测。');
 }
 
@@ -67,12 +87,12 @@ export function checkAgentTestbench(session){
   if(!object(value)||value.schema!=='ic.onboarding.agent-tb.v1'||!sha(value.draft_id)||!sha(value.source_sha256)||
      value.source_sha256!==session.source_sha256||!sha(value.testbench_sha256)||!sha(value.manifest_sha256)||
      !Number.isSafeInteger(value.revision)||value.revision<1||value.revision>session.revision||
-     !['draft','prepared'].includes(value.status)||value.requires_human_review!==true||value.selection!==null&&!object(value.selection))throw Error('测试平台草稿与当前电路或版本不一致。');
+     !['draft','prepared','binding_stale'].includes(value.status)||value.requires_human_review!==true||value.selection!==null&&!object(value.selection))throw Error('测试平台草稿与当前电路或版本不一致。');
   checkTestbenchDocument(value.testbench);return clone(value);
 }
 
 export function agentReviewIdentity(session){
-  const draft=checkAgentTestbench(session),review=session?.agent_tb_review;if(!draft||!review)return null;
+  const draft=checkAgentTestbench(session),review=session?.agent_tb_review;if(!draft||!review||draft.status==='binding_stale')return null;
   if(review.state==='stale')return null;
   if(review.schema!=='ic.agent-tb.review.v1'||!sha(review.review_id)||!sha(review.review_digest)||review.connection_id!==session.connection_id||review.intake_id!==session.intake_id||
      !Number.isSafeInteger(review.revision)||review.revision<1||review.revision>session.revision||review.draft_id!==draft.draft_id||

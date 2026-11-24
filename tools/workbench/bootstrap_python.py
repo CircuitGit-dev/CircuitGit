@@ -26,6 +26,7 @@ REQUIRED_MODULES = (
     'spiceowl.onboarding.ssh_discovery',
     'spiceowl.onboarding.agent_tb',
     'spiceowl.onboarding.pdk_lut',
+    'spiceowl.onboarding.pdk_scope',
     'adctoolbox', 'numpy', 'scipy',
     'spiceowl.experiments',
     'spiceowl.integrations.circuitgit_pool',

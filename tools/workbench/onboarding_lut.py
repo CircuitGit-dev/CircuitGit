@@ -83,6 +83,33 @@ def store_library(cache_root,capture,library,*,observed_at=None):
     return _public('stored',record)
 
 
+def load_library_snapshot(cache_root,capture,lookup,*,roots=None,max_age_s=86400,now=None):
+    """Export this explicit lookup's exact owner-held snapshot, with no fallback."""
+    if (not isinstance(lookup,dict) or lookup.get('status') not in ('hit','partial')
+            or lookup.get('scan_required') is not False
+            or any(not isinstance(lookup.get(key),str) or not HASH.fullmatch(lookup[key])
+                   for key in ('library_id','content_fingerprint','cache_id'))):
+        raise ValueError('A current exact library lookup is required to retain its observation')
+    identity,selected_roots,gaps=_scope(capture,roots)
+    if gaps:raise ValueError('The current observed host/root scope cannot identify a retained library')
+    path=_cache_path(cache_root)
+    if not path.exists():raise ValueError('The selected cached library observation is unavailable')
+    from spiceowl.onboarding.pdk_lut import PdkLut
+    from spiceowl.onboarding.pdk_discovery import validate_pdk_library
+    with PdkLut(path,read_only=True) as cache:
+        result=cache.lookup_library_snapshot(server_identity=identity,roots=selected_roots,
+            library_id=lookup['library_id'],content_fingerprint=lookup['content_fingerprint'],
+            cache_id=lookup['cache_id'],max_age_s=max_age_s,now=now)
+    record=result.get('record');library=result.get('library')
+    if (result.get('status')!='hit' or not isinstance(record,dict) or not isinstance(library,dict)
+            or result.get('scan_required') is not False
+            or any(record.get(key)!=lookup[key] for key in ('library_id','content_fingerprint','cache_id'))
+            or record.get('server_identity')!=identity or library.get('library_id')!=lookup['library_id']):
+        raise ValueError('The exact cached library is unavailable or differs from this observed host/root lookup')
+    validate_pdk_library(library)
+    return library
+
+
 def _library_result(result,requirements):
     public=_public(result['status'],result.get('record'),result.get('missing',[]))
     public['scan_required']=result['scan_required']

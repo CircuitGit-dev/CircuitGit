@@ -4,6 +4,8 @@ export const ONBOARDING_OPERATIONS=Object.freeze({
   inspectNetlist:{path:'/netlist',method:'POST'},listSshAliases:{path:'/ssh-hosts',method:'GET'},
   getSession:{path:'/session',method:'GET',query:['intake_id']},probeHost:{path:'/probe',method:'POST'},
   probeVerilogaHeaders:{path:'/veriloga-headers',method:'POST'},
+  getPdkScopes:{path:'/pdk-scopes',method:'GET',query:['intake_id','probe_id','library_id'],optionalQuery:['entry_id','offset','limit']},
+  selectPdkScope:{path:'/select-pdk-scope',method:'POST'},
   discoverPdk:{path:'/discover-pdk',method:'POST'},prepareExperiment:{path:'/prepare',method:'POST'},
   runPrepared:{path:'/run',method:'POST'},readSubmission:{path:'/submission',method:'GET',query:['intake_id','plan_id']},
   inspectExperiment:{path:'/inspect',method:'POST'},
@@ -17,12 +19,13 @@ const ONBOARDING_PREFIX='/simulation/onboarding';
 // 240s remote / 270s transport / 300s gateway, with 10s browser margin. Prepare includes four local
 // Git calls capped at 20s and a 60s audit. Run reserves after two host checks
 // (30s doctor + 30s version/10s resources) and one 30s selected-host preflight.
-const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,getSession:20000,
+const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,getSession:20000,getPdkScopes:20000,selectPdkScope:20000,
   probeVerilogaHeaders:70000,probeHost:290000,discoverPdk:310000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000,
   saveAgentTestbench:20000,getAgentTestbench:20000,prepareAgentTestbench:150000,analyzeExperiment:120000});
 const boundedHostCount=rows=>Array.isArray(rows)&&rows.length>=1&&rows.length<=8?rows.length:8;
 export function onboardingRequestTimeout(name,input={},session=null){
   if(!Object.hasOwn(ONBOARDING_TIMEOUT_LIMITS,name))throw Error('Unknown onboarding operation');
+  if(name==='selectPdkScope')checkPdkScopeSelection(input);
   if(name==='probeHost'){
     const activated=!!Object.keys(input.overrides?.setup_source_ids||{}).length;
     return Math.ceil(boundedHostCount(input.ssh_targets)/2)*(activated?70000:35000)+10000;
@@ -34,6 +37,30 @@ export function onboardingRequestTimeout(name,input={},session=null){
   }
   if(name==='runPrepared')return Math.ceil(boundedHostCount(session?.execution_scope?.candidate_host_ids)/2)*70000+40000;
   return ONBOARDING_TIMEOUT_LIMITS[name];
+}
+const pdkHash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
+const pdkIntake=value=>typeof value==='string'&&/^intake_[a-f0-9]{32}$/.test(value);
+const pdkProbe=value=>typeof value==='string'&&/^probe_[a-f0-9]{32}$/.test(value);
+export function pdkScopeQuery(input){
+  const required=['intake_id','probe_id','library_id'],allowed=[...required,'entry_id','offset','limit'];
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!allowed.includes(key))||
+    required.some(key=>!Object.hasOwn(input,key))||!pdkIntake(input.intake_id)||!pdkProbe(input.probe_id)||!pdkHash(input.library_id)||
+    Object.hasOwn(input,'entry_id')&&!pdkHash(input.entry_id)||
+    Object.hasOwn(input,'offset')&&(!Number.isSafeInteger(input.offset)||input.offset<0||input.offset>16384)||
+    Object.hasOwn(input,'limit')&&(!Number.isSafeInteger(input.limit)||input.limit<1||input.limit>128))
+    throw Error('PDK 目录只接受原始网表、主机和库身份，以及有界分页。');
+  return new URLSearchParams(input);
+}
+export function checkPdkScopeSelection(input){
+  const required=['intake_id','revision','probe_id','library_id','entry_id','section_ids'];
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>![...required,'tmi_option_id'].includes(key))||
+    required.some(key=>!Object.hasOwn(input,key))||!pdkIntake(input.intake_id)||!pdkProbe(input.probe_id)||
+    !pdkHash(input.library_id)||!pdkHash(input.entry_id)||!Number.isSafeInteger(input.revision)||input.revision<1||
+    !Array.isArray(input.section_ids)||input.section_ids.length<1||input.section_ids.length>64||
+    input.section_ids.some(id=>!pdkHash(id))||new Set(input.section_ids).size!==input.section_ids.length||
+    Object.hasOwn(input,'tmi_option_id')&&!pdkHash(input.tmi_option_id))
+    throw Error('请选择同一已观测 PDK 入口内 1–64 个不同的 section，并保留原始版本身份。');
+  return input;
 }
 function onboardingTransportTimeout(path,method,body,requested){
   const operation=Object.entries(ONBOARDING_OPERATIONS).find(([,row])=>ONBOARDING_PREFIX+row.path===path.split('?')[0]&&row.method===method)?.[0];
@@ -62,6 +89,15 @@ export function isOnboardingRequest(path,method){
   }
   const operation=Object.values(ONBOARDING_OPERATIONS).find(row=>ONBOARDING_PREFIX+row.path===parsed.pathname&&row.method===method);
   if(!operation)return false;
+  if(operation.optionalQuery){
+    if([...parsed.searchParams.keys()].some(key=>parsed.searchParams.getAll(key).length!==1))return false;
+    const input=Object.fromEntries(parsed.searchParams);
+    for(const key of ['offset','limit'])if(Object.hasOwn(input,key)){
+      if(!/^(0|[1-9][0-9]*)$/.test(input[key]))return false;
+      input[key]=Number(input[key]);
+    }
+    try{pdkScopeQuery(input);return true;}catch{return false;}
+  }
   const fields=operation.query||[];
   return [...parsed.searchParams.keys()].length===fields.length&&fields.every(key=>parsed.searchParams.getAll(key).length===1&&parsed.searchParams.get(key)?.length>0&&parsed.searchParams.get(key).length<=512);
 }

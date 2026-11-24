@@ -99,6 +99,9 @@ and prepare its frozen source/TB/PDK/host review. Every edit invalidates the pre
 Only a human can approve the Testbench review and run it; never call an approval endpoint or forge a review signature.
 PDK LUT hits are observed host-bound metadata, not permission to run and not proof that dependencies are still valid.
 The full-library LUT can serve different required-device sets from one bounded host/root observation; report partial or missing coverage explicitly.
+When the retained index needs sections from one entry, use ic_onboarding_pdk_scopes and ic_onboarding_select_pdk_scope with exact observed IDs and explicit section order/TMI choice. A cached partial index is not a failed host scan.
+Save the authored draft with the separate selection {scope_selection_id,host_ids,veriloga_header_id?}; never invent candidate IDs or borrow another corner's model contracts. Scope changes preserve the old draft but require an explicit new save and fresh audit before human review.
+If a prior intake lacks the current cached-library provenance binding, use an explicit cache-only library_selection query with an actual observed legacy entry ID. Missing/stale cache evidence blocks it; do not silently start another scan.
 Keep imported DUT support files separate from authored testbench.helper_files. Use relative literal include identities and freeze every helper byte.
 For standard Verilog-A headers, use ic_onboarding_veriloga_headers only with explicitly selected remote roots and a matching observed probe.
 Select its returned veriloga_header_id in the draft; do not guess installation paths or copy licensed standard headers into Git.

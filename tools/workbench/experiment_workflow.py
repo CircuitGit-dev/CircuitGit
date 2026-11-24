@@ -6,6 +6,7 @@ is an explicitly authorized control operation because it can collect a terminal
 run. Cached runtime reads never call it.
 """
 import concurrent.futures
+import copy
 import hashlib
 import hmac
 import json
@@ -134,6 +135,33 @@ class ExperimentWorkflow:
         if any(row.get('kind')!='directory' or row.get('role')!='directory_reference' for row in directories):
             raise ValueError('Model audit directory is not a registered reference')
 
+    @staticmethod
+    def _scope_profile(profile,recipe,normalized):
+        """Bind the SDK selection to this compiled source before any remote read."""
+        binding=(recipe.get('agent_tb_manifest') or {}).get('pdk_binding') or {}
+        selected=profile.get('scope_selection')
+        if selected is None and 'scope_selection_id' not in binding:return None
+        from spiceowl.onboarding.pdk_scope import validate_scope_selection
+        selected=copy.deepcopy(validate_scope_selection(selected))
+        public=selected['public'];private=selected['private']
+        if (public['status']!='requires_audit' or not private.get('audit_config')
+                or normalized!=private['audit_config']
+                or profile.get('expected_main_sha256')!=private['entry_sha256']
+                or normalized['main']!=private['entry_path']
+                or recipe.get('recipe')!='agent-testbench'
+                or recipe['agent_tb_manifest']['source_sha256']!=public['source_sha256']
+                or recipe['external_includes']!=[{'alias':'PDK_MAIN','section':section} for section in public['sections']]
+                or set(recipe['used_models'])!=set(public['required_model_names'])
+                or binding.get('scope_selection_id')!=public['selection_id']
+                or binding.get('library_id')!=public['library_id']
+                or binding.get('sections')!=public['sections']
+                or binding.get('model_names')!=public['required_model_names']
+                or binding.get('entry_sha256')!=private['entry_sha256']
+                or binding.get('tmi_option_id')!=public.get('selected_tmi_option_id')
+                or {'candidate_id','discovery_id','tmi_candidate_id'}&set(binding)):
+            raise ValueError('The compiled testbench differs from its exact frozen PDK scope')
+        return selected
+
     def prepare(self,args,caller):
         if set(args)!={'project_id','recipe_id','source_commit'}:
             raise ValueError('Prepare requires an exact project, recipe and source commit')
@@ -168,17 +196,46 @@ class ExperimentWorkflow:
         from spiceowl.integrations.model_dependencies import validate_audit_config
         normalized=validate_audit_config(audit_config)
         includes=recipe['external_includes']
+        try:
+            scope_selection=self._scope_profile(profile,recipe,normalized)
+            if scope_selection is not None:
+                identity=scope_selection['private']['server_identity']
+                if (identity['hostname']!=sites[audit_host]['expected_host']
+                        or identity['username']!=sites[audit_host]['expected_user']):
+                    raise ValueError('The audit site differs from the selected observed server')
+        except (ValueError,KeyError,TypeError):
+            return blocked(project,recipe_id,commit,[{'field':'scope_selection_id','code':'pdk_scope_profile_mismatch',
+                'message':'The selected model scope must match this exact source, wrapper, sections and dependency profile.'}])
         if not includes or any(item['alias']!='PDK_MAIN' or item['section'] not in normalized['sections'] for item in includes):
             return blocked(project,recipe_id,commit,[{'field':'external_includes','code':'include_profile_mismatch','message':'Recipe model includes must select authorized PDK_MAIN sections.'}])
         # The profile may authorize several corners. Only this recipe's actual
         # entry sections establish its model closure; other corners cannot supply
         # missing masters. The scanner still follows global/transitive includes.
-        audit_config={**audit_config,'sections':list(dict.fromkeys(item['section'] for item in includes)),
-                      'required_masters':list(dict.fromkeys([*normalized['required_masters'],*recipe['used_models']]))}
+        if scope_selection is None:
+            audit_config={**audit_config,'sections':list(dict.fromkeys(item['section'] for item in includes)),
+                          'required_masters':list(dict.fromkeys([*normalized['required_masters'],*recipe['used_models']]))}
+        else:audit_config=copy.deepcopy(normalized)
         audit=self._audit(sites[audit_host],audit_config,profile.get('remote_python','/usr/bin/python'))
         if audit.get('status')!='complete_for_supported_static_syntax':
             return blocked(project,recipe_id,commit,[{'field':'dependencies','code':'dependency_audit_incomplete','message':'The bounded model audit found missing or unsupported dependencies.'}])
         self._validate_audit(audit,audit_config)
+        scope_verification=None
+        if scope_selection is not None:
+            from spiceowl.onboarding.pdk_scope import verify_scope_selection_audit
+            try:
+                scope_verification=verify_scope_selection_audit(scope_selection,audit,audit_config=audit_config)
+                if (scope_verification.get('schema')!='spiceowl.pdk-scope-audit-comparison.v1'
+                        or scope_verification.get('status')!='matched' or scope_verification.get('matches_selection') is not True
+                        or scope_verification.get('selection_id')!=scope_selection['public']['selection_id']
+                        or scope_verification.get('missing')!=[] or scope_verification.get('ready_to_run') is not False
+                        or scope_verification.get('human_review_required') is not True
+                        or scope_verification.get('fresh_audit_required') is not True
+                        or scope_verification.get('remote_freshness_verified') is not False
+                        or scope_verification.get('scientific_compatibility')!='not_evaluated'):
+                    raise ValueError('The fresh model audit differs from the frozen scope')
+            except (ValueError,KeyError,TypeError):
+                return blocked(project,recipe_id,commit,[{'field':'scope_selection_id','code':'pdk_scope_audit_mismatch',
+                    'message':'The fresh dependency audit must match all frozen model files, sections, declarations and TMI evidence.'}])
         # Bind the compiler's actual masters and include sections to the audited
         # model, rather than trusting an independently configured scanner list.
         declarations=audit.get('master_declarations',[])
@@ -246,11 +303,16 @@ class ExperimentWorkflow:
               'environment_pins':profile.get('environment_pins',{}),
               'requirements':pool.requirements,'spiceowl_data_dir':pool.data_dir}
         if header_audit is not None:data['veriloga_header_audit']=header_audit
+        if scope_selection is not None:
+            data['pdk_scope_selection']=copy.deepcopy(scope_selection['public'])
+            data['pdk_scope_audit_verification']=scope_verification
         plan_id=self._save_plan(data)
         return {'schema':'ic.experiment.plan.v1','state':'prepared','project_id':project,'recipe_id':recipe_id,
                 'source_commit':commit,'plan_id':plan_id,'missing':[],
                 'dependency_summary':{'file_count':len(pins),'pre_pinned':True},
-                'qualification_scope':qualification,'source':compiled['source']}
+                'qualification_scope':qualification,'source':compiled['source'],
+                **({'pdk_scope_selection':copy.deepcopy(scope_selection['public']),
+                    'pdk_scope_audit_verification':scope_verification} if scope_selection is not None else {})}
 
     def _pool(self,plan_id,data):
         root=self.root/'execution'/plan_id;members=[]

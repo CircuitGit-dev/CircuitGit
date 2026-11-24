@@ -8,6 +8,7 @@ from spiceowl_pool import canonical
 from agent_testbench_manifest import MANIFEST_SCHEMA, NAME, validate_manifest, helper_files
 
 SELECTION_FIELDS={'discovery_id','candidate_id','sections','tmi_candidate_id','model_contracts','host_ids'}
+SCOPE_SELECTION_FIELDS={'scope_selection_id','host_ids'}
 
 
 def digest(value):return hashlib.sha256(canonical(value)).hexdigest()
@@ -15,15 +16,22 @@ def digest(value):return hashlib.sha256(canonical(value)).hexdigest()
 
 def validate_selection(value):
     if value is None or value=={}:return None
-    if type(value) is not dict or not SELECTION_FIELDS<=set(value) or set(value)-SELECTION_FIELDS-{'veriloga_header_id'}:raise ValueError('Select exact PDK, sections, contracts and host IDs')
+    if type(value) is not dict:raise ValueError('Select exact PDK, sections, contracts and host IDs')
+    if 'scope_selection_id' in value:
+        if (not SCOPE_SELECTION_FIELDS<=set(value) or set(value)-SCOPE_SELECTION_FIELDS-{'veriloga_header_id'}
+                or not isinstance(value['scope_selection_id'],str) or not re.fullmatch('[a-f0-9]{64}',value['scope_selection_id'])):
+            raise ValueError('Select one exact frozen PDK scope and host IDs without candidate fields')
+    elif not SELECTION_FIELDS<=set(value) or set(value)-SELECTION_FIELDS-{'veriloga_header_id'}:
+        raise ValueError('Select exact PDK, sections, contracts and host IDs')
     if 'veriloga_header_id' in value and (not isinstance(value['veriloga_header_id'],str) or not re.fullmatch(r'headers_[a-f0-9]{64}',value['veriloga_header_id'])):
         raise ValueError('Select an exact observed Verilog-A header identity')
+    if type(value['host_ids']) is not list or not 1<=len(value['host_ids'])<=8 or any(not isinstance(h,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,95}',h) for h in value['host_ids']) or len(set(value['host_ids']))!=len(value['host_ids']):
+        raise ValueError('Select one to eight distinct observed SSH host aliases')
+    if 'scope_selection_id' in value:return copy.deepcopy(value)
     for field in ('discovery_id','candidate_id'):
         if not isinstance(value[field],str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,180}',value[field]):raise ValueError('Invalid PDK selection identity')
     if type(value['sections']) is not list or not 1<=len(value['sections'])<=64 or any(s is not None and (not isinstance(s,str) or not NAME.fullmatch(s)) for s in value['sections']) or len(set(value['sections']))!=len(value['sections']):
         raise ValueError('Select distinct observed PDK sections or explicit global scope')
-    if type(value['host_ids']) is not list or not 1<=len(value['host_ids'])<=8 or any(not isinstance(h,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,95}',h) for h in value['host_ids']) or len(set(value['host_ids']))!=len(value['host_ids']):
-        raise ValueError('Select one to eight distinct observed SSH host aliases')
     if type(value['model_contracts']) is not dict or len(value['model_contracts'])>256:
         raise ValueError('Model contracts must be an explicit bounded object')
     if value['tmi_candidate_id'] is not None and (not isinstance(value['tmi_candidate_id'],str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,180}',value['tmi_candidate_id'])):
@@ -97,26 +105,46 @@ def validate_authored_testbench(*, source, testbench_manifest, support_files=Non
     return validation
 
 
-def compile_agent_selection(folder,state,saved):
+def compile_agent_selection(folder,state,saved=None):
     from onboarding_prepare import selected_candidate
     from spiceowl.onboarding.pdk_discovery import audit_config_for_candidate
     from spiceowl.experiments.recipes import validate_model_profile
     draft=state['agent_tb'];manifest=validate_manifest(draft['testbench']);args=validate_selection(draft['selection'])
     if args is None:return {'missing':[{'field':'selection','code':'pdk_selection_missing','message':'Select this intake PDK and allowed hosts before preparation.'}]}
-    row,candidate=selected_candidate(saved,args['candidate_id']);data=row['result']
-    if data['source_sha256']!=state['source_sha256']:raise ValueError('Discovery belongs to another source')
+    scope_selection=None
+    if 'scope_selection_id' in args:
+        from onboarding_pdk_scope import load_scope_selection
+        loaded=load_scope_selection(folder,state,args['scope_selection_id'])
+        row={'probe_id':state['pdk_scope_selection']['probe_id']}
+        scope_selection={key:copy.deepcopy(loaded[key]) for key in ('schema','public','private')}
+        public=scope_selection['public'];private=scope_selection['private']
+        if public['status']!='requires_audit' or not private.get('audit_config'):
+            return {'missing':[{'field':'scope_selection_id','code':'pdk_scope_not_auditable',
+                'message':'The selected model scope has unresolved coverage, dependency or namespace conflicts.'}],
+                'probe_id':row['probe_id']}
+        sections=public['sections']
+        model_names=list(public['required_model_names'])
+        binding={'scope_selection_id':args['scope_selection_id'],'library_id':public['library_id'],
+            'sections':sections,'model_names':model_names,'entry_sha256':private['entry_sha256']}
+        if public.get('selected_tmi_option_id') is not None:binding['tmi_option_id']=public['selected_tmi_option_id']
+        missing=[]
+    else:
+        row,candidate=selected_candidate(saved,args['candidate_id']);data=row['result']
+        if data['source_sha256']!=state['source_sha256']:raise ValueError('Discovery belongs to another source')
+        sections=args['sections']
+        platforms={digest({'candidate_id':candidate['candidate_id'],'relative_library':p['relative_library']}):p['relative_library']
+            for item in candidate.get('tmi_candidates',[]) for p in item.get('platform_candidates',[])}
+        tmi=args['tmi_candidate_id']
+        if tmi is not None and tmi not in platforms:raise ValueError('TMI is not part of the selected model candidate')
+        missing=[]
+        if platforms and tmi is None:missing.append({'field':'tmi_candidate_id','code':'tmi_selection_missing','message':'Select an observed TMI platform.'})
+        model_names=list(state['source']['requirements']['required_masters'])
+        binding={'discovery_id':args['discovery_id'],'candidate_id':args['candidate_id'],'sections':sections,
+            'model_names':model_names,'entry_sha256':candidate['entry_sha256'],'tmi_candidate_id':tmi}
     source,support=source_inputs(folder,state)
     if draft_record(folder,state,manifest,args)['draft_id']!=draft['draft_id']:raise ValueError('Saved testbench draft binding changed')
-    platforms={digest({'candidate_id':candidate['candidate_id'],'relative_library':p['relative_library']}):p['relative_library']
-        for item in candidate.get('tmi_candidates',[]) for p in item.get('platform_candidates',[])}
-    tmi=args['tmi_candidate_id']
-    if tmi is not None and tmi not in platforms:raise ValueError('TMI is not part of the selected model candidate')
-    missing=[]
-    if platforms and tmi is None:missing.append({'field':'tmi_candidate_id','code':'tmi_selection_missing','message':'Select an observed TMI platform.'})
-    pdk=('simulator lang=spectre\n'+''.join('include "@EXTERNAL_PDK_MAIN@"'+(' section='+section if section else '')+'\n' for section in args['sections'])).encode()
-    model_names=list(state['source']['requirements']['required_masters'])
-    binding={'discovery_id':args['discovery_id'],'candidate_id':args['candidate_id'],'sections':args['sections'],
-        'model_names':model_names,'pdk_sha256':hashlib.sha256(pdk).hexdigest(),'entry_sha256':candidate['entry_sha256'],'tmi_candidate_id':tmi}
+    pdk=('simulator lang=spectre\n'+''.join('include "@EXTERNAL_PDK_MAIN@"'+(' section='+section if section else '')+'\n' for section in sections)).encode()
+    binding['pdk_sha256']=hashlib.sha256(pdk).hexdigest()
     validation=validate_authored_testbench(source=source,testbench_manifest=manifest,support_files=support,pdk_binding=binding)
     required_headers={edge['reference'] for edge in validation['requirements'].get('veriloga_external_dependencies',[])}
     header_profile=None
@@ -136,7 +164,7 @@ def compile_agent_selection(folder,state,saved):
         validation=validate_authored_testbench(source=source,testbench_manifest=manifest,support_files=support,pdk_binding=binding)
     missing.extend(validation['missing'])
     requirements=validation['requirements']
-    models=copy.deepcopy(args['model_contracts'])
+    models=copy.deepcopy(args.get('model_contracts',{}))
     for name in requirements['required_masters']:
         if name in models:continue
         counts={r['port_count'] for r in requirements['instances'] if r['master']==name}
@@ -144,7 +172,7 @@ def compile_agent_selection(folder,state,saved):
             missing.append({'field':'model_contracts.'+name,'code':'terminal_count_ambiguous','message':'Supply an explicit positional terminal contract.'});continue
         models[name]={'kind':'external','terminals':['terminal'+str(i) for i in range(next(iter(counts)))]}
     profile={'schema':'spiceowl.experiment-model-profile.v1','id':'agent-intake-model','models':models,
-        'corners':{'selected':[{'alias':'PDK_MAIN','section':section} for section in args['sections']]}}
+        'corners':{'selected':[{'alias':'PDK_MAIN','section':section} for section in sections]}}
     validate_model_profile(profile)
     base='projects/'+state['intake_id']+'/'
     documents={base+'dut.scs':source,base+'tb.scs':manifest['text'].encode(),base+'pdk.scs':pdk,base+'agent-testbench.json':canonical(manifest)}
@@ -159,6 +187,10 @@ def compile_agent_selection(folder,state,saved):
         'electrical':profile,'source':{'source_id':base+'dut.scs','text':source.decode(),'sha256':state['source_sha256'],'original_sha256':state['source_sha256']},
         'wrapper':{'added':False,'transformation':'none','original_bytes_preserved':True},'validation':validation,'missing':missing}
     if missing:return {'missing':missing,'compiled':compiled,'probe_id':row['probe_id']}
-    audit=audit_config_for_candidate(data,candidate['candidate_id'],sections=args['sections'],tmi_relative_library=platforms.get(tmi))
+    if scope_selection is not None:
+        return {'missing':[],'compiled':compiled,'probe_id':row['probe_id'],'scope_selection':scope_selection,
+            'audit':copy.deepcopy(scope_selection['private']['audit_config']),
+            **({'veriloga_headers':header_profile} if header_profile else {})}
+    audit=audit_config_for_candidate(data,candidate['candidate_id'],sections=sections,tmi_relative_library=platforms.get(tmi))
     return {'missing':[],'compiled':compiled,'probe_id':row['probe_id'],'candidate':candidate,'audit':audit,
         **({'veriloga_headers':header_profile} if header_profile else {})}
