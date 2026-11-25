@@ -9,6 +9,7 @@ import {
   loadSessionGrant,
   clearSessionGrant,
 } from '../../apps/web/remote/pair.js';
+import {buildInstallCommand,sanitizeInstallDir} from '../../apps/web/studio/workspace-hub.js';
 
 function fixture(blocked=false){
   let listener;const timers=new Map();let timer=0;
@@ -63,4 +64,21 @@ test('session grant round-trips in tab storage and clears cleanly',()=>{
   assert.equal(saveSessionGrant({url:'https://evil.example',accessCode:token},storage),false);
   clearSessionGrant(storage);
   assert.equal(loadSessionGrant(storage),null);
+});
+
+test('buildInstallCommand generates safe macOS/Linux and Windows one-liners with custom install path',()=>{
+  assert.equal(
+    buildInstallCommand({isWindows:false,dir:'~/CircuitGit',autostart:false}),
+    'curl -fsSL https://circuitgit-dev.github.io/CircuitGit/install.sh | bash'
+  );
+  assert.equal(
+    buildInstallCommand({isWindows:false,dir:'/Users/alice/EDA/CircuitGit',autostart:true}),
+    'curl -fsSL https://circuitgit-dev.github.io/CircuitGit/install.sh | CIRCUITGIT_DIR="/Users/alice/EDA/CircuitGit" CIRCUITGIT_AUTOSTART=1 bash'
+  );
+  assert.equal(
+    buildInstallCommand({isWindows:true,dir:'D:\\Tools\\CircuitGit',autostart:true}),
+    "$env:CIRCUITGIT_DIR='D:\\Tools\\CircuitGit'; $env:CIRCUITGIT_AUTOSTART='1'; irm https://circuitgit-dev.github.io/CircuitGit/install.ps1 | iex"
+  );
+  assert.equal(sanitizeInstallDir('~/ok; rm -rf /',false),'~/CircuitGit');
+  assert.equal(sanitizeInstallDir('C:\\bad$(whoami)',true),'%USERPROFILE%\\CircuitGit');
 });

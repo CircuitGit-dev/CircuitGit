@@ -3,6 +3,35 @@ import {probeLocalConnector,wakeLocalConnector} from '../remote/pair.js';
 const REPO_URL = 'https://github.com/CircuitGit-dev/CircuitGit';
 const RELEASES_URL = REPO_URL + '/archive/refs/heads/main.zip';
 const SETUP_DOC_URL = REPO_URL + '/blob/main/docs/remote-node.md';
+const PAGES_BASE = 'https://circuitgit-dev.github.io/CircuitGit';
+
+const UNSAFE_PATH_CHARS = /[\r\n\0`$|;&<>'"]/;
+
+export function sanitizeInstallDir(value, isWindows = false) {
+  const fallback = isWindows ? '%USERPROFILE%\\CircuitGit' : '~/CircuitGit';
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 260 || UNSAFE_PATH_CHARS.test(trimmed)) return fallback;
+  return trimmed;
+}
+
+export function buildInstallCommand({ isWindows = false, dir = '', autostart = true } = {}) {
+  const cleanDir = sanitizeInstallDir(dir, isWindows);
+  const defaultDir = isWindows ? '%USERPROFILE%\\CircuitGit' : '~/CircuitGit';
+  const customDir = cleanDir !== defaultDir;
+  if (isWindows) {
+    const parts = [];
+    if (customDir) parts.push(`$env:CIRCUITGIT_DIR='${cleanDir}'`);
+    if (autostart) parts.push(`$env:CIRCUITGIT_AUTOSTART='1'`);
+    parts.push(`irm ${PAGES_BASE}/install.ps1 | iex`);
+    return parts.join('; ');
+  }
+  const envs = [];
+  if (customDir) envs.push(`CIRCUITGIT_DIR="${cleanDir}"`);
+  if (autostart) envs.push('CIRCUITGIT_AUTOSTART=1');
+  const envPrefix = envs.length ? envs.join(' ') + ' ' : '';
+  return `curl -fsSL ${PAGES_BASE}/install.sh | ${envPrefix}bash`;
+}
 
 /** Unified top-bar connection hub for Codex AI, SpiceOwl remote simulation, and local Git/library services. */
 export function mountWorkspaceHub({
@@ -29,6 +58,9 @@ export function mountWorkspaceHub({
   let destroyed = false, dialog = null;
   let connectorState = 'unknown'; // 'unknown' | 'ready' | 'waking' | 'missing'
   let requiredFeature = '';
+  let installDir = isWindows ? '%USERPROFILE%\\CircuitGit' : '~/CircuitGit';
+  let installAutostart = true;
+  let copiedTimer = null;
 
   const pill = el('button', 'cg-hub-pill');
   pill.type = 'button';
@@ -132,20 +164,73 @@ export function mountWorkspaceHub({
       } else if (connectorState === 'missing') {
         const guide = el('div', 'cg-hub-install-guide');
         guide.append(
-          el('strong', '', '尚未检测到本机连接器（仅需安装一次）'),
-          el('p', '', `浏览器无法直接发起内网 SSH 或读取本机 Codex 登录态。下载项目后双击一次 ${launcherName} 即可自动注册网页一键唤醒，后续只需在网页点击连接，无需再手动启动本地程序。`),
+          el('strong', '', '一键安装本机连接器（仅需一次，免手动解压压缩包）'),
+          el('p', '', '浏览器无法直接发起内网 SSH 或读取本机 Codex 登录态。选择安装路径并复制下方命令到' + (isWindows ? ' PowerShell ' : ' 终端 ') + '运行一次，脚本会自动下载、装好环境、注册 circuitgit:// 并在后台启动（绕过 macOS / Windows 压缩包安全拦截）。'),
         );
+        const dirRow = el('label', 'cg-hub-install-field');
+        dirRow.append(el('span', '', '安装路径'));
+        const dirInput = el('input');
+        dirInput.type = 'text';
+        dirInput.value = installDir;
+        dirInput.placeholder = isWindows ? '%USERPROFILE%\\CircuitGit' : '~/CircuitGit';
+        dirInput.setAttribute('aria-label', '本机连接器安装路径');
+        dirRow.append(dirInput);
+
+        const autoRow = el('label', 'cg-hub-install-check');
+        const autoCheck = el('input');
+        autoCheck.type = 'checkbox';
+        autoCheck.checked = installAutostart;
+        autoRow.append(autoCheck, doc.createTextNode('开机自动在后台静默运行（之后打开网页直接秒连）'));
+
+        const cmdBox = el('pre', 'cg-hub-install-cmd', buildInstallCommand({ isWindows, dir: installDir, autostart: installAutostart }));
+        const syncCmd = () => {
+          installDir = dirInput.value;
+          installAutostart = autoCheck.checked;
+          cmdBox.textContent = buildInstallCommand({ isWindows, dir: installDir, autostart: installAutostart });
+        };
+        dirInput.addEventListener('input', syncCmd);
+        autoCheck.addEventListener('change', syncCmd);
+
         const guideActions = el('div', 'cg-hub-install-actions');
-        const dl = el('a', 'cg-hub-download', `${isWindows ? 'Windows' : 'macOS'} 下载 CircuitGit 连接器 ↗`);
-        dl.href = RELEASES_URL;
-        dl.target = '_blank';
-        dl.rel = 'noopener noreferrer';
-        const docLink = el('a', 'cg-hub-doc-link', '安装与后台自启说明 ↗');
+        const copyBtn = el('button', 'cg-hub-download', '一键复制安装命令');
+        copyBtn.type = 'button';
+        copyBtn.onclick = async () => {
+          const text = buildInstallCommand({ isWindows, dir: installDir, autostart: installAutostart });
+          let copied = false;
+          try {
+            if (win.navigator?.clipboard?.writeText) {
+              await win.navigator.clipboard.writeText(text);
+              copied = true;
+            }
+          } catch {}
+          if (!copied) {
+            try {
+              const ta = el('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              doc.body.append(ta); ta.select(); copied = doc.execCommand('copy'); ta.remove();
+            } catch {}
+          }
+          copyBtn.textContent = copied
+            ? ('✓ 已复制！请打开' + (isWindows ? ' PowerShell ' : ' 终端 ') + '粘贴回车')
+            : '请手动选中上方命令复制';
+          clearTimeout(copiedTimer);
+          copiedTimer = setTimeout(() => { if (!destroyed) copyBtn.textContent = '一键复制安装命令'; }, 4000);
+        };
+        const docLink = el('a', 'cg-hub-doc-link', '查看安装说明 ↗');
         docLink.href = SETUP_DOC_URL;
         docLink.target = '_blank';
         docLink.rel = 'noopener noreferrer';
-        guideActions.append(dl, docLink);
-        guide.append(guideActions);
+        guideActions.append(copyBtn, docLink);
+
+        const fallback = el('details', 'cg-hub-install-fallback');
+        const fbSummary = el('summary', '', '备用：手动下载源码包');
+        const fbBody = el('p', '', `也可下载源码包并运行 ${launcherName}；` + (isWindows ? '若 Windows SmartScreen 提示请点「更多信息 → 仍要运行」。' : '若 macOS 提示“无法验证开发者”，请在「系统设置 → 隐私与安全性」点击「仍要打开」。'));
+        const dl = el('a', 'cg-hub-doc-link', '下载源码 ZIP ↗');
+        dl.href = RELEASES_URL;
+        dl.target = '_blank';
+        dl.rel = 'noopener noreferrer';
+        fallback.append(fbSummary, fbBody, dl);
+
+        guide.append(dirRow, autoRow, cmdBox, guideActions, fallback);
         dialog.append(guide);
       }
     }
@@ -250,6 +335,7 @@ export function mountWorkspaceHub({
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      clearTimeout(copiedTimer);
       off?.();
       dialog?.close();
       dialog?.remove();
