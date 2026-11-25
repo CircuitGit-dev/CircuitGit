@@ -160,7 +160,7 @@ export async function mountStudio({ui:providedUI}={}){
     state.job=job;$('studio-run').value=runId(job);refreshContext();
   }
 
-  function setPlotMode(mode){if(!['none','voltage','current'].includes(mode))throw Error('Unknown plot mode');plotMode=mode;document.body.dataset.studioPlot=mode;$('studio-plot-state').hidden=mode==='none';$('studio-plot-state').textContent=mode==='voltage'?'Plot · 电压 · Esc退出':mode==='current'?'Plot · 电流 · Esc退出':'';plotController?.setPlotMode(mode);$('studio-message').dataset.plot=mode;if(mode!=='none')notify(mode==='voltage'?'电压探针：在原图选择节点；Esc 退出。':'电流探针：选择器件，再明确端口；Esc 退出。');}
+  function setPlotMode(mode){if(!['none','voltage','current'].includes(mode))throw Error('Unknown plot mode');plotMode=mode;document.body.dataset.studioPlot=mode;$('studio-plot-state').hidden=mode==='none';$('studio-plot-state').textContent=mode==='voltage'?'Plot · 电压 · Esc退出':mode==='current'?'Plot · 电流 · Esc退出':'';plotController?.setPlotMode(mode);onboardingWaveformMount?.controller?.setPlotMode?.(mode);$('studio-message').dataset.plot=mode;if(mode!=='none')notify(mode==='voltage'?'电压探针：在原图选择节点；Esc 退出。':'电流探针：选择器件，再明确端口；Esc 退出。');}
   function openPlot(){if(onboardingWaveformMount)return onboardingWaveformMount.controller.openWindow();if(!plotController&&ui.slots.waveforms){ui.slots.waveforms.setVisible(true);void addonsReady.then(()=>lazyPlot?.ensure()).then(()=>{if(!plotController)throw Error('波形组件尚未加载');plotController.openWindow();if(plotMode!=='none')plotController.onSelection(contextOwner.api.getContext());}).catch(error=>notify(error.message,{kind:'error'}));return {opened:true,pending:true};}if(!plotController){notify('Plot 组件尚未安装。',{kind:'warning'});return {opened:false,reason:'Plot component unavailable'};}const result=plotController.openWindow();if(!result?.opened)notify(result?.reason||'浏览器阻止了波形窗口；请允许弹窗后重试。',{kind:'warning'});return result;}
   const plot=Object.freeze({attach(controller){if(plotController)throw Error('Only one Plot controller may attach');plotController=controller;controller.setPlotMode(plotMode);return ()=>{if(plotController===controller){setPlotMode('none');plotController=null;controller.destroy?.();}};},setMode:setPlotMode,getMode:()=>plotMode,openWindow:openPlot});
   const onboarding=createOnboardingBridge({gateway:api,win:window});
@@ -220,7 +220,16 @@ export async function mountStudio({ui:providedUI}={}){
   register({id:'window.simulation',menu:'window',label:'Simulation 面板',run:ui.slots.simulation.toggle,checked:ui.slots.simulation.isVisible});
   register({id:'window.plot',menu:'window',label:'波形窗口：打开 / 聚焦',run:openPlot});
   register({id:'window.reset',menu:'window',label:'恢复默认布局',run:()=>{if(ui.resetLayout){ui.resetLayout();return;}document.body.style.removeProperty('--studio-right-width');document.body.style.removeProperty('--studio-ai-height');$('studio-sim-split').removeAttribute('aria-valuenow');$('studio-ai-split').removeAttribute('aria-valuenow');setSidebarWidth(300);ui.slots.simulation.setVisible(true);ui.slots.ai.setVisible(true);notify('已恢复默认面板尺寸并显示仿真与 AI。');}});
-  for(const [mode,label] of [['voltage','电压探针'],['current','电流探针']])register({id:'plot.'+mode,menu:'plot',label,run:async()=>{if(ui.slots.waveforms&&await restoreProjectWaveforms()===false)return;const result=openPlot();setPlotMode(mode);if(!result.opened)notify(result.reason||'波形窗口未打开；探针模式已启用，待选信号会保留。',{kind:'warning'});},checked:()=>plotMode===mode});
+  for(const [mode,label] of [['voltage','电压探针'],['current','电流探针']])register({id:'plot.'+mode,menu:'plot',label,run:async()=>{
+    if(onboardingWaveformMount){
+      const status=onboardingWaveformMount.probeStatus?.();
+      if(status?.ok){const result=openPlot();setPlotMode(mode);if(!result.opened)notify(result.reason||'波形窗口未打开。',{kind:'warning'});return;}
+      notify((status?.reason||'当前原理图与远端仿真源版本不一致，无法开启探针。')+' 仍可从信号列表查看曲线，或点“返回项目波形”。',{kind:'warning'});
+      return;
+    }
+    if(ui.slots.waveforms&&await restoreProjectWaveforms()===false)return;
+    const result=openPlot();setPlotMode(mode);if(!result.opened)notify(result.reason||'波形窗口未打开；探针模式已启用，待选信号会保留。',{kind:'warning'});
+  },checked:()=>plotMode===mode});
   if(ui.slots.waveforms)register({id:'plot.project',menu:'plot',label:'返回项目波形',run:restoreProjectWaveforms});
   register({id:'plot.exit',menu:'plot',label:'退出探针 (Esc)',run:()=>setPlotMode('none'),enabled:()=>plotMode!=='none'});
   register({id:'plot.open',menu:'plot',label:'打开波形窗口',run:openPlot});
@@ -244,7 +253,12 @@ export async function mountStudio({ui:providedUI}={}){
     const mapped=status.canonicalMappingEnabled?sourceSelection(nativeModel.mapping,event,state.file?.currentHash,{allowCanonical:status.sourceMatch&&!status.stale}):null;
     contextSelection=mapped?{...mapped,entry_id:nativeEntry.id,context:metadata,export_lines:o.lines}:{...event,entry_id:nativeEntry.id,export_source_path:sourcePath,export_lines:o.lines,context:metadata,readonly:true,reason:'No current canonical mapping'};
     publishNative();if(sourceDialog?.open&&contextSelection.canonical)highlightSource();
-    if(plotMode!=='none')plotController?.onSelection(contextOwner.api.getContext());
+    if(plotMode!=='none'){
+      if(onboardingWaveformMount?.canProbe?.()){
+        const status=onboardingWaveformMount.probeStatus();
+        onboardingWaveformMount.probe({kind:o.kind,name:o.name,scope:event.scope,viewerSourcePath:state.file?.path||sourcePath,nativeEntryId:status.entryId,occurrencePath:[],terminalName:null});
+      }else plotController?.onSelection(contextOwner.api.getContext());
+    }
   });
   window.addEventListener('beforeunload',e=>{if(state.dirty){e.preventDefault();e.returnValue='';}});
 

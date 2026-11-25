@@ -156,8 +156,21 @@ export async function mountStudio({ui:providedUI}={}) {
   const showWaves=shown=>{if(shown)void mountReferenceWaves().catch(panelError);};
   ui.slots.waveforms.onVisibility?.(showWaves);showWaves(ui.slots.waveforms.isVisible());
 
-  function setMode(value){if(value!=='none'&&(!referenceActive()||onboardingWaves))throw Error('当前波形未建立电路节点映射，请从信号列表添加曲线。');mode=value;plotController?.setPlotMode(value);$('studio-plot-state').hidden=value==='none';$('studio-plot-state').textContent=value==='voltage'?'电压探针 · Esc退出':value==='current'?'电流探针 · R0 端口1 · Esc退出':'';}
-  for(const [value,label] of [['voltage','电压探针：点击 in / out'],['current','电流探针：点击 R0']])register({id:'plot.'+value,menu:'plot',label,enabled:()=>referenceActive()&&!onboardingWaves,run:async()=>{if(!referenceActive()||onboardingWaves)throw Error('当前波形未建立电路节点映射。');ui.slots.waveforms.setVisible(true);await mountReferenceWaves();if(!referenceActive()||!plotController)return;plotController.openWindow();setMode(value);ui.notify(label);},checked:()=>mode===value});
+  const canOnboardingProbe=()=>onboardingWaves&&Boolean(waveformMount?.canProbe?.());
+  function setMode(value){
+    if(value!=='none'&&!canOnboardingProbe()&&(!referenceActive()||onboardingWaves)){
+      const reason=onboardingWaves?waveformMount?.probeStatus?.()?.reason:null;
+      throw Error(reason||'当前波形未建立电路节点映射，请从信号列表添加曲线。');
+    }
+    mode=value;plotController?.setPlotMode(value);if(onboardingWaves)waveformMount?.controller?.setPlotMode?.(value);
+    $('studio-plot-state').hidden=value==='none';
+    $('studio-plot-state').textContent=value==='voltage'?'电压探针 · Esc退出':value==='current'?(onboardingWaves?'电流探针 · Esc退出':'电流探针 · R0 端口1 · Esc退出'):'';
+  }
+  for(const [value,label] of [['voltage','电压探针：点击节点'],['current','电流探针：点击器件']])register({id:'plot.'+value,menu:'plot',label,enabled:()=>(referenceActive()&&!onboardingWaves)||canOnboardingProbe(),run:async()=>{
+    if(canOnboardingProbe()){ui.slots.waveforms.setVisible(true);waveformMount.controller.openWindow();setMode(value);ui.notify(value==='voltage'?'远端波形电压探针：点击原理图节点；Esc 退出。':'远端波形电流探针：点击原理图器件；Esc 退出。');return;}
+    if(!referenceActive()||onboardingWaves)throw Error('当前波形未建立电路节点映射。');
+    ui.slots.waveforms.setVisible(true);await mountReferenceWaves();if(!referenceActive()||!plotController)return;plotController.openWindow();setMode(value);ui.notify(label);
+  },checked:()=>mode===value});
   register({id:'plot.exit',menu:'plot',label:'退出探针 (Esc)',run:()=>setMode('none')});
   register({id:'window.reset',menu:'window',label:'恢复默认布局',run:()=>ui.resetLayout()});
   register({id:'git.history',menu:'git',label:'电路版本管理',run:async()=>{ui.slots.versions.setVisible(true);const versions=await versionLoader.ensure();await versions.activate();}});
@@ -170,6 +183,17 @@ export async function mountStudio({ui:providedUI}={}) {
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&mode!=='none'){setMode('none');ui.notify('已退出探针。');}});
   window.addEventListener('viewer-selection',()=>{
     if(mode==='none')return;
+    if(onboardingWaves){
+      if(dirtyPaths().length||unappliedPaths().length){ui.notify('当前原理图有未保存修改；远端波形探针已暂停。',{kind:'warning'});return;}
+      const status=waveformMount?.probeStatus?.();
+      if(!status?.ok){ui.notify(status?.reason||'当前画布与远端仿真源版本不一致；已暂停点选探针。',{kind:'warning'});return;}
+      const object=doc?.objects[selected];if(!object)return;
+      const expected=mode==='voltage'?'net':'instance';if(object.kind!==expected)return;
+      const scope=doc.levels?.find(l=>l.host===object.level)?.kind==='file'?'(top)':(object.level_title||'(top)');
+      const selection={kind:object.kind,name:object.name,scope,viewerSourcePath:context.file?.path||doc.path,nativeEntryId:status.entryId,occurrencePath:[],terminalName:null};
+      context.selection=selection;emit();waveformMount.probe(selection);
+      return;
+    }
     if(doc?.path!==PATH||dirtyPaths().length||unappliedPaths().length){ui.notify('示例源已修改或已切换文档；请重置示例后使用参考探针。',{kind:'warning'});return;}
     const object=doc?.objects[selected];if(!object)return;
     const kind=mode==='voltage'?'net':'instance';if(object.kind!==kind)return;

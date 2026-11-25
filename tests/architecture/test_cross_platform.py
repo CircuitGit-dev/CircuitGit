@@ -32,6 +32,11 @@ class CrossPlatformCompatTests(unittest.TestCase):
         bat = (REPO / 'Start CircuitGit.bat').read_text(encoding='utf-8')
         self.assertIn('bootstrap_python.py', bat)
         self.assertIn('.venv\\Scripts\\python.exe', bat)
+        self.assertIn('where git', bat)
+        cmd = (REPO / 'Start CircuitGit.command').read_text(encoding='utf-8')
+        self.assertIn('bootstrap_python.py', cmd)
+        self.assertIn('sys.version_info >= (3, 11)', cmd)
+        self.assertIn('command -v git', cmd)
 
     def test_safe_local_abs_paths_accept_posix_and_windows(self):
         for good in (
@@ -230,6 +235,69 @@ class CrossPlatformCompatTests(unittest.TestCase):
             self.assertEqual((run_dir / 'state').read_text().strip(), 'simulator_complete_pending_measurements')
             self.assertEqual((run_dir / 'exit_code').read_text().strip(), '0')
             self.assertEqual((run_dir / 'raw' / 'results.raw').read_text(), 'ok')
+
+    def test_atomic_write_and_read_retry_handle_transient_windows_permission_errors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'run.json'
+            platform_compat.atomic_write_text(target, json.dumps({'seq': 0}) + '\n')
+            errors = []
+            stop = threading.Event()
+
+            def writer():
+                try:
+                    for i in range(1, 35):
+                        platform_compat.atomic_write_text(target, json.dumps({'seq': i}) + '\n')
+                except Exception as exc:
+                    errors.append(exc)
+                finally:
+                    stop.set()
+
+            def reader():
+                try:
+                    while not stop.is_set():
+                        data = json.loads(platform_compat.read_text_retry(target))
+                        self.assertIsInstance(data.get('seq'), int)
+                except Exception as exc:
+                    errors.append(exc)
+
+            tw = threading.Thread(target=writer)
+            tr = threading.Thread(target=reader)
+            tw.start()
+            tr.start()
+            tw.join(timeout=10)
+            tr.join(timeout=10)
+            self.assertEqual(errors, [])
+            self.assertEqual(json.loads(platform_compat.read_text_retry(target))['seq'], 34)
+            self.assertEqual(list(Path(tmp).glob('*.tmp')), [])
+
+            # Simulate transient Windows EACCES on both read and replace.
+            orig_read = Path.read_text
+            read_calls = {'n': 0}
+
+            def flaky_read(self_path, *args, **kwargs):
+                if self_path == target and read_calls['n'] < 3:
+                    read_calls['n'] += 1
+                    raise PermissionError(13, 'sharing violation')
+                return orig_read(self_path, *args, **kwargs)
+
+            with patch.object(Path, 'read_text', flaky_read):
+                self.assertEqual(json.loads(platform_compat.read_text_retry(target))['seq'], 34)
+            self.assertEqual(read_calls['n'], 3)
+
+            orig_replace = Path.replace
+            replace_calls = {'n': 0}
+
+            def flaky_replace(self_path, dst):
+                if dst == target and replace_calls['n'] < 3:
+                    replace_calls['n'] += 1
+                    raise PermissionError(13, 'access denied')
+                return orig_replace(self_path, dst)
+
+            with patch.object(Path, 'replace', flaky_replace):
+                platform_compat.atomic_write_text(target, json.dumps({'seq': 99}) + '\n')
+            self.assertEqual(replace_calls['n'], 3)
+            self.assertEqual(json.loads(platform_compat.read_text_retry(target))['seq'], 99)
+            self.assertEqual(list(Path(tmp).glob('*.tmp')), [])
 
 
 if __name__ == '__main__':

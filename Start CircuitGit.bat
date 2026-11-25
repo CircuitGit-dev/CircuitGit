@@ -3,12 +3,19 @@ setlocal EnableExtensions
 chcp 65001 >nul 2>&1
 cd /d "%~dp0" || exit /b 1
 
+echo ==========================================
+echo   CircuitGit (Windows 启动器)
+echo ==========================================
+
 set "PY_CMD="
 set "PY_ARG="
 
 if exist ".venv\Scripts\python.exe" (
-  set "PY_CMD=.venv\Scripts\python.exe"
-  goto :launch
+  ".venv\Scripts\python.exe" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" >nul 2>&1
+  if not errorlevel 1 (
+    set "PY_CMD=.venv\Scripts\python.exe"
+    goto :check_git
+  )
 )
 
 where py >nul 2>&1
@@ -18,7 +25,7 @@ if %ERRORLEVEL%==0 (
     if not errorlevel 1 (
       set "PY_CMD=py"
       set "PY_ARG=-%%V"
-      goto :launch
+      goto :check_git
     )
   )
 )
@@ -29,7 +36,7 @@ for %%C in (python3.exe python.exe) do (
     %%C -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" >nul 2>&1
     if not errorlevel 1 (
       set "PY_CMD=%%C"
-      goto :launch
+      goto :check_git
     )
   )
 )
@@ -37,17 +44,32 @@ for %%C in (python3.exe python.exe) do (
 for %%V in (314 313 312 311) do (
   if exist "%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe" (
     set "PY_CMD=%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe"
-    goto :launch
+    goto :check_git
   )
   if exist "%ProgramFiles%\Python%%V\python.exe" (
     set "PY_CMD=%ProgramFiles%\Python%%V\python.exe"
-    goto :launch
+    goto :check_git
   )
 )
 
-echo 需要 Python 3.11+。请从 https://www.python.org/downloads/windows/ 安装并勾选 Add Python to PATH，然后重新双击此启动器。
+echo [CircuitGit] 需要 Python 3.11+。
+echo   推荐安装方式：winget install Python.Python.3.12
+echo   或从官网下载：https://www.python.org/downloads/windows/ （安装时勾选 Add Python to PATH）
 pause
 exit /b 1
+
+:check_git
+where git >nul 2>&1
+if errorlevel 1 (
+  echo [CircuitGit] 需要 Git 才能管理电路版本与安装依赖。
+  echo   推荐安装方式：winget install Git.Git
+  echo   或从官网下载：https://git-scm.com/download/win
+  pause
+  exit /b 1
+)
+
+echo [CircuitGit] 环境检查通过，正在启动本机工作台助手（请保持此窗口运行）…
+echo.
 
 :launch
 if defined PY_ARG (

@@ -5,14 +5,13 @@ import copy
 from datetime import datetime, timezone
 from pathlib import Path
 import ic_sim as core
-from platform_compat import chmod_private, file_lock
+from platform_compat import atomic_write_text, chmod_private, file_lock, read_text_retry
 
 TERMINAL={'simulator_complete_pending_measurements','simulator_failed','input_hash_failure','job_setup_failed'}
 VA_HEADER_STAGING='netlist/__ic_va_headers__'
 def stamp():return datetime.now(timezone.utc).isoformat()
 def atomic(path,obj):
-    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
-    tmp=path.with_name(path.name+'.'+uuid.uuid4().hex+'.tmp');tmp.write_text(json.dumps(obj,indent=2)+'\n');chmod_private(tmp,0o600);tmp.replace(path)
+    atomic_write_text(path,json.dumps(obj,indent=2)+'\n',mode=0o600)
 @contextlib.contextmanager
 def locked(path):
     with file_lock(path):
@@ -221,19 +220,19 @@ class Runner:
     def path(self,rid):
         if not re.fullmatch(r'[A-Za-z0-9_-]+',rid):raise ValueError('invalid run id')
         return self.root/rid
-    def read(self,rid):return Record(json.loads((self.path(rid)/'run.json').read_text()))
+    def read(self,rid):return Record(json.loads(read_text_retry(self.path(rid)/'run.json')))
     def save(self,r):
         path=self.path(r['run_id'])/'run.json';baseline=getattr(r,'baseline',{})
         changed={key:value for key,value in r.items() if key not in baseline or baseline[key]!=value};deleted=set(baseline)-set(r)
         # One short shared lock for every writer. No network or recursive call here.
         with locked(path.parent/'record.lock'):
-            current=json.loads(path.read_text()) if path.exists() else {}
+            current=json.loads(read_text_retry(path)) if path.exists() else {}
             current.update(changed)
             for key in deleted:current.pop(key,None)
             current['updated_at']=stamp();atomic(path,current)
         r.clear();r.update(current)
         if isinstance(r,Record):r.baseline=copy.deepcopy(current)
-    def list(self):return [json.loads(p.read_text()) for p in sorted(self.root.glob('*/run.json'),reverse=True)]
+    def list(self):return [json.loads(read_text_retry(p)) for p in sorted(self.root.glob('*/run.json'),reverse=True)]
     def lookup_submission(self,key):
         """Read an existing reservation. Never create an index, lock, run or dispatch."""
         if not isinstance(key,str) or not 8<=len(key)<=160 or any(ord(c)<32 or ord(c)==127 for c in key):

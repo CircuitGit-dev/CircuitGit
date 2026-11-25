@@ -19,6 +19,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 
 IS_WINDOWS = os.name == 'nt'
 IS_MACOS = sys.platform == 'darwin'
@@ -365,3 +366,39 @@ def read_bounded_pipes(proc, deadline, *, stdout_limit, stderr_limit,
     if overflow.is_set():
         raise on_limit()
     return bytes(stdout)
+
+
+def atomic_write_text(path, text, *, encoding='utf-8', mode=0o600, retries=16):
+    """Atomically write UTF-8 text, retrying transient Windows replace PermissionError."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(f'{target.name}.{uuid.uuid4().hex}.tmp')
+    try:
+        tmp.write_text(text, encoding=encoding)
+        chmod_private(tmp, mode)
+        for attempt in range(max(1, int(retries))):
+            try:
+                tmp.replace(target)
+                return target
+            except PermissionError:
+                if attempt + 1 >= max(1, int(retries)):
+                    raise
+                time.sleep(min(0.05, 0.005 * (attempt + 1)))
+    finally:
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+
+
+def read_text_retry(path, *, encoding='utf-8', retries=16):
+    """Read UTF-8 text, retrying transient Windows sharing PermissionError during atomic replace."""
+    target = Path(path)
+    for attempt in range(max(1, int(retries))):
+        try:
+            return target.read_text(encoding=encoding)
+        except PermissionError:
+            if attempt + 1 >= max(1, int(retries)):
+                raise
+            time.sleep(min(0.05, 0.005 * (attempt + 1)))
