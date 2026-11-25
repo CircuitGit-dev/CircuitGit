@@ -1,6 +1,7 @@
 """Real loopback HTTP + synthetic sessions; never starts a model or simulation."""
 import copy
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -197,8 +198,9 @@ class Tests(unittest.TestCase):
 
     def test_saved_choice_is_owner_only_prefill_not_authority_after_restart(self):
         self.enable()
-        self.assertEqual(self.settings.path.stat().st_mode & 0o777, 0o600)
-        self.assertEqual(self.settings.state.stat().st_mode & 0o777, 0o700)
+        if os.name != 'nt':
+            self.assertEqual(self.settings.path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(self.settings.state.stat().st_mode & 0o777, 0o700)
         raw = self.settings.path.read_text()
         self.assertNotIn(self.key, raw); self.assertNotIn(TOKEN, raw)
         fresh = LocalDevelopment(self.settings.state, self.routes, self.node.pairing, self.base)
@@ -211,11 +213,15 @@ class Tests(unittest.TestCase):
 
     def test_insecure_and_symlinked_settings_fail_closed(self):
         self.enable()
-        self.settings.path.chmod(0o644)
-        with self.assertRaises(ValueError): LocalDevelopment(self.settings.state, self.routes, self.node.pairing, self.base)
+        if os.name != 'nt':
+            self.settings.path.chmod(0o644)
+            with self.assertRaises(ValueError): LocalDevelopment(self.settings.state, self.routes, self.node.pairing, self.base)
         self.settings.path.unlink()
         target = Path(self.temp.name) / 'other'; target.write_text('{}')
-        self.settings.path.symlink_to(target)
+        try:
+            self.settings.path.symlink_to(target)
+        except OSError:
+            return
         with self.assertRaises(ValueError): LocalDevelopment(self.settings.state, self.routes, self.node.pairing, self.base)
         link = Path(self.temp.name) / 'link'; link.symlink_to(self.settings.state)
         with self.assertRaises(ValueError): LocalDevelopment(link, self.routes, self.node.pairing, self.base)

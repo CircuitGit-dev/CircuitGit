@@ -395,7 +395,10 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None, extras
         installed=probe(python,run,modules)
         if archive is not None:save_local_install(environment,pin,archive,installed)
         if not pinned(installed, environment, pin, modules):
-            raise BootstrapError('安装后校验失败：Python、SpiceOwl commit 或必需模块与锁定值不符；未启动应用。')
+            detail = ''
+            if isinstance(installed, dict) and installed.get('dependency_error'):
+                detail = '（' + str(installed['dependency_error']) + '）'
+            raise BootstrapError('安装后校验失败：Python、SpiceOwl commit 或必需模块与锁定值不符' + detail + '；未启动应用。')
         progress('依赖已核验，后续启动会复用此环境。')
         return python
 

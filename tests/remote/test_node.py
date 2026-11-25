@@ -1,6 +1,7 @@
 """Real HTTP boundary tests with a synthetic AI route owner; no model invocation."""
 import importlib.util
 import json
+import os
 import re
 from pathlib import Path
 import tempfile
@@ -138,9 +139,11 @@ class Tests(unittest.TestCase):
     def test_code_is_stable_owner_only_and_never_a_public_oauth_claim(self):
         with tempfile.TemporaryDirectory() as directory:
             state=Path(directory);a,identity,key=node.node_identity(state);b,other,_=node.node_identity(state)
-            self.assertEqual(a,b);self.assertEqual(identity,other);self.assertEqual(key.stat().st_mode&0o777,0o600)
-            key.chmod(0o644)
-            with self.assertRaises(ValueError):node.node_identity(state)
+            self.assertEqual(a,b);self.assertEqual(identity,other)
+            if os.name != 'nt':
+                self.assertEqual(key.stat().st_mode&0o777,0o600)
+                key.chmod(0o644)
+                with self.assertRaises(ValueError):node.node_identity(state)
         self.assertFalse(self.server.node.info()['capabilities']['hosted_subscription_oauth'])
     def test_unencrypted_remote_urls_and_wildcards_are_rejected(self):
         for url in ['http://server.example','https://*.example','https://example.com/path','https://u:p@example.com']:

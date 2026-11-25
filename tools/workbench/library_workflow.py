@@ -16,8 +16,12 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
+_WORKBENCH_DIR = str(Path(__file__).resolve().parent)
+if _WORKBENCH_DIR not in sys.path:
+    sys.path.insert(0, _WORKBENCH_DIR)
 from platform_compat import file_lock, fsync_dir, git_credential_helper, git_devnull
 
 

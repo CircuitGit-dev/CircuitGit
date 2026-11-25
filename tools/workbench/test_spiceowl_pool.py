@@ -2,6 +2,7 @@
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -107,7 +108,8 @@ class ResourcePoolTests(unittest.TestCase):
         self.backend.select.assert_called_once()
         self.backend.recheck.assert_not_called()
         self.assertFalse(list((self.root / 'runtime').rglob('keys.json')))
-        self.assertEqual((pool.root / (plan_id + '.json')).stat().st_mode & 0o777, 0o600)
+        if os.name != 'nt':
+            self.assertEqual((pool.root / (plan_id + '.json')).stat().st_mode & 0o777, 0o600)
 
     def test_review_contains_only_safe_summary(self):
         _, result = self.prepared()

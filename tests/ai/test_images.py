@@ -171,7 +171,8 @@ class SessionTests(unittest.TestCase):
         inputs = self.turns(session)[0]['params']['input']; self.assertEqual([v['type'] for v in inputs], ['text', 'localImage'])
         path = Path(inputs[1]['path']); self.assertEqual(path.read_bytes(), png())
         self.assertEqual(path.parent, session.scratch / 'images'); self.assertEqual(path.stem, receipt['images'][0]['image_id'])
-        self.assertEqual(path.stat().st_mode & 0o777, 0o600); self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+        if os.name != 'nt':
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600); self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
         self.assertNotIn('data:image', inputs[0]['text']); self.assertNotIn(upload['data_url'].split(',')[1], json.dumps(receipt))
         self.assertEqual(receipt['prompt']['image_count'], 1)
         saved = (session.service.state / 'ai-session.json').read_text()

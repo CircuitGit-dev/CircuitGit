@@ -42,6 +42,15 @@ def _has_module(name):
     return importlib.util.find_spec(name) is not None
 
 
+def _configure_stdio():
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            try:
+                stream.reconfigure(encoding='utf-8', errors='replace')
+            except OSError:
+                pass
+
+
 def _run_step(name, cmd, *, env=None, cwd=ROOT):
     started = time.monotonic()
     proc = subprocess.run(
@@ -54,14 +63,17 @@ def _run_step(name, cmd, *, env=None, cwd=ROOT):
         errors='replace',
     )
     elapsed = round(time.monotonic() - started, 2)
+    stdout_lines = proc.stdout.strip().splitlines()
+    stderr_lines = proc.stderr.strip().splitlines()
+    fail_lines = [l for l in stdout_lines if l.lstrip().startswith(('not ok ', 'Error:', 'AssertionError'))]
     return {
         'name': name,
         'ok': proc.returncode == 0,
         'returncode': proc.returncode,
         'seconds': elapsed,
         'command': ' '.join(str(part) for part in cmd),
-        'stdout_tail': proc.stdout.strip().splitlines()[-12:],
-        'stderr_tail': proc.stderr.strip().splitlines()[-20:],
+        'stdout_tail': (fail_lines[-15:] + stdout_lines[-12:]) if fail_lines else stdout_lines[-12:],
+        'stderr_tail': stderr_lines[-20:],
     }
 
 
@@ -198,37 +210,34 @@ def build_plan(*, quick=False, include_spiceowl=False, has_node=True):
         ])
     plan['ai'] = ai_steps
 
-    # 6. Frontend JavaScript unit tests (Node 22+).
+    # 6. Frontend JavaScript unit tests (Node 22+), split by area for clear reporting.
     if has_node:
         node_bin = shutil.which('node') or 'node'
         if quick:
-            node_files = _collect_node_tests([
-                'tests/demo/*.test.mjs',
-                'tests/remote/pair.test.mjs',
-                'tests/remote/client.test.mjs',
-                'tests/library/*.test.mjs',
-                'tests/waveforms/mapping.test.mjs',
-                'tests/viewer-vendor.test.mjs',
-            ])
+            groups = [
+                ('frontend: demo/remote/library/waveforms', [
+                    'tests/demo/*.test.mjs',
+                    'tests/remote/pair.test.mjs',
+                    'tests/remote/client.test.mjs',
+                    'tests/library/*.test.mjs',
+                    'tests/waveforms/mapping.test.mjs',
+                    'tests/viewer-vendor.test.mjs',
+                ]),
+            ]
         else:
-            node_files = _collect_node_tests([
-                'tests/demo/*.test.mjs',
-                'tests/remote/*.test.mjs',
-                'tests/context/*.test.mjs',
-                'tests/waveforms/*.test.mjs',
-                'tests/studio/*.test.mjs',
-                'tests/library/*.test.mjs',
-                'tests/native/*.test.mjs',
-                'tests/workflow/*.test.mjs',
-                'tests/codex/*/*.test.mjs',
-                'tests/codex_ui/*.test.mjs',
-                'tests/ai/*.test.mjs',
-                'tests/core.test.mjs',
-                'tests/viewer-mapping.test.mjs',
-                'tests/viewer-hierarchy.test.mjs',
-                'tests/viewer-vendor.test.mjs',
-            ])
-        plan['frontend'] = [('node --test (' + str(len(node_files)) + ' files)', [node_bin, '--test', *node_files])]
+            groups = [
+                ('frontend: demo & context & waveforms', ['tests/demo/*.test.mjs', 'tests/context/*.test.mjs', 'tests/waveforms/*.test.mjs']),
+                ('frontend: remote & library & workflow', ['tests/remote/*.test.mjs', 'tests/library/*.test.mjs', 'tests/workflow/*.test.mjs', 'tests/native/*.test.mjs']),
+                ('frontend: studio panels', ['tests/studio/*.test.mjs']),
+                ('frontend: viewer & engineering', ['tests/core.test.mjs', 'tests/viewer-mapping.test.mjs', 'tests/viewer-hierarchy.test.mjs', 'tests/viewer-vendor.test.mjs']),
+                ('frontend: codex & ai ui', ['tests/codex/*/*.test.mjs', 'tests/codex_ui/*.test.mjs', 'tests/ai/*.test.mjs']),
+            ]
+        frontend_steps = []
+        for label, patterns in groups:
+            node_files = _collect_node_tests(patterns)
+            if node_files:
+                frontend_steps.append((f'{label} ({len(node_files)} files)', [node_bin, '--test', *node_files]))
+        plan['frontend'] = frontend_steps
     else:
         plan['frontend'] = []
 
@@ -247,6 +256,7 @@ def build_plan(*, quick=False, include_spiceowl=False, has_node=True):
 
 
 def main(argv=None):
+    _configure_stdio()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--suite', help='Comma-separated suites: architecture,remote,simulation,library,ai,frontend,spiceowl')
     parser.add_argument('--quick', action='store_true', help='Run fast smoke coverage across every subsystem')

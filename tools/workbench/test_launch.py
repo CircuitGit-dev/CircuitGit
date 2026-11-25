@@ -1,5 +1,5 @@
 """Launch configuration is local, separate from source, and never overwritten."""
-import json, pathlib, shutil, subprocess, sys, tempfile, unittest
+import json, os, pathlib, shutil, subprocess, sys, tempfile, unittest
 
 class LaunchTests(unittest.TestCase):
     def test_configuration_creation_and_preservation(self):
@@ -24,7 +24,8 @@ class LaunchTests(unittest.TestCase):
             self.assertEqual(data['seed_repo'],str(repo))
             self.assertEqual(data['runtime_root'],str(repo/'.local/workbench'))
             self.assertNotEqual(pathlib.Path(data['runtime_root'])/'workspace',repo)
-            self.assertEqual(config.stat().st_mode & 0o777,0o600)
+            if os.name != 'nt':
+                self.assertEqual(config.stat().st_mode & 0o777,0o600)
             self.assertEqual(run().returncode,0)
             self.assertEqual(config.read_bytes(),original)
             self.assertNotEqual(run('--runtime-root',str(repo/'.local/other')).returncode,0)

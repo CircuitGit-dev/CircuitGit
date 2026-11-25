@@ -27,6 +27,10 @@ concurrency:
   group: cross-platform-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+
 jobs:
   cross-platform-tests:
     name: ${{ matrix.label }}
