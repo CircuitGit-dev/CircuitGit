@@ -1,6 +1,6 @@
 // The paired transport owns its credential. This bridge accepts only finite library operations.
-const reads=new Set(['capability','describe','read_file','current','history','commit_detail','checkpoints','get_ci','receipt','pr_status','get_testbenches','get_testbench_result','review_testbench','review_status']);
-const writes=new Set(['save','save_files','commit','restore','pr','ci']);
+const reads=new Set(['capability','describe','read_file','current','history','commit_detail','checkpoints','get_ci','receipt','pr_status','get_testbenches','get_testbench_result','review_testbench','review_status','branches']);
+const writes=new Set(['save','save_files','commit','restore','pr','ci','create_library','create_cell','clone_cell','create_branch','switch_branch']);
 const complete=result=>['complete','completed','succeeded'].includes(result?.state||result?.status);
 export const cellFingerprint=value=>value?.fingerprint||JSON.stringify([value?.base_commit,value?.branch,(value?.changes||[]).map(item=>[item.path,item.status,item.sha256]).sort((a,b)=>a[0].localeCompare(b[0]))]);
 export function createLibraryBridge({pollInterval=2500}={}){
@@ -8,14 +8,21 @@ export function createLibraryBridge({pollInterval=2500}={}){
   const getState=()=>({connected:!!client&&available,revision:epoch});
   const publish=()=>listeners.forEach(fn=>fn(getState()));
   const cellKey=args=>JSON.stringify([args.library_id,args.cell_id]);
-  function emitMutation(record,result){for(const fn of mutations){try{fn({...record,result});}catch{}}const watch=watches.get(cellKey(record.args));if(watch)void poll(watch,true);}
+  function emitMutation(record,result){
+    for(const fn of mutations){try{fn({...record,result});}catch{}}
+    if(record.args?.library_id&&record.args?.cell_id){
+      const watch=watches.get(cellKey(record.args));if(watch)void poll(watch,true);
+    }else{
+      for(const watch of watches.values())void poll(watch,true);
+    }
+  }
   async function request(operation,args={}){
-    if(!client||!available)throw Error('请先在 AI 设置中连接支持电路版本管理的本机助手。');
+    if(!client||!available)throw Error('请先连接支持电路版本管理的工作台或本机助手。');
     const generation=epoch,transport=client;
     if(operation==='execute'){
       if(!args||!writes.has(args.operation)||!args.args||typeof args.args!=='object'||Array.isArray(args.args)||typeof args.idempotency_key!=='string'||args.idempotency_key.length<8||Object.keys(args).some(key=>!['operation','args','idempotency_key'].includes(key)))throw Error('电路写操作参数无效。');
       if(sentKeys.has(args.idempotency_key))throw Error('此请求已经发送，请检查原回执；不会重复执行。');
-      const record={operation:args.operation,args:{library_id:args.args.library_id,cell_id:args.args.cell_id},idempotency_key:args.idempotency_key};sentKeys.set(args.idempotency_key,record);
+      const record={operation:args.operation,args:{library_id:args.args.library_id||null,cell_id:args.args.cell_id||null},idempotency_key:args.idempotency_key};sentKeys.set(args.idempotency_key,record);
       const result=await transport.request('/library/execute',{method:'POST',body:args});
       if(generation!==epoch)throw Object.assign(Error('连接已变化，请使用原请求键核对结果。'),{data:{code:'transport_unknown'}});
       if(complete(result)){record.notified=true;emitMutation(record,result);}return result;

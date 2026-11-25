@@ -44,3 +44,12 @@ test('shared watcher skips hidden cells and never overlaps reads',async()=>{
  let visible=false,active=0,max=0,reads=0;const bridge=createLibraryBridge({pollInterval:10});bridge.bind({request:async()=>{reads++;active++;max=Math.max(max,active);await wait(25);active--;return {fingerprint:String(reads)};}});const stop1=bridge.watchCell(scope,{isVisible:()=>visible}),stop2=bridge.watchCell(scope,{isVisible:()=>visible});await wait(25);assert.equal(reads,0);visible=true;await wait(95);assert.equal(max,1);assert.ok(reads>=2&&reads<=4);visible=false;await wait(35);const before=reads;await wait(35);assert.equal(reads,before);stop1();stop2();bridge.unbind();
 });
 test('fingerprint includes server revision and current file hashes',()=>{assert.equal(cellFingerprint({fingerprint:'observed'}),'observed');assert.notEqual(cellFingerprint({changes:[{path:'a',sha256:'1'}]}),cellFingerprint({changes:[{path:'a',sha256:'2'}]}));});
+test('bridge allows branches read and repo-level CRUD/branch writes without cell scope',async()=>{
+ const calls=[],events=[],bridge=createLibraryBridge();bridge.bind({request:async(path,options)=>(calls.push({path,...options}),options.body?.operation==='branches'?{current_branch:'main',branches:[]}:{state:'complete'})});bridge.subscribeMutation(event=>events.push(event));
+ const info=await bridge.request('branches',{});assert.equal(info.current_branch,'main');assert.equal(calls[0].path,'/library/read');
+ for(const [idx,operation] of ['create_library','create_cell','clone_cell','create_branch','switch_branch'].entries()){
+  const res=await bridge.request('execute',{operation,args:{branch:'feat/x',library_id:'lib1'},idempotency_key:`repo-op-key-00${idx}`});
+  assert.equal(res.state,'complete');
+ }
+ assert.equal(events.length,5);bridge.unbind();
+});

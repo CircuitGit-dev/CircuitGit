@@ -14,6 +14,7 @@ import rnl_sync
 from supervision import Supervision, execution_target
 from simulation_runtime import SimulationRuntime
 from spiceowl_readonly import SpiceReadAdapter,SpiceReadError
+from library_workflow import LibraryWorkflow,WorkflowError,relative_path as library_relative_path
 
 def simulation_backend_info(site):
     """Non-secret summary of the configured simulator backend for health/project views."""
@@ -163,6 +164,13 @@ class Application:
             ),
         )
         self.ai=None
+        self.library=None
+        repo_root=getattr(self.workspace,'root',None)
+        if not cfg.get('onboarding_only') and repo_root is not None and (Path(repo_root)/'lib'/'catalog.json').is_file():
+            try:
+                self.library=LibraryWorkflow(Path(repo_root),cfg.get('github_repo') or 'local/circuitgit',base_branch=cfg.get('base_branch','main'))
+            except Exception:
+                self.library=None
         self.token=secrets.token_urlsafe(32);self.pool=concurrent.futures.ThreadPoolExecutor(max_workers=2);self.operations={};self.mutex=threading.Lock()
         self.simulation=SimulationRuntime(self)
         from onboarding_runtime import OnboardingRuntime
@@ -263,6 +271,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(e.status,{'ok':False,'error':{'code':e.code,'message':str(e),'details':{}}})
         if isinstance(e,WaveformError):
             return self.send(e.status,{'ok':False,'error':{'code':e.code,'message':str(e),'details':{}}})
+        if isinstance(e,WorkflowError):
+            return self.send(e.status,{'ok':False,'error':{'code':e.code,'message':str(e),'details':e.details}})
         if getattr(self.app,'ai',None) is not None and hasattr(e,'record') and hasattr(e,'exit_code'):
             status=409 if e.exit_code==3 else 403 if e.exit_code==4 else 503 if e.exit_code==75 else 400
             return self.send(status,{'ok':False,'error':e.record()})
@@ -297,7 +307,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response({'api_version':'1','mode':'live','mutation_token':self.app.token,
                     'connection_id':getattr(onboarding,'connection_id',None),
                     'ai_activity':{'running_summaries':self.app.ai.commit_summary_activity()['running_count'] if self.app.ai else 0},
-                    'capabilities':{'ai':self.app.ai is not None,'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'spiceowl_readonly':getattr(getattr(self.app,'spiceowl_reads',None),'enabled',False),'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'simulation_onboarding_native_entry':onboarding_enabled,'simulation_backend':simulation_backend_info(getattr(self.app,'site',None)),'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
+                    'capabilities':{'ai':self.app.ai is not None,'library_workflow':getattr(self.app,'library',None) is not None,'git':not cfg.get('onboarding_only',False),'runner':True,'publish':not cfg.get('local_only',False),'supervision':True,'submission_lookup':True,'spiceowl_readonly':getattr(getattr(self.app,'spiceowl_reads',None),'enabled',False),'simulation_onboarding':onboarding_enabled,'simulation_onboarding_api_version':'1' if onboarding_enabled else None,'simulation_onboarding_native_entry':onboarding_enabled,'simulation_backend':simulation_backend_info(getattr(self.app,'site',None)),'viewer':(self.app.web/'viewer-adapter/index.js').exists(),**({'chat':False} if cfg.get('onboarding_only') else {})}})
             if path.startswith('/api/spiceowl/read/'):
                 if len(u.query)>1024:raise ValueError('SpiceOwl read query exceeds its bound')
                 query=parse_qs(u.query,keep_blank_values=True,strict_parsing=True,max_num_fields=2) if u.query else {}
@@ -353,6 +363,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(self.app.workspace.configuration_description(get('project_id'),get('configuration'),get('source_commit')))
             if path=='/api/tree':return self.response(self.app.workspace.tree(get('project_id')))
             if path=='/api/file':return self.response(self.app.workspace.file(get('path')))
+            if path.startswith('/api/library/files/'):
+                lib=getattr(self.app,'library',None)
+                if lib is None:raise FileNotFoundError('circuit library is not available in this workspace')
+                rel=library_relative_path(path[len('/api/library/files/'):])
+                target=lib.root/rel
+                if target.is_symlink() or not target.is_file() or not target.resolve().is_relative_to(lib.root):
+                    raise FileNotFoundError('library file not found')
+                for parent in target.parents:
+                    if parent==lib.root:break
+                    if parent.is_symlink():raise PermissionError('symlink library path denied')
+                if target.stat().st_size>32*1024*1024:raise ValueError('library file exceeds 32 MiB limit')
+                ctype='application/json; charset=utf-8' if target.suffix=='.json' else 'text/plain; charset=utf-8'
+                return self.send(200,target.read_bytes(),ctype)
             if path=='/api/jobs':return self.response({'jobs':[self.app.public_job(r) for r in self.app.runner.list()]})
             if path=='/api/schematic':
                 data=self.app.geometry.schematic(get('project_id'),get('path'),get('source_hash'),'http://127.0.0.1:'+str(self.server.server_port))
@@ -433,6 +456,27 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(self.app.ai.start_commit_summary(verified))
             if path=='/api/changes/preview':return self.response(self.app.workspace.preview(b['base_commit'],b['changes']))
             if path=='/api/changes/commit':return self.response(self.app.workspace.commit(b['base_commit'],b['changes'],b.get('message','Update circuit configuration'),bool(b.get('push',False))))
+            if path in ('/api/library/read','/api/library/execute'):
+                lib=getattr(self.app,'library',None)
+                if lib is None:raise FileNotFoundError('circuit library workflow is not available in this workspace')
+                if path.endswith('/execute'):
+                    if set(b)!={'operation','args','idempotency_key'} or not isinstance(b['operation'],str) or not isinstance(b['args'],dict) or not isinstance(b['idempotency_key'],str):
+                        raise ValueError('Finite library operation, arguments and idempotency_key required')
+                    if b['operation'] not in LibraryWorkflow.EXECUTE_OPERATIONS:
+                        raise ValueError('Unsupported library write operation')
+                    result=lib.execute(b['operation'],b['args'],b['idempotency_key'])
+                    if b['operation'] in ('create_branch','switch_branch') and result.get('state')=='complete':
+                        current=lib.branches().get('current_branch')
+                        if isinstance(current,str) and current and current!='HEAD' and getattr(self.app,'workspace',None) is not None:
+                            self.app.workspace.branch=current
+                    return self.response(result)
+                if set(b)!={'operation','args'} or not isinstance(b['operation'],str) or not isinstance(b['args'],dict):
+                    raise ValueError('Finite library read operation and arguments required')
+                if b['operation']=='capability':
+                    return self.response({'schema':'circuitgit.library-workflow.v1','available':True,'operations':sorted(LibraryWorkflow.READ_OPERATIONS|LibraryWorkflow.EXECUTE_OPERATIONS)})
+                if b['operation'] not in LibraryWorkflow.READ_OPERATIONS:
+                    raise ValueError('Unsupported library read operation')
+                return self.response(lib.dispatch(b['operation'],b['args']))
             if path=='/api/simulation/backend':
                 return self.response(configure_local_simulation_backend(self.app,b))
             if path=='/api/simulation/resources/scan':

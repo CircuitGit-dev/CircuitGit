@@ -277,6 +277,104 @@ class LibraryCrudBranchesPrTests(unittest.TestCase):
         self.assertEqual(b_create["state"], "complete")
         self.assertEqual(self.workflow.branches()["current_branch"], "feat/browser-branch")
 
+    def test_live_server_library_http_endpoints(self):
+        import io
+        from types import SimpleNamespace
+        import server as wb_server
+
+        ws = SimpleNamespace(root=self.root, branch="codex/work")
+        app = SimpleNamespace(
+            cfg={"onboarding_only": False, "local_only": True},
+            workspace=ws,
+            library=self.workflow,
+            ai=None,
+            web=self.root,
+            token="live-token-123",
+            site={},
+            spiceowl_reads=SimpleNamespace(enabled=False),
+            onboarding=SimpleNamespace(enabled=False),
+        )
+
+        def call_get(path):
+            handler = object.__new__(wb_server.Handler)
+            handler.server = SimpleNamespace(server_port=18765, app=app)
+            handler.headers = {"Host": "127.0.0.1:18765"}
+            handler.path = path
+            captured = []
+            handler.send = lambda status, data, *args, **kwargs: captured.append((status, data))
+            handler.do_GET()
+            return captured[0]
+
+        def call_post(path, payload, token="live-token-123"):
+            raw = json.dumps(payload).encode("utf-8")
+            handler = object.__new__(wb_server.Handler)
+            handler.server = SimpleNamespace(server_port=18765, app=app)
+            handler.headers = {
+                "Host": "127.0.0.1:18765",
+                "Origin": "http://127.0.0.1:18765",
+                "Content-Type": "application/json",
+                "Content-Length": str(len(raw)),
+                "X-Workbench-Token": token,
+            }
+            handler.path = path
+            handler.rfile = io.BytesIO(raw)
+            captured = []
+            handler.send = lambda status, data, *args, **kwargs: captured.append((status, data))
+            handler.do_POST()
+            return captured[0]
+
+        as_json = lambda data: data if isinstance(data, dict) else json.loads(data)
+
+        status, body = call_get("/api/health")
+        self.assertEqual(status, 200)
+        health = as_json(body)
+        self.assertTrue(health["data"]["capabilities"]["library_workflow"])
+
+        status, body = call_get("/api/library/files/lib/catalog.json")
+        self.assertEqual(status, 200)
+        self.assertEqual(as_json(body)["schema"], "circuitgit.libraries.v1")
+
+        status, _ = call_get("/api/library/files/../.git/config")
+        self.assertEqual(status, 400)
+
+        status, body = call_post("/api/library/read", {"operation": "capability", "args": {}})
+        self.assertEqual(status, 200)
+        cap = as_json(body)["data"]
+        self.assertTrue(cap["available"])
+        self.assertIn("branches", cap["operations"])
+        self.assertIn("create_branch", cap["operations"])
+
+        status, body = call_post("/api/library/read", {"operation": "branches", "args": {}})
+        self.assertEqual(status, 200)
+        self.assertEqual(as_json(body)["data"]["current_branch"], "codex/work")
+
+        status, _ = call_post("/api/library/execute", {"operation": "create_branch", "args": {"branch": "feat/bad", "base_commit": self.head(), "checkout": True}, "idempotency_key": "bad-tok-001"}, token="wrong")
+        self.assertEqual(status, 403)
+
+        status, body = call_post(
+            "/api/library/execute",
+            {
+                "operation": "create_branch",
+                "args": {"branch": "feat/live-branch", "base_commit": self.head(), "checkout": True},
+                "idempotency_key": "live-branch-001",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(as_json(body)["data"]["state"], "complete")
+        self.assertEqual(ws.branch, "feat/live-branch")
+        self.assertEqual(self.workflow.branches()["current_branch"], "feat/live-branch")
+
+        status, body = call_post(
+            "/api/library/execute",
+            {
+                "operation": "create_library",
+                "args": {"library_id": "live-lib", "name": "Live Library", "base_commit": self.head()},
+                "idempotency_key": "live-lib-001",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(as_json(body)["data"]["library_id"], "live-lib")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

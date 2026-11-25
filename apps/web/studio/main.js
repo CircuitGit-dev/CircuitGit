@@ -21,6 +21,9 @@ import {whenVisible} from './lazy-slot.js';
 import {createCommitMessage} from '../../../modules/workspace/commit-message.js';
 import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
 import {createOnboardingSync} from '../remote/onboarding-sync.js';
+import {createLibraryBridge} from '../remote/library-bridge.js';
+import {mountLibraryManager} from '../library/panel.js';
+import {createLibraryClient} from '../library/model.js';
 import {hasBuffer,fileText} from '../vendor/rnl-viewer/edits.js';
 
 const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
@@ -191,8 +194,19 @@ export async function mountStudio({ui:providedUI}={}){
   }
   const getOnboardingSource=()=>snapshotOnboardingSource(doc,{hasBuffer,fileText});
   const onboardingSync=createOnboardingSync({bridge:onboarding,getSource:getOnboardingSource,openWaveforms:ui.slots.waveforms?openOnboardingWaveforms:undefined});
+  const libraryBridge=createLibraryBridge();
+  let libraryManager=null,activeLibrarySelection=null;
+  const librarySelectionListeners=new Set();
+  const librarySelectionScope=()=>{
+    if(!activeLibrarySelection)return null;
+    const {library,cell,view}=activeLibrarySelection;
+    return {library_id:library.id,cell_id:cell.id,library:library.name,cell:cell.name,view_id:view.id,view:view.label,directory:cell.directory,entry:view.entry,
+      files:[...new Set(cell.views.flatMap(item=>item.files))],has_schematic:cell.views.some(item=>item.kind==='rnl'),source_sha256:null};
+  };
+  const emitLibrarySelection=()=>{const scope=librarySelectionScope();for(const fn of librarySelectionListeners)try{fn(scope);}catch{}};
   const getSimulationMode=()=>!state.active?.configurations?.length||!!doc&&(!manifest||!doc.path.startsWith('/'+manifest.id+'/'))?'environment':'project';
-  const host=Object.freeze({version:1,agentAssistance,requestAgentAssistance:request=>agentAssistance.request(request),context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,onboardingSync,getSimulationMode,
+  const host=Object.freeze({version:1,agentAssistance,requestAgentAssistance:request=>agentAssistance.request(request),context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,onboardingSync,libraryBridge,getSimulationMode,
+    openLibraryManager:()=>libraryManager?.show?.(),getLibrarySelection:librarySelectionScope,subscribeLibrarySelection:fn=>{librarySelectionListeners.add(fn);return()=>librarySelectionListeners.delete(fn);},
     ...(ui.slots.waveforms?{openOnboardingWaveforms}:{}),getOnboardingSource,getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
   let healthCaps=null;
   const workspaceHub=mountWorkspaceHub({
@@ -201,14 +215,14 @@ export async function mountStudio({ui:providedUI}={}){
     getStatus:()=>({
       ai:Boolean(healthCaps?.ai),
       simulation:healthCaps?.simulation_onboarding!==false,
-      library:healthCaps?.git!==false,
+      library:Boolean(healthCaps?.library_workflow)||healthCaps?.git!==false,
       detail:state.project?.branch?`当前分支：${state.project.branch} · ${(state.project.source_commit||'').slice(0,8)}`:'',
     }),
     onOpenConnections:()=>{try{command('help.agent-connections');}catch(error){notify(error.message,{kind:'warning'});}},
     onOpenSimulation:()=>{ui.slots.simulation.setVisible(true);},
     onOpenAI:()=>{ui.slots.ai.setVisible(true);},
   });
-  window.addEventListener('pagehide',()=>{workspaceHub.destroy();agentAssistance.destroy();onboardingSync.destroy();onboarding.disconnect();},{once:true});
+  window.addEventListener('pagehide',()=>{libraryManager?.destroy?.();libraryBridge.unbind();workspaceHub.destroy();agentAssistance.destroy();onboardingSync.destroy();onboarding.disconnect();},{once:true});
   Object.defineProperty(window,'ICRNLStudio',{value:host,writable:false});
   register({id:'project.choose',menu:'project',label:'选择项目…',run:()=>$('studio-project').focus()});
   register({id:'project.source',menu:'project',label:'查看 / 编辑源码…',run:()=>openCanonicalEditor(),enabled:()=>!!state.file});
@@ -337,8 +351,40 @@ export async function mountStudio({ui:providedUI}={}){
       }else void mount().catch(onError);
     }));
   }
+  function enableLiveLibrary(){
+    if(libraryManager)return;
+    libraryBridge.bind(api,{supported:true});
+    const client=createLibraryClient({baseURL:new URL('/api/library/files/',location.origin)});
+    libraryManager=mountLibraryManager({
+      toolbar:$('studio-toolbar'),
+      libraryPane:$('pane-files'),
+      client,
+      onSelection:value=>{activeLibrarySelection=value;emitLibrarySelection();},
+      onOpen:async value=>{
+        activeLibrarySelection=value;emitLibrarySelection();
+        if(value.cell.project_id&&state.project?.projects?.some(p=>projectId(p)===value.cell.project_id)){
+          await loadProject(value.cell.project_id);
+          return true;
+        }
+        await openNativeSource(value.bundle.source,false);
+        if(value.view.level!==undefined&&doc){
+          const level=value.view.level==='@top'?0:doc.levels.findIndex(l=>l.title===value.view.level);
+          if(level>=0)await enterRoot(level,{here:true,newWindow:false});
+        }
+        fit();ui.slots.schematic?.setVisible(true);
+        $('studio-native-note').textContent=`${value.library.name} / ${value.cell.name} / ${value.view.label} · 本地电路库`;
+        return true;
+      },
+      onReference:async()=>{
+        activeLibrarySelection=null;emitLibrarySelection();
+        if(state.project?.projects?.length)await loadProject(projectId(state.project.projects[0]));
+      },
+      notify,
+    });
+    register({id:'project.library',menu:'project',label:'电路库 (Library Manager)…',run:()=>libraryManager.show()});
+  }
   setSidebarWidth(300);setPane('hierarchy');
   controls();addonsReady=mountAddons();void addonsReady.catch(error=>notify(error.message,{kind:'warning'}));
-  try{const health=await healthReady;healthCaps=health?.capabilities||null;workspaceHub.update();if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';await loadProject();workspaceHub.update();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();workspaceHub.update();notify(error.message,{kind:'error'});}
+  try{const health=await healthReady;healthCaps=health?.capabilities||null;workspaceHub.update();if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';if(healthCaps?.library_workflow)enableLiveLibrary();await loadProject();workspaceHub.update();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();workspaceHub.update();notify(error.message,{kind:'error'});}
   return host;
 }
