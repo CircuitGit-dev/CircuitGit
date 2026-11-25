@@ -116,6 +116,7 @@ def main():
     p.add_argument('--state-dir', type=Path, default=ROOT / '.local/browser-helper')
     p.add_argument('--gateway-url', help='Optional existing loopback engineering gateway')
     p.add_argument('--no-browser', action='store_true')
+    p.add_argument('--from-uri', action='store_true', help='Launched by circuitgit:// wakeup; exit 0 quietly if already running')
     p.add_argument('--allow-origin', action='append', default=[])
     mode=p.add_mutually_exclusive_group()
     mode.add_argument('--fresh-onboarding',action='store_true',help='Start simulation onboarding in an explicitly empty state directory')
@@ -131,10 +132,16 @@ def main():
     state = args.state_dir.expanduser().resolve();state.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (state / 'helper.lock').open('a+b') as lock:
         try:lock_file(lock, nonblocking=True)
-        except BlockingIOError:raise RuntimeError('连接助手已经运行，请回到网页点击“连接本机 Codex”。')
+        except BlockingIOError:
+            if args.from_uri:
+                return 0
+            raise RuntimeError('连接助手已经运行，请回到网页点击“连接本机”。')
         # Reserve the known pairing port first. Never replace another process.
         try:browser = Server(('127.0.0.1', args.port), Handler)
-        except OSError:raise RuntimeError('本机连接端口已被占用。请检查已有连接助手，未停止任何现有程序。')
+        except OSError:
+            if args.from_uri:
+                return 0
+            raise RuntimeError('本机连接端口已被占用。请检查已有连接助手，未停止任何现有程序。')
         gateway = routes = node = remote_lock = app = None
         gateway_started = False
         thread = None
@@ -179,8 +186,11 @@ def main():
                 registry = json.loads(registry_path.read_text()) if registry_path.is_file() else {'testbenches': []}
                 node.library = LocalLibrary(LibraryWorkflow(ROOT, repository=config['library_repository'], state_dir=state / 'library', ci_registry=registry), node.pairing, node.url)
             browser.node = node
-            print('CircuitGit 连接助手已启动。请保持此窗口运行，在网页点击“连接本机 Codex”并确认授权。', flush=True)
-            print('不会自动登录、发送模型消息或运行仿真。关闭此窗口可停止助手。', flush=True)
+            if args.state_dir == (ROOT / '.local/browser-helper') and not args.from_uri:
+                from connector_install import ensure_protocol_registered
+                ensure_protocol_registered(ROOT)
+            print('CircuitGit 本机连接器已启动（已注册 circuitgit:// 网页一键唤醒）。请保持运行，后续可直接在网页端点击连接。', flush=True)
+            print('不会自动登录、发送模型消息或运行仿真。关闭此窗口可停止连接器。', flush=True)
             if not args.no_browser:webbrowser.open(PUBLIC_URL)
             def stop(signum, frame):raise KeyboardInterrupt
             install_sigterm_handler(stop, signal_module=signal)

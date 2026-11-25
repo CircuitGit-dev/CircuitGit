@@ -10,7 +10,7 @@ CircuitGit 是面向本地电路设计与 Git 电路版本管理的 AI-native �
 
 ## 核心新特性
 
-- **原生跨平台支持（macOS / Windows 10/11 / Linux，网页零命令行）**：Windows 双击 **`Start CircuitGit.bat`**、macOS 双击 **`Start CircuitGit.command`** 启动一次本机助手即可，日常电路设计、仿真与 Git 协作全部在网页端点击完成；底层由统一零依赖兼容层 `platform_compat.py` 托管，并由 `check_structure.py` 静态门禁长期防止平台回归（详见 [跨平台兼容与测试指南](docs/cross-platform-testing.md)）。
+- **网页端唯一交互入口（`circuitgit-dev.github.io/CircuitGit`）+ `circuitgit://` 一键唤醒本机连接器**：所有原理图、电路库、波形探针、远端 SSH 仿真（SpiceOwl）、AI 对话（Codex）与 Git 分支/PR 操作全部在网页内完成。首次下载后双击一次 **`Start CircuitGit.bat`**（Windows）或 **`Start CircuitGit.command`**（macOS）即可免管理员权限自动注册 `circuitgit://` 唤醒协议（如需开机静默常驻可运行 `python3 -B tools/workbench/connector_install.py install --autostart`）；以后每天只需在网页点一下「连接本机 (SSH / AI)」即可自动唤起并同页刷新自动续连，未安装连接器的访客点击需本机能力的功能时会优雅引导下载安装一次（详见 [跨平台兼容与测试指南](docs/cross-platform-testing.md)）。
 - **本地开源仿真（ngspice / Xyce + 开源 PDK）与网页一键切换**：无需商业许可和 SSH 服务器，在网页 **Simulation → 环境与PDK** 即可自动检测本机 `ngspice`/`Xyce` 与 **`SKY130` / `GF180MCU` / `IHP SG13G2`** 开源 PDK，一键预检并切换；内置 `rc-smoke` 与 `open-cmos-inverter`（TRAN / DC / AC）开箱即跑（详见 [本地开源仿真说明](docs/open-source-simulation.md)）。
 - **全局统一连接中心与 AI / SpiceOwl 双向调度**：顶栏新增统一连接中心，一次授权同时打通 Codex AI、远端 SpiceOwl 商业仿真与本地电路库/Git；仿真「运行」页统一汇聚项目任务与远端独立网表任务，支持一键记住并套用常用远端主机与 PDK 搜索提示，并可跨面板将诊断上下文填入 AI 对话草稿。
 - **Live 与 Demo 统一的电路库 CRUD、Git 分支切换与跨 Cell 关联 PR**：无论是网页演示还是本地 Live 工作台，均配备同款 `Library → Cell → View` 电路库管理器（`Library Manager`）与统一版本管理面板，支持新建电路库、新建/克隆电路单元、创建与切换本地分支以及提交单/多单元关联 Pull Request（详见 [电路库指南](docs/circuit-libraries.md)）。

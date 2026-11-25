@@ -18,8 +18,11 @@ import {reference,referenceWindow} from './reference.js';
 import {mountLibraryManager} from '../library/panel.js';
 import {createLibraryClient} from '../library/model.js';
 import {createLibraryBridge} from '../remote/library-bridge.js';
+import {loadSessionGrant} from '../remote/pair.js';
 import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
 import {createOnboardingSync} from '../remote/onboarding-sync.js';
+import {onboardingWaveformsAvailable} from '../../../modules/simulation/environment/model.js';
+import {environmentAgentAssistance} from '../../../modules/simulation/agent-assistance.js';
 import {confirmLeave} from '../vendor/rnl-viewer/editor.js';
 import {enterRoot} from '../vendor/rnl-viewer/subcircuits.js';
 
@@ -46,16 +49,16 @@ function dialog(title,content) {
 /** Static RC demo. A separate AI node connection starts only after explicit user authorization. */
 export async function mountStudio({ui:providedUI}={}) {
   const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url);document.head.append(css);
-  const ui=providedUI||await createLayout(),agentAssistance=createAgentAssistance({slot:ui.slots.ai,notify:ui.notify});document.body.classList.add('circuitgit-demo');document.title='CircuitGit · Interactive demo';
+  const ui=providedUI||await createLayout(),agentAssistance=createAgentAssistance({slot:ui.slots.ai,notify:ui.notify});document.body.classList.add('circuitgit-demo');document.title='CircuitGit';
   // Dockview can temporarily detach inactive tab containers. Resolve owned controls
   // within their panel roots, including while restoring a saved layout.
   const $=id=>document.getElementById(id)||Object.values(ui.slots).map(slot=>slot.element?.querySelector('#'+id)).find(Boolean);
   const brand=document.querySelector('.studio-brand');
   brand.replaceChildren();const image=document.createElement('img');image.src=new URL('../branding/circuitgit.svg',import.meta.url);image.alt='';brand.append(image,document.createTextNode('CircuitGit'));
-  $('studio-project').replaceChildren(new Option('RC · 公开示例','rc-demo'));$('studio-project').disabled=true;
-  $('studio-entry').replaceChildren(new Option('手工固定布局 · RNL','rc'));$('studio-entry').disabled=true;
-  $('studio-run').replaceChildren(new Option('解析参考 · 非 Spectre','reference'));$('studio-run').disabled=true;
-  $('studio-identity').textContent='Public demo';$('studio-identity').className='demo-badge';
+  $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-project').disabled=true;
+  $('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-entry').disabled=true;
+  $('studio-run').replaceChildren(new Option('解析参考 · 可连 SSH 跑 Spectre','reference'));$('studio-run').disabled=true;
+  $('studio-identity').textContent='网页模式';$('studio-identity').className='demo-badge';
   const repository=document.createElement('a');repository.href=REPO;repository.textContent='GitHub ↗';repository.target='_blank';repository.rel='noopener';repository.className='demo-link';$('studio-toolbar').append(repository);
   const fav=document.createElement('link');fav.rel='icon';fav.type='image/svg+xml';fav.href=new URL('../branding/circuitgit-small.svg',import.meta.url);document.head.append(fav);
   const baseText=await fetch(new URL('./rc.scs',import.meta.url)).then(r=>{if(!r.ok)throw Error('RC example unavailable');return r.text();});
@@ -112,32 +115,93 @@ export async function mountStudio({ui:providedUI}={}) {
   host.onboardingSync=createOnboardingSync({bridge:host.onboarding,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms});
   const simulationShell=document.createElement('section');simulationShell.className='ic-sim-panel';simulationShell.setAttribute('aria-label','仿真配置与任务');
   const simulationHeading=document.createElement('h2');simulationHeading.textContent='仿真';
-  const simulationNav=document.createElement('nav');simulationNav.className='ic-sim-nav';simulationNav.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';simulationNav.setAttribute('aria-label','仿真工作流');
-  const environmentTab=document.createElement('button'),referenceTab=document.createElement('button');environmentTab.type=referenceTab.type='button';
-  environmentTab.textContent='连接与 PDK';environmentTab.dataset.field='page-environment';referenceTab.textContent='RC 解析参考';referenceTab.dataset.field='page-reference';simulationNav.append(environmentTab,referenceTab);
-  const environmentPage=document.createElement('div'),referencePage=document.createElement('div');environmentPage.className=referencePage.className='ic-sim-page';environmentPage.dataset.page='environment';referencePage.dataset.page='reference';
-  const environmentTitle=document.createElement('h3');environmentTitle.textContent='连接服务器 & 自动匹配 PDK';
+  const simulationNav=document.createElement('nav');simulationNav.className='ic-sim-nav';simulationNav.setAttribute('aria-label','仿真工作流');
+  const environmentTab=document.createElement('button'),runsTab=document.createElement('button'),referenceTab=document.createElement('button');
+  environmentTab.type=runsTab.type=referenceTab.type='button';
+  environmentTab.textContent='环境与配置';environmentTab.dataset.field='page-environment';
+  runsTab.textContent='运行与波形';runsTab.dataset.field='page-runs';
+  referenceTab.textContent='RC 参考';referenceTab.dataset.field='page-reference';
+  simulationNav.append(environmentTab,runsTab,referenceTab);
+  const environmentPage=document.createElement('div'),runsPage=document.createElement('div'),referencePage=document.createElement('div');
+  environmentPage.className=runsPage.className=referencePage.className='ic-sim-page';
+  environmentPage.dataset.page='environment';runsPage.dataset.page='runs';referencePage.dataset.page='reference';
+  const environmentTitle=document.createElement('h3');environmentTitle.textContent='远端 SSH 服务器 & PDK 仿真';
   const libraryInfo=document.createElement('div'),environmentRoot=document.createElement('section');environmentPage.append(environmentTitle,environmentRoot,libraryInfo);
-  simulationShell.append(simulationHeading,simulationNav,environmentPage,referencePage);ui.slots.simulation.element.replaceChildren(simulationShell);
+  simulationShell.append(simulationHeading,simulationNav,environmentPage,runsPage,referencePage);ui.slots.simulation.element.replaceChildren(simulationShell);
   const simulationStyle=document.createElement('link');simulationStyle.rel='stylesheet';simulationStyle.href=new URL('../../../modules/simulation/style.css',import.meta.url);document.head.append(simulationStyle);
   let simulationPage='environment',environmentMount=null,unregisterEnvironment=null;
+  function renderRunsTab(){
+    const envSession=environmentMount?.controller?.state?.session||null,envJob=envSession?.job||null;
+    runsTab.textContent=envJob?'运行与波形 · 1':'运行与波形';
+    runsPage.replaceChildren();
+    const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
+    if(envJob){
+      const card=el('article',undefined,'ic-sim-job is-onboarding-run');
+      const head=el('div',undefined,'ic-sim-section-head');
+      head.append(el('h3',`${envSession.source?.file_name||'当前网表'} · ${envJob.configuration||'远端仿真'}`),el('span',envJob.state||'已提交','ic-sim-status'));
+      card.append(head);
+      const known=el('div',undefined,'ic-sim-known-data');
+      known.append(el('span','远端 SSH / SpiceOwl','ic-sim-status'));
+      if(envJob.execution_target)known.append(el('span','主机 '+envJob.execution_target,'ic-sim-status'));
+      const waveReady=onboardingWaveformsAvailable({intake:envSession,job:envJob});
+      if(waveReady)known.append(el('span','波形就绪 · 支持原理图点选探针','ic-sim-status'));
+      card.append(known);
+      const bar=el('div',undefined,'ic-sim-toolbar');
+      if(waveReady){
+        const waveBtn=el('button','查看波形（原理图探针）','ic-sim-primary');waveBtn.type='button';
+        waveBtn.onclick=()=>void host.openOnboardingWaveforms({intake:envSession,job:envJob}).catch(e=>ui.notify(e.message,{kind:'error'}));
+        bar.append(waveBtn);
+      }
+      const refreshBtn=el('button','刷新远端状态');refreshBtn.type='button';
+      refreshBtn.onclick=()=>void environmentMount.controller.inspect().catch(e=>ui.notify(e.message,{kind:'error'}));
+      const detailBtn=el('button','环境与分析详情 →','ic-sim-quiet');detailBtn.type='button';
+      detailBtn.onclick=()=>{simulationPage='environment';renderSimulationPage();};
+      const aiBtn=el('button','请 AI 诊断','ic-sim-quiet');aiBtn.type='button';
+      aiBtn.onclick=()=>void host.requestAgentAssistance(environmentAgentAssistance('diagnosis',environmentMount.controller.state,environmentMount.controller.agentEditor)).catch(e=>ui.notify(e.message,{kind:'error'}));
+      bar.append(refreshBtn,detailBtn,aiBtn);card.append(bar);runsPage.append(card);
+    }else{
+      const empty=el('section',undefined,'ic-sim-card');
+      empty.append(el('h3','尚无远端仿真运行记录'),el('p',host.onboarding.getState().connected?'在「环境与配置」中选择 SSH 服务器并提交仿真后，运行进度、波形与原理图探针会显示在这里。':'连接本机连接器即可通过你的 SSH 配置在远端 EDA 服务器上运行 Spectre 仿真，并在本网页直接点图查看波形。','ic-sim-note'));
+      const bar=el('div',undefined,'ic-sim-toolbar');
+      if(!host.onboarding.getState().connected){
+        const connBtn=el('button','连接本机 SSH 服务器…','ic-sim-primary');connBtn.type='button';
+        connBtn.onclick=()=>workspaceHub?.requireConnector('远端 SSH 服务器仿真');
+        bar.append(connBtn);
+      }
+      const goEnv=el('button','前往环境与配置 →');goEnv.type='button';
+      goEnv.onclick=()=>void showEnvironment().catch(panelError);
+      bar.append(goEnv);empty.append(bar);runsPage.append(empty);
+    }
+  }
   function renderSimulationPage(){
-    environmentPage.hidden=simulationPage!=='environment';referencePage.hidden=simulationPage!=='reference';referenceTab.disabled=!referenceActive();
-    for(const [tab,id] of [[environmentTab,'environment'],[referenceTab,'reference']]){tab.classList.toggle('is-active',simulationPage===id);tab.setAttribute('aria-pressed',String(simulationPage===id));}
+    const showRef=referenceActive();
+    if(!showRef&&simulationPage==='reference')simulationPage='environment';
+    referenceTab.hidden=!showRef;referenceTab.disabled=!showRef;
+    simulationNav.style.gridTemplateColumns=`repeat(${showRef?3:2},minmax(0,1fr))`;
+    environmentPage.hidden=simulationPage!=='environment';runsPage.hidden=simulationPage!=='runs';referencePage.hidden=simulationPage!=='reference';
+    for(const [tab,id] of [[environmentTab,'environment'],[runsTab,'runs'],[referenceTab,'reference']]){tab.classList.toggle('is-active',simulationPage===id);tab.setAttribute('aria-pressed',String(simulationPage===id));}
+    renderRunsTab();
   }
   const environmentLoader=whenVisible(ui.slots.simulation,async()=>{
     environmentRoot.textContent='正在打开环境配置…';
     try{const {mountEnvironmentWizard}=await import('../../../modules/simulation/environment/panel.js');
-      environmentMount=mountEnvironmentWizard(environmentRoot,{requestAgentAssistance:host.requestAgentAssistance,adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,notify:ui.notify,onRun:job=>ui.notify('仿真请求已登记：'+(job.job_id||job.run_id||'')+'；请在环境页查看原任务进度。')});
-      unregisterEnvironment=host.onboardingSync.register(environmentMount.controller);return environmentMount;
+      environmentMount=mountEnvironmentWizard(environmentRoot,{requestAgentAssistance:host.requestAgentAssistance,adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,onRequireConnector:feature=>workspaceHub?.requireConnector(feature),notify:ui.notify,onRun:job=>{renderRunsTab();ui.notify('远端仿真已提交：'+(job.job_id||job.run_id||'')+'；可在「运行与波形」跟踪进度。');}});
+      unregisterEnvironment=host.onboardingSync.register(environmentMount.controller);renderRunsTab();return environmentMount;
     }catch(error){environmentRoot.textContent='环境配置加载失败：'+error.message;throw error;}
   },{onError:error=>ui.notify(error.message,{kind:'error'})});
+  const offOnboardingSync=host.onboardingSync.subscribe(()=>renderRunsTab());
+  const offOnboardingState=host.onboarding.subscribe(()=>{
+    const connected=host.onboarding.getState().connected||host.libraryBridge.getState().connected||Boolean(remoteAI?.getConnectionState?.().connected);
+    $('studio-identity').textContent=connected?'本机已连接':'网页模式';
+    renderRunsTab();
+  });
   async function showEnvironment(){
     simulationPage='environment';renderSimulationPage();ui.slots.simulation.setVisible(true);return environmentLoader.ensure();
   }
+  function showRuns(){simulationPage='runs';renderSimulationPage();ui.slots.simulation.setVisible(true);void environmentLoader.ensure().then(renderRunsTab).catch(()=>{});}
   function showReferenceConfiguration(){if(!referenceActive())return;simulationPage='reference';renderSimulationPage();ui.slots.simulation.setVisible(true);}
-  environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
-  window.addEventListener('pagehide',()=>{workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
+  environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));runsTab.onclick=showRuns;referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
+  window.addEventListener('pagehide',()=>{offOnboardingSync?.();offOnboardingState?.();workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
     if(waveformMount||!referenceActive()||onboardingWaves)return;
@@ -222,9 +286,7 @@ export async function mountStudio({ui:providedUI}={}) {
     }finally{$('demo-update').disabled=false;}}
   $('demo-update').onclick=()=>rebuild().catch(e=>ui.notify(e.message,{kind:'error'}));$('demo-export').onclick=()=>{try{exportConfiguration();}catch(e){ui.notify(e.message,{kind:'error'});}};$('demo-guide').onclick=()=>void showEnvironment().catch(panelError);
   function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=activeLibrary?activeLibrary.bundle.text:source;dialog(activeLibrary?activeLibrary.cell.name+' · '+activeLibrary.view.label:'RC 示例网表 · 含固定 RNL 布局',area);}
-  function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p>本页直接运行 RNL Viewer、Dockview 和共享波形组件，可拖动、关闭、浮动及放回面板。</p><p>Plot → 电压探针，点击 in 或 out；电流探针可查看 R0 端口 1。波形支持滚轮、拖动、F 适配，M 查看测量。</p><p>AI 面板点击“连接本机 Codex”，在本机助手弹窗中确认授权后即可检查登录；未登录时可继续打开官方登录页。首次需要启动项目包中的连接助手。自己的服务器可在“高级”设置中连接。原理图与波形仍是公开 RC 示例；AI 工程以助手返回的身份为准。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">首次配置 Codex 运行节点 ↗</a></p><p>需要完整本地工程界面时，可启动自己的网关并配置授权 Cadence 环境：</p><pre>git clone ${REPO}.git
-cd CircuitGit
-python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/getting-started.md" target="_blank" rel="noopener">安装与连接说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
+  function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p><strong>CircuitGit 网页工作台</strong>提供完整的原理图（RNL）、电路库、波形探针、远端 SSH 仿真（SpiceOwl）、AI 助手（Codex）与 Git 版本管理交互。</p><p><strong>免安装功能</strong>：直接浏览电路库、查看与编辑原理图、点选参考波形并体验游标测量。</p><p><strong>本机 SSH / AI / Git 连接</strong>：点击顶栏「连接本机 (SSH / AI)」即可通过 <code>circuitgit://</code> 协议一键唤起本机连接器；首次使用仅需下载项目并双击一次启动器（Windows: <code>Start CircuitGit.bat</code>，macOS: <code>Start CircuitGit.command</code>），之后所有日常操作均在本网页内完成。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">本机连接器与后台自启说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
   const libraryManager=mountLibraryManager({toolbar:$('studio-toolbar'),libraryPane:$('pane-files'),onOpen:openLibrary,onReference:openReference,onSelection:value=>{versionSelection=value;emit();},notify:ui.notify});
   for(const id of ['studio-project','studio-entry']){const label=$(id)?.closest('label');if(label){label.classList.add('demo-library-trigger');label.title='点击浏览并切换公开电路库';label.addEventListener('click',()=>libraryManager.show());}}
@@ -278,8 +340,8 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
       const opened=await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false,undefined,false,null,null,true);
       if(!opened||!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
       activeLibrary=null;context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,loading:false,loadState:'ready',file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{bundleCommit:null,manifestSha256:hash,sourceMatch:true,state:'ready'}};
-      $('studio-project').replaceChildren(new Option('RC · 公开示例','rc-demo'));$('studio-entry').replaceChildren(new Option('手工固定布局 · RNL','rc'));$('studio-run').replaceChildren(new Option('解析参考 · 非 Spectre','reference'));
-      libraryInfo.replaceChildren();$('studio-native-note').textContent='公开 RC 示例 · 固定 RNL 布局 · 波形为解析参考';switching=false;simulationPage='reference';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);return true;
+      $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-run').replaceChildren(new Option('解析参考 · 可连 SSH 跑 Spectre','reference'));
+      libraryInfo.replaceChildren();$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';switching=false;simulationPage='reference';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);return true;
     }catch(error){context={...context,run:null,selection:null,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='RC 参考加载失败 · 无关联波形';throw error;}
     finally{switching=false;ui.setNativeState({loading:false,hidden:false});}
   }
@@ -367,7 +429,11 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     const module=await import('../remote/panel.js');
     const handle=module.mountRemoteNode(host);
     remoteAI=handle;
-    handle.subscribeConnection(()=>workspaceHub?.update());
+    handle.subscribeConnection(()=>{
+      const connected=host.onboarding.getState().connected||host.libraryBridge.getState().connected||Boolean(handle.getConnectionState().connected);
+      $('studio-identity').textContent=connected?'本机已连接':'网页模式';
+      workspaceHub?.update();
+    });
     if(pairedFromOnboarding)void handle.adoptClient(pairedFromOnboarding.client,pairedFromOnboarding.info,{local:pairedFromOnboarding.local});
     workspaceHub?.update();
     return handle;
@@ -378,7 +444,7 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     getStatus:()=>{
       const ob=host.onboarding.getState(),aiState=remoteAI?.getConnectionState?.()||{};
       const lib=host.libraryBridge.getState();
-      return {ai:Boolean(aiState.connected),simulation:Boolean(ob.connected),library:Boolean(lib.connected),connecting:Boolean(ob.connecting||aiState.connecting),detail:ob.endpoint?'助手地址：'+ob.endpoint:''};
+      return {ai:Boolean(aiState.connected),simulation:Boolean(ob.connected),library:Boolean(lib.connected),connecting:Boolean(ob.connecting||aiState.connecting),detail:ob.endpoint?'连接器地址：'+ob.endpoint:''};
     },
     subscribe:fn=>{const off1=host.onboarding.subscribe(fn),off2=host.libraryBridge.subscribe(fn);return()=>{off1?.();off2?.();};},
     onConnect:async()=>{const handle=await aiLoader.ensure();await handle?.connectLocal?.();},
@@ -386,13 +452,15 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     onOpenAI:()=>{ui.slots.ai.setVisible(true);void aiLoader.ensure();},
     onOpenSimulation:()=>{void showEnvironment().catch(panelError);},
   });
+  host.requireLocalConnector=feature=>workspaceHub?.requireConnector(feature);
   const versionLoader=whenVisible(ui.slots.versions,async()=>{const {mountLibraryVersions}=await import('../library/versions.js');libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});return libraryVersions;},{onError:panelError});
   setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});
   await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false);
   if(!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
-  fit();ui.setNativeState({loading:false,hidden:false});$('studio-native-note').textContent='公开 RC 示例 · 固定 RNL 布局 · 波形为解析参考';
+  fit();ui.setNativeState({loading:false,hidden:false});$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';
   document.body.dataset.studioState='ready';
-  ui.notify('欢迎使用 CircuitGit。拖动标签排列窗口；Plot 菜单可选择电压或电流探针。');
+  if(loadSessionGrant(window.sessionStorage)){void aiLoader.ensure().then(handle=>handle?.tryResumeSession?.()).catch(()=>{});}
+  ui.notify('欢迎使用 CircuitGit。打开电路库选择电路，或点击顶栏「连接本机」接入远端 SSH 仿真与 AI。');
   // Auto-show two voltage references after the shared catalog has loaded.
   function showReferenceTraces(){
     referenceObserver?.disconnect();

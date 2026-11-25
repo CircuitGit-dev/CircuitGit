@@ -1,6 +1,6 @@
 import {createAssistanceQueue} from '../ai/assistance.js';
 import {createNodeClient} from './client.js';
-import {pairLocal} from './pair.js';
+import {pairLocal,saveSessionGrant,loadSessionGrant,clearSessionGrant} from './pair.js';
 import {mount as mountAI} from '../studio/ai/index.js';
 
 const REPO='https://github.com/CircuitGit-dev/CircuitGit';
@@ -107,6 +107,7 @@ export function mountRemoteNode(host) {
   const offOnboarding=host.onboardingSync?.subscribe(()=>void refreshOnboardingChoice().catch(()=>{}));
   const offCanvas=host.context?.subscribe(()=>void refreshOnboardingChoice().catch(()=>{}));
   function disconnect(){
+    clearSessionGrant(win.sessionStorage);
     drop();setBusy(false);welcome.hidden=false;connected.hidden=true;$('.cg-node-account').hidden=true;$('.cg-node-project').hidden=false;
     projects.disabled=false;projects.title='';openButton.disabled=false;openButton.textContent='打开对话';
     projects.replaceChildren(new Option('选择工程',''));form.elements.accessCode.value='';
@@ -153,6 +154,9 @@ export function mountRemoteNode(host) {
       if(generation!==epoch||destroyed)return;
     }
     message(accountReady?'已连接（AI / 远端仿真 / 本地库共用）。选择工程后打开对话。':'请在官方页面完成登录，然后继续。');pendingDrafts.render();
+    if(accountReady&&projects.value&&!ai&&!pendingDrafts.count){
+      void Promise.resolve().then(()=>{if(generation===epoch&&!destroyed&&accountReady&&projects.value&&!ai&&!busy)return openButton.onclick();});
+    }
   }
   async function connect(url,code,generation,local=false){
     const candidate=createNodeClient({url,accessCode:code,onUnauthorized:()=>{
@@ -160,7 +164,22 @@ export function mountRemoteNode(host) {
     }});
     client=candidate;ownsClient=true;
     const info=await client.request('/node/info');if(generation!==epoch||destroyed)return;
+    if(local)saveSessionGrant({url,accessCode:code},win.sessionStorage);
     await finishConnect(candidate,info,generation,local,true);
+  }
+  async function tryResumeSession(){
+    if(destroyed||busy||client)return false;
+    const grant=loadSessionGrant(win.sessionStorage);
+    if(!grant)return false;
+    const generation=epoch;setBusy(true);emitConn();
+    try{
+      await connect(grant.url,grant.accessCode,generation,true);
+      return true;
+    }catch{
+      clearSessionGrant(win.sessionStorage);
+      if(generation===epoch&&!destroyed){drop();welcome.hidden=false;connected.hidden=true;message('');}
+      return false;
+    }finally{if(generation===epoch&&!destroyed){setBusy(false);emitConn();}}
   }
   async function adoptClient(candidate,info,{local=true}={}){
     if(destroyed||!candidate||!info?.capabilities?.chat)return false;
@@ -304,5 +323,5 @@ export function mountRemoteNode(host) {
   }
   const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 Codex',run:()=>{parent.setVisible(true);if(!context){showConnectionSettings();(connected.hidden?localButton:openButton).focus();}else ai?.show();}});
   const offAssistance=host.agentAssistance?.registerReceiver(queueDraft);
-  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],adoptClient,connectLocal:()=>{parent.setVisible(true);showConnectionSettings();return localButton.onclick();},disconnect,getConnectionState:()=>({connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai}),subscribeConnection(fn){connListeners.add(fn);return()=>connListeners.delete(fn);},destroy(){if(destroyed)return;destroyed=true;connListeners.clear();offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
+  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],adoptClient,tryResumeSession,connectLocal:()=>{parent.setVisible(true);showConnectionSettings();return localButton.onclick();},disconnect,getConnectionState:()=>({connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai}),subscribeConnection(fn){connListeners.add(fn);return()=>connListeners.delete(fn);},destroy(){if(destroyed)return;destroyed=true;connListeners.clear();offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
 }

@@ -127,6 +127,7 @@ def build_plan(*, quick=False, include_spiceowl=False, has_node=True):
     remote_steps = [
         ('tests/remote/test_helper.py', _py_script('tests/remote/test_helper.py')),
         ('tests/remote/test_node.py', _py_script('tests/remote/test_node.py')),
+        ('tests/remote/test_connector_install.py', _py_script('tests/remote/test_connector_install.py')),
         ('tools/workbench/test_bootstrap_python.py', _py_unit('tools/workbench/test_bootstrap_python.py')),
         ('tools/workbench/test_launch.py', _py_unit('tools/workbench/test_launch.py')),
         ('tools/workbench/test_onboarding_launcher.py', _py_unit('tools/workbench/test_onboarding_launcher.py')),

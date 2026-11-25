@@ -369,7 +369,7 @@ class Handler(BaseHTTPRequestHandler):
             self.guard(False)
             path, _ = self.route()
             onboarding_route=path.startswith(ONBOARDING_PREFIX) and path[len(ONBOARDING_PREFIX):] in ONBOARDING_READS|ONBOARDING_WRITES
-            if path != '/node/info' and path not in LIBRARY_ROUTES and path != SIMULATION_ROUTE and not onboarding_route and not (path.startswith('/api/ai/') and path[8:] in GET_ROUTES | POST_ROUTES):
+            if path not in ('/node/info', '/health') and path not in LIBRARY_ROUTES and path != SIMULATION_ROUTE and not onboarding_route and not (path.startswith('/api/ai/') and path[8:] in GET_ROUTES | POST_ROUTES):
                 raise ValueError('Unknown preflight route')
             if self.headers.get('Access-Control-Request-Method') not in ('GET', 'POST'):
                 raise PermissionError('Method is not allowed')
@@ -388,6 +388,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.development_page(); return
             if urlsplit(self.path).path == '/library/review':
                 self.library_page(); return
+            if urlsplit(self.path).path == (self.node.prefix + '/health'):
+                self.guard(False)
+                _, qs = self.route()
+                if qs:
+                    raise ValueError('Health route does not accept query fields')
+                self.send(200, {'ok': True, 'data': {
+                    'schema': 'circuitgit.local-connector.v1',
+                    'ready': True,
+                    'protocol': 'circuitgit',
+                }})
+                return
             self.guard()
             path, qs = self.route()
             if path == '/node/info' and not qs:

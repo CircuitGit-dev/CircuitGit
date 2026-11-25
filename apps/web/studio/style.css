@@ -51,3 +51,14 @@ body.ic-studio .sidebar [role=treeitem],body.ic-studio .sidebar .tree-row{overfl
 .cg-hub-dialog button.cg-hub-primary:hover:not(:disabled){background:#234c70;}
 .cg-hub-dialog button.cg-hub-danger{color:#a13a2e;border-color:#e2c4bf;}
 .cg-hub-dialog button.cg-hub-danger:hover:not(:disabled){background:#fff3f1;}
+.cg-hub-feature-note{margin:0 0 8px;padding:7px 9px;border-radius:5px;background:#eef5fc;border:1px solid #c3d9ec;color:#1d4a72;font-size:12px;line-height:1.45;}
+.cg-hub-wake-status{margin:8px 0;padding:7px 9px;border-radius:5px;background:#f4f7fa;border:1px solid #d5dfe9;color:#33485c;font-size:12px;}
+.cg-hub-wake-status.is-ready{background:#eef8f2;border-color:#b7dec6;color:#1b6240;font-weight:500;}
+.cg-hub-install-guide{margin:10px 0;padding:10px 12px;border-radius:6px;background:#fffaf0;border:1px solid #e6d19c;color:#4e3a10;font-size:12px;line-height:1.5;}
+.cg-hub-install-guide strong{display:block;margin-bottom:4px;font-size:12px;}
+.cg-hub-install-guide p{margin:0 0 8px;}
+.cg-hub-install-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.cg-hub-download{display:inline-flex;align-items:center;padding:5px 10px;border-radius:4px;background:#265b88;color:#fff;text-decoration:none;font-size:12px;font-weight:500;}
+.cg-hub-download:hover{background:#1d496e;}
+.cg-hub-doc-link{color:#265b88;font-size:12px;text-decoration:none;}
+.cg-hub-doc-link:hover{text-decoration:underline;}

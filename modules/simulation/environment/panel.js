@@ -12,7 +12,7 @@ const labels={idle:'待设置',loading:'处理中',complete:'已读取',error:'�
 const intentRows=[['supply_v','供电 / V'],['frequency_hz','输入频率 / Hz'],['temperature_c','运行温度 / °C'],['nominal_temperature_c','模型标称温度 / °C'],['input_port','输入端口'],['output_port','输出端口'],['vdd_port','供电端口'],['vss_port','参考地端口'],['cycles','仿真周期数'],['load_f','输出负载 / F'],['rise_s','输入上升时间 / s'],['fall_s','输入下降时间 / s'],['points_per_period','每周期采样点数']];
 const format=value=>value===null||value===undefined?'未知':typeof value==='object'?JSON.stringify(value):String(value);
 
-export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getSource=null,onRun=null,openWaveforms=null,canOpenWaveforms=()=>true,requestAgentAssistance=null,notify=()=>{}}={}){
+export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getSource=null,onRun=null,openWaveforms=null,canOpenWaveforms=()=>true,requestAgentAssistance=null,onRequireConnector=null,notify=()=>{}}={}){
   const doc=root.ownerDocument,sheet=doc.createElement('link');sheet.rel='stylesheet';sheet.href=new URL('./style.css',import.meta.url).href;doc.head.append(sheet);
   let controller=null,disposed=false,pasted='',sourceName='',port='',error=null,importMode='agent-tb',supportFiles={},pdkBatch={binding:'',ids:[]};const opened=new Set(),collapsedSteps=new Set(),libraryChoiceIds=new Map(),radioGroup='environment-pdk-'+crypto.randomUUID();
   const el=(tag,text,className)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
@@ -102,20 +102,30 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     root.append(stepper);
     const connection=el('div',undefined,'ic-env-connection'+(connected?' is-connected':''));
     const connBar=el('div',undefined,'ic-env-connection-bar');
-    connBar.append(el('span',connected?'✓ 已连接本机助手（AI · 远端仿真共用）':'本机工作台助手未连接','ic-env-conn-badge'));
+    connBar.append(el('span',connected?'✓ 本机已连接（SSH 远端仿真 · AI · Git 共用）':'尚未连接本机（需要连接器以访问你的 SSH 与 PDK）','ic-env-conn-badge'));
     if(!connected&&controller.has('connect')){
       const portRow=el('div',undefined,'ic-env-conn-controls');
-      field(portRow,'本机端口（可选）','connection-port',port,value=>{port=value;},{placeholder:'8767',disabled:!!s.busy});
-      // connect is invoked synchronously so pairing preserves the click's popup gesture.
-      const connectBtn=button(s.connection.connecting?'连接中…':'连接本机环境服务',()=>{const number=port.trim()?Number(port):undefined;if(number!==undefined&&(!Number.isInteger(number)||number<1||number>65535))throw Error('端口应为 1–65535 的整数。');return controller.connect(number===undefined?{}:{port:number});},!!s.busy||s.connection.connecting);
-      connectBtn.classList.add('ic-sim-primary');
-      portRow.append(connectBtn);
-      connection.append(connBar,portRow);
-      note(connection,'连接一次即可同时启用远端仿真与 AI（Codex），也可从顶栏“连接本机助手”操作。');
+      if(typeof onRequireConnector==='function'){
+        const smartBtn=button(s.connection.connecting?'连接中…':'一键唤起并连接本机',()=>onRequireConnector('远端 SSH 服务器仿真与 PDK 匹配'),!!s.busy||s.connection.connecting);
+        smartBtn.classList.add('ic-sim-primary');
+        portRow.append(smartBtn);
+        const manualDetails=detail(connection,'manual-port','自定义本机端口');
+        field(manualDetails,'本机端口（可选）','connection-port',port,value=>{port=value;},{placeholder:'8767',disabled:!!s.busy});
+        manualDetails.append(button(s.connection.connecting?'连接中…':'连接本机环境服务',()=>{const number=port.trim()?Number(port):undefined;if(number!==undefined&&(!Number.isInteger(number)||number<1||number>65535))throw Error('端口应为 1–65535 的整数。');return controller.connect(number===undefined?{}:{port:number});},!!s.busy||s.connection.connecting));
+        connection.append(connBar,portRow,manualDetails);
+      }else{
+        field(portRow,'本机端口（可选）','connection-port',port,value=>{port=value;},{placeholder:'8767',disabled:!!s.busy});
+        // connect is invoked synchronously so pairing preserves the click's popup gesture.
+        const connectBtn=button(s.connection.connecting?'连接中…':'连接本机环境服务',()=>{const number=port.trim()?Number(port):undefined;if(number!==undefined&&(!Number.isInteger(number)||number<1||number>65535))throw Error('端口应为 1–65535 的整数。');return controller.connect(number===undefined?{}:{port:number});},!!s.busy||s.connection.connecting);
+        connectBtn.classList.add('ic-sim-primary');
+        portRow.append(connectBtn);
+        connection.append(connBar,portRow);
+      }
+      note(connection,'连接一次即可同时启用远端 SSH 仿真、Codex AI 与本地 Git，所有操作均在网页完成。');
     }else{
       connection.append(connBar);
     }
-    if(s.boundConnectionId&&s.boundConnectionId!==s.connection.connectionId)note(connection,'当前 intake 属于另一环境连接；请重新连接原服务后核对。',true);if(s.connection.error)note(connection,s.connection.error,true);root.append(connection);
+    if(s.boundConnectionId&&s.boundConnectionId!==s.connection.connectionId)note(connection,'当前电路会话属于另一台连接器；请重新连接原服务后核对。',true);if(s.connection.error)note(connection,s.connection.error,true);root.append(connection);
     if(connected&&s.connection.selectedIntakeId&&!s.session&&!s.pending.length)connBar.append(button('恢复上次网表与实验',()=>controller.restoreSelected(),locked));
     if(connected&&s.session)connBar.append(button(s.refresh.status==='loading'?'刷新中…':controller.recoveryRequired?'核对原会话':'刷新当前实验',()=>controller.refreshCurrent(controller.currentBinding),!!s.busy||!!s.pending.length||s.refresh.status==='loading'));resultError(connection,s.refresh);
     if(controller.recoveryRequired){const recovery=el('section',undefined,'ic-sim-card');recovery.dataset.environmentInterrupted='';recovery.append(el('h3','原操作需要人工恢复'));note(recovery,recoveryMessage(s.session),true);evidence(recovery,{操作:controller.recoveryRequired.operation,开始时间:controller.recoveryRequired.startedAt,原操作身份:controller.recoveryRequired.operationId});root.append(recovery);}
@@ -135,8 +145,8 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
       note(source,`${s.source.name} · ${s.source.devices.length} 个器件 · ${s.source.models.length} 个 master/model`);const masters=el('ul',undefined,'ic-sim-signals');for(const model of s.source.models.slice(0,32))masters.append(el('li',model,'ic-sim-signal'));source.append(masters);const portText=s.source.ports.map(port=>`${port.scope} (${port.names.join(', ')})`).join('；');note(source,portText?'声明端口：'+portText:'未声明子电路端口；需明确指定实验端口。');
       const more=detail(source,'devices','器件、尺寸与连接节点'),wrap=el('div',undefined,'ic-sim-table-wrap'),table=el('table',undefined,'ic-env-devices'),head=el('thead'),row=el('tr');for(const name of ['器件 / 型号','W / L','节点（源码顺序）'])row.append(el('th',name));head.append(row);table.append(head);const body=el('tbody');
       for(const device of s.source.devices.slice(0,100)){const tr=el('tr'),name=el('td');name.append(el('strong',device.name),el('code',device.model));const dimensions=new Map(device.dimensions.map(item=>[item.name,item.value]));tr.append(name,el('td',(dimensions.get('w')||'未声明')+' / '+(dimensions.get('l')||'未声明')),el('td',`(${device.nodes.length}) `+device.nodes.join(' · ')));body.append(tr);}table.append(body);wrap.append(table);more.append(wrap);note(more,'尺寸表达式与节点顺序按源码显示；不依据模型名猜测工艺或端口意义。');
-      note(source,'后端网表核对：'+labels[s.intake.status]);resultError(source,s.intake);if(s.intake.status!=='complete')source.append(button('核对独立网表',()=>controller.inspectSource(),locked||!connected));
-    }else if(s.session){note(source,'已恢复原 intake：'+s.session.source.file_name);const restored=detail(source,'restored-devices','器件、尺寸与连接节点');for(const instance of requirements.instances.slice(0,100)){restored.append(el('h4',instance.name+' · '+instance.master));note(restored,'节点（源码顺序）：'+instance.ordered_nets.join(' · '));evidence(restored,instance.dimensions);}note(restored,'以上数据来自此 intake 保存的字面检查记录。');}
+      note(source,'网表检查状态：'+labels[s.intake.status]);resultError(source,s.intake);if(s.intake.status!=='complete')source.append(button('核对独立网表',()=>controller.inspectSource(),locked||!connected));
+    }else if(s.session){note(source,'已恢复上次电路会话：'+s.session.source.file_name);const restored=detail(source,'restored-devices','器件、尺寸与连接节点');for(const instance of requirements.instances.slice(0,100)){restored.append(el('h4',instance.name+' · '+instance.master));note(restored,'节点（源码顺序）：'+instance.ordered_nets.join(' · '));evidence(restored,instance.dimensions);}note(restored,'以上数据来自此会话保存的字面检查记录。');}
     if(requirements?.issues?.length)evidence(detail(source,'source-issues','网表核对项'),requirements.issues);
 
     const host=card(root,2,'服务器',step2Done?`已探测 ${s.probe.result?.probes?.length||0} 台`:'探测后自动匹配',{done:step2Done,active:currentStep===2,summaryText:s.targets.length?'主机范围：'+s.targets.join('、'):''}),aliases=detail(host,'ssh-aliases','选择本机 SSH 配置');aliases.append(button('读取本机别名',()=>controller.loadAliases(),locked||!connected));
@@ -159,10 +169,22 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     for(const item of s.aliases.result?.hosts||[]){const row=el('label',undefined,'ic-env-choice'),check=el('input');check.type='checkbox';check.checked=s.targets.includes(item.alias);check.disabled=locked;check.addEventListener('change',call(()=>controller.setTargets(check.checked?[...s.targets,item.alias]:s.targets.filter(target=>target!==item.alias))));row.append(check,doc.createTextNode(item.alias));aliases.append(row);}
     field(host,'允许的主机范围','ssh-targets',s.targets.join('\n'),value=>controller.setTargets(value.split(/[\n,]/).map(item=>item.trim()).filter(Boolean)),{placeholder:'SSH alias 或 user@host，每行一个',disabled:locked,multiline:true});note(host,'读取别名和编辑范围不会连接主机。运行时仅在此范围内选择资源合适的主机。');
     const rememberCurrentPrefs=()=>{if(s.targets.length||s.hints.search_paths.trim()||s.hints.cds_lib_hint.trim())saveRemoteSimPrefs({targets:s.targets,search_paths:s.hints.search_paths,cds_lib_hint:s.hints.cds_lib_hint});};
+    const ensureNetlistThen=async fn=>{
+      rememberCurrentPrefs();
+      const savedTargets=[...s.targets],savedHints={...s.hints};
+      if(controller.state.intake.status!=='complete'&&typeof getSource==='function'){
+        await importSource(await getSource());
+        if(savedTargets.length)controller.setTargets(savedTargets);
+        if(savedHints.search_paths)controller.setHint('search_paths',savedHints.search_paths);
+        if(savedHints.cds_lib_hint)controller.setHint('cds_lib_hint',savedHints.cds_lib_hint);
+      }
+      return fn();
+    };
+    const canAutoImport=typeof getSource==='function';
     const probeActions=el('div',undefined,'ic-sim-toolbar');
-    const primaryProbe=button(s.busy==='probe'?'探测中…':s.busy==='pdk'?'匹配 PDK 中…':s.setupDirty?'应用环境并重新匹配':'探测并匹配 PDK',()=>{rememberCurrentPrefs();return controller.probeAndMatch();},locked||!connected||!s.targets.length||s.targets.length>2||s.intake.status!=='complete');
+    const primaryProbe=button(s.busy==='probe'?'探测中…':s.busy==='pdk'?'匹配 PDK 中…':s.setupDirty?'应用环境并重新匹配':'探测并匹配 PDK',()=>ensureNetlistThen(()=>controller.probeAndMatch()),locked||!connected||!s.targets.length||s.targets.length>2||(s.intake.status!=='complete'&&!canAutoImport));
     primaryProbe.classList.add('ic-sim-primary');
-    probeActions.append(primaryProbe,button('只探测所选主机',()=>{rememberCurrentPrefs();return controller.probeHost();},locked||!connected||!s.targets.length||s.intake.status!=='complete'));
+    probeActions.append(primaryProbe,button('只探测所选主机',()=>ensureNetlistThen(()=>controller.probeHost()),locked||!connected||!s.targets.length||(s.intake.status!=='complete'&&!canAutoImport)));
     if(s.targets.length){
       const saveBtn=button('记住主机与 PDK 提示',()=>{rememberCurrentPrefs();notify('已记住当前主机范围与 PDK 搜索提示（仅存本机非敏感标识）。',{kind:'info'});render();},locked);
       saveBtn.classList.add('ic-sim-quiet');saveBtn.dataset.environmentSavePrefs='';
