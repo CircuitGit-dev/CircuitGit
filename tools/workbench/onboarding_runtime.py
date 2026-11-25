@@ -354,7 +354,7 @@ class OnboardingRuntime:
             suggested_intent,intent_suggestions=source_intent(requirements)
         intake_id='intake_'+secrets.token_hex(16);folder=self._folder(intake_id)
         folder.mkdir(parents=True,mode=0o700)
-        source=folder/'source.scs';source.write_text(text,encoding='utf-8');source.chmod(0o600)
+        source=folder/'source.scs';source.write_bytes(text.encode('utf-8'));source.chmod(0o600)
         for relative,content in support.items():
             path=folder/'support'/relative;path.parent.mkdir(parents=True,exist_ok=True)
             path.write_bytes(content.encode('utf-8'));path.chmod(0o600)

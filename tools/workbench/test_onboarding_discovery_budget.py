@@ -3,6 +3,7 @@ import contextlib
 import copy
 import io
 import json
+import os
 import shlex
 import threading
 from types import SimpleNamespace
@@ -46,6 +47,7 @@ class DiscoveryBudgetTests(_IntakeFixture):
         return onboarding_discovery.remote_discovery(HOST,self.home/'.ssh/config',
             self.capture,requirements,**kwargs)
 
+    @unittest.skipIf(os.name == 'nt', 'Remote Linux PDK scanner exec fixture requires POSIX paths')
     def test_full_library_succeeds_past_old_cutoff_with_real_validated_receipt(self):
         requirements=self.new_source()['source']['requirements'];body=self.library_bytes()
         transport,observed=self.framed_transport(body,remote_elapsed=120)
@@ -57,6 +59,7 @@ class DiscoveryBudgetTests(_IntakeFixture):
         self.assertEqual(observed[0]['transport_timeout'],270)
         self.ssh.assert_not_called();self.process.assert_not_called()
 
+    @unittest.skipIf(os.name == 'nt', 'Remote Linux PDK scanner exec fixture requires POSIX paths')
     def test_filtered_adapter_retains_old_deadlines_and_source_binding(self):
         requirements=self.new_source()['source']['requirements']
         evidence=self.synthetic_discovery(requirements);body=json.dumps(evidence).encode()
@@ -73,6 +76,7 @@ class DiscoveryBudgetTests(_IntakeFixture):
                 self.call_remote(requirements)
         self.ssh.assert_not_called();self.process.assert_not_called()
 
+    @unittest.skipIf(os.name == 'nt', 'Remote Linux PDK scanner exec fixture requires POSIX paths')
     def test_full_library_remains_finite_at_remote_and_transport_boundaries(self):
         requirements=self.new_source()['source']['requirements'];body=self.library_bytes()
         for elapsed,error in ((240,ValueError),(270,TimeoutError)):
@@ -98,6 +102,7 @@ class DiscoveryBudgetTests(_IntakeFixture):
         self.assertEqual(len(self.runtime.read('session',{'intake_id':state['intake_id']})['probes']),8)
         self.ssh.assert_not_called()
 
+    @unittest.skipIf(os.name == 'nt', 'Remote Linux PDK scanner exec fixture requires POSIX paths')
     def test_two_host_scan_uses_one_concurrent_batch_and_keeps_both_receipts(self):
         state=self.probe(self.new_source(),['synthetic-first','synthetic-second'])
         evidence=self.synthetic_discovery(state['source']['requirements']);gate=threading.Barrier(2)

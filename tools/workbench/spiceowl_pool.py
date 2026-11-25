@@ -75,6 +75,12 @@ def absolute(value, label):
     return value
 
 
+def remote_absolute(value, label):
+    if not isinstance(value, str) or not value.startswith('/') or value.startswith('//') or any(ord(c) < 32 for c in value):
+        raise ValueError(label + ' must be an absolute remote POSIX path')
+    return value
+
+
 def requirements(value):
     exact(value, {'cpu_count', 'memory_bytes', 'simulator'}, 'resource requirements')
     if type(value['cpu_count']) is not int or not 1 <= value['cpu_count'] <= 4096:
@@ -165,7 +171,7 @@ def validate_selection(value):
     matches = [tool for tool in tools if tool['kind'] == 'spectre']
     if len(matches) != 1:
         raise ValueError('Selection requires one Spectre executable')
-    absolute(matches[0]['executable'], 'Spectre executable')
+    remote_absolute(matches[0]['executable'], 'Spectre executable')
     recommendation = value['recommendation']
     if type(recommendation) is not dict or recommendation.get('recommended_host_id') != host_id or recommendation.get('evaluated_at') != value['selected_at']:
         raise ValueError('Selection recommendation identity mismatch')
