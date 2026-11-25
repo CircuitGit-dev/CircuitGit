@@ -166,7 +166,7 @@ class Application:
         self.ai=None
         self.library=None
         repo_root=getattr(self.workspace,'root',None)
-        if not cfg.get('onboarding_only') and repo_root is not None and (Path(repo_root)/'lib'/'catalog.json').is_file():
+        if not cfg.get('onboarding_only') and isinstance(repo_root,(str,os.PathLike)) and (Path(repo_root)/'lib'/'catalog.json').is_file():
             try:
                 self.library=LibraryWorkflow(Path(repo_root),cfg.get('github_repo') or 'local/circuitgit',base_branch=cfg.get('base_branch','main'))
             except Exception:

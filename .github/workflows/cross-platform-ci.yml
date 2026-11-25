@@ -149,12 +149,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Upstream pinned spiceowl currently imports POSIX-only fcntl; verify full
-        # SpiceOwl + ADCToolbox bootstrap on macOS & Linux while native Windows
-        # runs local ngspice/RNL/Library/AI directly via Start CircuitGit.bat.
-        os: [macos-latest, ubuntu-latest]
+        # Pinned SpiceOwl (0c26d8b) natively supports macOS, Windows, and Linux via _platform.py.
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
+      - name: Configure Git line endings before checkout
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
