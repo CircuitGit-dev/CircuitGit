@@ -17,7 +17,7 @@ export function mountSessions(host,{createPanel}={}) {
   for(const button of [add,manage,retry])button.type='button';
   add.setAttribute('aria-label','新建 AI 对话');manage.setAttribute('aria-label','管理 AI 对话');retry.hidden=true;
   message.setAttribute('role','status');message.hidden=true;empty.hidden=true;body.append(empty);actions.append(add,manage,retry);bar.append(tabs,actions);root.append(bar,message,body);slot.element.replaceChildren(root);
-  let activeId=null,loading=true,busy=false,destroyed=false,limit=8,editDialog=null,manager=null,sequence=0,controller,hostState=null;
+  let activeId=null,loading=true,busy=false,unavailable=false,destroyed=false,limit=8,editDialog=null,manager=null,sequence=0,controller,hostState=null;
   const applyDraft=draft=>{const record=records.get(activeId);if(!record?.panel?.appendDraft)return {status:'queued',message:'请选择或新建对话；请求已保留，尚未发送。'};return record.panel.appendDraft(draft,{focus:slot.isVisible()});};
   const draftQueue=createAssistanceQueue({element:root,apply:applyDraft,getAvailability:()=>({available:!loading&&!busy&&!!records.get(activeId)?.panel?.appendDraft,message:loading?'正在读取对话；请求已保留，随后请选择目标对话。':!activeId?'请选择或新建对话；请求已保留，尚未发送。':'请求尚未发送；可加入当前对话，或先切换目标对话。'})});
   root.insertBefore(draftQueue.element,body);
@@ -49,9 +49,10 @@ export function mountSessions(host,{createPanel}={}) {
     }
     const labels=[];if(active)labels.push(active+' 运行中');if(pending)labels.push(pending+' 待批准');if(suspended)labels.push(suspended+' 审批暂停');
     slot.setBadge(labels.join(' · ')||null);
-    add.disabled=loading||busy||records.size>=limit;manage.disabled=busy;retry.disabled=loading||busy;
-    add.title=records.size>=limit?'已达到 '+limit+' 个对话上限':'新建对话；发送消息后才启动 AI';
+    add.disabled=loading||busy||unavailable||records.size>=limit;manage.disabled=busy||unavailable;retry.disabled=loading||busy;
+    add.title=unavailable?'当前本机工作台未启用内置 AI 桥接':records.size>=limit?'已达到 '+limit+' 个对话上限':'新建对话；发送消息后才启动 AI';
     root.setAttribute('aria-busy',String(loading||busy));
+    empty.textContent=unavailable?'当前本机工作台未启用内置 AI 桥接；如需 AI 协作，请配置 Codex 桥接或通过 MCP 插件连接。':'暂无对话，点击“新建”开始。';
     empty.hidden=loading||records.size>0;
     const snapshot={count:records.size,activeSessionId:activeId,loading},signature=JSON.stringify(snapshot);
     if(hostState!==signature){hostState=signature;host.aiSettings?.onSessionsChanged?.(snapshot);}
@@ -176,13 +177,18 @@ export function mountSessions(host,{createPanel}={}) {
     if(manager)manager.notice.textContent='';
     try{
       const result=await host.gateway.request('/ai/sessions');if(destroyed||ticket!==sequence)return;
+      unavailable=false;
       if(!Array.isArray(result?.sessions)||!Number.isInteger(result.max_sessions)||result.max_sessions<1||result.max_sessions>8||result.sessions.length>result.max_sessions)throw Error('会话列表不符合最多 8 个会话的契约。');
       const infos=result.sessions.map(validate);if(new Set(infos.map(info=>info.session_id)).size!==infos.length)throw Error('会话列表包含重复身份。');
       limit=result.max_sessions;
       const ids=new Set(infos.map(info=>info.session_id));for(const id of [...records.keys()])if(!ids.has(id))dropRecord(id);
       for(const info of infos){const existing=records.get(info.session_id);if(existing){existing.info=info;existing.container.setAttribute('aria-label',info.name);}else mountRecord(info);}
       if(!activeId)activeId=records.keys().next().value||null;
-    }catch(error){failure(error);if(manager)manager.notice.textContent=error.message||String(error);retry.hidden=false;}
+    }catch(error){
+      const text=error?.message||String(error);
+      if(text.includes('AI adapter is not configured')){unavailable=true;clearMessage();retry.hidden=true;}
+      else{unavailable=false;failure(error);if(manager)manager.notice.textContent=text;retry.hidden=false;}
+    }
     finally{if(!destroyed&&ticket===sequence){loading=false;renderManager();publish();}}
   }
   function editName(kind,id=activeId){

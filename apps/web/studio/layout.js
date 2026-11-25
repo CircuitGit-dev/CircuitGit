@@ -20,7 +20,10 @@ async function buildLayout(){
 function createChrome(){
   document.body.classList.add('ic-studio');document.title='CircuitGit';
   const toolbar=node('header','studio-toolbar');toolbar.id='studio-toolbar';
-  toolbar.innerHTML='<strong class="studio-brand">CircuitGit</strong><label>项目 <select id="studio-project" aria-label="项目" disabled></select></label><label class="studio-entry-label">原生入口 <select id="studio-entry" aria-label="原生入口" disabled></select></label><label>运行 <select id="studio-run" aria-label="已保存运行" disabled><option value="">未选择运行</option></select></label><span id="studio-identity"></span><button id="studio-simulation-toggle" type="button">仿真</button><button id="studio-ai-toggle" type="button">AI</button>';
+  toolbar.innerHTML='<strong class="studio-brand">CircuitGit</strong><label>项目 <select id="studio-project" aria-label="项目" disabled></select></label><label class="studio-entry-label">视图入口 <select id="studio-entry" aria-label="视图入口" disabled></select></label><label>运行 <select id="studio-run" aria-label="已保存运行" disabled><option value="">未选择运行</option></select></label><span id="studio-identity"></span><button id="studio-simulation-toggle" type="button">仿真</button><button id="studio-ai-toggle" type="button">AI</button>';
+  const brand=toolbar.querySelector('.studio-brand'),logo=document.createElement('img');
+  logo.src=new URL('../branding/circuitgit.svg',import.meta.url);logo.alt='';brand.prepend(logo);
+  if(!document.querySelector('link[rel="icon"]')){const fav=document.createElement('link');fav.rel='icon';fav.type='image/svg+xml';fav.href=new URL('../branding/circuitgit-small.svg',import.meta.url);document.head.append(fav);}
   document.getElementById('menubar').after(toolbar);
   const slots={};
   for(const [id,title] of Object.entries(TITLES)){
@@ -41,7 +44,7 @@ function createChrome(){
 export function attachSchematicChrome(){
   const drawing=document.querySelector('main.drawing');if(!drawing||document.getElementById('studio-provenance'))return;
   const provenance=node('div','studio-provenance');provenance.id='studio-provenance';
-  provenance.innerHTML='<span id="studio-native-note">正在读取电路…</span><label id="studio-history-label" hidden><input id="studio-history" type="checkbox"> 显示历史几何</label><button id="studio-source-button" type="button" disabled>Canonical 源码…</button>';
+  provenance.innerHTML='<span id="studio-native-note">正在读取电路…</span><label id="studio-history-label" hidden><input id="studio-history" type="checkbox"> 显示历史几何</label><button id="studio-source-button" type="button" disabled>查看 / 编辑源码…</button>';
   drawing.insertBefore(provenance,document.getElementById('canvas'));
 }
 

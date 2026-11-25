@@ -17,12 +17,12 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onReference,onSe
   const preview=el('section',undefined,'cg-library-preview');preview.hidden=true;const previewTitle=el('h3'),previewText=el('pre'),previewFiles=el('label','视图文件'),previewFile=el('select');previewFile.setAttribute('aria-label','视图文件');previewFiles.style.cssText='display:grid;gap:5px';previewFile.style.cssText='width:100%;font:inherit;padding:5px';previewFiles.append(previewFile);preview.append(previewFiles,previewTitle,previewText);
   const footer=el('footer'),basis=el('span','公开文件浏览 · AI 节点身份独立'),open=button('打开视图',()=>void openSelected());footer.append(basis,open);
   dialog.append(head,tools,status,columns,description,preview,footer);document.body.append(dialog);
-  const launcher=button('Library',()=>show());launcher.id='studio-library-button';launcher.title='按库 / 单元 / 视图浏览公开电路';toolbar.append(launcher);
+  const launcher=button('电路库',()=>show());launcher.id='studio-library-button';launcher.title='按库 / 单元 / 视图浏览公开电路';toolbar.append(launcher);
   const entry=el('section',undefined,'cg-library-entry');entry.append(el('strong','公开电路库'),el('p','Library → Cell → View'),button('打开 Library Manager',()=>show()));libraryPane?.prepend(entry);
   let data=[],errors=[],loaded=false,busy=false,loading=false,request=null,disposed=false;
   let previewValue=null,previewRequest=null;
   let selected={library:null,cell:null,view:null},selectionKey='';
-  const options=(node,items,current,label)=>{node.replaceChildren(...items.map(item=>new Option(label(item),item.id)));node.value=items.some(item=>item.id===current)?current:items[0]?.id||'';node.disabled=busy||loading||!items.length;};
+  const options=(node,items,current,label)=>{node.replaceChildren(...items.map(item=>{const text=label(item),opt=new Option(text,item.id);opt.title=text;return opt;}));node.value=items.some(item=>item.id===current)?current:items[0]?.id||'';node.disabled=busy||loading||!items.length;};
   function selection(){const library=data.find(x=>x.id===libraries.value),cell=library?.cells.find(x=>x.id===cells.value),view=cell?.views.find(x=>x.id===views.value);return {library,cell,view};}
   function render(){
     const filtered=filterLibraries(data,search.value);options(libraries,filtered,selected.library,x=>x.name);const library=filtered.find(x=>x.id===libraries.value);

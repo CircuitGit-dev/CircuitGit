@@ -1,6 +1,9 @@
 // Open-source PDK-free CMOS inverter (Level-1 behavioral MOS models).
 // Swap nch_open / pch_open for sky130_fd_pr__nfet_01v8 / pfet_01v8, nfet_03v3 / pfet_03v3,
 // or sg13_lv_nmos / sg13_lv_pmos when running with an installed open PDK.
+// @RNL(type="header") {
+//   @VERSION("0.3");
+// }
 simulator lang=spectre
 model nch_open mos1 type=n vto=0.45 kp=180u lambda=0.04 gamma=0.3 phi=0.7
 model pch_open mos1 type=p vto=-0.45 kp=75u lambda=0.05 gamma=0.3 phi=0.7
@@ -11,15 +14,15 @@ subckt OPEN_CMOS_INVERTER IN OUT VDD VSS
 // @RNL(author="circuitgit-open-starter") {
 //   #"MP0" @PLACE(0, 10) => @ORIENT("R0");
 //   #"MN0" @PLACE(0, -10) => @ORIENT("R0");
-//   %in = @PLACE(-18, 0);
-//   %out = @PLACE(24, 0);
-//   %vdd = @PLACE(0, 22);
-//   %vss = @PLACE(0, -22);
-//   &"IN" @WIRE(mode="straight") {%in (-10, 0) (-10, 10) #"MP0":2};
+//   %in = $IO_PORT @ATTACH &"IN" => @PLACE(-18, 0) => @ORIENT("R0");
+//   %out = $IO_PORT @ATTACH &"OUT" => @PLACE(24, 0) => @ORIENT("R180");
+//   %vdd = $IO_PORT @ATTACH &"VDD" => @PLACE(0, 22) => @ORIENT("R270");
+//   %vss = $IO_PORT @ATTACH &"VSS" => @PLACE(0, -22) => @ORIENT("R90");
+//   &"IN" @WIRE(mode="straight") {%in:1 (-10, 0) (-10, 10) #"MP0":2};
 //   &"IN" @WIRE(mode="straight") {(-10, 0) (-10, -10) #"MN0":2};
 //   &"OUT" @WIRE(mode="straight") {#"MP0":1 (10, 0) #"MN0":1};
-//   &"OUT" @WIRE(mode="straight") {(10, 0) %out};
-//   &"VDD" @WIRE(mode="straight") {#"MP0":3 %vdd};
-//   &"VSS" @WIRE(mode="straight") {#"MN0":3 %vss};
+//   &"OUT" @WIRE(mode="straight") {(10, 0) %out:1};
+//   &"VDD" @WIRE(mode="straight") {#"MP0":3 %vdd:1};
+//   &"VSS" @WIRE(mode="straight") {#"MN0":3 %vss:1};
 // }
 ends OPEN_CMOS_INVERTER

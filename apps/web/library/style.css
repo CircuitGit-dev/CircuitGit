@@ -5,7 +5,7 @@
 .cg-library-manager button:disabled{opacity:.5;cursor:default}.cg-library-manager button:hover:not(:disabled),.cg-library-entry button:hover{background:#eff6f2}
 .cg-library-tools{display:flex;gap:8px;margin-top:15px}.cg-library-tools input{flex:1;width:100%;padding:7px;border:1px solid #cddbd4;border-radius:4px;font:12px system-ui}.cg-library-tools button{flex-shrink:0}
 .cg-library-status{color:#64786e;margin:9px 0;font-size:11px;overflow-wrap:anywhere;min-height:18px}
-.cg-library-columns{display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:10px}.cg-library-columns label{display:grid;gap:6px;color:#64786e;font-size:11px}
+.cg-library-columns{display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:10px}.cg-library-columns label{display:grid;gap:6px;color:#64786e;font-size:11px}
 .cg-library-columns select{width:100%;height:240px;border:1px solid #dbe3df;border-radius:4px;background:#fff;color:#253e32;padding:3px;font:12px/1.5 ui-monospace,monospace}.cg-library-columns option{padding:6px 7px}
 .cg-library-manager :focus-visible,.cg-library-entry button:focus-visible,#studio-library-button:focus-visible{outline:2px solid #62a086;outline-offset:2px}
 .cg-library-description{padding:12px 0;overflow-wrap:anywhere}.cg-library-description p{margin:5px 0;color:#64786e;font-size:11px}.cg-library-description .cg-library-dependency{color:#8a6729}

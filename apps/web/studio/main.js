@@ -119,7 +119,7 @@ export async function mountStudio({ui:providedUI}={}){
     if(!['native','live-rnl'].includes(activePayload.geometry?.mode)||!activePayload.geometry?.available){publishNative();return;}
     nativePayload=activePayload;nativeModel=normalizeNative(activePayload,location.href);
     $('studio-entry').replaceChildren(...nativeModel.entries.map(e=>new Option(e.label?.startsWith(e.export_namespace+':')?e.label:e.export_namespace?`${e.export_namespace}: ${e.label}`:e.label,e.id)));
-    await loadEntry(nativeModel.defaultEntry.id);
+    try{await loadEntry(nativeModel.defaultEntry.id);}catch(error){notify('原理图加载提示：'+error.message,{kind:'warning'});}
   }
   async function loadEntry(id){
     if(!nativeModel)return;const revision=++entryEpoch,generation=epoch,model=nativeModel;
@@ -139,7 +139,7 @@ export async function mountStudio({ui:providedUI}={}){
       const level=entry.level==='@top'?0:doc.levels.findIndex(l=>l.title===entry.level);if(level<0)throw Error('Native entry level absent');
       await enterRoot(level,{here:true,newWindow:false});
       if(revision!==entryEpoch||generation!==epoch)return;
-      manifest=checked;state.nativeFiles=checked.files;nativeLoading=false;fit();publishNative();notify('原生入口已加载：'+entry.label);
+      manifest=checked;state.nativeFiles=checked.files;nativeLoading=false;fit();publishNative();notify('视图入口已加载：'+entry.label);
     };
     nativeQueue=nativeQueue.catch(()=>{}).then(operation);
     await nativeQueue;
@@ -196,7 +196,7 @@ export async function mountStudio({ui:providedUI}={}){
   window.addEventListener('pagehide',()=>{agentAssistance.destroy();onboardingSync.destroy();onboarding.disconnect();},{once:true});
   Object.defineProperty(window,'ICRNLStudio',{value:host,writable:false});
   register({id:'project.choose',menu:'project',label:'选择项目…',run:()=>$('studio-project').focus()});
-  register({id:'project.source',menu:'project',label:'Canonical 源码…',run:()=>openCanonicalEditor(),enabled:()=>!!state.file});
+  register({id:'project.source',menu:'project',label:'查看 / 编辑源码…',run:()=>openCanonicalEditor(),enabled:()=>!!state.file});
   register({id:'project.refresh',menu:'project',label:'刷新项目与入口',run:()=>loadProject(),enabled:()=>!state.dirty});
   register({id:'git.source',menu:'git',label:'编辑 / 审阅源码…',run:()=>openCanonicalEditor(),enabled:()=>!!state.file});
   register({id:'git.sync',menu:'git',label:'拉取仓库更新…',run:syncRepository,enabled:()=>!state.dirty&&state.mode==='live'});

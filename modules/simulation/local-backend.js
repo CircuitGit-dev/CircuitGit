@@ -10,7 +10,7 @@ export function mountLocalBackend(container, {gateway, notify = () => {}, onConf
     if (cls) node.className = cls;
     return node;
   };
-  let disposed = false, loading = false, saving = false, info = null, error = '', probe = null;
+  let disposed = false, loading = false, saving = false, info = null, error = '', probe = null, expanded = false;
   let selectedEngine = 'ngspice', selectedPdk = 'builtin', selectedCorner = 'typical', pdkRoot = '';
 
   const supportsApi = () => typeof gateway?.simulationBackend === 'function' && typeof gateway?.configureSimulationBackend === 'function';
@@ -94,20 +94,23 @@ export function mountLocalBackend(container, {gateway, notify = () => {}, onConf
     container.replaceChildren();
     if (!supportsApi()) return;
 
-    const card = el('section', undefined, 'ic-sim-card');
+    const card = el('details', undefined, 'ic-sim-detail');
     card.dataset.role = 'local-open-sim-backend';
-    const head = el('div', undefined, 'ic-sim-section-head');
-    head.append(el('h3', '本地开源仿真器（ngspice / Xyce）'));
     const cur = info?.current;
+    const isLocalActive = cur?.transport === 'local';
+    card.open = expanded || isLocalActive;
+    card.addEventListener('toggle', () => { expanded = card.open; });
+    const summary = el('summary');
+    summary.append(el('span', '备选：本地开源仿真器（ngspice / Xyce）'));
     const badgeText = !info
-      ? (loading ? '检测中…' : '待检测')
-      : cur?.transport === 'local'
-        ? `当前：本地 ${cur.engine}${cur.open_pdk ? ' · ' + cur.open_pdk.pdk + '/' + cur.open_pdk.corner : ''}`
-        : '当前：远端 Spectre (SSH)';
-    head.append(el('span', badgeText, 'ic-sim-status' + (cur?.transport === 'local' ? ' active' : '')));
-    card.append(head);
+      ? (loading ? '检测中…' : '本地备选')
+      : isLocalActive
+        ? `本地 ${cur.engine}${cur.open_pdk ? ' · ' + cur.open_pdk.pdk : ''}`
+        : '远端 Spectre 优先';
+    summary.append(el('span', badgeText, 'ic-sim-status' + (isLocalActive ? ' active' : '')));
+    card.append(summary);
 
-    card.append(el('p', '无云端服务器或商业许可时，可直接在网页切换本地开源 SPICE 仿真器与开源 PDK；商业代工厂 PDK 仿真不会静默降级。', 'ic-sim-note'));
+    card.append(el('p', '日常推荐使用上方远端服务器仿真。无远端服务器或做开源快速验证时，可在此切换本机开源 SPICE 仿真器；商业 PDK 不会静默降级。', 'ic-sim-note'));
 
     if (error) card.append(el('p', error, 'ic-sim-error'));
 
@@ -210,7 +213,7 @@ export function mountLocalBackend(container, {gateway, notify = () => {}, onConf
       }
 
       const actions = el('div', undefined, 'ic-sim-toolbar');
-      const applyBtn = el('button', saving ? '正在预检并应用…' : '预检并启用本地开源仿真', 'ic-sim-primary');
+      const applyBtn = el('button', saving ? '正在预检并应用…' : '预检并启用本地开源仿真');
       applyBtn.type = 'button';
       applyBtn.dataset.field = 'local-sim-apply';
       applyBtn.disabled = saving || loading;

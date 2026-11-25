@@ -111,12 +111,12 @@ export function mount(host) {
     if(s.saveReceipt)note(root,`${s.saveReceipt.configurationId} · `+(s.saveReceipt.pushStatus==='confirmed'?'配置提交与推送已确认。':s.saveReceipt.pushStatus==='not_requested'?'配置提交已确认，未请求推送。':'保存回执已返回，请在提交页核对。'),'ic-sim-note');
     }
     const nav=el('nav',undefined,'ic-sim-nav');nav.setAttribute('aria-label','仿真工作流');
-    for(const [id,label] of [['environment','环境与PDK'],['config','配置'],['workflow','提交'],['jobs','运行 · '+projectRuns(s).length],['runtime','资源与监控']]){
+    for(const [id,label] of [['environment','环境与 PDK'],['config','配置'],['workflow','提交'],['jobs','运行 · '+projectRuns(s).length],['runtime','资源与监控']]){
       const tab=button(label,()=>showPage(id),false,page===id?'is-active':'');tab.dataset.field='page-'+id;tab.setAttribute('aria-pressed',String(page===id));nav.append(tab);
     }root.append(nav);
     const configPage=el('div',undefined,'ic-sim-page'),workflowPage=el('div',undefined,'ic-sim-page'),jobsPage=el('div',undefined,'ic-sim-page'),runtimePage=el('div',undefined,'ic-sim-page'),environmentPage=el('div',undefined,'ic-sim-page');
     for(const [node,id] of [[environmentPage,'environment'],[configPage,'config'],[workflowPage,'workflow'],[jobsPage,'jobs'],[runtimePage,'runtime']]){node.dataset.page=id;node.hidden=page!==id;root.append(node);}
-    environmentPage.append(localBackendRoot,el('h3','连接远端服务器 & 自动匹配商业 PDK'),environmentRoot);
+    environmentPage.append(el('h3','连接远端服务器 & 自动匹配商业 PDK'),environmentRoot,localBackendRoot);
     runtimePage.append(runtimeRoot);runtime.setActive(page==='runtime');
     if(s.descriptor){
       let conf=null;try{conf=readDraft(s.draftText);}catch(error){note(configPage,'JSON：'+error.message,'ic-sim-error');}

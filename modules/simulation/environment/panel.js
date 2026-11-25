@@ -24,7 +24,7 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
   }
   function detail(parent,key,title){const node=el('details',undefined,'ic-sim-detail');node.dataset.environmentDetail=key;node.open=opened.has(key);node.append(el('summary',title));node.addEventListener('toggle',()=>{if(node.isConnected)node.open?opened.add(key):opened.delete(key);});parent.append(node);return node;}
   function field(parent,label,key,value,onChange,{placeholder='',disabled=false,multiline=false,list=null}={}){
-    const row=el('label',undefined,'ic-sim-field');row.append(el('span',label));const input=el(multiline?'textarea':'input');input.value=value??'';input.placeholder=placeholder;input.disabled=disabled;input.dataset.environmentField=key;if(multiline)input.rows=3;else input.type='text';
+    const row=el('label',undefined,'ic-sim-field'+(multiline?' is-multiline':''));row.append(el('span',label));const input=el(multiline?'textarea':'input');input.value=value??'';input.placeholder=placeholder;input.disabled=disabled;input.dataset.environmentField=key;if(multiline)input.rows=3;else input.type='text';
     if(list?.length){const datalist=el('datalist');datalist.id=radioGroup+'-'+key;for(const suggestion of list){const option=el('option');option.value=suggestion;datalist.append(option);}input.setAttribute('list',datalist.id);row.append(datalist);}
     input.addEventListener('change',call(()=>onChange(input.value)));row.append(input);parent.append(row);return input;
   }
@@ -83,7 +83,7 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     root.replaceChildren();root.classList.add('ic-env');root.setAttribute('aria-label','环境与 PDK 向导');note(root,generic?'选择电路 → 探测环境 → 审阅测试平台 → 运行与分析。':'选择电路 → 探测服务器 → 确认推荐 → 查看结果。');
     const connection=el('div',undefined,'ic-env-connection');note(connection,connected?'已连接本机环境服务':'环境服务未连接');
     if(!connected&&controller.has('connect')){
-      field(connection,'本机连接端口（可选）','connection-port',port,value=>{port=value;},{placeholder:'8767',disabled:!!s.busy});
+      field(connection,'本机端口（可选）','connection-port',port,value=>{port=value;},{placeholder:'8767',disabled:!!s.busy});
       // connect is invoked synchronously so pairing preserves the click's popup gesture.
       connection.append(button(s.connection.connecting?'连接中…':'连接本机环境服务',()=>{const number=port.trim()?Number(port):undefined;if(number!==undefined&&(!Number.isInteger(number)||number<1||number>65535))throw Error('端口应为 1–65535 的整数。');return controller.connect(number===undefined?{}:{port:number});},!!s.busy||s.connection.connecting));
     }
@@ -95,7 +95,7 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     if(s.pending.length){const recovery=el('section',undefined,'ic-sim-card');recovery.dataset.environmentRecovery='';recovery.append(el('h3','原请求待核对'));note(recovery,'保存的原 intake 与提交键仍在。核对只读取原回执；缺少映射也不会重新提交。',true);for(const record of s.pending){note(recovery,`${record.phase==='run'?'提交':'准备'} · ${record.intake_id}`);recovery.append(button('核对原请求',()=>controller.restore(record),!!s.busy||!connected));}root.append(recovery);}
 
     const source=card(root,1,'独立网表',s.source?'字面信息':'导入后读取'),toolbar=el('div',undefined,'ic-sim-toolbar'),label=el('label',undefined,'ic-env-file');label.append(el('span','导入网表'));
-    select(source,'测试流程','import-mode',[{value:'agent-tb',label:'Agent 编写测试平台 · 人工审阅'},{value:'legacy',label:'反相器 / RC 参考流程'}],importMode,value=>{importMode=value;render();},locked);
+    select(source,'测试流程','import-mode',[{value:'agent-tb',label:'Agent 测试台（人工审阅）'},{value:'legacy',label:'反相器 / RC 参考流程'}],importMode,value=>{importMode=value;render();},locked);
     const importSource=value=>{const {mode:_mode,...source}=value;return controller.importSource({...source,...(importMode==='agent-tb'?{mode:'agent-tb',...(Object.keys(supportFiles).length?{support_files:supportFiles}:{})}:{})});};
     const file=el('input');file.type='file';file.accept='.scs,.sp,.spice,.cir,.txt,.va,.vams';file.disabled=locked;file.setAttribute('aria-label','导入独立网表');file.addEventListener('change',call(async()=>{const selected=file.files?.[0];if(!selected)return;if(selected.size>1024*1024)throw Error('独立网表超过 1 MiB 导入上限。');await importSource({file_name:selected.name,text:await selected.text()});}));label.append(file);toolbar.append(label);if(getSource)toolbar.append(button('导入当前网表',async()=>importSource(await getSource()),locked));source.append(toolbar);
     if(importMode==='agent-tb'){const supports=detail(source,'support-files','附加 include 文件（可选）'),picker=el('input');picker.type='file';picker.multiple=true;picker.accept='.scs,.sp,.spice,.cir,.txt,.va,.vams';picker.disabled=locked;picker.setAttribute('aria-label','附加网表支持文件');picker.addEventListener('change',call(async()=>{const next={};for(const file of picker.files||[]){if(Object.keys(next).length>=64||file.size>1024*1024||Object.hasOwn(next,file.name))throw Error('支持文件重复、数量或大小超出范围。');next[file.name]=await file.text();}supportFiles=next;render();}));supports.append(picker);note(supports,Object.keys(supportFiles).length?Object.keys(supportFiles).join(' · '):'仅导入明确选中的文本；PDK 仍由服务器发现和核对。');}
@@ -113,8 +113,11 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     assistance(host,'environment','请 Agent 检查环境与 PDK');
     for(const item of s.aliases.result?.hosts||[]){const row=el('label',undefined,'ic-env-choice'),check=el('input');check.type='checkbox';check.checked=s.targets.includes(item.alias);check.disabled=locked;check.addEventListener('change',call(()=>controller.setTargets(check.checked?[...s.targets,item.alias]:s.targets.filter(target=>target!==item.alias))));row.append(check,doc.createTextNode(item.alias));aliases.append(row);}
     field(host,'允许的主机范围','ssh-targets',s.targets.join('\n'),value=>controller.setTargets(value.split(/[\n,]/).map(item=>item.trim()).filter(Boolean)),{placeholder:'SSH alias 或 user@host，每行一个',disabled:locked,multiline:true});note(host,'读取别名和编辑范围不会连接主机。运行时仅在此范围内选择资源合适的主机。');
-    host.append(button(s.busy==='probe'?'探测中…':s.busy==='pdk'?'匹配 PDK 中…':s.setupDirty?'应用环境并重新匹配':'探测并匹配 PDK',()=>controller.probeAndMatch(),locked||!connected||!s.targets.length||s.targets.length>2||s.intake.status!=='complete'));
-    host.append(button('只探测所选主机',()=>controller.probeHost(),locked||!connected||!s.targets.length||s.intake.status!=='complete'));note(host,'环境探测最多 8 台主机；完整 PDK 发现每批最多 2 台。多主机探测后，在 PDK 高级设置中明确选择本批主机。');resultError(host,s.aliases);resultError(host,s.probe);
+    const probeActions=el('div',undefined,'ic-sim-toolbar');
+    const primaryProbe=button(s.busy==='probe'?'探测中…':s.busy==='pdk'?'匹配 PDK 中…':s.setupDirty?'应用环境并重新匹配':'探测并匹配 PDK',()=>controller.probeAndMatch(),locked||!connected||!s.targets.length||s.targets.length>2||s.intake.status!=='complete');
+    primaryProbe.classList.add('ic-sim-primary');
+    probeActions.append(primaryProbe,button('只探测所选主机',()=>controller.probeHost(),locked||!connected||!s.targets.length||s.intake.status!=='complete'));
+    host.append(probeActions);note(host,'环境探测最多 8 台主机；完整 PDK 发现每批最多 2 台。多主机探测后，在 PDK 高级设置中明确选择本批主机。');resultError(host,s.aliases);resultError(host,s.probe);
     const hostEvidence=s.probe.result?.probes?.length?detail(host,'host-evidence','环境观察与高级配置'):null;
     for(const probe of s.probe.result?.probes||[]){const summary=el('div',undefined,'ic-env-probe');summary.append(el('h4',probe.ssh_target));note(summary,'观察时间：'+probe.observed_at);environmentSummary(summary,probe.environment);note(summary,'许可证项表示配置存在情况，未执行 license checkout。');
       if(probe.environment.setup_candidates?.length){select(summary,'可选环境配置','setup-'+probe.probe_id,[{value:'',label:'不激活环境脚本'},...probe.environment.setup_candidates.filter(item=>item.activation_supported===true).map(item=>({value:item.source_id,label:item.label||item.source_id}))],s.setupSourceIds[probe.ssh_target]||'',value=>controller.selectSetupSource(probe.ssh_target,value||null),locked);note(summary,'选择后需点击重新探测。后端核对脚本身份后激活；发现候选不代表已审计其副作用。');}

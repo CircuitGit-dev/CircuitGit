@@ -14,11 +14,12 @@ import re
 from pathlib import PurePosixPath
 from urllib.parse import urlencode
 
+RNL_HEADER_RE = re.compile(r'(?m)^[ \t]*//[ \t]*@RNL\s*\(\s*type\s*=\s*"header"\s*\)')
 RNL_BLOCK_RE = re.compile(
-    r'(?m)(^[ \t]*//[ \t]*@RNL\b[^\n]*\{[ \t]*\n(?:^[ \t]*//[^\n]*\n)*?^[ \t]*//[ \t]*\}[ \t]*(?:\n|\Z))'
+    r'(?m)(^[ \t]*//[ \t]*@RNL\b(?![ \t]*\([ \t]*type[ \t]*=[ \t]*"header")[^\n]*\{[ \t]*\n(?:^[ \t]*//[^\n]*\n)*?^[ \t]*//[ \t]*\}[ \t]*(?:\n|\Z))'
 )
 INST_PLACE_RE = re.compile(r'^\s*#\s*"([^"]+)"\s*@PLACE\(([^)]*)\)(.*)$')
-PORT_PLACE_RE = re.compile(r'^\s*%([A-Za-z0-9_.-]+)\s*=\s*@PLACE\(([^)]*)\)(.*)$')
+PORT_PLACE_RE = re.compile(r'^\s*%([A-Za-z0-9_.-]+)\s*=\s*(?:\$IO_PORT\s+@ATTACH\s+&\s*"[^"]+"\s*=>\s*)?@PLACE\(([^)]*)\)(.*)$')
 WIRE_RE = re.compile(r'^\s*&\s*"([^"]+)"\s*@WIRE\b(.*)$')
 PLACE_COORDS_RE = re.compile(r'(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)')
 SUBCKT_RE = re.compile(r'^\s*(?:\.subckt|subckt)\s+(\S+)(?:\s+(.*))?$', re.I)
@@ -122,6 +123,8 @@ def extract_rnl_layout(text):
         if stripped.startswith('//'):
             body = stripped[2:].strip()
             if body.startswith('@RNL') and '{' in body:
+                if 'type="header"' in body.replace(' ', ''):
+                    continue
                 in_rnl = True
                 by_scope.setdefault(scope_name, {'instances': {}, 'ports': {}, 'wires': [], 'other': []})
                 continue
@@ -191,6 +194,7 @@ def merge_incremental_rnl(current_netlist, reference_rnl=None, *, viewer_source_
         merged_insts = {**prior_ref.get('instances', {}), **prior_cur.get('instances', {})}
         merged_ports = {**prior_ref.get('ports', {}), **prior_cur.get('ports', {})}
         merged_wires = list(prior_cur.get('wires') or prior_ref.get('wires') or [])
+        merged_other = list(prior_cur.get('other') or prior_ref.get('other') or [])
 
         for old_name in sorted(set(merged_insts) - inst_set):
             removed_instances.append(f'{scope_name}:{old_name}' if scope_name != '(top)' else old_name)
@@ -201,18 +205,27 @@ def merge_incremental_rnl(current_netlist, reference_rnl=None, *, viewer_source_
         base_y = (sum(used_ys) / len(used_ys)) if used_ys else 0.0
 
         rnl_lines = []
+        inst_coords = {}
         added_idx = 0
+        for other_line in merged_other:
+            # Preserve symbol bindings / helper coordinates that still reference active instances or points.
+            refs = re.findall(r'#\s*"([^"]+)"', other_line)
+            if not refs or all(r in inst_set for r in refs):
+                rnl_lines.append('  ' + other_line)
         for inst_name in inst_names:
             qualified = f'{scope_name}:{inst_name}' if scope_name != '(top)' else inst_name
             if inst_name in merged_insts:
                 preserved_instances.append(qualified)
                 rnl_lines.append('  ' + merged_insts[inst_name]['line'])
+                if merged_insts[inst_name].get('xy'):
+                    inst_coords[inst_name] = merged_insts[inst_name]['xy']
             else:
                 added_instances.append(qualified)
                 col = added_idx % 4
                 row = added_idx // 4
                 px = next_x + col * 18.0
                 py = base_y - row * 16.0
+                inst_coords[inst_name] = (px, py)
                 rnl_lines.append(f'  #"{inst_name}" @PLACE({_format_coord(px)}, {_format_coord(py)}) => @ORIENT("R0");')
                 added_idx += 1
 
@@ -222,12 +235,34 @@ def merge_incremental_rnl(current_netlist, reference_rnl=None, *, viewer_source_
                 active_ports.add(pname)
                 rnl_lines.append('  ' + pinfo['line'])
 
+        wired_nets = set()
         for wire in merged_wires:
             if wire['net'] in net_set and all(r in inst_set for r in wire['instances']) and all(p in active_ports for p in wire['ports']):
                 preserved_wires += 1
+                wired_nets.add(wire['net'])
                 rnl_lines.append('  ' + wire['line'])
             else:
                 dropped_wires += 1
+
+        # Auto-wire newly placed devices so fresh netlists without prior @WIRE draw connected schematics.
+        if added_instances and not merged_wires:
+            net_pins = {}
+            for inst in scope['instances']:
+                for pin_idx, node in enumerate(inst['nodes'], start=1):
+                    net_pins.setdefault(node, []).append((inst['name'], pin_idx))
+            gnd_idx = 0
+            for net_name, pins in net_pins.items():
+                if net_name in wired_nets:
+                    continue
+                if net_name == '0':
+                    for inst_name, pin_idx in pins:
+                        gnd_idx += 1
+                        gx, gy = inst_coords.get(inst_name, (0.0, 0.0))
+                        rnl_lines.append(f'  %gnd_{gnd_idx} = $GROUND @ATTACH &"0" => @PLACE({_format_coord(gx)}, {_format_coord(gy - 10)});')
+                        rnl_lines.append(f'  &"0" @WIRE(mode="straight") {{#"{inst_name}":{pin_idx} %gnd_{gnd_idx}:1}};')
+                elif len(pins) >= 2:
+                    pts = ' '.join(f'#"{iname}":{pidx}' for iname, pidx in pins)
+                    rnl_lines.append(f'  &"{net_name}" @WIRE(mode="straight") {{{pts}}};')
 
         if rnl_lines:
             block = '// @RNL(author="circuitgit-incremental-sync") {\n' + '\n'.join('// ' + l for l in rnl_lines) + '\n// }\n'
@@ -252,6 +287,13 @@ def merge_incremental_rnl(current_netlist, reference_rnl=None, *, viewer_source_
     if '(top)' in scope_blocks:
         out_lines.append(scope_blocks.pop('(top)'))
     rnl_text = ''.join(out_lines)
+    if not RNL_HEADER_RE.search(rnl_text):
+        header_block = '// @RNL(type="header") {\n//   @VERSION("0.3");\n// }\n'
+        first_nl = rnl_text.find('\n')
+        if first_nl >= 0:
+            rnl_text = rnl_text[:first_nl + 1] + header_block + rnl_text[first_nl + 1:]
+        else:
+            rnl_text = '// CircuitGit\n' + header_block + rnl_text
     rnl_sha = sha256_bytes(rnl_text)
 
     # Build exact canonical source-map objects pointing to current_netlist line numbers.

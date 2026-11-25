@@ -107,7 +107,6 @@ export async function mountDockview(ui){
   // Existing toolbar and Window commands retain the same component slots.
   for(const id of ['simulation','ai'])document.getElementById('studio-'+id+'-toggle').onclick=ui.slots[id].toggle;
   const toolbar=document.getElementById('studio-toolbar');
-  toolbar.querySelector('.studio-brand').innerHTML='CircuitGit';
   const menu=document.createElement('details');menu.className='studio-view-menu';const summary=document.createElement('summary');summary.textContent='窗口';menu.append(summary);
   const choices=document.createElement('div');
   for(const id of Object.keys(TITLES)){const b=document.createElement('button');b.textContent=TITLES[id];b.type='button';b.onclick=()=>{open(id);menu.open=false;};choices.append(b);}
