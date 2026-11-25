@@ -10,14 +10,17 @@ const DOCS=REPO+'/blob/main/docs/remote-node.md';
 export function mountRemoteNode(host) {
   const parent=host.slots.ai,doc=parent.element.ownerDocument,win=doc.defaultView;
   const css=doc.createElement('link');css.rel='stylesheet';css.href=new URL('./style.css',import.meta.url);doc.head.append(css);
+  const platformText=String(win.navigator?.userAgentData?.platform||win.navigator?.platform||win.navigator?.userAgent||'');
+  const isWindows=/win/i.test(platformText);
+  const launcherName=isWindows?'Start CircuitGit.bat':'Start CircuitGit.command';
   const root=doc.createElement('section');root.className='cg-remote';root.setAttribute('aria-label','连接 Codex');
   root.innerHTML=`<div class="cg-node-welcome">
     <strong>使用你的 Codex</strong><p>在本机确认授权后，自动检查 Codex 登录状态。无需填写地址或访问码。</p>
     <button class="cg-primary" type="button" data-action="local">连接本机 Codex</button>
     <details class="cg-node-setup"><summary>首次使用？启动连接助手</summary>
-      <p>网页需要一个本机连接助手，才能与已安装的 Codex 通信。首次下载后双击 <b>Start CircuitGit.command</b>；保持助手运行，然后回来点击连接。</p>
-      <a href="${REPO}/archive/refs/heads/main.zip" target="_blank" rel="noopener noreferrer">下载项目包（含 macOS 双击启动器） ↗</a>
-      <small>启动器需要 Python 3.10+ 和 Git；不会自动安装软件或更改 Codex 设置。仅打开 Codex 应用不会启动连接助手。</small>
+      <p>网页需要一个本机连接助手，才能与本机仿真器、Git 及已安装的 Codex 通信。首次下载后双击 <b>${launcherName}</b>（Windows 用 <code>Start CircuitGit.bat</code>，macOS 用 <code>Start CircuitGit.command</code>）；保持助手运行，然后回来点击连接。</p>
+      <a href="${REPO}/archive/refs/heads/main.zip" target="_blank" rel="noopener noreferrer">下载项目包（含 Windows / macOS 双击启动器） ↗</a>
+      <small>启动器需要 Python 3.11+ 和 Git；不会自动安装软件或更改 Codex 设置。仅打开 Codex 应用不会启动连接助手。</small>
       <a href="${DOCS}" target="_blank" rel="noopener noreferrer">其他系统与安装说明 ↗</a>
     </details>
     <details class="cg-node-advanced"><summary>高级：连接自己的服务器</summary>

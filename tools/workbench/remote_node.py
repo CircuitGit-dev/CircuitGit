@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """Single-owner, opt-in browser node. Keep the engineering gateway loopback-only."""
 import argparse
-import fcntl
 import json
 import os
 from pathlib import Path
 import re
 import secrets
-import stat
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit, urlencode
@@ -21,6 +19,7 @@ from ic_gateway.service import check_pdk_scope_response
 from browser_pairing import Pairing, confirmation_html
 from browser_login import LocalLogin
 from library_workflow import WorkflowError
+from platform_compat import is_owner_private_file, lock_file, unlock_file
 
 MAX_BODY = 16 * 1024 * 1024
 GET_ROUTES = {'catalog', 'context', 'history', 'events', 'models', 'sessions',
@@ -136,7 +135,7 @@ def node_identity(state):
     else:
         with os.fdopen(fd, 'w') as f:
             f.write(secrets.token_urlsafe(32) + '\n')
-    if key.is_symlink() or not key.is_file() or stat.S_IMODE(key.stat().st_mode) & 0o077:
+    if not is_owner_private_file(key):
         raise ValueError('Access key must be an owner-only regular file (mode 0600)')
     token = key.read_text().strip()
     if not re.fullmatch(r'[A-Za-z0-9_-]{43,128}', token):
@@ -518,9 +517,9 @@ def main():
     config = node_config(args.config, args.gateway_url, args.state_dir, args.codex_bin)
     state = Path(config['state_dir']).resolve()
     token, node_id, keyfile = node_identity(state)
-    with (state / 'remote-node.lock').open('a') as lock:
+    with (state / 'remote-node.lock').open('a+b') as lock:
         try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock_file(lock, nonblocking=True)
         except BlockingIOError:
             p.error('Another browser node owns this state directory')
         routes = AiRoutes(Service(config))
@@ -543,6 +542,7 @@ def main():
                 node.login.close()
         finally:
             routes.close()
+            unlock_file(lock)
 
 if __name__ == '__main__':
     main()

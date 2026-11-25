@@ -1,6 +1,7 @@
 """Fixed-repository, isolated runtime Git workspace and signed bundle compiler."""
-import difflib, hashlib, hmac, json, os, re, selectors, shutil, subprocess, time, uuid
+import difflib, hashlib, hmac, json, os, re, shutil, subprocess, time, uuid
 from pathlib import Path, PurePosixPath
+from platform_compat import git_devnull, isolated_popen_kwargs, read_bounded_pipes
 from runner import atomic,locked,filehash
 import ic_sim as core
 import configuration as configuration_schema
@@ -26,32 +27,25 @@ def version_git(root,*args,deadline=None,limit=VERSION_OUTPUT_LIMIT,check=True):
     env.update(GIT_OPTIONAL_LOCKS='0',GIT_NO_LAZY_FETCH='1',GIT_TERMINAL_PROMPT='0',
                GIT_NO_REPLACE_OBJECTS='1',GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_GLOBAL=os.devnull,
                GIT_ATTR_NOSYSTEM='1',GIT_ALLOW_PROTOCOL='',GIT_PROTOCOL_FROM_USER='0',LC_ALL='C')
-    command=['git','--no-pager','--literal-pathspecs','-c','core.hooksPath=/dev/null',
+    devnull=git_devnull()
+    command=['git','--no-pager','--literal-pathspecs','-c','core.hooksPath='+devnull,
              '-c','core.fsmonitor=false','-c','core.untrackedCache=false',
-             '-c','core.attributesFile=/dev/null','-c','core.quotePath=true',
+             '-c','core.attributesFile='+devnull,'-c','core.quotePath=true',
              '-c','protocol.allow=never','-c','submodule.recurse=false',
              '-c','log.showSignature=false','-c','diff.renames=false','-C',str(root),*args]
     if time.monotonic()>=deadline:raise VersionControlError('version_timeout','Local version query timed out')
-    try:p=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,start_new_session=True)
+    try:p=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,**isolated_popen_kwargs())
     except OSError:raise VersionControlError('version_unavailable','Local version information is unavailable') from None
-    stdout=bytearray();sizes={'stdout':0,'stderr':0}
     try:
-        with selectors.DefaultSelector() as selector:
-            selector.register(p.stdout,selectors.EVENT_READ,'stdout');selector.register(p.stderr,selectors.EVENT_READ,'stderr')
-            while selector.get_map():
-                remaining=deadline-time.monotonic()
-                if remaining<=0:raise VersionControlError('version_timeout','Local version query timed out')
-                for key,_ in selector.select(remaining):
-                    chunk=os.read(key.fileobj.fileno(),65536)
-                    if not chunk:selector.unregister(key.fileobj);continue
-                    sizes[key.data]+=len(chunk)
-                    if sizes[key.data]>(limit if key.data=='stdout' else 8192):
-                        raise VersionControlError('version_output_limit','Local version query exceeds output limits',413)
-                    if key.data=='stdout':stdout.extend(chunk)
-            try:p.wait(timeout=max(.001,deadline-time.monotonic()))
-            except subprocess.TimeoutExpired:raise VersionControlError('version_timeout','Local version query timed out') from None
+        stdout=read_bounded_pipes(
+            p,deadline,stdout_limit=limit,stderr_limit=8192,
+            on_timeout=lambda:VersionControlError('version_timeout','Local version query timed out'),
+            on_limit=lambda:VersionControlError('version_output_limit','Local version query exceeds output limits',413),
+        )
+        try:p.wait(timeout=max(.001,deadline-time.monotonic()))
+        except subprocess.TimeoutExpired:raise VersionControlError('version_timeout','Local version query timed out') from None
         if check and p.returncode:raise VersionControlError('version_unavailable','Local version information is unavailable')
-        return subprocess.CompletedProcess(command,p.returncode,bytes(stdout),b'')
+        return subprocess.CompletedProcess(command,p.returncode,stdout,b'')
     finally:
         try:
             if p.poll() is None:
@@ -93,7 +87,7 @@ def project_metadata(project):
     return result
 
 def git(root,*args,input=None,check=True):
-    p=subprocess.run(['git','-c','core.hooksPath=/dev/null','-c','core.fsmonitor=false','-C',str(root),*args],input=input,capture_output=True)
+    p=subprocess.run(['git','-c','core.hooksPath='+git_devnull(),'-c','core.fsmonitor=false','-C',str(root),*args],input=input,capture_output=True)
     if check and p.returncode:raise ValueError(p.stderr.decode(errors='replace')[-1500:])
     return p
 def validate_text(path,text):

@@ -239,9 +239,24 @@ class SessionImages:
     def __init__(self, scratch):
         self.directory = Path(scratch) / 'images'
 
+    @staticmethod
+    def _supports_dir_fd():
+        return (
+            os.name != 'nt'
+            and hasattr(os, 'O_DIRECTORY')
+            and hasattr(os, 'O_NOFOLLOW')
+            and os.open in os.supports_dir_fd
+        )
+
     def _directory_fd(self, create=False):
         if create:
             self.directory.mkdir(mode=0o700, exist_ok=True)
+        if not self._supports_dir_fd():
+            if not self.directory.exists() and not self.directory.is_symlink():
+                raise FileNotFoundError(str(self.directory))
+            if self.directory.is_symlink() or not self.directory.is_dir():
+                raise OSError('Private image directory is not a regular local directory')
+            return None
         fd = os.open(self.directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         if create:
             os.fchmod(fd, 0o700)
@@ -251,8 +266,22 @@ class SessionImages:
         validate_descriptor(descriptor)
         return descriptor['image_id'] + MIME_EXTENSIONS[descriptor['mime_type']]
 
+    def _safe_file_path(self, filename):
+        target = self.directory / filename
+        if target.is_symlink():
+            raise OSError('Refusing to follow image symlink')
+        resolved_dir = self.directory.resolve()
+        if target.resolve(strict=False).parent != resolved_dir:
+            raise OSError('Image path escapes private directory')
+        return target
+
     def _read(self, directory_fd, descriptor):
-        fd = os.open(self._filename(descriptor), os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory_fd)
+        filename = self._filename(descriptor)
+        if directory_fd is not None:
+            fd = os.open(filename, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory_fd)
+        else:
+            from ic_gateway.platform_compat import open_nofollow
+            fd = open_nofollow(self._safe_file_path(filename), os.O_RDONLY)
         with os.fdopen(fd, 'rb') as stream:
             info = os.fstat(stream.fileno())
             check(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size == descriptor['bytes'],
@@ -274,7 +303,11 @@ class SessionImages:
                 check(len(data) == descriptor['bytes'] and hashlib.sha256(data).hexdigest() == descriptor['image_id'],
                       'Prepared image integrity check failed', 'image_integrity_error', 4)
                 try:
-                    fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=directory_fd)
+                    if directory_fd is not None:
+                        fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=directory_fd)
+                    else:
+                        from ic_gateway.platform_compat import open_nofollow
+                        fd = open_nofollow(self._safe_file_path(filename), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
                 except FileExistsError:
                     self._read(directory_fd, descriptor)
                 else:

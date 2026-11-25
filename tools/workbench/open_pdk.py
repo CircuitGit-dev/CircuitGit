@@ -9,9 +9,11 @@ import os
 import re
 from pathlib import Path
 
+from platform_compat import IS_WINDOWS, is_safe_local_abs_path
+
 SCHEMA = 'ic.open-pdk.v1'
 SAFE_CORNER = re.compile(r'^[A-Za-z0-9_.-]{1,64}$')
-SAFE_PATH = re.compile(r'^[A-Za-z0-9_./+-]+$')
+SAFE_REL_PATH = re.compile(r'^[A-Za-z0-9_./ +-]+$')
 
 OPEN_PDK_PROFILES = {
     'builtin': {
@@ -132,13 +134,13 @@ def validate_open_pdk_config(spec):
         raise ValueError(f'Unsupported corner {corner!r} for open_pdk {pdk}')
     root = spec.get('root')
     if profile['requires_root']:
-        if not isinstance(root, str) or not root.startswith('/') or not SAFE_PATH.fullmatch(root):
+        if not is_safe_local_abs_path(root, allow_spaces=True):
             raise ValueError(f'open_pdk {pdk} requires an absolute safe root path')
     elif root is not None:
         raise ValueError('open_pdk builtin does not accept a root path')
     entry_file = spec.get('entry_file')
     if entry_file is not None:
-        if not isinstance(entry_file, str) or not SAFE_PATH.fullmatch(entry_file) or entry_file.startswith('/') or '..' in Path(entry_file).parts:
+        if not isinstance(entry_file, str) or not SAFE_REL_PATH.fullmatch(entry_file) or entry_file.startswith('/') or '..' in Path(entry_file).parts:
             raise ValueError('open_pdk entry_file must be a safe relative path')
     normalized = {'pdk': pdk, 'corner': corner}
     if root is not None:
@@ -214,12 +216,23 @@ def discover_open_pdks(search_roots=None):
             val = os.environ.get(env_key)
             if val:
                 roots.append(Path(val).expanduser())
-        roots.extend([
-            Path('/usr/local/share/pdk'),
-            Path('/opt/homebrew/share/pdk'),
-            Path.home() / '.volare',
-            Path.home() / 'pdk',
-        ])
+        if IS_WINDOWS:
+            local_app = os.environ.get('LOCALAPPDATA')
+            if local_app:
+                roots.extend([Path(local_app) / 'pdk', Path(local_app) / 'volare'])
+            roots.extend([
+                Path.home() / '.volare',
+                Path.home() / 'pdk',
+                Path('C:/pdk'),
+                Path('C:/open_pdks'),
+            ])
+        else:
+            roots.extend([
+                Path('/usr/local/share/pdk'),
+                Path('/opt/homebrew/share/pdk'),
+                Path.home() / '.volare',
+                Path.home() / 'pdk',
+            ])
 
     discovered = []
     seen = set()

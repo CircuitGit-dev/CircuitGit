@@ -16,15 +16,14 @@ import time
 
 from icwb.development import development_info
 from icwb.service import Failure, digest
+from platform_compat import is_owner_private_dir, is_owner_private_file
 
 
 class LocalDevelopment:
     def __init__(self, state, routes, pairing, local_url, clock=time.monotonic, workspace_hint=None):
         self.state = Path(state)
         self.state.mkdir(parents=True, exist_ok=True, mode=0o700)
-        info = self.state.lstat()
-        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
-                or stat.S_IMODE(info.st_mode) & 0o077):
+        if not is_owner_private_dir(self.state):
             raise ValueError('Developer settings require an owner-only directory (mode 0700)')
         self.path = self.state / 'development.local.json'
         self.routes, self.pairing, self.local_url, self.clock = routes, pairing, local_url, clock
@@ -39,9 +38,7 @@ class LocalDevelopment:
         default = {'enabled': False, 'workspace': '', 'access': 'manual'}
         if not self.path.exists() and not self.path.is_symlink():
             return default
-        info = self.path.lstat()
-        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
-                or stat.S_IMODE(info.st_mode) & 0o077 or info.st_size > 8192):
+        if not is_owner_private_file(self.path, max_size=8192):
             raise ValueError('Developer settings must be an owner-only regular file (mode 0600)')
         value = json.loads(self.path.read_text())
         if (not isinstance(value, dict) or set(value) != {'schema', 'enabled', 'workspace', 'access'}

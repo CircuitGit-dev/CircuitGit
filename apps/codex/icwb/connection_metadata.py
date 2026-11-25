@@ -41,20 +41,47 @@ def metadata_error(error, method):
 
 def discover_runtime(config, *, search_path=None, app_roots=None):
     """Return public metadata plus a private executable. Stat/PATH lookup only; no subprocess."""
-    roots = app_roots if app_roots is not None else (
-        Path('/Applications/Codex.app'), Path.home() / 'Applications/Codex.app',
-        Path('/Applications/ChatGPT.app'), Path.home() / 'Applications/ChatGPT.app')
-    roots = [Path(p) for p in roots]
+    is_win = os.name == 'nt'
+    if app_roots is not None:
+        roots = [Path(p) for p in app_roots]
+    elif is_win:
+        local_app = os.environ.get('LOCALAPPDATA')
+        app_data = os.environ.get('APPDATA')
+        roots = [p for p in (
+            Path(local_app) / 'Programs' / 'Codex' if local_app else None,
+            Path(local_app) / 'Codex' if local_app else None,
+            Path(app_data) / 'npm' if app_data else None,
+        ) if p is not None]
+    else:
+        roots = [
+            Path('/Applications/Codex.app'), Path.home() / 'Applications/Codex.app',
+            Path('/Applications/ChatGPT.app'), Path.home() / 'Applications/ChatGPT.app',
+        ]
     # Ignore relative PATH entries, including the empty entry denoting the project cwd.
     env_path = os.environ.get('PATH', '') if search_path is None else search_path
-    path = os.pathsep.join(p for p in env_path.split(os.pathsep) if Path(p).is_absolute())
+    path = os.pathsep.join(p for p in env_path.split(os.pathsep) if p and Path(p).is_absolute())
 
     def executable(candidate):
         try:
             p = Path(candidate).resolve(strict=True)
-            return str(p) if p.is_file() and os.access(p, os.X_OK) else None
+            if not p.is_file():
+                return None
+            if is_win:
+                return str(p)
+            return str(p) if os.access(p, os.X_OK) else None
         except (OSError, RuntimeError, TypeError, ValueError):
             return None
+
+    def which_codex(name='codex'):
+        if not path:
+            return None
+        if is_win and name == 'codex':
+            for candidate_name in ('codex.exe', 'codex.cmd', 'codex'):
+                hit = shutil.which(candidate_name, path=path)
+                if hit:
+                    return hit
+            return None
+        return shutil.which(name, path=path)
 
     selected, source, reason = None, 'none', 'executable_not_found'
     if 'codex_bin' in config:
@@ -65,19 +92,24 @@ def discover_runtime(config, *, search_path=None, app_roots=None):
             reason = 'invalid_executable_configuration'
         else:
             if value == 'codex':
-                selected = executable(shutil.which(value, path=path)) if path else None
+                found = which_codex(value)
+                selected = executable(found) if found else None
             else:
                 selected = executable(value)
             reason = None if selected else 'configured_executable_unavailable'
     else:
-        found = shutil.which('codex', path=path) if path else None
+        found = which_codex('codex')
         selected = executable(found) if found else None
         if selected:
             source, reason = 'path', None
         else:
+            entries = (
+                ('codex.exe', 'resources/codex.exe', 'codex.cmd')
+                if is_win
+                else ('Contents/Resources/codex', 'Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex')
+            )
             for root in roots:
-                for entry in ('Contents/Resources/codex',
-                              'Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex'):
+                for entry in entries:
                     selected = executable(root / entry)
                     if selected:
                         break

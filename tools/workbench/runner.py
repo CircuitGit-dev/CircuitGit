@@ -1,24 +1,22 @@
 """Durable standalone runner. No automatic launch retries, no CIW access."""
-import contextlib, fcntl, hashlib, hmac, json, os, posixpath, re, subprocess, tarfile, time, uuid
+import contextlib, hashlib, hmac, json, os, posixpath, re, subprocess, tarfile, time, uuid
 import csv,io,math
 import copy
 from datetime import datetime, timezone
 from pathlib import Path
 import ic_sim as core
+from platform_compat import chmod_private, file_lock
 
 TERMINAL={'simulator_complete_pending_measurements','simulator_failed','input_hash_failure','job_setup_failed'}
 VA_HEADER_STAGING='netlist/__ic_va_headers__'
 def stamp():return datetime.now(timezone.utc).isoformat()
 def atomic(path,obj):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
-    tmp=path.with_name(path.name+'.'+uuid.uuid4().hex+'.tmp');tmp.write_text(json.dumps(obj,indent=2)+'\n');os.chmod(tmp,0o600);tmp.replace(path)
+    tmp=path.with_name(path.name+'.'+uuid.uuid4().hex+'.tmp');tmp.write_text(json.dumps(obj,indent=2)+'\n');chmod_private(tmp,0o600);tmp.replace(path)
 @contextlib.contextmanager
 def locked(path):
-    Path(path).parent.mkdir(parents=True,exist_ok=True)
-    with open(path,'a') as f:
-        fcntl.flock(f,fcntl.LOCK_EX)
-        try:yield
-        finally:fcntl.flock(f,fcntl.LOCK_UN)
+    with file_lock(path):
+        yield
 def filehash(path):
     h=hashlib.sha256()
     with open(path,'rb') as f:

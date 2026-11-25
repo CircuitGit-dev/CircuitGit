@@ -131,7 +131,7 @@ class Geometry:
 
     def git(self, *args, check=True):
         env = dict(os.environ, GIT_NO_REPLACE_OBJECTS="1", GIT_OPTIONAL_LOCKS="0")
-        result = subprocess.run(["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
+        result = subprocess.run(["git", "-c", "core.hooksPath=" + os.devnull, "-c", "core.fsmonitor=false",
                                  "-C", str(self.workspace.root), *args], capture_output=True, env=env)
         if check and result.returncode:
             raise ValueError("geometry Git object lookup failed")

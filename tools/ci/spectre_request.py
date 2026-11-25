@@ -18,10 +18,10 @@ def execution_mode(settings):
 
 
 def load_settings(path):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools/workbench'))
+    from platform_compat import is_owner_private_file
     path = Path(path)
-    info = path.lstat()
-    if (not stat.S_ISREG(info.st_mode) or info.st_uid not in (0, os.getuid())
-            or info.st_mode & 0o022 or info.st_size > 65536):
+    if not is_owner_private_file(path, max_size=65536, allow_root=True, reject_mode_mask=0o022):
         raise ValueError('Runner settings must be a trusted non-writable regular file')
     value = json.loads(path.read_text())
     if (not isinstance(value, dict) or value.get('schema') != 'circuitgit.spectre-ci.v1' or not isinstance(value.get('testbenches'), dict)

@@ -1,6 +1,5 @@
 """Shared, finite operation API. Never executes repo code, shell, SSH or git."""
 import contextlib
-import fcntl
 import hashlib
 import http.client
 import json
@@ -10,6 +9,8 @@ from pathlib import Path, PurePosixPath
 import re
 import time
 from urllib.parse import urlencode, urlsplit
+
+from .platform_compat import chmod_private, file_lock
 
 
 class Failure(Exception):
@@ -42,7 +43,7 @@ def atom(path, data):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     tmp = path.with_suffix('.tmp')
     with tmp.open('w') as f:
-        os.chmod(tmp, 0o600)
+        chmod_private(tmp, 0o600)
         f.write(canonical(data) + '\n')
         f.flush()
         os.fsync(f.fileno())
@@ -345,8 +346,7 @@ class Service:
 
     @contextlib.contextmanager
     def lock(self):
-        with (self.state / 'requests.lock').open('a') as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
+        with file_lock(self.state / 'requests.lock'):
             yield
 
     def saved(self, category, identity):

@@ -17,15 +17,16 @@ HUMAN_ROUTE = '/api/simulation/onboarding/agent-tb/human-run'
 BODY_FIELDS = ('intake_id', 'revision', 'draft_id', 'plan_id', 'review_id', 'review_digest')
 
 
+from .platform_compat import is_owner_private_file
+
+
 def review_key(key_file):
     from .service import check
     check(isinstance(key_file, (str, Path)) and Path(key_file).is_absolute(),
           'The installed host has no testbench review authority.', 'review_host_unavailable', 4)
     path_key = Path(key_file)
     try:
-        info = path_key.lstat()
-        check(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
-              and not stat.S_IMODE(info.st_mode) & 0o077,
+        check(is_owner_private_file(path_key),
               'The installed review authority is not a private regular file.', 'review_host_unavailable', 4)
         key = path_key.read_bytes()
     except OSError:

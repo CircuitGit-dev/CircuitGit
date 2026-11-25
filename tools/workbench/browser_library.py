@@ -6,9 +6,9 @@ import secrets
 import threading
 import time
 
-READS = {'catalog', 'describe', 'read_file', 'current', 'history', 'commit_detail', 'checkpoints', 'get_ci', 'receipt', 'pr_status', 'get_testbenches', 'get_testbench_result'}
-PREVIEWS = {'preview_save', 'preview_commit', 'preview_restore', 'preview_pr', 'preview_ci', 'preview_testbench'}
-EXECUTIONS = {'save', 'save_files', 'commit', 'restore', 'pr', 'ci'}
+READS = {'catalog', 'describe', 'read_file', 'current', 'history', 'commit_detail', 'checkpoints', 'get_ci', 'receipt', 'pr_status', 'get_testbenches', 'get_testbench_result', 'branches'}
+PREVIEWS = {'preview_save', 'preview_commit', 'preview_restore', 'preview_pr', 'preview_ci', 'preview_testbench', 'preview_create_library', 'preview_create_cell', 'preview_clone_cell', 'preview_create_branch', 'preview_switch_branch'}
+EXECUTIONS = {'save', 'save_files', 'commit', 'restore', 'pr', 'ci', 'create_library', 'create_cell', 'clone_cell', 'create_branch', 'switch_branch'}
 
 
 class LocalLibrary:

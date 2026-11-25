@@ -1,5 +1,6 @@
 """Publish bounded, cell-scoped Git metadata; never application release history or old source text."""
 import json
+import os
 from pathlib import Path
 import subprocess
 
@@ -7,7 +8,7 @@ import subprocess
 def generate(root):
     root = Path(root).resolve()
     def git(*args):
-        return subprocess.check_output(['git','-c','core.hooksPath=/dev/null','-c','core.fsmonitor=false',
+        return subprocess.check_output(['git','-c','core.hooksPath='+os.devnull,'-c','core.fsmonitor=false',
                                         '-C',str(root),*args], timeout=20)
     head = git('rev-parse','HEAD').decode().strip()
     shallow = git('rev-parse','--is-shallow-repository').decode().strip() == 'true'

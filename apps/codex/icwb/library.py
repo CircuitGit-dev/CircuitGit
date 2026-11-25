@@ -62,7 +62,13 @@ def validate_args(value):
                 check(isinstance(row, dict) and set(row) == {'path', 'base_sha256', 'content'}, 'Each file requires exact path/base_sha256/content')
                 check(isinstance(row['path'], str) and isinstance(row['content'], str), 'File path/content must be strings')
                 check(row['base_sha256'] is None or isinstance(row['base_sha256'], str) and re.fullmatch(r'[a-f0-9]{64}', row['base_sha256']), 'Invalid base file hash')
-        elif key == 'enabled': check(type(item) is bool, 'enabled must be boolean')
+        elif key in ('enabled', 'checkout', 'requires_external_models'): check(type(item) is bool, key + ' must be boolean')
+        elif key == 'related_cells':
+            check(isinstance(item, list) and len(item) <= 16, 'related_cells accepts at most 16 items')
+            for row in item:
+                check(isinstance(row, dict) and set(row) == {'library_id', 'cell_id'}
+                      and isinstance(row['library_id'], str) and isinstance(row['cell_id'], str),
+                      'Each related cell requires library_id and cell_id strings')
         elif key == 'limit': check(type(item) is int and 1 <= item <= 100, 'limit must be 1..100')
         elif key == 'testbench_ids': check(isinstance(item, list) and len(item) <= 32 and all(isinstance(x, str) for x in item), 'Invalid testbench IDs')
         elif key in ('base_sha256', 'source_sha256'): check(item is None or isinstance(item, str) and re.fullmatch(r'[a-f0-9]{64}', item), 'Invalid content hash')

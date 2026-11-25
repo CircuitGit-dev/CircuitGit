@@ -2,7 +2,6 @@
 import base64
 import contextlib
 import copy
-import fcntl
 import hashlib
 import http.client
 import json
@@ -10,6 +9,7 @@ import os
 from pathlib import Path
 import uuid
 from urllib.parse import urlencode
+from ic_gateway.platform_compat import file_lock
 from .service import Failure, atom, canonical, check, digest
 from .view_contracts import SCHEMAS, RESOURCES, MIME, VID, COMMIT, HASH, validate
 
@@ -126,10 +126,8 @@ class ViewService:
 
     @contextlib.contextmanager
     def lock(self):
-        with (self.root/'views.lock').open('a') as f:
-            fcntl.flock(f,fcntl.LOCK_EX)
-            try:yield
-            finally:fcntl.flock(f,fcntl.LOCK_UN)
+        with file_lock(self.root/'views.lock'):
+            yield
 
     def resources(self):
         return [{'uri':uri,'name':'ic-'+kind,'description':'Independent '+kind+' MCP App; rendering is host controlled.',

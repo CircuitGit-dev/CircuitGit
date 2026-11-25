@@ -17,6 +17,7 @@ import stat
 import threading
 import time
 
+from platform_compat import is_owner_private_file, open_nofollow
 from runner import atomic, stamp
 from spiceowl_pool import canonical, read_json
 from workspace import Conflict
@@ -30,12 +31,11 @@ def authority_key(path, *, create=False):
     path=Path(path)
     if create:
         path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
-        try:fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+        try:fd=open_nofollow(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         except FileExistsError:pass
         else:
             with os.fdopen(fd,'wb') as stream:stream.write(secrets.token_bytes(32))
-    info=path.lstat()
-    if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077:
+    if not is_owner_private_file(path):
         raise PermissionError('Human review authority must be an owner-private regular file')
     value=path.read_bytes()
     if not 32<=len(value)<=128:raise PermissionError('Invalid human review authority key')

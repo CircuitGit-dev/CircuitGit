@@ -8,17 +8,17 @@ state lives below .local, outside the public library and application packages.
 import contextlib
 import datetime
 import difflib
-import fcntl
 import hashlib
 import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
 import re
-import shlex
 import shutil
 import subprocess
 import tempfile
+
+from platform_compat import file_lock, git_credential_helper, git_devnull
 
 
 SCHEMA = "circuitgit.library-workflow.v1"
@@ -78,9 +78,10 @@ def branch_name(value):
 
 
 class LibraryWorkflow:
-    READ_OPERATIONS = frozenset({"catalog", "describe", "read_file", "current", "history", "commit_detail", "checkpoints", "get_ci", "get_testbenches", "get_testbench_result", "review", "receipt", "pr_status"})
-    PREPARE_OPERATIONS = frozenset({"preview_save", "preview_commit", "preview_restore", "preview_pr", "preview_ci", "preview_testbench"})
-    EXECUTE_OPERATIONS = frozenset({"save", "save_files", "commit", "restore", "pr", "ci"})
+    READ_OPERATIONS = frozenset({"catalog", "describe", "read_file", "current", "history", "commit_detail", "checkpoints", "get_ci", "get_testbenches", "get_testbench_result", "review", "receipt", "pr_status", "branches"})
+    PREPARE_OPERATIONS = frozenset({"preview_save", "preview_commit", "preview_restore", "preview_pr", "preview_ci", "preview_testbench", "preview_create_library", "preview_create_cell", "preview_clone_cell", "preview_create_branch", "preview_switch_branch"})
+    EXECUTE_OPERATIONS = frozenset({"save", "save_files", "commit", "restore", "pr", "ci", "create_library", "create_cell", "clone_cell", "create_branch", "switch_branch"})
+    REPO_OPERATIONS = frozenset({"create_library", "create_cell", "clone_cell", "create_branch", "switch_branch"})
 
     def __init__(self, root, repository, base_branch="main", state_dir=None, ci_registry=None, gh_bin="gh"):
         self.root = Path(root).resolve(strict=True)
@@ -107,12 +108,8 @@ class LibraryWorkflow:
     def _locked(self):
         path = self.state / "workflow.lock"
         self._safe_local(path)
-        with path.open("a+b") as handle:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        with file_lock(path):
+            yield
 
     def _git(self, *args, data=None, index=None, check=True, network=False, identity=None, identity_config=False):
         env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
@@ -123,8 +120,9 @@ class LibraryWorkflow:
             env.pop("GIT_CONFIG_GLOBAL", None)  # Read only the user's configured name/email, never run a Git command from configuration.
         if index:
             env["GIT_INDEX_FILE"] = str(index)
-        command = [self.git_bin, "--no-pager", "--literal-pathspecs", "-c", "core.hooksPath=/dev/null",
-                   "-c", "core.fsmonitor=false", "-c", "core.attributesFile=/dev/null", "-c", "submodule.recurse=false",
+        devnull = git_devnull()
+        command = [self.git_bin, "--no-pager", "--literal-pathspecs", "-c", "core.hooksPath=" + devnull,
+                   "-c", "core.fsmonitor=false", "-c", "core.attributesFile=" + devnull, "-c", "submodule.recurse=false",
                    "-c", "log.showSignature=false", "-c", "diff.renames=false", "-c", "commit.gpgSign=false",
                    "-c", "protocol.allow=never"]
         if identity:
@@ -151,7 +149,7 @@ class LibraryWorkflow:
                 command += ["-c", "filter." + name + ".required=false"]
         if network:
             command += ["-c", "protocol.https.allow=always", "-c", "credential.helper=", "-c",
-                        "credential.helper=!" + shlex.quote(self.gh_bin) + " auth git-credential"]
+                        "credential.helper=" + git_credential_helper(self.gh_bin)]
         command += ["-C", str(self.root), *args]
         try:
             result = subprocess.run(command, input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, timeout=60 if network else 20)
@@ -338,7 +336,9 @@ class LibraryWorkflow:
                 "committer": self._identity(),
                 "files": [{"path": p, "editable": p in scope["editable"] and p != scope["ci_path"]} for p in sorted(scope["paths"])],
                 "capabilities": {"read": True, "save": True, "save_files": True, "execute": True, "commit": self._branch() is not None,
-                                 "restore": True, "pr": True, "ci": bool(self._cell_testbenches(scope)), "testbench_review": self._branch() is not None},
+                                 "restore": True, "pr": True, "ci": bool(self._cell_testbenches(scope)), "testbench_review": self._branch() is not None,
+                                 "branches": True, "create_library": self._branch() is not None, "create_cell": self._branch() is not None,
+                                 "clone_cell": self._branch() is not None, "create_branch": True, "switch_branch": True},
                 "provenance_note": "Recorded import provenance remains historical; saved source edits are new working revisions."}
 
     def catalog(self):
@@ -882,34 +882,409 @@ class LibraryWorkflow:
                 return result.stdout.decode().strip()
         raise WorkflowError("base_unavailable", "The configured base branch is not available locally", 409)
 
-    def preview_pr(self, library_id, cell_id, commit, title, body="", branch=None, base_branch=None, action="create"):
+    def _working_dirty(self):
+        out = self._git("status", "--porcelain=v1", "-z", "--untracked-files=no").stdout
+        return bool(out)
+
+    def branches(self):
+        """List local Git branches and working-tree cleanliness without network I/O."""
+        head = self._head()
+        current = self._branch()
+        raw = self._git("for-each-ref", "--format=%(refname:short)\t%(objectname)", "refs/heads").stdout.decode("utf-8")
+        items = []
+        for line in raw.splitlines():
+            if not line.strip():
+                continue
+            name, commit = line.split("\t", 1)
+            items.append({
+                "name": name,
+                "commit": commit,
+                "is_current": name == current,
+                "is_base": name == self.base_branch,
+            })
+        return {
+            "schema": SCHEMA,
+            "repository": self.repository,
+            "current_branch": current,
+            "base_branch": self.base_branch,
+            "head": head,
+            "dirty": self._working_dirty(),
+            "branches": items,
+        }
+
+    def _repo_review(self, operation, base_commit, scope_hash, payload, diff="", summary="", library_id=None, cell_id=None):
+        review = {
+            "schema": SCHEMA,
+            "operation": operation,
+            "library_id": library_id,
+            "cell_id": cell_id,
+            "repository": self.repository,
+            "branch": self._branch(),
+            "base_commit": base_commit,
+            "scope_hash": scope_hash,
+            "summary": summary,
+            "diff": diff,
+            "payload": payload,
+        }
+        rid = digest(review)
+        self._append(self.state / "reviews" / (rid + ".json"), review)
+        return {**review, "review_id": rid}
+
+    def preview_create_library(self, library_id, name, base_commit, description=""):
+        lid = identifier(library_id)
+        head = self._head()
+        require(base_commit == head and self._branch() is not None, "Base commit changed or checkout is detached", "conflict", 409)
+        require(isinstance(name, str) and 0 < len(name.strip()) <= 120 and not any(ord(c) < 32 for c in name), "Invalid library name")
+        require(isinstance(description, str) and len(description) <= 2000 and "\0" not in description and not PRIVATE.search(name + "\n" + description), "Invalid library description")
+        catalog, catalog_hash = self._json_blob(head, "lib/catalog.json")
+        require(catalog.get("schema") == "circuitgit.libraries.v1" and isinstance(catalog.get("libraries"), list), "Invalid committed catalog")
+        require(not any(isinstance(item, dict) and item.get("id") == lid for item in catalog["libraries"]), "Library already exists", "conflict", 409)
+        manifest_path = "lib/" + lid + "/library.json"
+        require(self._blob(head, manifest_path) is None and self._file(manifest_path) is None, "Library manifest already exists", "conflict", 409)
+        require(self._file("lib/catalog.json") == self._blob(head, "lib/catalog.json"), "lib/catalog.json has uncommitted edits; commit or revert first", "conflict", 409)
+        updated_catalog = {
+            **catalog,
+            "libraries": [
+                *catalog["libraries"],
+                {"id": lid, "name": name.strip(), "description": description.strip(), "manifest": manifest_path},
+            ],
+        }
+        new_manifest = {
+            "schema": "circuitgit.library.v1",
+            "id": lid,
+            "name": name.strip(),
+            "description": description.strip(),
+            "cells": [],
+        }
+        catalog_text = json.dumps(updated_catalog, indent=2, ensure_ascii=False) + "\n"
+        manifest_text = json.dumps(new_manifest, indent=2, ensure_ascii=False) + "\n"
+        self._content("lib/catalog.json", catalog_text)
+        self._content(manifest_path, manifest_text)
+        snapshots = [
+            {"path": "lib/catalog.json", "base_sha256": catalog_hash, "sha256": digest(catalog_text.encode()), "content": catalog_text},
+            {"path": manifest_path, "base_sha256": None, "sha256": digest(manifest_text.encode()), "content": manifest_text},
+        ]
+        diff = self._diff("lib/catalog.json", self._blob(head, "lib/catalog.json"), catalog_text.encode()) + self._diff(manifest_path, None, manifest_text.encode())
+        return self._repo_review(
+            "create_library",
+            head,
+            digest([catalog_hash, "create_library", lid]),
+            {
+                "library_id": lid,
+                "name": name.strip(),
+                "description": description.strip(),
+                "files": ["lib/catalog.json", manifest_path],
+                "snapshots": snapshots,
+                "message": f"Create library {lid}",
+                "committer": self._identity(),
+            },
+            diff=diff,
+            summary=f"Create circuit library {lid} and commit its manifest locally",
+            library_id=lid,
+        )
+
+    def _default_cell_netlist(self, cell_id):
+        safe_subckt = re.sub(r"[^A-Za-z0-9_]", "_", cell_id)
+        if not safe_subckt or not safe_subckt[0].isalpha():
+            safe_subckt = "CELL_" + safe_subckt
+        return (
+            "simulator lang=spectre\n"
+            f"subckt {safe_subckt} IN OUT VDD VSS\n"
+            "    R0 (IN OUT) resistor r=1k\n"
+            "// @RNL(author=\"circuitgit-starter\") {\n"
+            "//   #\"R0\" @PLACE(0, 0) => @ORIENT(\"R0\");\n"
+            "//   %in = @PLACE(-18, 0);\n"
+            "//   %out = @PLACE(18, 0);\n"
+            "//   &\"IN\" @WIRE(mode=\"straight\") {%in #\"R0\":1};\n"
+            "//   &\"OUT\" @WIRE(mode=\"straight\") {#\"R0\":2 %out};\n"
+            "// }\n"
+            f"ends {safe_subckt}\n"
+        )
+
+    def preview_create_cell(self, library_id, cell_id, base_commit, name=None, description="", kind="circuit", content=None, readme=None, requires_external_models=False):
+        lid, cid = identifier(library_id), identifier(cell_id)
+        head = self._head()
+        require(base_commit == head and self._branch() is not None, "Base commit changed or checkout is detached", "conflict", 409)
+        cell_name = (name if name is not None else cid).strip()
+        require(0 < len(cell_name) <= 120 and not any(ord(c) < 32 for c in cell_name), "Invalid cell name")
+        require(isinstance(description, str) and len(description) <= 2000 and "\0" not in description, "Invalid cell description")
+        require(kind in {"circuit", "testbench", "subcircuit", "symbol"}, "Unsupported cell kind")
+        require(isinstance(requires_external_models, bool), "requires_external_models must be boolean")
+        catalog, catalog_hash = self._json_blob(head, "lib/catalog.json")
+        manifest_path = "lib/" + lid + "/library.json"
+        require(any(isinstance(item, dict) and item.get("id") == lid and item.get("manifest") == manifest_path for item in catalog.get("libraries", [])), "Library is not registered", "not_found", 404)
+        manifest, manifest_hash = self._json_blob(head, manifest_path)
+        require(manifest.get("schema") == "circuitgit.library.v1" and manifest.get("id") == lid and isinstance(manifest.get("cells"), list), "Invalid library manifest")
+        require(not any(isinstance(c, dict) and c.get("id") == cid for c in manifest["cells"]), "Cell already exists in library", "conflict", 409)
+        require(self._file(manifest_path) == self._blob(head, manifest_path), "Library manifest has uncommitted edits; commit or revert first", "conflict", 409)
+
+        directory = f"lib/{lid}/{cid}"
+        scs_path = f"{directory}/schematic/{cid}.scs"
+        readme_path = f"{directory}/README.md"
+        for p in (scs_path, readme_path):
+            require(self._blob(head, p) is None and self._file(p) is None, "Target cell file already exists: " + p, "conflict", 409)
+
+        scs_text = self._default_cell_netlist(cid) if content is None else content
+        readme_text = (f"# {cell_name}\n\n{description.strip() or 'Circuit cell created in CircuitGit.'}\n") if readme is None else readme
+        self._content(scs_path, scs_text)
+        self._content(readme_path, readme_text)
+
+        new_cell = {
+            "id": cid,
+            "name": cell_name,
+            "description": description.strip(),
+            "directory": directory,
+            "kind": kind,
+            "readme": readme_path,
+            "project_id": None,
+            "requires_external_models": requires_external_models,
+            "views": [
+                {"id": "schematic", "label": "Schematic", "kind": "rnl", "entry": scs_path, "files": [scs_path]},
+                {"id": "docs", "label": "Documentation", "kind": "markdown", "entry": readme_path, "files": [readme_path]},
+            ],
+        }
+        updated_manifest = {**manifest, "cells": [*manifest["cells"], new_cell]}
+        manifest_text = json.dumps(updated_manifest, indent=2, ensure_ascii=False) + "\n"
+        self._content(manifest_path, manifest_text)
+        snapshots = [
+            {"path": manifest_path, "base_sha256": manifest_hash, "sha256": digest(manifest_text.encode()), "content": manifest_text},
+            {"path": scs_path, "base_sha256": None, "sha256": digest(scs_text.encode()), "content": scs_text},
+            {"path": readme_path, "base_sha256": None, "sha256": digest(readme_text.encode()), "content": readme_text},
+        ]
+        diff = (
+            self._diff(manifest_path, self._blob(head, manifest_path), manifest_text.encode())
+            + self._diff(scs_path, None, scs_text.encode())
+            + self._diff(readme_path, None, readme_text.encode())
+        )
+        return self._repo_review(
+            "create_cell",
+            head,
+            digest([catalog_hash, manifest_hash, "create_cell", lid, cid]),
+            {
+                "library_id": lid,
+                "cell_id": cid,
+                "directory": directory,
+                "entry": scs_path,
+                "files": [s["path"] for s in snapshots],
+                "snapshots": snapshots,
+                "message": f"Create cell {lid}/{cid}",
+                "committer": self._identity(),
+            },
+            diff=diff,
+            summary=f"Create cell {lid}/{cid} and commit it to the current branch",
+            library_id=lid,
+            cell_id=cid,
+        )
+
+    def preview_clone_cell(self, source_library_id, source_cell_id, library_id, cell_id, base_commit, name=None, description=None):
+        src_lid, src_cid = identifier(source_library_id), identifier(source_cell_id)
+        dst_lid, dst_cid = identifier(library_id), identifier(cell_id)
+        head = self._head()
+        require(base_commit == head and self._branch() is not None, "Base commit changed or checkout is detached", "conflict", 409)
+        src_scope = self._scope(src_lid, src_cid)
+        catalog, catalog_hash = self._json_blob(head, "lib/catalog.json")
+        manifest_path = "lib/" + dst_lid + "/library.json"
+        require(any(isinstance(item, dict) and item.get("id") == dst_lid and item.get("manifest") == manifest_path for item in catalog.get("libraries", [])), "Target library is not registered", "not_found", 404)
+        manifest, manifest_hash = self._json_blob(head, manifest_path)
+        require(not any(isinstance(c, dict) and c.get("id") == dst_cid for c in manifest.get("cells", [])), "Target cell already exists", "conflict", 409)
+        require(self._file(manifest_path) == self._blob(head, manifest_path), "Target library manifest has uncommitted edits", "conflict", 409)
+
+        src_dir = src_scope["cell"]["directory"]
+        dst_dir = f"lib/{dst_lid}/{dst_cid}"
+        src_cell = src_scope["cell"]
+        snapshots = []
+        path_map = {}
+
+        # Copy only files physically owned inside the source cell directory (shared dependencies stay referenced once).
+        owned_sources = sorted(
+            p for p in src_scope["source_paths"]
+            if p.startswith(src_dir + "/") and not p.endswith(("/docs/provenance.json", "/provenance.json"))
+        )
+        require(bool(owned_sources) and len(owned_sources) <= 100, "Source cell has no cloneable owned files or exceeds clone limit")
+        for old_path in owned_sources:
+            rel = old_path[len(src_dir) + 1:]
+            new_path = f"{dst_dir}/{rel}"
+            require(self._blob(head, new_path) is None and self._file(new_path) is None, "Target file already exists: " + new_path, "conflict", 409)
+            raw = self._blob(head, old_path)
+            require(raw is not None, "Source cell file missing at HEAD: " + old_path)
+            text = raw.decode("utf-8")
+            self._content(new_path, text)
+            path_map[old_path] = new_path
+            snapshots.append({"path": new_path, "base_sha256": None, "sha256": digest(raw), "content": text})
+
+        new_views = []
+        for view in src_cell.get("views", []):
+            mapped_files = []
+            for fp in view.get("files", []):
+                if fp in path_map:
+                    mapped_files.append(path_map[fp])
+                elif not fp.startswith(src_dir + "/"):
+                    # Retain shared dependency reference without copying.
+                    mapped_files.append(fp)
+            if not mapped_files:
+                continue
+            entry = path_map.get(view["entry"], view["entry"])
+            if entry not in mapped_files:
+                entry = mapped_files[0]
+            cloned_view = {**view, "entry": entry, "files": mapped_files}
+            if "aliases" in cloned_view and isinstance(cloned_view["aliases"], dict):
+                cloned_view["aliases"] = {k: path_map.get(v, v) for k, v in cloned_view["aliases"].items()}
+            new_views.append(cloned_view)
+
+        new_readme = path_map.get(src_cell["readme"], f"{dst_dir}/README.md")
+        if new_readme not in {s["path"] for s in snapshots}:
+            readme_text = f"# {name or dst_cid}\n\nCloned from `{src_lid}/{src_cid}` at `{head[:12]}`.\n"
+            self._content(new_readme, readme_text)
+            snapshots.append({"path": new_readme, "base_sha256": None, "sha256": digest(readme_text.encode()), "content": readme_text})
+
+        cell_name = (name if name is not None else dst_cid).strip()
+        cell_desc = (description if description is not None else f"Cloned from {src_lid}/{src_cid}").strip()
+        new_cell = {
+            "id": dst_cid,
+            "name": cell_name,
+            "description": cell_desc,
+            "directory": dst_dir,
+            "kind": src_cell.get("kind", "circuit"),
+            "readme": new_readme,
+            "project_id": None,
+            "requires_external_models": bool(src_cell.get("requires_external_models", False)),
+            "views": new_views,
+        }
+        updated_manifest = {**manifest, "cells": [*manifest["cells"], new_cell]}
+        manifest_text = json.dumps(updated_manifest, indent=2, ensure_ascii=False) + "\n"
+        self._content(manifest_path, manifest_text)
+        snapshots.insert(0, {"path": manifest_path, "base_sha256": manifest_hash, "sha256": digest(manifest_text.encode()), "content": manifest_text})
+        diff = self._diff(manifest_path, self._blob(head, manifest_path), manifest_text.encode())
+        for snap in snapshots[1:]:
+            diff += self._diff(snap["path"], None, snap["content"].encode())
+        require(len(diff.encode()) <= MAX_DIFF, "Clone diff exceeds review limit", "diff_limit", 413)
+        return self._repo_review(
+            "clone_cell",
+            head,
+            digest([catalog_hash, manifest_hash, src_scope["scope_hash"], "clone_cell", dst_lid, dst_cid]),
+            {
+                "source_library_id": src_lid,
+                "source_cell_id": src_cid,
+                "library_id": dst_lid,
+                "cell_id": dst_cid,
+                "directory": dst_dir,
+                "files": [s["path"] for s in snapshots],
+                "snapshots": snapshots,
+                "message": f"Clone cell {src_lid}/{src_cid} to {dst_lid}/{dst_cid}",
+                "committer": self._identity(),
+            },
+            diff=diff,
+            summary=f"Clone cell {src_lid}/{src_cid} into {dst_lid}/{dst_cid} locally",
+            library_id=dst_lid,
+            cell_id=dst_cid,
+        )
+
+    def preview_create_branch(self, branch, base_commit, from_ref=None, checkout=True):
+        target = branch_name(branch)
+        head = self._head()
+        require(base_commit == head, "Base commit changed; refresh branch state first", "conflict", 409)
+        require(target != self.base_branch, "Cannot create a branch with the base branch name", "conflict", 409)
+        require(isinstance(checkout, bool), "checkout must be boolean")
+        exists = self._git("show-ref", "--verify", "--quiet", "refs/heads/" + target, check=False).returncode == 0
+        require(not exists, "Branch already exists: " + target, "conflict", 409)
+        if from_ref is not None:
+            require(isinstance(from_ref, str) and (SHA.fullmatch(from_ref) or branch_name(from_ref)), "Invalid from_ref")
+            resolved = self._git("rev-parse", "--verify", "--end-of-options", from_ref + "^{commit}", check=False)
+            require(resolved.returncode == 0, "Base reference not found: " + from_ref, "not_found", 404)
+            start_commit = resolved.stdout.decode().strip()
+        else:
+            start_commit = head
+        if checkout:
+            require(not self._working_dirty(), "Working tree has uncommitted changes; commit or save before switching branches", "conflict", 409)
+        return self._repo_review(
+            "create_branch",
+            head,
+            digest(["create_branch", target, start_commit, checkout]),
+            {"branch": target, "start_commit": start_commit, "checkout": checkout, "previous_branch": self._branch()},
+            diff="",
+            summary=f"Create local branch {target} at {start_commit[:12]}" + (" and switch to it" if checkout else ""),
+        )
+
+    def preview_switch_branch(self, branch, base_commit):
+        target = branch_name(branch)
+        head = self._head()
+        require(base_commit == head, "Base commit changed; refresh branch state first", "conflict", 409)
+        resolved = self._git("rev-parse", "--verify", "--end-of-options", "refs/heads/" + target + "^{commit}", check=False)
+        require(resolved.returncode == 0, "Local branch does not exist: " + target, "not_found", 404)
+        require(not self._working_dirty(), "Working tree has uncommitted changes; commit before switching branches", "conflict", 409)
+        target_commit = resolved.stdout.decode().strip()
+        return self._repo_review(
+            "switch_branch",
+            head,
+            digest(["switch_branch", target, target_commit]),
+            {"branch": target, "target_commit": target_commit, "previous_branch": self._branch()},
+            diff="",
+            summary=f"Switch local checkout to branch {target} ({target_commit[:12]})",
+        )
+
+    def preview_pr(self, library_id, cell_id, commit, title, body="", branch=None, base_branch=None, action="create", related_cells=None):
         scope = self._scope(library_id, cell_id)
         self._reachable(commit, scope["head"])
         require(base_branch in (None, self.base_branch), "PR base differs from the configured base branch")
         require(action in {"create", "update"}, "Choose create or update PR")
         require(isinstance(title, str) and 0 < len(title.strip()) <= 120 and not any(ord(c) < 32 for c in title), "Invalid PR title")
         require(isinstance(body, str) and len(body) <= 16000 and "\0" not in body and not PRIVATE.search(title + "\n" + body), "Invalid or private PR description")
+        related_scopes = []
+        related_identities = []
+        if related_cells is not None:
+            require(isinstance(related_cells, list) and len(related_cells) <= 16, "related_cells accepts at most 16 entries")
+            seen_rel = {(scope["library_id"], scope["cell_id"])}
+            for item in related_cells:
+                require(isinstance(item, dict) and set(item) == {"library_id", "cell_id"}, "Each related cell requires exact library_id and cell_id")
+                pair = (identifier(item["library_id"]), identifier(item["cell_id"]))
+                if pair in seen_rel:
+                    continue
+                seen_rel.add(pair)
+                related_scopes.append(self._scope(pair[0], pair[1]))
+                related_identities.append({"library_id": pair[0], "cell_id": pair[1]})
         base = self._base()
         self._reachable(base, commit)
+        all_scopes = [scope, *related_scopes]
+        allowed_files = set()
+        for item_scope in all_scopes:
+            allowed_files |= item_scope["editable"] | item_scope["bundle_paths"]
+            # Allow owning library manifest (and catalog if library is new) when a cell/library is newly added relative to base.
+            lib_manifest = "lib/" + item_scope["library_id"] + "/library.json"
+            base_manifest = self._blob(base, lib_manifest)
+            if base_manifest is None:
+                allowed_files.add("lib/catalog.json")
+                allowed_files.add(lib_manifest)
+            else:
+                try:
+                    base_cells = {c.get("id") for c in json.loads(base_manifest).get("cells", []) if isinstance(c, dict)}
+                except ValueError:
+                    base_cells = set()
+                if item_scope["cell_id"] not in base_cells:
+                    allowed_files.add(lib_manifest)
         files = self._git("diff", "--no-ext-diff", "--no-textconv", "--name-only", "-z", base, commit).stdout.decode().rstrip("\0").split("\0")
-        require(files != [""] and set(files) <= scope["editable"] | scope["bundle_paths"], "PR contains changes outside the selected cell; prepare a cell-only branch first", "out_of_scope", 409)
-        if set(files) & scope["bundle_paths"]:
-            require(commit == scope["head"], "Publish the exact current reviewed Testbench CI version", "conflict", 409)
-            for bundle in self.get_testbenches(library_id, cell_id)["bundles"]:
-                prefix = scope["cell"]["directory"] + "/testbenches/" + bundle["id"] + "/"
-                if any(path.startswith(prefix) for path in files):
-                    self.testbench_registration(library_id, cell_id, bundle["id"], bundle["registration_commit"], bundle["binding"])
+        require(files != [""] and set(files) <= allowed_files, "PR contains changes outside the selected cell(s); declare related_cells or prepare a scoped branch first", "out_of_scope", 409)
+        for item_scope in all_scopes:
+            if set(files) & item_scope["bundle_paths"]:
+                require(commit == scope["head"], "Publish the exact current reviewed Testbench CI version", "conflict", 409)
+                for bundle in self.get_testbenches(item_scope["library_id"], item_scope["cell_id"])["bundles"]:
+                    prefix = item_scope["cell"]["directory"] + "/testbenches/" + bundle["id"] + "/"
+                    if any(path.startswith(prefix) for path in files):
+                        self.testbench_registration(item_scope["library_id"], item_scope["cell_id"], bundle["id"], bundle["registration_commit"], bundle["binding"])
+        ci_by_path = {item_scope["ci_path"]: item_scope for item_scope in all_scopes}
         for path in files:
             content = self._blob(commit, path)
             require(content is not None, "Deletion is not supported by the library PR workflow")
             self._content(path, content.decode("utf-8"))
-            if path == scope["ci_path"]:
-                self._validate_ci(scope, json.loads(content))
+            if path in ci_by_path:
+                self._validate_ci(ci_by_path[path], json.loads(content))
         branch = self._pr_branch(scope, branch or "codex/library/" + library_id + "/" + cell_id + "-" + commit[:12])
         diff = "".join(self._diff(path, self._blob(base, path), self._blob(commit, path)) for path in files)
         require(len(diff.encode()) <= MAX_DIFF, "PR diff exceeds review bounds", "diff_limit", 413)
-        return self._review(scope, "pr", {"commit": commit, "pr_branch": branch, "base_branch": self.base_branch,
-                            "base_sha": base, "title": title, "body": body, "action": action, "files": files}, diff,
+        payload = {"commit": commit, "pr_branch": branch, "base_branch": self.base_branch,
+                   "base_sha": base, "title": title, "body": body, "action": action, "files": files}
+        if related_identities:
+            payload["related_cells"] = related_identities
+        return self._review(scope, "pr", payload, diff,
                             "Push the exact reviewed commit and " + action + " its pull request; never merge or force-push")
 
     def _pr_branch(self, scope, branch):
@@ -1013,37 +1388,49 @@ class LibraryWorkflow:
                 existing = self._record(folder / "request.json")
                 require(existing["review_id"] == review_id, "Idempotency key belongs to another frozen review", "conflict", 409)
                 return self.receipt(operation_id=oid)
-            scope = self._scope(review["library_id"], review["cell_id"])
-            require(scope["head"] == review["base_commit"] and scope["scope_hash"] == review["scope_hash"]
-                    and self._branch() == review["branch"], "Repository, source base or library inventory changed; prepare again", "conflict", 409)
             payload, operation = review["payload"], review["operation"]
-            if operation in {"save", "save_files", "restore", "ci"}:
-                for item in payload["changes"] if operation == "save_files" else [payload]:
-                    before = self._file(item["path"])
-                    require((digest(before) if before is not None else None) == item["base_sha256"], "Source changed after request preparation", "conflict", 409)
-                    require(item["checkpoint_base"] == self._checkpoint_base(scope, item["path"]),
-                            "File save history changed after request preparation; prepare again", "conflict", 409)
-                if operation == "ci":
-                    require(payload["registry_hash"] == digest(self.ci_registry), "Testbench registry changed after preview", "conflict", 409)
-            elif operation == "commit":
-                refreshed = self.preview_commit(scope["library_id"], scope["cell_id"], scope["head"], message=payload["message"])
-                require(refreshed["review_id"] == review_id, "Commit changes differ from the reviewed diff", "conflict", 409)
-            elif operation == "pr":
-                refreshed = self.preview_pr(scope["library_id"], scope["cell_id"], payload["commit"], payload["title"], payload["body"], payload["pr_branch"], payload["base_branch"], payload["action"])
-                require(refreshed["review_id"] == review_id, "PR base or reviewed scope changed", "conflict", 409)
-            elif operation == "register_testbench":
-                require(payload.get("human_review_required") is True, "Missing Testbench CI human-review declaration")
-                require(self._testbench_source(scope, require_clean=True) == payload["source"], "Cell source changed after testbench review", "conflict", 409)
-                self._agent_testbench_manifest(payload["manifest"])
-                for item in payload["snapshots"]:
-                    before = self._file(item["path"])
-                    require((digest(before) if before is not None else None) == item["base_sha256"]
-                            and digest(item["content"].encode()) == item["sha256"], "Testbench bytes changed after review", "conflict", 409)
-                    require(item["checkpoint_base"] == self._checkpoint_base(scope, item["path"]), "Testbench save history changed after review", "conflict", 409)
-                require(not self._git("diff", "--cached", "--name-only", "-z", "--", *payload["files"]).stdout,
-                        "Testbench paths gained staged changes after review", "conflict", 409)
+            if operation in self.REPO_OPERATIONS:
+                require(self._head() == review["base_commit"] and self._branch() == review["branch"],
+                        "Repository state changed after request preparation; prepare again", "conflict", 409)
+                if operation in {"create_library", "create_cell", "clone_cell"}:
+                    for item in payload["snapshots"]:
+                        before = self._file(item["path"])
+                        require((digest(before) if before is not None else None) == item["base_sha256"],
+                                "Target library file changed after preparation", "conflict", 409)
+                elif operation in {"create_branch", "switch_branch"}:
+                    if operation == "switch_branch" or payload.get("checkout"):
+                        require(not self._working_dirty(), "Working tree gained uncommitted edits; commit before switching branches", "conflict", 409)
             else:
-                raise WorkflowError("invalid_review", "Unsupported frozen workflow operation")
+                scope = self._scope(review["library_id"], review["cell_id"])
+                require(scope["head"] == review["base_commit"] and scope["scope_hash"] == review["scope_hash"]
+                        and self._branch() == review["branch"], "Repository, source base or library inventory changed; prepare again", "conflict", 409)
+                if operation in {"save", "save_files", "restore", "ci"}:
+                    for item in payload["changes"] if operation == "save_files" else [payload]:
+                        before = self._file(item["path"])
+                        require((digest(before) if before is not None else None) == item["base_sha256"], "Source changed after request preparation", "conflict", 409)
+                        require(item["checkpoint_base"] == self._checkpoint_base(scope, item["path"]),
+                                "File save history changed after request preparation; prepare again", "conflict", 409)
+                    if operation == "ci":
+                        require(payload["registry_hash"] == digest(self.ci_registry), "Testbench registry changed after preview", "conflict", 409)
+                elif operation == "commit":
+                    refreshed = self.preview_commit(scope["library_id"], scope["cell_id"], scope["head"], message=payload["message"])
+                    require(refreshed["review_id"] == review_id, "Commit changes differ from the reviewed diff", "conflict", 409)
+                elif operation == "pr":
+                    refreshed = self.preview_pr(scope["library_id"], scope["cell_id"], payload["commit"], payload["title"], payload["body"], payload["pr_branch"], payload["base_branch"], payload["action"], related_cells=payload.get("related_cells"))
+                    require(refreshed["review_id"] == review_id, "PR base or reviewed scope changed", "conflict", 409)
+                elif operation == "register_testbench":
+                    require(payload.get("human_review_required") is True, "Missing Testbench CI human-review declaration")
+                    require(self._testbench_source(scope, require_clean=True) == payload["source"], "Cell source changed after testbench review", "conflict", 409)
+                    self._agent_testbench_manifest(payload["manifest"])
+                    for item in payload["snapshots"]:
+                        before = self._file(item["path"])
+                        require((digest(before) if before is not None else None) == item["base_sha256"]
+                                and digest(item["content"].encode()) == item["sha256"], "Testbench bytes changed after review", "conflict", 409)
+                        require(item["checkpoint_base"] == self._checkpoint_base(scope, item["path"]), "Testbench save history changed after review", "conflict", 409)
+                    require(not self._git("diff", "--cached", "--name-only", "-z", "--", *payload["files"]).stdout,
+                            "Testbench paths gained staged changes after review", "conflict", 409)
+                else:
+                    raise WorkflowError("invalid_review", "Unsupported frozen workflow operation")
             self._append(folder / "request.json", {"review_id": review_id, "operation": operation, "created_at": now()})
             try:
                 if operation == "save_files":
@@ -1054,6 +1441,12 @@ class LibraryWorkflow:
                     result = self._apply_commit(review, oid)
                 elif operation == "register_testbench":
                     result = self._apply_register_testbench(review, oid)
+                elif operation in {"create_library", "create_cell", "clone_cell"}:
+                    result = self._apply_crud_commit(review, oid)
+                elif operation == "create_branch":
+                    result = self._apply_create_branch(review, oid)
+                elif operation == "switch_branch":
+                    result = self._apply_switch_branch(review, oid)
                 else:
                     result = self._apply_pr(review, oid)
                 result = {**result, "schema": SCHEMA, "operation_id": oid, "review_id": review_id,
@@ -1190,6 +1583,54 @@ class LibraryWorkflow:
             if os.path.exists(index):
                 os.unlink(index)
 
+    def _apply_crud_commit(self, review, oid):
+        payload = review["payload"]
+        saved = self._apply_save_files({**review, "payload": {**payload, "changes": payload["snapshots"]}}, oid)
+        if saved.get("state", "complete") != "complete":
+            return {**saved, "operation": review["operation"]}
+        committed = self._apply_commit(review, oid)
+        return {
+            **committed,
+            "operation": review["operation"],
+            "library_id": review.get("library_id"),
+            "cell_id": review.get("cell_id"),
+            "directory": payload.get("directory"),
+            "entry": payload.get("entry"),
+            "checkpoint_ids": saved["checkpoint_ids"],
+        }
+
+    def _apply_create_branch(self, review, oid):
+        payload = review["payload"]
+        target = payload["branch"]
+        start_commit = payload["start_commit"]
+        if payload.get("checkout", True):
+            self._git("checkout", "-b", target, start_commit)
+        else:
+            self._git("branch", target, start_commit)
+        return {
+            "operation": "create_branch",
+            "branch": target,
+            "previous_branch": payload.get("previous_branch"),
+            "commit": start_commit,
+            "base_commit": self._head(),
+            "checked_out": bool(payload.get("checkout", True)),
+            "automatic_push": False,
+        }
+
+    def _apply_switch_branch(self, review, oid):
+        payload = review["payload"]
+        target = payload["branch"]
+        self._git("checkout", target)
+        head = self._head()
+        return {
+            "operation": "switch_branch",
+            "branch": target,
+            "previous_branch": payload.get("previous_branch"),
+            "commit": head,
+            "base_commit": head,
+            "automatic_push": False,
+        }
+
     def _apply_pr(self, review, oid):
         payload = review["payload"]
         branch = payload["pr_branch"]
@@ -1233,7 +1674,7 @@ class LibraryWorkflow:
         args = dict(payload)
         if operation != "describe":
             args.pop("published_entry", None); args.pop("source_sha256", None)
-        if operation in {"review", "receipt"}:
+        if operation in {"review", "receipt", "branches"}:
             args.pop("library_id", None); args.pop("cell_id", None)
         try:
             return getattr(self, operation)(**args)

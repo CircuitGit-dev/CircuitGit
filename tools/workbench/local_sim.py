@@ -16,15 +16,28 @@ import shlex
 import shutil
 import socket
 import subprocess
+import sys
 import tarfile
 from pathlib import Path, PurePosixPath
 
 from open_pdk import resolve_open_pdk, validate_open_pdk_config
+from platform_compat import (
+    IS_WINDOWS,
+    chmod_private,
+    detached_popen_kwargs,
+    is_safe_local_abs_path,
+    path_basename,
+    pid_alive,
+)
 from spice_netlist import compile_payload_to_spice
 
 LOCAL_SITE_SCHEMA = 'ic.sim.local-site.v1'
 ENGINES = ('ngspice', 'xyce')
 SAFE = re.compile(r'^[A-Za-z0-9_./+-]+$')
+
+
+def _safe_abs_path(value):
+    return is_safe_local_abs_path(value, allow_spaces=True)
 
 
 def _sha256_bytes(data):
@@ -76,20 +89,20 @@ def validate_local_site(raw_site):
         raise ValueError('Unsupported local simulator engine: ' + str(engine))
 
     sim_bin = raw_site.get('simulator_bin')
-    if not isinstance(sim_bin, str) or not sim_bin.startswith('/') or not SAFE.fullmatch(sim_bin):
+    if not _safe_abs_path(sim_bin):
         raise ValueError('Local site simulator_bin must be a safe absolute path')
 
     runs_root = raw_site.get('runs_root') or raw_site.get('remote_runs_root')
-    if not isinstance(runs_root, str) or not runs_root.startswith('/') or not SAFE.fullmatch(runs_root):
+    if not _safe_abs_path(runs_root):
         raise ValueError('Local site runs_root must be a safe absolute path')
-    if PurePosixPath(runs_root).name != 'ic_on_github_runs':
+    if path_basename(runs_root) != 'ic_on_github_runs':
         raise ValueError('Use a dedicated absolute directory ending ic_on_github_runs')
 
     external = raw_site.get('external_files', {})
     if not isinstance(external, dict):
         raise ValueError('external_files must be an object')
     for key, val in external.items():
-        if not re.fullmatch(r'[A-Z0-9_]+', key) or not isinstance(val, str) or not SAFE.fullmatch(val) or not val.startswith('/'):
+        if not re.fullmatch(r'[A-Z0-9_]+', key) or not _safe_abs_path(val):
             raise ValueError('Invalid external path alias: ' + str(key))
 
     pdk_cfg = validate_open_pdk_config(raw_site.get('open_pdk'))
@@ -118,8 +131,28 @@ def detect_local_simulator(engine='ngspice'):
     """Locate an installed local open-source SPICE binary without executing it."""
     if engine not in ENGINES:
         raise ValueError('Unsupported engine: ' + str(engine))
-    candidates = ['ngspice'] if engine == 'ngspice' else ['Xyce', 'xyce']
-    extra_dirs = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin']
+    if IS_WINDOWS:
+        candidates = (
+            ['ngspice_con.exe', 'ngspice_con', 'ngspice.exe', 'ngspice']
+            if engine == 'ngspice'
+            else ['Xyce.exe', 'xyce.exe', 'Xyce', 'xyce']
+        )
+        extra_dirs = [
+            'C:\\Program Files\\ngspice\\bin',
+            'C:\\Program Files\\Spice64\\bin',
+            'C:\\Spice64\\bin',
+            'C:\\Program Files\\Xyce\\bin',
+        ]
+        local_app = os.environ.get('LOCALAPPDATA')
+        if local_app:
+            extra_dirs.extend([
+                str(Path(local_app) / 'Programs' / 'ngspice' / 'bin'),
+                str(Path(local_app) / 'Programs' / 'Spice64' / 'bin'),
+            ])
+        extra_dirs.append(str(Path.home() / 'scoop' / 'shims'))
+    else:
+        candidates = ['ngspice'] if engine == 'ngspice' else ['Xyce', 'xyce']
+        extra_dirs = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin']
     search_path = os.environ.get('PATH', '')
     combined = os.pathsep.join([search_path, *extra_dirs]) if search_path else os.pathsep.join(extra_dirs)
     for name in candidates:
@@ -127,6 +160,10 @@ def detect_local_simulator(engine='ngspice'):
         if found:
             return str(Path(found).resolve())
     return None
+
+
+def _is_executable_file(path):
+    return path.is_file() and (IS_WINDOWS or os.access(path, os.X_OK))
 
 
 def doctor(site):
@@ -140,7 +177,7 @@ def doctor(site):
     hashes = {}
     all_refs_ok = True
 
-    if sim_path.is_file() and os.access(sim_path, os.X_OK):
+    if _is_executable_file(sim_path):
         checks.append(f'{engine}=readable')
         hashes[engine] = _sha256_file(sim_path)
     else:
@@ -172,7 +209,7 @@ def doctor(site):
     version_text = ''
     exit_code = 1
     stderr_text = pdk_error or ''
-    if sim_path.is_file() and os.access(sim_path, os.X_OK):
+    if _is_executable_file(sim_path):
         ver_flag = '--version' if engine == 'ngspice' else '-v'
         try:
             proc = subprocess.run([str(sim_path), ver_flag], capture_output=True, text=True, timeout=15)
@@ -189,7 +226,7 @@ def doctor(site):
     expected_host = site.get('expected_host')
     expected_user = site.get('expected_user')
     identity_ok = (expected_host in (None, '', host)) and (expected_user in (None, '', user))
-    tools_ok = Path('/bin/sh').is_file() and os.access('/bin/sh', os.X_OK) and (exit_code == 0)
+    tools_ok = exit_code == 0
 
     return {
         'exit_code': exit_code if (all_refs_ok and tools_ok) else (exit_code or 1),
@@ -273,11 +310,21 @@ def stage_and_launch_local(site, run_dir, bundle, payload, run_record, probe_res
 
     sim_cfg = run_record['plan'].get('simulator', {})
     sim_args = [a for a in sim_cfg.get('args', []) if not a.startswith(('-64', '+aps', '++aps', '+lqtimeout', '-maxw', '-maxn', '+mt='))]
-    job_script, _ = _build_local_job_script(site, compiled_entry, sim_args)
+    job_script, log_file = _build_local_job_script(site, compiled_entry, sim_args)
+    entry_name = PurePosixPath(compiled_entry).name
+    job_spec = {
+        'schema': 'ic.sim.local-job.v1',
+        'engine': engine,
+        'simulator_bin': site['simulator_bin'],
+        'entry_name': entry_name,
+        'sim_args': list(sim_args),
+        'log_file': log_file,
+    }
 
     staged = dict(payload)
     staged.update(compiled_files)
     staged['spice-transpile.json'] = (json.dumps(transpile_manifest, indent=2) + '\n').encode('utf-8')
+    staged['job.json'] = (json.dumps(job_spec, indent=2) + '\n').encode('utf-8')
     staged['job.sh'] = job_script.encode('utf-8')
     staged['run.json'] = (json.dumps(run_record, indent=2) + '\n').encode('utf-8')
 
@@ -298,22 +345,68 @@ def stage_and_launch_local(site, run_dir, bundle, payload, run_record, probe_res
         dest = target / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(raw)
-        os.chmod(dest, 0o700 if rel == 'job.sh' else 0o600)
+        chmod_private(dest, 0o700 if rel == 'job.sh' else 0o600)
     (target / 'state').write_text('staged\n')
 
     # Single-launch guard matching remote launch_once semantics.
     (target / 'launch_once').mkdir(mode=0o700, exist_ok=False)
-    launch = subprocess.run(
-        ['/bin/sh', '-c', 'nohup /bin/sh job.sh >/dev/null 2>&1 </dev/null &\necho $! > supervisor.pid\n'],
-        cwd=str(target),
-        capture_output=True,
-        timeout=15,
-    )
-    if launch.returncode != 0:
-        raise ValueError('Local simulator launch failed: ' + launch.stderr.decode(errors='replace'))
-    raw_pid = (target / 'supervisor.pid').read_text().strip()
-    pid = int(raw_pid) if raw_pid.isdigit() else None
-    return {'pid': pid, 'transpile_manifest': transpile_manifest}
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, '-B', str(Path(__file__).resolve()), '--supervise', str(target)],
+            cwd=str(target),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            **detached_popen_kwargs(),
+        )
+    except OSError as exc:
+        raise ValueError('Local simulator launch failed: ' + str(exc)) from exc
+    (target / 'supervisor.pid').write_text(f'{proc.pid}\n')
+    return {'pid': proc.pid, 'transpile_manifest': transpile_manifest}
+
+
+def _atomic_text(path, content):
+    tmp = path.with_name(path.name + '.tmp')
+    tmp.write_text(content, encoding='utf-8')
+    tmp.replace(path)
+
+
+def supervise_local_run(run_dir):
+    """Cross-platform detached local SPICE runner (Windows, macOS, and Linux)."""
+    target = Path(run_dir).resolve()
+    terminal_written = False
+    rc = 70
+    try:
+        spec = json.loads((target / 'job.json').read_text(encoding='utf-8'))
+        _atomic_text(target / 'state', 'running\n')
+        (target / 'raw').mkdir(parents=True, exist_ok=True)
+        engine = spec['engine']
+        sim_bin = spec['simulator_bin']
+        entry_name = spec['entry_name']
+        extra_args = [a for a in spec.get('sim_args', []) if a]
+        if engine == 'ngspice':
+            cmd = [sim_bin, '-b', *extra_args, '-r', '../raw/results.raw', '-o', '../raw/ngspice.out', entry_name]
+        else:
+            cmd = [sim_bin, *extra_args, '-r', '../raw/results.raw', '-l', '../raw/xyce.log', entry_name]
+        with (target / 'console.log').open('wb') as console:
+            proc = subprocess.run(cmd, cwd=str(target / 'netlist'), stdin=subprocess.DEVNULL, stdout=console, stderr=subprocess.STDOUT)
+            rc = proc.returncode
+        _atomic_text(target / 'exit_code', f'{rc}\n')
+        raw_file = target / 'raw' / 'results.raw'
+        if rc == 0 and raw_file.is_file() and raw_file.stat().st_size > 0:
+            _atomic_text(target / 'state', 'simulator_complete_pending_measurements\n')
+        else:
+            _atomic_text(target / 'state', 'simulator_failed\n')
+        terminal_written = True
+        return rc
+    except Exception:
+        if not terminal_written:
+            try:
+                _atomic_text(target / 'exit_code', f'{rc}\n')
+                _atomic_text(target / 'state', 'job_setup_failed\n')
+            except OSError:
+                pass
+        return rc
 
 
 def local_status(run_dir):
@@ -336,11 +429,7 @@ def local_status(run_dir):
         raw_pid = pid_file.read_text().strip()
         if raw_pid.isdigit():
             pid_val = int(raw_pid)
-            try:
-                os.kill(pid_val, 0)
-                alive = True
-            except OSError:
-                alive = False
+            alive = pid_alive(pid_val)
 
     log_tail = ''
     for candidate in ('raw/ngspice.out', 'raw/xyce.log', 'console.log'):
@@ -405,3 +494,9 @@ def collect_local_archive(run_dir, dest_archive):
         'inventory': inventory,
         'logs': logs,
     }
+
+
+if __name__ == '__main__':
+    if len(sys.argv) == 3 and sys.argv[1] == '--supervise':
+        raise SystemExit(supervise_local_run(sys.argv[2]))
+    raise SystemExit('Usage: local_sim.py --supervise <run_dir>')

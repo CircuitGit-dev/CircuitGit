@@ -5,7 +5,6 @@ executes scripts from the engineering workspace. The gateway code is bundled.
 """
 import contextlib
 import errno
-import fcntl
 import hashlib
 import http.client
 import json
@@ -16,6 +15,7 @@ import subprocess
 import sys
 import time
 from urllib.parse import urlsplit
+from ic_gateway.platform_compat import detached_popen_kwargs, lock_file, unlock_file
 from .service import Service,Failure,check,atom,SCHEMAS
 from .library import CONFIG_KEYS as LIBRARY_CONFIG_KEYS
 
@@ -144,15 +144,15 @@ class PluginRuntime:
 
     @contextlib.contextmanager
     def startup_lock(self):
-        with (self.control/'startup.lock').open('a') as file:
+        with (self.control/'startup.lock').open('a+b') as file:
             deadline=time.monotonic()+8
             while True:
-                try:fcntl.flock(file,fcntl.LOCK_EX|fcntl.LOCK_NB);break
+                try:lock_file(file,nonblocking=True);break
                 except BlockingIOError:
                     if time.monotonic()>deadline:raise Failure('startup_pending','Another plugin connection is starting the gateway; check status',75)
                     time.sleep(.05)
             try:yield
-            finally:fcntl.flock(file,fcntl.LOCK_UN)
+            finally:unlock_file(file)
 
     def gateway_root(self):
         plugin=Path(__file__).resolve().parents[1]
@@ -202,7 +202,7 @@ class PluginRuntime:
                 with (self.control/'gateway.log').open('ab') as log:
                     process=subprocess.Popen([sys.executable,'-B',str(gateway/'server.py'),'--config',str(config_path),
                          '--web-root',str(web),'--port',str(self.port)],cwd=gateway,stdout=log,stderr=subprocess.STDOUT,
-                         stdin=subprocess.DEVNULL,start_new_session=True)
+                         stdin=subprocess.DEVNULL,**detached_popen_kwargs())
                 self._owned_process=process
                 record['pid']=process.pid;atom(attempts,record)
                 deadline=time.monotonic()+8

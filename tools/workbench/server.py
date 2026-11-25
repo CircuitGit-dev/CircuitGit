@@ -20,8 +20,95 @@ def simulation_backend_info(site):
     if core.is_local_site(site):
         pdk=site.get('open_pdk')
         return {'transport':'local','engine':site.get('engine','ngspice'),'license_required':False,
-                'open_pdk':{'pdk':pdk.get('pdk'),'corner':pdk.get('corner')} if isinstance(pdk,dict) else None}
+                'open_pdk':{'pdk':pdk.get('pdk'),'corner':pdk.get('corner'),'has_root':bool(pdk.get('root'))} if isinstance(pdk,dict) else None}
     return {'transport':'ssh','engine':'spectre','license_required':True,'open_pdk':None}
+
+
+def simulation_backend_catalog(app):
+    """Read-only inspection of current backend, detected local simulators and open PDKs."""
+    from local_sim import ENGINES, detect_local_simulator
+    from open_pdk import OPEN_PDK_PROFILES, discover_open_pdks
+    detected = []
+    for eng in ENGINES:
+        found = detect_local_simulator(eng)
+        detected.append({'engine': eng, 'available': bool(found)})
+    profiles = {
+        key: {
+            'label': val['label'],
+            'requires_root': val['requires_root'],
+            'default_corner': val['default_corner'],
+            'corners': list(val['corners']),
+        }
+        for key, val in OPEN_PDK_PROFILES.items()
+    }
+    discovered = discover_open_pdks()
+    return {
+        'schema': 'ic.simulation-backend.v1',
+        'current': simulation_backend_info(getattr(app, 'site', None)),
+        'can_configure_local': not getattr(app, 'cfg', {}).get('onboarding_only', False),
+        'detected_simulators': detected,
+        'open_pdk_profiles': profiles,
+        'discovered_open_pdks': [
+            {k: item[k] for k in ('pdk', 'label', 'root', 'default_corner', 'corners') if k in item}
+            for item in discovered.get('discovered', [])
+        ],
+    }
+
+
+def configure_local_simulation_backend(app, body):
+    """Validate, preflight and persist a local open-source simulator site from the Web UI."""
+    if getattr(app, 'cfg', {}).get('onboarding_only', False):
+        raise PermissionError('Local backend switching is disabled in onboarding-only mode')
+    if not isinstance(body, dict) or set(body) - {'mode', 'engine', 'open_pdk'}:
+        raise ValueError('Only mode, engine and open_pdk may be configured from the web UI')
+    if body.get('mode', 'local') != 'local':
+        raise ValueError('Only local open-source backend configuration is supported through this endpoint')
+    engine = body.get('engine', 'ngspice')
+    from local_sim import ENGINES, detect_local_simulator, doctor as local_doctor, validate_local_site
+    if engine not in ENGINES:
+        raise ValueError('Unsupported local open-source engine: ' + str(engine))
+    sim_bin = detect_local_simulator(engine)
+    if not sim_bin:
+        raise ValueError(f'本机未检测到 {engine} 可执行文件，请先在本机安装 {engine}（例如 macOS: brew install {engine}）。')
+    pdk_raw = body.get('open_pdk')
+    if pdk_raw is None:
+        pdk_raw = {'pdk': 'builtin', 'corner': 'typical'}
+    runtime = Path(app.cfg['runtime_root']).resolve()
+    runs_root = str(runtime / 'ic_on_github_runs')
+    new_site = validate_local_site({
+        'schema': 'ic.sim.local-site.v1',
+        'transport': 'local',
+        'engine': engine,
+        'simulator_bin': sim_bin,
+        'runs_root': runs_root,
+        'open_pdk': pdk_raw,
+        'external_files': {},
+    })
+    probe = local_doctor(new_site)
+    if probe['exit_code'] != 0 or not probe['all_tools_available'] or not probe['all_references_readable']:
+        raise ValueError('本地仿真器或开源 PDK 预检未通过：' + (probe.get('stderr') or ', '.join(probe.get('checks', []))))
+    site_file = app.cfg.get('site_file')
+    persisted = False
+    if site_file:
+        atomic(Path(site_file), new_site)
+        persisted = True
+    app.site = new_site
+    app.runner.site = new_site
+    return {
+        'schema': 'ic.simulation-backend.v1',
+        'backend': simulation_backend_info(new_site),
+        'probe': {
+            'engine': probe.get('engine'),
+            'version': probe.get('version'),
+            'license_checkout': probe.get('license_checkout'),
+            'open_pdk': {
+                'pdk': probe['open_pdk']['pdk'],
+                'corner': probe['open_pdk']['corner'],
+                'entry_sha256': [e['sha256'] for e in probe['open_pdk'].get('entry_files', [])],
+            } if probe.get('open_pdk') else None,
+        },
+        'persisted': persisted,
+    }
 
 
 def default_onboarding_configuration(cfg):
@@ -214,6 +301,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(self.app.onboarding.read(path[len('/api/simulation/onboarding/'):],{k:v[0] for k,v in qs.items()},origin=onboarding_entry_origin(self.headers)))
             if path=='/api/project':
                 data=self.app.workspace.describe();data['capabilities']['viewer']=(self.app.web/'viewer-adapter/index.js').exists();data['simulation_backend']=simulation_backend_info(getattr(self.app,'site',None));return self.response(data)
+            if path=='/api/simulation/backend':
+                if u.query:raise ValueError('Simulation backend inspection does not accept query parameters')
+                return self.response(simulation_backend_catalog(self.app))
             if path=='/api/simulation/runtime':
                 if set(qs)!={'project_id'} or len(qs['project_id'])!=1:raise ValueError('One explicit project_id is required')
                 return self.response(self.app.simulation.snapshot(get('project_id'),self.app.simulation.caller(self.headers,'GET',self.path)))
@@ -319,6 +409,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(self.app.ai.start_commit_summary(verified))
             if path=='/api/changes/preview':return self.response(self.app.workspace.preview(b['base_commit'],b['changes']))
             if path=='/api/changes/commit':return self.response(self.app.workspace.commit(b['base_commit'],b['changes'],b.get('message','Update circuit configuration'),bool(b.get('push',False))))
+            if path=='/api/simulation/backend':
+                return self.response(configure_local_simulation_backend(self.app,b))
             if path=='/api/simulation/resources/scan':
                 if set(b)!={'project_id'}:raise ValueError('Only project_id is accepted')
                 return self.response(self.app.simulation.scan(b['project_id'],self.app.simulation.caller(self.headers,'POST',self.path,raw_body)),202)
@@ -366,10 +458,10 @@ def main():
     if a.host!='127.0.0.1':p.error('only 127.0.0.1 is supported; public bind is forbidden')
     cfg=default_onboarding_configuration(json.loads(a.config.read_text()))
     app=Application(cfg,a.web_root);server=Server((a.host,a.port),Handler);server.app=app;atomic(Path(app.cfg['runtime_root'])/'gateway-process.json',{'pid':os.getpid(),'port':server.server_port,'host':a.host});print(json.dumps({'url':f'http://127.0.0.1:{server.server_port}','api':'v1','mode':'live','pid':os.getpid()}),flush=True)
-    import signal
+    from platform_compat import install_sigterm_handler
     def stop_server(signum, frame):
         raise KeyboardInterrupt
-    signal.signal(signal.SIGTERM, stop_server)
+    install_sigterm_handler(stop_server)
     app.simulation.resume()
     try:server.serve_forever()
     except KeyboardInterrupt:pass

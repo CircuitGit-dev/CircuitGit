@@ -23,7 +23,7 @@ def main():
  fullcommit(a.proof_commit);relative(a.proof_path)
  if not re.fullmatch(r'[0-9a-f]{64}',a.proof_sha256):p.error('proof SHA256 required')
  def git(*argv):
-  return subprocess.check_output(['git','-c','core.hooksPath=/dev/null','-c','core.fsmonitor=false','-C',str(a.repo),*argv],env=dict(os.environ,GIT_NO_REPLACE_OBJECTS='1',GIT_OPTIONAL_LOCKS='0'))
+  return subprocess.check_output(['git','-c','core.hooksPath='+os.devnull,'-c','core.fsmonitor=false','-C',str(a.repo),*argv],env=dict(os.environ,GIT_NO_REPLACE_OBJECTS='1',GIT_OPTIONAL_LOCKS='0'))
  if git('cat-file','-t',a.proof_commit).strip()!=b'commit':p.error('proof reference is not a commit')
  rows=[r for r in git('ls-tree','-z',a.proof_commit,'--',':(literal)'+a.proof_path).split(b'\0') if r]
  if len(rows)!=1:p.error('proof must be one committed file')

@@ -8,6 +8,7 @@ import re
 import secrets
 import shlex
 
+from platform_compat import find_ssh_binary
 from spiceowl.onboarding.environment import _transport, _SSH_OPTIONS
 from spiceowl.onboarding.ssh_discovery import validate_ssh_target, config_path
 from spiceowl.onboarding.pdk_discovery import build_pdk_discovery_script, profile_suggestions, DIRECTORY_SNAPSHOT_PREFIX
@@ -86,7 +87,7 @@ def remote_discovery(target,ssh_config,capture,requirements,search_paths=None,cd
     command='set -eu\n[ "$(hostname)" = '+q(identity['hostname'])+' ]\n[ "$(id -un)" = '+q(identity['username'])+' ]\n'
     command+='printf "\\n%s\\n" '+q(begin)+'\n/usr/bin/timeout '+str(remote_timeout)+' '+q(python)+" - <<'SPICEOWL_DISCOVERY_PY'\n"+script+'\nSPICEOWL_DISCOVERY_PY\n'
     command+='printf "%s\\n" '+q(end)+'\n'
-    argv=['/usr/bin/ssh','-T','-F',str(config_path(ssh_config))]
+    argv=[find_ssh_binary(),'-T','-F',str(config_path(ssh_config))]
     for option in (*_SSH_OPTIONS,'StdinNull=no'):argv.extend(('-o',option))
     argv.extend(('--',validate_ssh_target(target),'/bin/sh -s'))
     reply=_transport(argv,command,timeout=transport_timeout,max_output=output_limit)

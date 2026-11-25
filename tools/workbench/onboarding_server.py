@@ -1,6 +1,5 @@
 """Start a deliberately fresh simulation-only gateway and browser companion."""
 import contextlib
-import fcntl
 import hashlib
 import json
 import os
@@ -11,6 +10,14 @@ import threading
 import webbrowser
 
 from onboarding_runtime import create_onboarding_config
+from platform_compat import (
+    chmod_private,
+    fchmod_private,
+    install_sigterm_handler,
+    lock_file,
+    open_nofollow,
+    unlock_file,
+)
 from runner import atomic
 
 
@@ -24,18 +31,18 @@ def onboarding_state_lock(state):
     # Keep its inode after release: unlinking it could let a waiting process
     # and a new launcher lock two different files for the same state.
     name='.onboarding-'+hashlib.sha256(os.fsencode(str(state.resolve()))).hexdigest()+'.lock'
-    try:fd=os.open(state.parent/name,os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+    try:fd=open_nofollow(state.parent/name,os.O_CREAT|os.O_RDWR,0o600)
     except OSError:raise ValueError('Unable to open the onboarding state lock') from None
     try:
         info=os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1:
             raise ValueError('Onboarding state lock must be a regular local file')
-        os.fchmod(fd,0o600)
-        try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        fchmod_private(fd,0o600)
+        try:lock_file(fd,nonblocking=True)
         except BlockingIOError:
             raise ValueError('This onboarding state is already in use by another launcher') from None
         try:yield
-        finally:fcntl.flock(fd,fcntl.LOCK_UN)
+        finally:unlock_file(fd)
     finally:os.close(fd)
 
 
@@ -61,7 +68,7 @@ def _serve_onboarding(state,*,root,node_port,gateway_port,allow_origins,resume,n
         if identity.exists() and identity.read_text()!=cfg['onboarding']['connection_id']:
             raise ValueError('Onboarding node and store identities differ')
         if not identity.exists():
-            identity.write_text(cfg['onboarding']['connection_id']);identity.chmod(0o600)
+            identity.write_text(cfg['onboarding']['connection_id']);chmod_private(identity,0o600)
         token,node_id,_=node_identity(node_state)
         gateway_url='http://127.0.0.1:'+str(gateway.server_port)
         node_url='http://127.0.0.1:'+str(browser.server_port)
@@ -76,7 +83,7 @@ def _serve_onboarding(state,*,root,node_port,gateway_port,allow_origins,resume,n
             'chat_enabled':False,'ssh_started':False}),flush=True)
         if not no_browser:webbrowser.open(gateway_url)
         def stop(signum,frame):raise KeyboardInterrupt
-        previous_sigterm=signal.signal(signal.SIGTERM,stop)
+        previous_sigterm=install_sigterm_handler(stop,signal_module=signal)
         try:browser.serve_forever()
         except KeyboardInterrupt:pass
     finally:
@@ -87,7 +94,7 @@ def _serve_onboarding(state,*,root,node_port,gateway_port,allow_origins,resume,n
         finally:
             browser.server_close()
             if gateway:gateway.server_close()
-            if previous_sigterm is not None:signal.signal(signal.SIGTERM,previous_sigterm)
+            if previous_sigterm is not None:install_sigterm_handler(previous_sigterm,signal_module=signal)
             if app:
                 try:app.onboarding.close()
                 finally:

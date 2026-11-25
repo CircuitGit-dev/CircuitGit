@@ -33,6 +33,8 @@ export class Gateway{
   async artifactText(path){const url=new URL(path,location.href);if(url.origin!==location.origin)throw new ApiError('结果日志必须同源。');const response=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new ApiError('日志读取失败',response.status);if(Number(response.headers.get('content-length'))>512*1024)throw new ApiError('日志超过预览上限，请下载完整文件。');const text=await response.text();return text.length>512*1024?text.slice(0,512*1024)+'\n[预览已截断；完整文件请下载]':text;}
   collect(id){return this.request('/jobs/'+encodeURIComponent(id)+'/collect',{method:'POST',body:{raw:true},timeout:30000});}
   archive(id){return this.request('/jobs/'+encodeURIComponent(id)+'/publish',{method:'POST',body:{complete:true},timeout:30000});}
+  simulationBackend(){return this.request('/simulation/backend');}
+  configureSimulationBackend(body){return this.request('/simulation/backend',{method:'POST',body,timeout:30000});}
   schematic(projectId,path,sourceHash){return this.request('/schematic?'+new URLSearchParams({project_id:projectId,path,...(sourceHash?{source_hash:sourceHash}:{})}));}
 }
 

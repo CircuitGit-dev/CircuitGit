@@ -10,6 +10,7 @@ import re
 import secrets
 import shlex
 
+from platform_compat import find_ssh_binary
 from spiceowl_pool import canonical
 
 
@@ -37,7 +38,7 @@ def remote_headers(target,ssh_config,capture,roots):
     command='set -eu\n[ "$(hostname)" = '+q(identity['hostname'])+' ]\n[ "$(id -un)" = '+q(identity['username'])+' ]\n'
     command+='printf "\\n%s\\n" '+q(begin)+'\n/usr/bin/timeout 50 '+q(tools['python'])+" - <<'IC_VA_HEADERS_PY'\n"+script+'\nIC_VA_HEADERS_PY\n'
     command+='printf "%s\\n" '+q(end)+'\n'
-    argv=['/usr/bin/ssh','-T','-F',str(config_path(ssh_config))]
+    argv=[find_ssh_binary(),'-T','-F',str(config_path(ssh_config))]
     for option in (*_SSH_OPTIONS,'StdinNull=no'):argv.extend(('-o',option))
     argv.extend(('--',validate_ssh_target(target),'/bin/sh -s'))
     reply=_transport(argv,command,timeout=60,max_output=MAX_RESULT_BYTES+1024)

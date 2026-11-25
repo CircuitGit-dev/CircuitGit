@@ -89,7 +89,7 @@ def create_child_config(folder,state,compiled_selection,hosts):
             raise ValueError('Prepared source must belong to this explicit intake')
         path=seed/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw);path.chmod(0o600)
     def git(*args):
-        p=subprocess.run(['git','-c','core.hooksPath=/dev/null','-c','commit.gpgsign=false','-C',str(seed),*args],
+        p=subprocess.run(['git','-c','core.hooksPath='+os.devnull,'-c','commit.gpgsign=false','-C',str(seed),*args],
             capture_output=True,timeout=20)
         if p.returncode:raise ValueError('New intake source snapshot could not be created')
         return p.stdout.decode().strip()

@@ -19,6 +19,14 @@ import sys
 from urllib.parse import urlsplit
 
 from upstream_sources import UPSTREAMS, UpstreamError, archive_source, spiceowl_source
+from platform_compat import (
+    IS_WINDOWS,
+    chmod_private,
+    find_venv_python,
+    lock_file,
+    unlock_file,
+    venv_python_path,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -227,19 +235,34 @@ def save_local_install(environment,pin,archive,observation):
         'archive':archive,'installed_record':record}
     path=environment/'circuitgit-local-source.json'
     if path.exists() or path.is_symlink():raise BootstrapError('本地安装回执已存在；不会覆盖。')
-    path.write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8');path.chmod(0o600)
+    path.write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8');chmod_private(path,0o600)
 
 
 def interpreter_candidates(root):
-    values = [root / '.venv/bin/python', Path(sys.executable)]
-    names = ['python3.14', 'python3.13', 'python3.12', 'python3.11', 'python3']
-    for name in names:
-        found = shutil.which(name)
-        if found:
-            values.append(Path(found))
-    # Finder may omit Homebrew's bin directory from PATH.
-    for directory in ['/opt/homebrew/bin', '/usr/local/bin']:
-        values.extend(Path(directory) / name for name in names)
+    values = [venv_python_path(root / '.venv'), Path(sys.executable)]
+    if IS_WINDOWS:
+        names = ['python3.14.exe', 'python3.13.exe', 'python3.12.exe', 'python3.11.exe', 'python3.exe', 'python.exe']
+        for name in names:
+            found = shutil.which(name)
+            if found:
+                values.append(Path(found))
+        local_app = os.environ.get('LOCALAPPDATA')
+        if local_app:
+            for minor in ('314', '313', '312', '311'):
+                values.append(Path(local_app) / 'Programs' / 'Python' / ('Python' + minor) / 'python.exe')
+        for prog in (os.environ.get('ProgramFiles'), 'C:\\'):
+            if prog:
+                for minor in ('314', '313', '312', '311'):
+                    values.append(Path(prog) / ('Python' + minor) / 'python.exe')
+    else:
+        names = ['python3.14', 'python3.13', 'python3.12', 'python3.11', 'python3']
+        for name in names:
+            found = shutil.which(name)
+            if found:
+                values.append(Path(found))
+        # Finder may omit Homebrew's bin directory from PATH.
+        for directory in ['/opt/homebrew/bin', '/usr/local/bin']:
+            values.extend(Path(directory) / name for name in names)
     seen = set()
     for path in values:
         # Keep the venv's lexical executable path: resolving its symlink would
@@ -271,14 +294,16 @@ def checked(command, stage, run, root, timeout):
 
 @contextmanager
 def setup_lock(directory):
-    import fcntl
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    with (directory / 'bootstrap.lock').open('a') as lock:
+    with (directory / 'bootstrap.lock').open('a+b') as lock:
         try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock_file(lock, nonblocking=True)
         except BlockingIOError:
             raise BootstrapError('另一个 CircuitGit 启动器正在初始化 Python，请等待该窗口完成。') from None
-        yield
+        try:
+            yield
+        finally:
+            unlock_file(lock)
 
 
 def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None, extras=('adctools',)):
@@ -307,8 +332,8 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None, extras
         existing = list(dict.fromkeys(existing + sorted(cache.glob('spiceowl-*-py*'))))
         observations = {}
         for environment in existing:
-            python = environment / 'bin/python'
-            if not within(environment, root) or not python.is_file():
+            python = find_venv_python(environment)
+            if not within(environment, root) or python is None:
                 continue
             observation = observations[str(python)] = probe(python, run, modules)
             if pinned(observation, environment, pin, modules):
@@ -352,7 +377,7 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None, extras
         progress('创建项目 Python 环境（首次启动；不修改全局 Python）…')
         checked([base[0], '-I', '-B', '-m', 'venv', environment],
                 '创建虚拟环境', run, root, 120)
-        python = environment / 'bin/python'
+        python = find_venv_python(environment) or venv_python_path(environment)
         archive=None
         requirement='spiceowl[' + ','.join(extras) + '] @ git+' + pin['repository'] + '@' + pin['commit']
         if local_source is not None:

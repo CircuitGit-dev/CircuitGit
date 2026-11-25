@@ -320,6 +320,41 @@ class RealNgspiceEndToEndTests(unittest.TestCase):
         self.assertEqual(status, 409)
         self.assertEqual(tampered['error']['code'], 'hash_mismatch')
 
+    def test_web_api_simulation_backend_inspect_and_configure(self):
+        status, info = self._request('/api/simulation/backend')
+        self.assertEqual(status, 200, info)
+        self.assertEqual(info['data']['current']['transport'], 'local')
+        self.assertEqual(info['data']['current']['engine'], 'ngspice')
+        self.assertTrue(info['data']['can_configure_local'])
+        self.assertIn('sky130', info['data']['open_pdk_profiles'])
+        self.assertIn('gf180mcu', info['data']['open_pdk_profiles'])
+        self.assertIn('ihp-sg13g2', info['data']['open_pdk_profiles'])
+
+        # Configure local ngspice with a synthetic SKY130 PDK directly via Web API (zero CLI).
+        sky = self.root / 'pdk' / 'sky130A' / 'libs.tech' / 'ngspice' / 'sky130.lib.spice'
+        sky.parent.mkdir(parents=True)
+        sky.write_text('* synthetic sky130\n.lib tt\n.endl tt\n')
+        status, updated = self._request('/api/simulation/backend', 'POST', {
+            'mode': 'local',
+            'engine': 'ngspice',
+            'open_pdk': {'pdk': 'sky130', 'root': str(self.root / 'pdk' / 'sky130A'), 'corner': 'tt'},
+        })
+        self.assertEqual(status, 200, updated)
+        self.assertTrue(updated['data']['persisted'])
+        self.assertEqual(updated['data']['backend']['open_pdk']['pdk'], 'sky130')
+        self.assertEqual(updated['data']['probe']['open_pdk']['entry_sha256'], [_sha256(sky)])
+
+        # Unknown fields or invalid mode must fail closed.
+        status, bad = self._request('/api/simulation/backend', 'POST', {'mode': 'local', 'engine': 'ngspice', 'ssh_target': 'evil'})
+        self.assertEqual(status, 400)
+
+        # Switch cleanly back to builtin so subsequent runs work without SKY130 devices.
+        status, reset = self._request('/api/simulation/backend', 'POST', {
+            'mode': 'local', 'engine': 'ngspice', 'open_pdk': {'pdk': 'builtin', 'corner': 'typical'},
+        })
+        self.assertEqual(status, 200, reset)
+        self.assertEqual(reset['data']['backend']['open_pdk']['pdk'], 'builtin')
+
     def test_real_ngspice_cmos_inverter_tran_dc_ac(self):
         head = self.app.workspace.head()
 

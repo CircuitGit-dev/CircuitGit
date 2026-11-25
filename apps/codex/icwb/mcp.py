@@ -3,9 +3,13 @@ import contextlib
 import io
 import json
 import os
+import queue
 import select
 import sys
+import threading
 import time
+
+from ic_gateway.platform_compat import IS_WINDOWS
 
 from .elicitation import ReviewSession, TOOL_NAME, same_id, tools as review_tools
 from .service import Failure, canonical, tools as core_tools
@@ -35,13 +39,29 @@ def _constant(_):
 class _Lines:
     """One bounded pipe reader; never mix select with TextIO read-ahead.
 
-    Read file descriptors directly so buffered messages, partial lines and an idle
-    client respect review deadlines. StringIO is the finite offline fixture.
-    No background stdin thread survives shutdown or consumes later sessions.
+    On POSIX, reads file descriptors directly with select() so buffered messages,
+    partial lines, and an idle client respect review deadlines. On Windows (where
+    select() only supports sockets), uses a bounded daemon reader thread feeding
+    a queue so timeout semantics stay identical. StringIO is the finite offline fixture.
     """
-    def __init__(self, stream):
+    def __init__(self, stream, *, use_threads=None):
         self.stream, self.buffer, self.eof = stream, b'', False
         self.fd = None if isinstance(stream, io.StringIO) else stream.fileno()
+        self.threaded = (IS_WINDOWS if use_threads is None else bool(use_threads)) and self.fd is not None
+        self._queue = None
+        if self.threaded:
+            self._queue = queue.Queue(maxsize=64)
+            threading.Thread(target=self._pump, daemon=True).start()
+
+    def _pump(self):
+        try:
+            while True:
+                chunk = os.read(self.fd, 65536)
+                self._queue.put(chunk)
+                if not chunk:
+                    break
+        except OSError:
+            self._queue.put(b'')
 
     def readline(self, timeout=None):
         if self.fd is None:
@@ -56,9 +76,17 @@ class _Lines:
                 line, self.buffer = self.buffer, b''
                 return line
             left = None if deadline is None else max(0, deadline - time.monotonic())
-            if left == 0 or not select.select([self.fd], [], [], left)[0]:
-                return TIMED_OUT
-            chunk = os.read(self.fd, 65536)
+            if self.threaded:
+                if left == 0:
+                    return TIMED_OUT
+                try:
+                    chunk = self._queue.get(timeout=left)
+                except queue.Empty:
+                    return TIMED_OUT
+            else:
+                if left == 0 or not select.select([self.fd], [], [], left)[0]:
+                    return TIMED_OUT
+                chunk = os.read(self.fd, 65536)
             self.eof = not chunk
             self.buffer += chunk
 

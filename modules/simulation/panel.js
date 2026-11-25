@@ -3,6 +3,7 @@ import {safeReceiptLink,fullCollection} from './receipts.js';
 import {mountSupervision} from './supervision.js';
 import {mountRuntime} from './runtime.js';
 import {mountEnvironmentWizard} from './environment/panel.js';
+import {mountLocalBackend} from './local-backend.js';
 
 const ANALYSIS_FIELDS=[['stop','结束时间','s（n / p）'],['maxstep','最大步长','s（n / p）'],['errpreset','精度预设',''],['method','积分方法',''],['maxiters','迭代上限','次']];
 const RUN_LABELS={queued:'排队中',preflight:'预检中',submitted:'已提交',running:'运行中',running_observed:'运行中（已观察）',collecting:'收集中',archiving:'归档中',archived:'已归档',collected:'已收集',simulator_complete_pending_measurements:'仿真结束 · 待测量',simulator_failed:'仿真失败',input_hash_failure:'输入校验失败',job_setup_failed:'任务准备失败',preflight_failed:'预检失败',unknown:'状态未知',reconcile_required:'待核对'};
@@ -29,6 +30,8 @@ export function mount(host) {
   let controller=null,disposed=false,page='environment',pageIdentity=null,parameterQuery='',identity=null,targetKind='voltage',targetPath='',targetTerminal='';
   const runtimeRoot=document.createElement('section');
   const environmentRoot=document.createElement('section');
+  const localBackendRoot=document.createElement('section');
+  const localBackend=mountLocalBackend(localBackendRoot,{gateway:host.gateway,notify:host.notify,onConfigured:async()=>{await host.refresh?.({project:true});await controller?.reload?.();}});
   const requestAgentAssistance=typeof host.requestAgentAssistance==='function'?request=>host.requestAgentAssistance(request):null;
   const environment=mountEnvironmentWizard(environmentRoot,{adapter:host.onboarding,pendingStore:host.onboarding?.pendingStore,getSource:host.getOnboardingSource,onRun:host.onboarding?.onRun,openWaveforms:host.openOnboardingWaveforms,canOpenWaveforms:host.canOpenOnboardingWaveforms,requestAgentAssistance,notify:host.notify});
   const unregisterEnvironment=host.onboardingSync?.register(environment.controller);
@@ -113,7 +116,7 @@ export function mount(host) {
     }root.append(nav);
     const configPage=el('div',undefined,'ic-sim-page'),workflowPage=el('div',undefined,'ic-sim-page'),jobsPage=el('div',undefined,'ic-sim-page'),runtimePage=el('div',undefined,'ic-sim-page'),environmentPage=el('div',undefined,'ic-sim-page');
     for(const [node,id] of [[environmentPage,'environment'],[configPage,'config'],[workflowPage,'workflow'],[jobsPage,'jobs'],[runtimePage,'runtime']]){node.dataset.page=id;node.hidden=page!==id;root.append(node);}
-    environmentPage.append(el('h3','连接服务器 & 自动匹配 PDK'),environmentRoot);
+    environmentPage.append(localBackendRoot,el('h3','连接远端服务器 & 自动匹配商业 PDK'),environmentRoot);
     runtimePage.append(runtimeRoot);runtime.setActive(page==='runtime');
     if(s.descriptor){
       let conf=null;try{conf=readDraft(s.draftText);}catch(error){note(configPage,'JSON：'+error.message,'ic-sim-error');}
@@ -250,9 +253,11 @@ export function mount(host) {
     note(pushDetails,'目标 '+(host.getProject()?.repo||'由已配置网关确定')+'；仓库与推送结果由后端核验。');
     if(s.preview){const preview=detail(prepare,'preview-diff','查看已编译差异');code(preview,s.preview.result.diff);}
     if(s.plan)note(prepare,'当前版本计划已生成，编译输入已匹配。','ic-sim-effective');
-    const submit=section(parent,'远端执行');
-    submit.append(button('远端预检（不启动仿真）',()=>controller.preflight(),blocked||!s.plan||dirty));
-    note(submit,'预检会访问远端；点击后才执行。');
+    const backend=host.getProject()?.simulation_backend;
+    const isLocalBackend=backend?.transport==='local';
+    const submit=section(parent,isLocalBackend?`本地执行（${backend.engine}）`:'远端执行');
+    submit.append(button(isLocalBackend?`本地预检（${backend.engine}，无需许可）`:'远端预检（不启动仿真）',()=>controller.preflight(),blocked||!s.plan||dirty));
+    note(submit,isLocalBackend?'预检只校验本机开源仿真器与 PDK 文件哈希，不访问云端，不启动仿真。':'预检会访问远端；点击后才执行。');
     const consent=el('label',undefined,'ic-sim-consent'),check=el('input');check.type='checkbox';check.dataset.field='confirm-submit';check.disabled=blocked||!s.preflight||!!s.submitAttempt;
     consent.append(check,document.createTextNode('我确认按此版本启动一个新的仿真任务'));submit.append(consent);
     const launch=button('提交新仿真',()=>controller.submit(check.checked),true,'ic-sim-primary');
@@ -333,5 +338,5 @@ export function mount(host) {
     {id:'git.archive-run',menu:'git',label:'归档选中任务至私有 GitHub',run:call(()=>controller.receipts.archive(selectedReceipt())),enabled:()=>selectedPolicy().archive===true},
     {id:'simulation.receipt',menu:'simulation',label:'查看选中任务的本地回执',run:call(()=>{slot.setVisible(true);const id=selectedReceipt();page='jobs';opened.add('receipt-'+id);const box=[...root.querySelectorAll('[data-detail]')].find(e=>e.dataset.detail==='receipt-'+id);if(box)box.open=true;return controller.receipts.inspect(id);}),enabled:()=>!!controller.receipts.selectedId()&&!controller.receipts.busy}
   ].map(c=>host.registerCommand(c));
-  return {environment,destroy(){disposed=true;window.removeEventListener('beforeunload',protectDrafts);unregisterEnvironment?.();controller.destroy();supervision.destroy();runtime.destroy();environment.destroy();commands.forEach(remove=>remove());sheet.remove();root.remove();}};
+  return {environment,destroy(){disposed=true;window.removeEventListener('beforeunload',protectDrafts);unregisterEnvironment?.();controller.destroy();supervision.destroy();runtime.destroy();localBackend.destroy();environment.destroy();commands.forEach(remove=>remove());sheet.remove();root.remove();}};
 }

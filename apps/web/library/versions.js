@@ -23,7 +23,7 @@ export function textDiff(before,after){
 export function createPendingStore(storage){
   if(storage===undefined){try{storage=globalThis.sessionStorage;}catch{}}
   const storageKey='circuitgit.pending-library-writes.v1';let records=[];
-  try{const value=JSON.parse(storage?.getItem(storageKey)||'[]');if(Array.isArray(value))records=value.filter(row=>row&&typeof row.idempotency_key==='string'&&row.idempotency_key.length>=8&&['save','save_files','commit','restore','pr','ci'].includes(row.operation)&&typeof row.repository==='string'&&typeof row.library_id==='string'&&typeof row.cell_id==='string');}catch{}
+  try{const value=JSON.parse(storage?.getItem(storageKey)||'[]');if(Array.isArray(value))records=value.filter(row=>row&&typeof row.idempotency_key==='string'&&row.idempotency_key.length>=8&&['save','save_files','commit','restore','pr','ci','create_library','create_cell','clone_cell','create_branch','switch_branch'].includes(row.operation)&&typeof row.repository==='string'&&typeof row.library_id==='string'&&typeof row.cell_id==='string');}catch{}
   const persist=()=>{try{storage?.setItem(storageKey,JSON.stringify(records));}catch{}};
   return {find(scope,repository){return records.find(row=>row.library_id===scope?.library_id&&row.cell_id===scope?.cell_id&&(!repository||row.repository===repository))||null;},
     remember(value){const record={idempotency_key:value.idempotency_key,operation:value.operation,library_id:value.library_id,cell_id:value.cell_id,repository:value.repository,paths:Array.isArray(value.paths)?value.paths.filter(path=>typeof path==='string'):[],created_at:value.created_at||new Date().toISOString()};records=records.filter(row=>row.idempotency_key!==record.idempotency_key);records.push(record);persist();return record;},
@@ -35,8 +35,9 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
   const css=node('link');css.rel='stylesheet';css.href=new URL('./versions.css',import.meta.url).href;document.head.append(css);
   const root=node('section',undefined,'cg-cell-versions');root.setAttribute('aria-label','电路版本管理');element.replaceChildren(root);
   let scope=null,generation=0,fileGeneration=0,disposed=false,abort=null,loading=false,busy=false,tab='files',description=null,current=null,history=[],checkpoints=[],ci=null,published=null,detail=null,editor=null,error='',message='',unknown=null;
-  let activated=!deferLoad,activating=false,reviewLink=null;
+  let activated=!deferLoad,activating=false,reviewLink=null,branchInfo=null;
   const drafts=new Map(),pending=createPendingStore(pendingStorage);let unwatch=null,lastFingerprint=null;let title='',body='',lastPR=null,lastPRBranch='',remotePR=null;
+  let newBranch='',switchTarget='',newCellId='',cloneCellId='',newLibId='',newLibName='',relatedCellsText='';
   const connected=()=>bridge?.getState?.()?.connected===true;
   const allowed=operation=>connected()&&!unknown&&writable(description,scope,operation);
   const args=()=>({library_id:scope.library_id,cell_id:scope.cell_id});
@@ -96,12 +97,47 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
     const disabled=busy||loading;root.append(row(button('根据修改生成说明',()=>{({title,body}=commitDraft(scope,current?.changes));render();},disabled||!current?.changes?.length),button('提交',()=>{if(!title.trim())throw Error('请填写提交标题。');return execute('commit',{base_commit:current.base_commit,title:title.trim(),body});},disabled||!allowed('commit')||!current?.changes?.length)));
     root.append(note('提交保存到本机 Git；创建或更新 PR 会推送该单元允许的文件。'));
     const branchLabel=node('label','PR 分支（留空使用节点默认）'),branchInput=node('input');branchInput.setAttribute('aria-label','PR 分支');branchInput.value=lastPRBranch;branchInput.placeholder=`codex/library/${scope.library_id}/${scope.cell_id}`;branchInput.oninput=()=>{lastPRBranch=branchInput.value.trim();};branchLabel.append(branchInput);root.append(branchLabel);
+    const relLabel=node('label','关联单元（可选，跨 Cell PR 每行 library/cell）'),relArea=node('textarea');relArea.setAttribute('aria-label','关联单元');relArea.rows=2;relArea.placeholder='例如：basics/rc-smoke';relArea.value=relatedCellsText;relArea.oninput=()=>{relatedCellsText=relArea.value;};relLabel.append(relArea);root.append(relLabel);
     root.append(row(button('创建 PR',()=>pr('create'),disabled||!allowed('pr')||!current?.base_commit),button('更新现有 PR',()=>pr('update'),disabled||!allowed('pr')||!current?.base_commit)));
     const prState=lastPR||current?.pull_request||description?.pull_request;if(prState){root.append(note(`PR ${prState.action==='update'?'已更新':prState.action==='create'?'已创建':prState.number?'#'+prState.number:''} · ${prState.state||prState.status||'状态未知'}`));if(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+$/.test(prState.url||'')){const link=node('a','查看 PR ↗');link.href=prState.url;link.target='_blank';link.rel='noopener';root.append(link);}root.append(note('以上为本次操作回执；合并与 CI 状态以 GitHub 为准。'));}
     root.append(button('刷新 PR 状态',checkPR,busy||!connected()||!lastPRBranch));if(remotePR){root.append(note(`GitHub 当前状态：${remotePR.state||'未知'} · ${remotePR.branch||lastPRBranch}`));for(const pr of remotePR.pull_requests||[])root.append(note(`#${pr.number} · ${pr.state} · ${(pr.statusCheckRollup||[]).map(check=>[check.name||check.context,check.conclusion||check.status||check.state].filter(Boolean).join(': ')).join('；')||'没有已报告的检查状态'}`));}
     if(current?.branch)root.append(note(`当前分支 ${current.branch} · 基线 ${short(current.base_commit)}`));
+    if(connected()&&(allowed('create_branch')||allowed('switch_branch')||allowed('create_cell')||allowed('clone_cell')||allowed('create_library'))){
+      const tools=node('details');tools.append(node('summary','分支切换与新建库 / 单元'));
+      const base=current?.base_commit||description?.base_commit;
+      if(branchInfo?.branches?.length&&allowed('switch_branch')){
+        const sel=node('select');sel.setAttribute('aria-label','切换本地分支');
+        for(const b of branchInfo.branches)sel.add(new Option(b.name+(b.is_current?' (当前)':''),b.name));
+        sel.value=switchTarget||branchInfo.current_branch||branchInfo.branches[0].name;switchTarget=sel.value;
+        sel.onchange=()=>{switchTarget=sel.value;};
+        tools.append(row(sel,button('切换分支',()=>execute('switch_branch',{branch:switchTarget,base_commit:base}),disabled||!base||branchInfo.dirty||switchTarget===branchInfo.current_branch)));
+      }
+      if(allowed('create_branch')){
+        const nb=node('input');nb.setAttribute('aria-label','新分支名称');nb.placeholder='feat/my-circuit-variant';nb.value=newBranch;nb.oninput=()=>{newBranch=nb.value.trim();};
+        tools.append(row(nb,button('新建并切换分支',()=>{if(!newBranch)throw Error('请填写新分支名称。');return execute('create_branch',{branch:newBranch,base_commit:base,checkout:true});},disabled||!base)));
+      }
+      if(allowed('create_library')){
+        const nl=node('input');nl.setAttribute('aria-label','新建电路库 ID');nl.placeholder='my-analog-lib';nl.value=newLibId;nl.oninput=()=>{newLibId=nl.value.trim();};
+        const nn=node('input');nn.setAttribute('aria-label','新建电路库名称');nn.placeholder='显示名称（可选）';nn.value=newLibName;nn.oninput=()=>{newLibName=nn.value.trim();};
+        tools.append(row(nl,nn,button('新建电路库',()=>{if(!newLibId)throw Error('请填写新电路库 ID。');return execute('create_library',{library_id:newLibId,name:newLibName||newLibId,base_commit:base});},disabled||!base)));
+      }
+      if(allowed('create_cell')){
+        const nc=node('input');nc.setAttribute('aria-label','新建单元 ID');nc.placeholder='my-new-cell';nc.value=newCellId;nc.oninput=()=>{newCellId=nc.value.trim();};
+        tools.append(row(nc,button('在当前库新建单元',()=>{if(!newCellId)throw Error('请填写新单元 ID。');return execute('create_cell',{library_id:scope.library_id,cell_id:newCellId,base_commit:base});},disabled||!base)));
+      }
+      if(allowed('clone_cell')){
+        const cc=node('input');cc.setAttribute('aria-label','克隆目标单元 ID');cc.placeholder=scope.cell_id+'-v2';cc.value=cloneCellId;cc.oninput=()=>{cloneCellId=cc.value.trim();};
+        tools.append(row(cc,button('克隆当前单元',()=>{if(!cloneCellId)throw Error('请填写克隆目标单元 ID。');return execute('clone_cell',{source_library_id:scope.library_id,source_cell_id:scope.cell_id,library_id:scope.library_id,cell_id:cloneCellId,base_commit:base});},disabled||!base)));
+      }
+      root.append(tools);
+    }
   }
-  function pr(action){if(!title.trim())throw Error('请填写 PR 标题。');return execute('pr',{commit:current.base_commit,title:title.trim(),body,action,...(lastPRBranch?{branch:lastPRBranch}:{})});}
+  function parseRelatedCells(){
+    const lines=relatedCellsText.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    if(!lines.length)return undefined;
+    return lines.map(line=>{const parts=line.split('/');if(parts.length!==2||!parts[0]||!parts[1])throw Error('关联单元格式应为 library_id/cell_id：'+line);return {library_id:parts[0].trim(),cell_id:parts[1].trim()};});
+  }
+  function pr(action){if(!title.trim())throw Error('请填写 PR 标题。');const rel=parseRelatedCells();return execute('pr',{commit:current.base_commit,title:title.trim(),body,action,...(lastPRBranch?{branch:lastPRBranch}:{}),...(rel?{related_cells:rel}:{})});}
   async function checkPR(){const ticket=generation,branch=lastPRBranch;if(busy||!branch)return;busy=true;render();try{const result=await read('pr_status',{branch});if(ticket===generation)remotePR=result;}catch(e){if(ticket===generation)error=e.message;}finally{if(ticket===generation){busy=false;render();}}}
   function renderCI(){
     if(!ci){root.append(note(connected()?'当前节点未返回此单元的 CI 配置。':'连接本机节点后可查看和配置此单元的 Testbench CI。'));return;}
@@ -148,7 +184,7 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
     const state=receiptState(result),done=['complete','completed','succeeded'].includes(state);
     if(receiptReleased(result)){pending.forget(record);if(unknown?.idempotency_key===record.idempotency_key)unknown=null;
       if(done){if(record.operation==='pr'){lastPR=result.result?.pull_request||result.result||result.pull_request||result;lastPRBranch=lastPR.branch||lastPRBranch;}if(['save','save_files'].includes(record.operation))for(const path of record.paths||[])drafts.delete(JSON.stringify([record.library_id,record.cell_id,path]));}
-      if(scope?.library_id===record.library_id&&scope?.cell_id===record.cell_id){message=done?'已'+({save:'保存',save_files:'保存文件',restore:'恢复并记录保存点',commit:'提交',pr:'完成 PR 操作',ci:'保存 CI 配置'}[record.operation]||'完成操作')+'。':state==='rolled_back'?'操作未完成，已回退到写入前的文件。':'原请求未执行，可重新修改后提交。';busy=false;if(refreshView)await refresh();}
+      if(scope?.library_id===record.library_id&&scope?.cell_id===record.cell_id){message=done?'已'+({save:'保存',save_files:'保存文件',restore:'恢复并记录保存点',commit:'提交',pr:'完成 PR 操作',ci:'保存 CI 配置',create_library:'新建电路库',create_cell:'新建电路单元',clone_cell:'克隆电路单元',create_branch:'新建分支',switch_branch:'切换分支'}[record.operation]||'完成操作')+'。':state==='rolled_back'?'操作未完成，已回退到写入前的文件。':'原请求未执行，可重新修改后提交。';busy=false;if(refreshView)await refresh();}
       return done;
     }
     unknown={...record,state};message=state==='partial'?'部分文件写入未完成，请核对文件和原请求；未自动重试。':'结果尚未确认；未重发操作。';return false;
@@ -156,8 +192,9 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
   async function execute(operation,payload){
     if(busy||loading||!allowed(operation==='save_files'?'save':operation))return;
     const ticket=generation,record=pending.remember({idempotency_key:'cell-'+crypto.randomUUID(),operation,...args(),repository:description.repository,paths:payload.path?[payload.path]:(payload.files||[]).map(file=>file.path)});
+    const execArgs=['create_branch','switch_branch'].includes(operation)?payload:operation==='create_library'?payload:{library_id:record.library_id,cell_id:record.cell_id,...payload};
     unknown={...record,state:'pending'};busy=true;error='';message='';render();
-    try{const result=await bridge.request('execute',{operation,args:{library_id:record.library_id,cell_id:record.cell_id,...payload},idempotency_key:record.idempotency_key});
+    try{const result=await bridge.request('execute',{operation,args:execArgs,idempotency_key:record.idempotency_key});
       const done=['complete','completed','succeeded'].includes(receiptState(result));if(ticket!==generation||disposed){if(done)pending.forget(record);return;}await applyReceipt(result,record);
     }catch(e){if(ticket===generation&&!disposed){const code=e.data?.code||'';if([400,403,404,409,422].includes(e.status)&&!['outcome_unknown','transport_unknown','idempotency_conflict'].includes(code)){pending.forget(record);unknown=null;}else unknown={...record,state:'unknown'};error=e.message;}}
     finally{if(ticket===generation&&!disposed){busy=false;render();}}
@@ -182,12 +219,12 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
     if(!liveOnly)try{const found=await loadPublished(scope,{signal:abort.signal});if(ticket!==generation)return;published=found;history=found?.commits||[];}catch(e){if(ticket===generation&&!connected())error=e.message;}
     if(ticket!==generation||disposed)return;
     if(connected()){
-      const calls=await Promise.allSettled(['describe','current','history','checkpoints','get_ci'].map(operation=>read(operation)));
+      const calls=await Promise.allSettled([...['describe','current','history','checkpoints','get_ci'].map(operation=>read(operation)),bridge.request('branches',{}).catch(()=>null)]);
       if(ticket!==generation||disposed)return;
-      const [d,c,h,p,t]=calls;description=d.status==='fulfilled'?d.value:null;current=c.status==='fulfilled'?c.value:null;if(h.status==='fulfilled')history=h.value.commits||[];checkpoints=p.status==='fulfilled'?p.value.checkpoints||[]:[];ci=t.status==='fulfilled'?t.value:null;
-      const failure=calls.find(item=>item.status==='rejected');if(failure)error=failure.reason.message;
+      const [d,c,h,p,t,br]=calls;description=d.status==='fulfilled'?d.value:null;current=c.status==='fulfilled'?c.value:null;if(h.status==='fulfilled')history=h.value.commits||[];checkpoints=p.status==='fulfilled'?p.value.checkpoints||[]:[];ci=t.status==='fulfilled'?t.value:null;branchInfo=br.status==='fulfilled'?br.value:null;
+      const failure=calls.slice(0,5).find(item=>item.status==='rejected');if(failure)error=failure.reason.message;
       if(description&&(description.library_id!==scope.library_id||description.cell_id!==scope.cell_id)){description=null;current=null;history=published?.commits||[];checkpoints=[];ci=null;error='节点返回了其他电路单元，已停止后续操作。';}
-    }else{description=null;current=null;checkpoints=[];ci=null;}
+    }else{description=null;current=null;checkpoints=[];ci=null;branchInfo=null;}
     unknown=pending.find(scope,description?.repository);lastFingerprint=current?.fingerprint||current?.revision||lastFingerprint;loading=false;render();if(tab==='files'){const path=editor?.path||scope.entry;if(files().some(file=>file.path===path))await openFile(path);}
   }
   function change(){const next=getSelection();if(key(next)===key(scope))return;scope=next;generation++;abort?.abort();reviewLink=null;description=current=published=detail=editor=ci=null;history=[];checkpoints=[];unknown=pending.find(scope);lastPR=null;lastPRBranch='';remotePR=null;title=body=error=message='';busy=loading=false;render();watchScope();if(scope&&activated)void refresh();}
