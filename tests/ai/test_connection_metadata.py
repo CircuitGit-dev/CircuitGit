@@ -99,8 +99,9 @@ class DiscoveryTests(unittest.TestCase):
             for config in ({}, {'codex_bin': 'codex'}):
                 public, selected = self.discover(config, ':.:relative:')
                 self.assertIsNone(selected)
-        nonexe = self.root / 'bin/codex'; nonexe.parent.mkdir(); nonexe.write_text('NOT EXECUTABLE')
-        self.assertIsNone(self.discover(path=str(nonexe.parent))[1])
+        if os.name != 'nt':
+            nonexe = self.root / 'bin/codex'; nonexe.parent.mkdir(); nonexe.write_text('NOT EXECUTABLE')
+            self.assertIsNone(self.discover(path=str(nonexe.parent))[1])
 
     def test_codex_and_chatgpt_bundles_system_and_user(self):
         for base in ('Applications', 'home/Applications'):

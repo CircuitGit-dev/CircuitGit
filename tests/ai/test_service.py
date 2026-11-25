@@ -103,8 +103,11 @@ class ServiceTests(unittest.TestCase):
         def call(msg):
             p.stdin.write(canonical(msg) + '\n'); p.stdin.flush()
             if 'id' not in msg: return
-            self.assertTrue(select.select([p.stdout], [], [], 10)[0], 'stdio response timeout')
-            response = json.loads(p.stdout.readline()); transcript.append({'request': msg, 'response': response}); return response
+            box = []
+            reader = threading.Thread(target=lambda: box.append(p.stdout.readline()), daemon=True)
+            reader.start(); reader.join(timeout=10)
+            self.assertTrue(bool(box) and bool(box[0]), 'stdio response timeout')
+            response = json.loads(box[0]); transcript.append({'request': msg, 'response': response}); return response
         try:
             init = call({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2025-06-18', 'capabilities': {}, 'clientInfo': {'name': 'icwb-protocol-test', 'version': '1'}}})
             self.assertEqual(init['result']['protocolVersion'], '2025-06-18')
@@ -178,7 +181,8 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(results['state'], 'not_collected')
         evidence = {'fixture': 'synthetic', 'remote_dispatch': 'explicitly mocked; no Spectre run',
                     'before': before, 'diff': d, 'commit': r, 'plan': plan, 'submission': accepted, 'results': results}
-        (ROOT.parents[1] / 'test-results/ai/synthetic-chain.json').write_text(json.dumps(evidence, indent=2))
+        out_dir = ROOT.parents[1] / 'test-results/ai'; out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / 'synthetic-chain.json').write_text(json.dumps(evidence, indent=2))
 
     def test_07_annotations(self):
         by = {x['name']: x['annotations'] for x in tools()}

@@ -109,7 +109,8 @@ def discover_runtime(config, *, search_path=None, app_roots=None):
             source, reason = 'path', None
         else:
             entries = (
-                ('codex.exe', 'resources/codex.exe', 'codex.cmd')
+                ('codex.exe', 'resources/codex.exe', 'codex.cmd',
+                 'Contents/Resources/codex', 'Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex')
                 if is_win
                 else ('Contents/Resources/codex', 'Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex')
             )

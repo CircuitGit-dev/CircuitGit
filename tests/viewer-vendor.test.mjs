@@ -12,7 +12,7 @@ const manifest=JSON.parse(readFileSync(join(vendor,'provenance.json')));
 const lock=JSON.parse(readFileSync(join(root,'tools/viewer/upstream-lock.json')));
 assert.equal(manifest.commit,lock.upstream_commit);
 assert.equal(manifest.core_version,lock.runtime_version);
-function walk(dir){return readdirSync(dir).flatMap(name=>{const p=join(dir,name);return statSync(p).isDirectory()?walk(p):[relative(vendor,p)]})}
+function walk(dir){return readdirSync(dir).flatMap(name=>{const p=join(dir,name);return statSync(p).isDirectory()?walk(p):[relative(vendor,p).replaceAll('\\','/')]})}
 assert.deepEqual(walk(vendor).filter(p=>p!=='provenance.json').sort(),manifest.files.map(f=>f.path).sort());
 for(const row of manifest.files){
   const bytes=readFileSync(join(vendor,row.path));

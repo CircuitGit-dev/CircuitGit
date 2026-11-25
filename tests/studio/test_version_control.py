@@ -205,7 +205,8 @@ class VersionControlTests(unittest.TestCase):
         self.g('remote','set-url','origin',f'ext::touch {marker}')
         self.write(CIRCUIT,'LOCAL_ONLY_PROMISED_BLOB\n');self.commit('Promisor missing object fixture')
         blob=self.g('rev-parse','HEAD:'+CIRCUIT)
-        (self.repo/'.git/objects'/blob[:2]/blob[2:]).unlink()
+        obj=self.repo/'.git/objects'/blob[:2]/blob[2:]
+        obj.chmod(0o666);obj.unlink()
         before=self.snapshot()
         with self.assertRaises(workspace.VersionControlError):self.detail()
         self.assertFalse(marker.exists());self.assertEqual(before,self.snapshot())
