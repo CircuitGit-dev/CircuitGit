@@ -1,0 +1,179 @@
+name: Cross-Platform CI (macOS, Windows, Linux)
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Test mode: full (all suites) or quick (fast cross-platform smoke)'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - quick
+      suites:
+        description: 'Optional comma-separated suites (e.g. architecture,remote,simulation,library,ai,frontend)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-platform-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cross-platform-tests:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            label: macOS (Python 3.12 + Node 22 + ngspice)
+            require_ngspice: 'true'
+          - os: windows-latest
+            label: Windows (Python 3.12 + Node 22 + ngspice)
+            require_ngspice: 'false'
+          - os: ubuntu-latest
+            label: Linux (Python 3.12 + Node 22 + ngspice)
+            require_ngspice: 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Configure Git test identity
+        shell: bash
+        run: |
+          git config --global user.name "CircuitGit CI"
+          git config --global user.email "ci@circuitgit.invalid"
+          git config --global init.defaultBranch main
+
+      - name: Install ngspice (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ngspice && ngspice --version
+
+      - name: Install ngspice (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ngspice && ngspice --version
+
+      - name: Install native Windows ngspice (MSYS2 UCRT64)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (Test-Path "C:\msys64\usr\bin\bash.exe") {
+            & C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm --needed mingw-w64-ucrt-x86_64-ngspice"
+            if ($LASTEXITCODE -eq 0 -and (Test-Path "C:\msys64\ucrt64\bin")) {
+              Add-Content -Path $env:GITHUB_PATH -Value "C:\msys64\ucrt64\bin"
+              Write-Host "Installed native Windows ngspice via MSYS2 UCRT64."
+            } else {
+              Write-Warning "MSYS2 ngspice installation did not succeed; local SPICE unit tests will still run."
+            }
+          } else {
+            Write-Warning "MSYS2 not present on runner; local SPICE unit tests will still run."
+          }
+
+      - name: Verify OS launcher entrypoints
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            test -f "Start CircuitGit.bat"
+            python -B tools/workbench/connect_browser.py --help
+          else
+            test -x "Start CircuitGit.command"
+            bash -n "Start CircuitGit.command"
+            python -B tools/workbench/connect_browser.py --help
+          fi
+
+      - name: Run full cross-platform test suite
+        shell: bash
+        run: |
+          ARGS=("--require-node" "--json-report" "reports/test-report-${{ matrix.os }}.json")
+          if [ "${{ inputs.mode }}" = "quick" ]; then
+            ARGS+=("--quick")
+          fi
+          if [ -n "${{ inputs.suites }}" ]; then
+            ARGS+=("--suite" "${{ inputs.suites }}")
+          fi
+          if [ "${{ matrix.require_ngspice }}" = "true" ]; then
+            ARGS+=("--require-ngspice")
+          fi
+          python -B tools/dev/run_tests.py "${ARGS[@]}"
+
+      - name: Upload cross-platform test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-platform-report-${{ matrix.os }}
+          path: reports/test-report-${{ matrix.os }}.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  spiceowl-bootstrap-matrix:
+    name: SpiceOwl Bootstrap (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Configure Git test identity
+        shell: bash
+        run: |
+          git config --global user.name "CircuitGit CI"
+          git config --global user.email "ci@circuitgit.invalid"
+
+      - name: Verify isolated project Python bootstrap (SpiceOwl + ADCToolbox)
+        shell: bash
+        run: |
+          BOOTSTRAP_JSON=$(python -B tools/workbench/bootstrap_python.py --setup-only)
+          echo "$BOOTSTRAP_JSON"
+          VENV_PY=$(python -c 'import json,sys; print(json.loads(sys.argv[1])["python"])' "$BOOTSTRAP_JSON")
+          echo "VENV_PY=$VENV_PY" >> "$GITHUB_ENV"
+
+      - name: Run SpiceOwl integration tests inside bootstrapped environment
+        shell: bash
+        run: |
+          "$VENV_PY" -B tools/dev/run_tests.py --suite spiceowl --require-spiceowl --json-report "reports/spiceowl-report-${{ matrix.os }}.json"
+
+      - name: Upload SpiceOwl bootstrap report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spiceowl-bootstrap-report-${{ matrix.os }}
+          path: reports/spiceowl-report-${{ matrix.os }}.json
+          if-no-files-found: warn
+          retention-days: 14

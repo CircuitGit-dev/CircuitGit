@@ -5,6 +5,9 @@
   "version": "0.1.0",
   "scripts": {
     "test": "node --test tests/demo/*.test.mjs tests/remote/*.test.mjs tests/context/*.test.mjs tests/waveforms/*.test.mjs tests/studio/*.test.mjs tests/viewer-vendor.test.mjs",
+    "test:all": "python3 -B tools/dev/run_tests.py",
+    "test:quick": "python3 -B tools/dev/run_tests.py --quick",
+    "test:cross-platform": "python3 -B tests/architecture/test_cross_platform.py",
     "test:remote": "node --test tests/remote/*.test.mjs && python3 -B tests/remote/test_node.py && python3 -B tests/remote/test_pairing.py && python3 -B tests/remote/test_helper.py && python3 -B tests/remote/test_development.py",
     "test:library": "node --test tests/library/*.test.mjs && python3 -B tests/library/test_build_library.py && python3 -B tools/workbench/test_library_projects.py",
     "test:remote:browser": "node tests/remote/browser.mjs",

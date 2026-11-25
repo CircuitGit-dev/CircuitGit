@@ -25,9 +25,9 @@ Shared sources are stored once. A view's `aliases` map preserves its historical 
 
 ## Tool flow
 
-`ic_library_read` takes `{operation, arguments}`. Begin with `capability` and `catalog` using empty arguments. The catalog contains compact cell/view identities; use `describe` for the selected cell's complete file scope, followed by `read_file` for current text, SHA-256 and Git base commit. Other read operations are `current`, `history`, `commit_detail`, `checkpoints`, `get_ci`, `receipt`, and `pr_status`. The last operation explicitly queries GitHub and needs the operator's existing GitHub connection.
+`ic_library_read` takes `{operation, arguments}`. Begin with `capability` and `catalog` using empty arguments. The catalog contains compact cell/view identities; use `describe` for the selected cell's complete file scope, followed by `read_file` for current text, SHA-256 and Git base commit. Other read operations are `branches`, `current`, `history`, `commit_detail`, `checkpoints`, `get_ci`, `receipt`, and `pr_status`. The last operation explicitly queries GitHub and needs the operator's existing GitHub connection.
 
-`ic_library_execute` takes `{operation, arguments, idempotency_key}`. Operations are `save`, `save_files`, `commit`, `restore`, `pr`, and `ci`. Operator-authorized direct library work has no additional workflow approval popup. Native host tool policy can still require human permission. Existing simulation request/review rules are unchanged.
+`ic_library_execute` takes `{operation, arguments, idempotency_key}`. Operations are `save`, `save_files`, `commit`, `restore`, `pr`, `ci`, `create_library`, `create_cell`, `clone_cell`, `create_branch`, and `switch_branch`. Operator-authorized direct library work has no additional workflow approval popup. Native host tool policy can still require human permission. Existing simulation request/review rules are unchanged. `pr` accepts optional `related_cells` (`[{library_id, cell_id}, ...]`) for coordinated multi-cell changes, while continuing to reject edits outside the declared cell set.
 
 For coordinated electrical and schematic edits, read both current files and send one `save_files` operation:
 
@@ -54,7 +54,7 @@ After a successful edit, read `current` and the changed files again, then ask th
 
 ## Runtime binding and exact source compilation
 
-The public catalog contains 97 cells. Source/RNL checking is independent of PDK availability. The registered `pipetisar-real/TB_PIPE_RS9_N06` testbench has two ADC input compilation configurations, `PIPE_LOW` and `PIPE_NYQUIST`. Configuration presence and successful compilation do not establish a new Spectre result.
+The public catalog contains 98 cells. Source/RNL checking is independent of PDK availability. The registered `pipetisar-real/TB_PIPE_RS9_N06` testbench has two ADC input compilation configurations, `PIPE_LOW` and `PIPE_NYQUIST`. Configuration presence and successful compilation do not establish a new Spectre result.
 
 The source context's `project.runtimeProjectId` comes from the cell's committed manifest `project_id`, read at the same Git HEAD as its source identity. A null value remains unbound. `/api/ai/catalog` also exposes `runtime_project_id`; it marks `runtime_available` only after that exact ID appears in the actual runtime catalog with consistent cell metadata. `can_simulate` additionally requires returned configurations and runner capability. `simulation_readiness: requires_preflight` still requires remote dependency checks; it is not proof of working model aliases or licenses.
 

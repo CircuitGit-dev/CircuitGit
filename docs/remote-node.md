@@ -6,8 +6,11 @@ The [CircuitGit website](https://circuitgit-dev.github.io/CircuitGit/) can conne
 
 ## Recommended: local connection without an address or code
 
-1. Install Codex, Python 3.11+ and Git. Download and unpack CircuitGit, or use an existing clone. The launcher prepares the exact pinned simulation dependency in a project-local environment on first use; global Python packages are unchanged.
-2. On macOS, double-click **Start CircuitGit.command** in the repository root. This opens a launcher window; keep it running. If macOS requests permission to open the downloaded script, review it and use the system's normal Open action. This source launcher prepares its pinned Python package locally; Python itself, Git and Codex must already be installed.
+1. Install Python 3.11+, Git, and optional `ngspice` / Codex. Download and unpack CircuitGit, or use an existing clone. The launcher prepares the exact pinned simulation dependency in a project-local environment on first use; global Python packages are unchanged.
+2. Start the local helper by double-clicking:
+   - **Windows 10/11**: **`Start CircuitGit.bat`** in the repository root.
+   - **macOS**: **`Start CircuitGit.command`** in the repository root. If macOS requests permission to open the downloaded script, review it and use the system's normal Open action.
+   - Keep the helper window running while you use the browser. Everyday actions happen inside the web UI; no terminal commands are required.
 3. In the website AI panel, open the **settings gear** and click **连接本机 Codex**. In the local popup, check the requesting website and click **允许并连接**.
 4. The helper checks Codex through `account/read`. Existing login/provider settings stay in place. When Codex explicitly reports that sign-in is required, click **在官方页面登录 ChatGPT**. The URL comes from `account/login/start`; Codex owns the local callback. Wait for its correlated completion receipt.
 5. Select the actual engineering project or **当前网表** and open chat. For a new circuit, open its library view and use the inline **连接服务器 & 自动匹配 PDK** panel to import the current netlist. The same authorized helper serves AI and the isolated simulation intake; no special onboarding port or extra launcher is required.
@@ -18,7 +21,7 @@ On Linux or from a developer terminal, the same helper can be started with:
 python3 -B tools/workbench/connect_browser.py
 ```
 
-Windows is not supported by this source launcher yet. The current helper uses Unix file locking. Merely opening the Codex desktop app does not start CircuitGit's helper; without it, the website cannot detect Codex. There is no port scan or credential-file read. No model or account check is started before the local authorization step.
+Native Windows, macOS, and Linux are all supported through the shared cross-platform locking and process layer (`platform_compat.py`; see [Cross-Platform Compatibility & Testing Guide](cross-platform-testing.md)). Merely opening the Codex desktop app does not start CircuitGit's helper; without it, the website cannot detect Codex. There is no port scan or credential-file read. No model or account check is started before the local authorization step.
 
 The helper uses the fixed loopback pairing address internally and starts its own engineering gateway on an OS-assigned loopback port. It leaves existing gateways untouched. Private state is under `.local/browser-helper/`; a ZIP download gets a separate Git repository for its bundled RC example inside that directory. Neither source publication nor simulation is automatic. Developers can supply `--gateway-url http://127.0.0.1:8766` to use a known existing gateway without starting another one over its runtime.
 

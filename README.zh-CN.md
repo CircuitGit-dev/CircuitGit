@@ -48,7 +48,7 @@ CircuitGit 是面向本地电路设计与 Git 电路版本管理的 AI-native �
 
 AI 面板默认只需点击 **连接本机 Codex**，在本机窗口确认授权后，自动检查 Codex 登录状态；不需要输入地址或访问码。若 Codex 尚未登录，可继续打开由 Codex 返回的官方登录页面。授权后选择实际工程，即可使用模型选择、思考强度、图片和多会话功能。
 
-首次需启动本机连接助手：macOS 用户可在下载的项目包中双击 **Start CircuitGit.command**，保持助手运行即可（需要 Python 3.11+、Git 和 Codex）。首次启动会在项目虚拟环境中安装固定 commit 的 SpiceOwl 及 `adctools` 依赖（NumPy、SciPy、ADCToolbox 0.9.3），不修改全局 Python。网页不会扫描其他端口或读取认证文件。自托管服务器的地址/访问码入口已收进「高级」设置。[连接说明](docs/remote-node.md)
+首次需启动本机连接助手：Windows 用户在下载的项目包中双击 **Start CircuitGit.bat**，macOS 用户双击 **Start CircuitGit.command**，保持助手运行即可（需要 Python 3.11+、Git，以及可选的 `ngspice` 或 Codex；日常操作全部在网页内点击完成，无需使用命令行）。首次启动会在项目虚拟环境中安装固定 commit 的 SpiceOwl 及 `adctools` 依赖（NumPy、SciPy、ADCToolbox 0.9.3），不修改全局 Python。网页不会扫描其他端口或读取认证文件。自托管服务器的地址/访问码入口已收进「高级」设置。[连接说明](docs/remote-node.md) · [跨平台兼容与测试指南](docs/cross-platform-testing.md)
 
 AI 的连接、账户、工程、模型和思考强度统一放在聊天输入框旁的 **齿轮设置** 中。选择「当前网表」可把导入源码和仿真接入会话交给 AI，返回结果只更新对应的仿真面板。其他节点工程与公开电路库浏览状态分别显示。它使用节点已有的 Codex 登录与模型权限，尚不提供面向所有访客的订阅 OAuth，也不会导入桌面窗口。现有电路修改和手动仿真请求保留人工审批；可选独立仿真服务需要另行安装明确的连接权限配置。
 
@@ -64,7 +64,9 @@ python3 -B tools/workbench/launch.py
 
 本公开仓库包含应用源码、构建工具、MCP 插件、通用导出/仿真工具、RC 示例和审核后的用户 ADC 原理图导出。`lib/` 中保留来源哈希及模型依赖说明。PDK 实现、服务器配置、对话和未经整理的运行档案留在原工程中；详见 [发布范围](docs/public-release.md)。
 
-## 开发环境
+## 开发环境与跨平台测试（macOS / Windows / Linux）
+
+CircuitGit 已通过统一跨平台兼容层（`platform_compat.py`）原生支持 **macOS、Windows 10/11 与 Linux**，并由 `tools/dev/check_structure.py` 静态门禁和 [跨平台自动测试工作流](.github/workflows/cross-platform-ci.yml) 持续保障后续功能不引入平台回归。
 
 macOS / Linux 下用一个命令准备项目 Python 环境、构建网页与插件及 Pages，并执行离线健康检查：
 
@@ -74,7 +76,17 @@ python3 -B tools/dev/setup_env.py
 
 脚本初始化并同步官方 `submodules/rnl` 和 `submodules/spiceowl`，按 `contracts/spiceowl-integration.lock.json` 安装固定 commit 的 SpiceOwl `[mcp,adctools]` 与 **ADCToolbox 0.9.3**。优先从已核验的本地 SpiceOwl 子模块导出源码包供 pip 安装，避免重复下载 Git 仓库；重复执行复用匹配的项目环境。浏览器继续使用已编译的 RNL JavaScript/Wasm，普通使用及 Pages 构建不需要 Rust。它不修改全局 Python、不重启已有服务，也不安装 Node、浏览器、Cadence 或 PDK。可先加 `--plan` 查看步骤。解释器选择、失败恢复和可选外链审计见[开发环境说明](docs/dev-environment.md)。
 
-单独检查仓库文档内链与迁移后的第一方文档 URL：
+在 macOS、Windows 或 Linux 上运行与 CI 一致的**全功能一键测试工作流**（覆盖跨平台门禁、打包、本机助手、本地开源 `ngspice`/PDK 仿真、电路库 CRUD/分支/PR、AI/MCP 以及前端测试）：
+
+```bash
+# 全量测试（Windows 下使用 python）
+python3 -B tools/dev/run_tests.py
+
+# 快速全模块冒烟测试
+python3 -B tools/dev/run_tests.py --quick
+```
+
+详细测试矩阵、Windows/macOS 兼容维护规范与 GitHub Actions 手动触发方式见 [跨平台兼容与测试指南](docs/cross-platform-testing.md)。单独检查仓库文档内链与迁移后的第一方文档 URL：
 
 ```bash
 python3 -B tools/dev/check_links.py

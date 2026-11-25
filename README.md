@@ -42,7 +42,7 @@ Open **Libraries / 电路库** to browse library → cell → view. The publishe
 
 For real AI conversations, choose **连接本机 Codex** in the AI panel and approve the local connection window. The connector checks Codex's existing login and reports the account/plan only when Codex supplies it. If Codex requires sign-in, a separate button opens the official login URL returned by Codex. No address or access code is needed in this flow.
 
-Start the local helper once per computer session: on macOS, double-click **Start CircuitGit.command** in the downloaded repository (requires Python 3.11+, Git and Codex). On first use, the launcher installs the repository-pinned SpiceOwl dependency with its `adctools` extra (NumPy, SciPy and ADCToolbox 0.9.3) into a project-local Python environment; it does not change your global Python packages. The helper stays on your computer while you use the lightweight website. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md).
+Start the local helper once per computer session: double-click **Start CircuitGit.bat** on Windows or **Start CircuitGit.command** on macOS in the downloaded repository (requires Python 3.11+, Git, and optional `ngspice` / Codex). On first use, the launcher installs the repository-pinned SpiceOwl dependency with its `adctools` extra (NumPy, SciPy and ADCToolbox 0.9.3) into a project-local Python environment; it does not change your global Python packages. The helper stays on your computer while you use the lightweight website, with zero terminal commands needed for everyday work. Self-hosted server URL/code entry remains under **Advanced**. See [connection setup](docs/remote-node.md) and [cross-platform compatibility & testing](docs/cross-platform-testing.md).
 
 Connection, account, project and model controls are grouped in the chat's **settings gear**. Choose **当前网表** to share the imported source and simulation intake with AI; results refresh that exact intake in the Simulation panel. Other selected node projects retain their own identities. This release does not import desktop windows, offer public subscription OAuth, or grant model access independently of the node. Existing circuit and manual simulation requests retain their human-review workflow; the optional standalone runtime requires a separately installed connection grant.
 
@@ -99,7 +99,9 @@ tests/          unit, browser and integration tests
 
 Application source was extracted from the working IC on GitHub project. Reviewed, user-authored ADC exports are now published under `lib/` with source hashes and dependency notes. Site-specific configuration, PDK/model implementations, runtime conversations, and unreviewed historical simulation archives remain excluded. Some retained integration tests and engineering notes describe the earlier checkout; see [release scope](docs/public-release.md).
 
-## Development
+## Development & Cross-Platform Testing
+
+CircuitGit natively supports **macOS, Windows 10/11, and Linux** through a shared zero-dependency OS compatibility layer (`platform_compat.py`) enforced by `tools/dev/check_structure.py` and verified by [Cross-Platform CI](.github/workflows/cross-platform-ci.yml).
 
 On macOS or Linux, prepare the project Python environment, build the web/plugin and Pages packages, and run offline health checks with one command:
 
@@ -109,7 +111,17 @@ python3 -B tools/dev/setup_env.py
 
 Setup synchronizes the official RNL and SpiceOwl submodules, then installs the exact SpiceOwl commit in `contracts/spiceowl-integration.lock.json` with its `mcp,adctools` extras and **ADCToolbox 0.9.3**. A verified local SpiceOwl source archive avoids a second Git download by pip. Matching project environments are reused; global Python packages and active services are unchanged. Browser and Pages builds use the checked-in RNL JavaScript/Wasm and do not require Rust or initialized submodules. Node, browsers, Cadence and PDKs are not installed. Use `--plan` to inspect the steps without running them. See the [developer environment guide](docs/dev-environment.md) for interpreter selection, recovery and optional external-link audits.
 
-After setup, individual checks remain available:
+Run the unified cross-platform test suite locally on macOS, Windows, or Linux (covers architecture/cross-platform guards, packaging, browser helper, local `ngspice`/open-PDK simulation, library CRUD/branches/PRs, AI/MCP, and Node.js frontend tests):
+
+```bash
+# Full matrix (use `python` on Windows)
+python3 -B tools/dev/run_tests.py
+
+# Fast smoke pass across every subsystem
+python3 -B tools/dev/run_tests.py --quick
+```
+
+See the [Cross-Platform Compatibility & Testing Guide](docs/cross-platform-testing.md) for Windows/macOS user setup, developer portability rules, and GitHub Actions workflow usage. Individual checks also remain available:
 
 ```bash
 python3 -B tools/dev/build.py all

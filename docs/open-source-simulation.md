@@ -13,20 +13,14 @@ CircuitGit treats local open-source simulation and remote licensed foundry simul
    - Used whenever commercial PDK models, foundry corners, or licensed Spectre signoff are required.
    - **No silent fallback**: if a Spectre configuration references commercial external model pins (`@EXTERNAL_*@`) that are absent on a local open-source site, preflight fails closed explicitly rather than substituting generic models.
 
-## Quick start (zero PDK)
+## Quick start in the Web UI (zero CLI, macOS / Windows / Linux)
 
-Install `ngspice` (for example `brew install ngspice` on macOS or `apt install ngspice` on Ubuntu/Debian), then launch CircuitGit:
+1. Install `ngspice` (macOS: `brew install ngspice`; Ubuntu/Debian: `apt install ngspice`; Windows: official Windows `ngspice` package or MSYS2 `mingw-w64-ucrt-x86_64-ngspice`, ensuring `ngspice_con.exe` or `ngspice.exe` is on `PATH` or in `C:\Program Files\ngspice\bin`).
+2. Double-click **`Start CircuitGit.bat`** (Windows) or **`Start CircuitGit.command`** (macOS) once. When no remote Spectre site is configured yet, CircuitGit automatically detects your local `ngspice` / `Xyce` binary and sets up a working `ic.sim.local-site.v1` backend using a pure-Python cross-platform supervisor (no `/bin/sh` or `nohup` required).
+3. In the browser **Simulation → 环境与PDK** panel, use the **本地开源仿真器（ngspice / Xyce）** card to inspect detected simulators and open PDKs (`builtin`, `sky130`, `gf180mcu`, `ihp-sg13g2`), pick engine + PDK + corner (accepts both `/path/...` and `C:\...` absolute paths), and click **预检并启用本地开源仿真** — no terminal commands or manual JSON editing needed.
+4. Select **`rc-smoke` / `TRAN_NGSPICE`** or **`open-cmos-inverter` / `TRAN_NGSPICE` / `DC_NGSPICE` / `AC_NGSPICE`** and run directly from the **提交** tab.
 
-```bash
-python3 -B tools/workbench/launch.py
-# Or explicitly select engine / open PDK:
-python3 -B tools/workbench/launch.py --local-sim ngspice
-```
-
-This creates a local `ic.sim.local-site.v1` configuration in `config/site.local.json` (git-ignored) pointing to your detected `ngspice` binary and an isolated `ic_on_github_runs` directory under `.local/workbench/`. Open `http://127.0.0.1:8766/` and run:
-
-- **`rc-smoke` / `TRAN_NGSPICE`**: built-in RC transient step response (`1 kΩ`, `1 pF`).
-- **`open-cmos-inverter` / `TRAN_NGSPICE`**, **`DC_NGSPICE`**, **`AC_NGSPICE`**: PDK-free CMOS inverter with built-in Level-1 MOS models (`nch_open`, `pch_open`), transient switching, DC VTC sweep, and AC small-signal Bode response.
+*(Optional CLI flags `--local-sim`, `--open-pdk`, `--pdk-root`, `--pdk-corner` remain available on `tools/workbench/launch.py` for scripted/headless setup.)*
 
 ## Open-source PDK profiles (SKY130, GF180MCU, IHP SG13G2)
 

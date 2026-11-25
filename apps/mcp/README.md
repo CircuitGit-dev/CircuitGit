@@ -2,7 +2,7 @@
 
 `server.py` exposes the existing IC Workbench tools and four MCP App resources through the official `modelcontextprotocol/python-sdk`. It is a tool/resource transport adapter, not a chat service, model runtime or replacement engineering executor. Existing `Service`, `ViewService`, `ReviewSession` and optional `PluginRuntime` keep their responsibilities.
 
-The existing Python 3.9 zero-dependency plugin and CLI are unchanged. This optional entry uses a separate **POSIX Python 3.11+** environment. The resolved/tested environment is macOS arm64 Python **3.12.14**; Linux and other Python versions have not been runtime-tested. Existing backend `fcntl` locking makes native Windows unsupported even though the upstream SDK supports Windows.
+The existing Python 3.9 zero-dependency plugin and CLI are unchanged. This optional entry uses a separate **Python 3.11+** environment. Backend file locking and stdio transport now support macOS, Linux, and native Windows via `ic_gateway.platform_compat` (validated by `.github/workflows/cross-platform-ci.yml`). The resolved lockfile was generated on macOS arm64 Python **3.12.14** and includes all official non-yanked platform wheel hashes at each pinned version.
 
 ## Dependencies and provenance
 
