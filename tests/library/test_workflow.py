@@ -68,7 +68,7 @@ class LibraryWorkflowTest(unittest.TestCase):
     def write(self, path, content):
         file = self.root / path
         file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_text(json.dumps(content) if isinstance(content, (dict, list)) else content)
+        file.write_bytes((json.dumps(content) if isinstance(content, (dict, list)) else content).encode('utf-8'))
         return file
 
     def head(self):

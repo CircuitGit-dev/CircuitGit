@@ -130,9 +130,10 @@ def finite(value, name):
 
 
 class WaveformService:
-    def __init__(self, runner, bindings=None, derivatives=None, source_reader=None):
+    def __init__(self, runner, bindings=None, derivatives=None, source_reader=None, live_mapper=None):
         self.runner = runner
         self.source_reader = source_reader
+        self.live_mapper = live_mapper
         self.bindings = dict(bindings or {})
         self.derivatives = dict(derivatives or {})
 
@@ -416,11 +417,24 @@ class WaveformService:
 
     def mapping(self, rid, dataset_id=None):
         identity=self.catalog(rid,dataset_id);signals=identity['signals']
-        if dataset_id is not None or not signals:
+        if dataset_id is not None:
+            if signals and self.live_mapper is not None:
+                manifest = self.live_mapper(self._record(rid), identity, signals, dataset_id=dataset_id)
+                if manifest is not None:
+                    validate_mapping(manifest, identity, signals)
+                    return {**manifest, 'status': 'verified_binding', 'manifest_sha256': object_hash(manifest)}
+            return {**identity, 'schema':'ic.waveform-map.v1', 'status':'unmapped', 'objects':[],
+                    'reason':'Saved dataset viewing is independent; no dataset-specific schematic mapping is installed'}
+        if not signals:
             return {**identity, 'schema':'ic.waveform-map.v1', 'status':'unmapped', 'objects':[],
                     'reason':'Saved dataset viewing is independent; no dataset-specific schematic mapping is installed'}
         configured = self.bindings.get(rid)
         if not configured:
+            if self.live_mapper is not None:
+                manifest = self.live_mapper(self._record(rid), identity, signals, dataset_id=None)
+                if manifest is not None:
+                    validate_mapping(manifest, identity, signals)
+                    return {**manifest, 'status': 'verified_binding', 'manifest_sha256': object_hash(manifest)}
             return {**identity, 'schema':'ic.waveform-map.v1', 'status':'unmapped', 'objects':[],
                     'reason':'No installed source/geometry-bound mapping; catalog remains independently viewable'}
         manifest = json.loads(bounded_file(Path(configured), 4*1024*1024))

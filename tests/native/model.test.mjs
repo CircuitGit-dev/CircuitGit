@@ -17,3 +17,10 @@ test('same basename in a different export namespace is not a canonical source ma
   const h='a'.repeat(64),mapping={objects:[{kind:'instance',name:'XIO',scope:'PIPE_SAR9_Real_N06',viewer_source_path:'PIPE_SAR9_Real_N06.scs',source_path:'projects/x/circuit.scs',source_sha256:h,line_start:992}]};
   assert.equal(sourceSelection(mapping,{kind:'instance',name:'XIO',scope:'PIPE_SAR9_Real_N06',source_path:'research/PIPE_SAR9_Real_N06.scs'},h,{allowCanonical:true}),null);
 });
+test('live-rnl mode preserves layout metadata without fabricating Virtuoso native readiness',()=>{
+  const b='b'.repeat(64),live={source_path:'projects/rc-smoke/circuit.scs',native_ready:false,live_ready:true,geometry:{mode:'live-rnl',state:'ready',integrity:'valid',fidelity:'live-incremental-rnl',losses:[],bundle_commit:null,bundle_sha256:b,manifest_sha256:'c'.repeat(64),source_binding:{geometry_source_sha256:hash},layout_sync:{preserved_instances:['R0'],added_instances:['C1']},cells:[{id:'live-rc-smoke',label:'rc-smoke (实时 RNL)',level:'@top',viewer_manifest_url:'/api/schematic/live-manifest?x=1'}]}};
+  const m=normalizeNative(live,'http://127.0.0.1:8767/');
+  const st=nativeStatus(m,hash);
+  assert.equal(st.mode,'live-rnl');assert.equal(st.nativeReady,false);assert.equal(st.liveReady,true);assert.equal(st.sourceMatch,true);assert.equal(st.bundleCommit,null);assert.equal(st.bundleSha256,b);
+  assert.equal(nativeStatus(m,hash,{dirty:true}).stale,true);
+});

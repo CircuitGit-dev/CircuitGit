@@ -13,6 +13,7 @@ CircuitGit 是面向本地电路设计与 Git 电路版本管理的 AI-native �
 - **原生跨平台支持（macOS / Windows 10/11 / Linux，网页零命令行）**：Windows 双击 **`Start CircuitGit.bat`**、macOS 双击 **`Start CircuitGit.command`** 启动一次本机助手即可，日常电路设计、仿真与 Git 协作全部在网页端点击完成；底层由统一零依赖兼容层 `platform_compat.py` 托管，并由 `check_structure.py` 静态门禁长期防止平台回归（详见 [跨平台兼容与测试指南](docs/cross-platform-testing.md)）。
 - **本地开源仿真（ngspice / Xyce + 开源 PDK）与网页一键切换**：无需商业许可和 SSH 服务器，在网页 **Simulation → 环境与PDK** 即可自动检测本机 `ngspice`/`Xyce` 与 **`SKY130` / `GF180MCU` / `IHP SG13G2`** 开源 PDK，一键预检并切换；内置 `rc-smoke` 与 `open-cmos-inverter`（TRAN / DC / AC）开箱即跑（详见 [本地开源仿真说明](docs/open-source-simulation.md)）。
 - **电路库完整 CRUD、Git 分支切换与跨 Cell 关联 PR**：支持在网页 **版本** 面板或通过 Agent/MCP 直接新建电路库、新建/克隆电路单元、创建与切换分支，以及提交包含多个关联单元的 Pull Request（详见 [电路库指南](docs/circuit-libraries.md)）。
+- **网表 ↔ RNL 实时增量保布局与新仿真原理图探针**：编辑网表或打开开源电路（`rc-smoke`、`open-cmos-inverter` 或新建单元）时，自动生成绑定源码哈希的实时 RNL 原理图（`/api/schematic/live`），对未改动器件增量保留已有 `@RNL` 位置与走线，并为新运行的本地（`ngspice`/`Xyce`）与远端仿真自动生成通过 `validate_mapping()` 校验的 `ic.waveform-map.v1` 探针绑定，点击节点即可绘制实时波形。
 - **全功能一键测试运行器与三端 GitHub Actions 自动测试**：新开发者或用户运行 `python3 -B tools/dev/run_tests.py`（Windows 用 `python -B tools/dev/run_tests.py`）即可一键验证全模块功能；[Cross-Platform CI](.github/workflows/cross-platform-ci.yml) 自动在 `macos-latest`、`windows-latest`、`ubuntu-latest` 三端持续跑测并支持手动触发。
 
 ## 产品展示

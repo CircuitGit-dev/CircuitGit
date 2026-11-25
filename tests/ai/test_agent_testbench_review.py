@@ -166,8 +166,9 @@ class AgentReviewTests(unittest.TestCase):
         verify_authorization(self.key.read_bytes(),raw,signed,now=1234)
         for content,now in ((raw+b' ',1234),(raw,1400)):
             with self.assertRaises(PermissionError):verify_authorization(self.key.read_bytes(),content,signed,now=now)
-        self.key.chmod(0o644)
-        with self.assertRaises(Failure):human_signature(self.key,HUMAN_ROUTE,raw)
+        if os.name != 'nt':
+            self.key.chmod(0o644)
+            with self.assertRaises(Failure):human_signature(self.key,HUMAN_ROUTE,raw)
 
     def test_tampered_full_snapshot_cannot_be_presented_for_approval(self):
         self.gateway.review['snapshot']['testbench']['text']='changed'

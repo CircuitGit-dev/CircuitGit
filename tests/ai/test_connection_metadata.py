@@ -245,7 +245,7 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(session.service.config, before); self.assertIsNone(session.thread_id)
 
     def test_ordinary_catalog_bad_explicit_runtime_does_not_spawn_or_fallback(self):
-        session = self.ai(factory=Rpc); session.service.config['codex_bin'] = '/definitely/missing/codex'
+        session = self.ai(factory=Rpc); session.service.config['codex_bin'] = str(self.root / 'definitely/missing/codex')
         with patch('icwb.ai.MetadataRpc', side_effect=AssertionError('NO SPAWN')):
             with self.assertRaises(Failure) as error: session.models()
         self.assertEqual(error.exception.code, 'configured_executable_unavailable'); self.assertIsNone(session.rpc)

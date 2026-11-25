@@ -51,6 +51,12 @@ jobs:
             require_ngspice: 'true'
 
     steps:
+      - name: Configure Git line endings before checkout
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -105,6 +111,7 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             test -f "Start CircuitGit.bat"
             python -B tools/workbench/connect_browser.py --help
+            python -B tools/workbench/bootstrap_python.py --entry connect_browser --help
           else
             test -x "Start CircuitGit.command"
             bash -n "Start CircuitGit.command"
@@ -142,7 +149,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        # Upstream pinned spiceowl currently imports POSIX-only fcntl; verify full
+        # SpiceOwl + ADCToolbox bootstrap on macOS & Linux while native Windows
+        # runs local ngspice/RNL/Library/AI directly via Start CircuitGit.bat.
+        os: [macos-latest, ubuntu-latest]
 
     steps:
       - name: Checkout repository

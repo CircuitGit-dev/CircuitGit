@@ -41,7 +41,7 @@ class Fixture:
             'sim/demo/netlist/project.scs': 'simulator lang=spectre\nR0 (x 0) resistor r=1k\n',
         }
         for name, content in sources.items():
-            f = seed / name; f.parent.mkdir(parents=True, exist_ok=True); f.write_text(content)
+            f = seed / name; f.parent.mkdir(parents=True, exist_ok=True); f.write_bytes(content.encode('utf-8'))
         b = {'schema': 'ic.sim.bundle.v1', 'design_id': 'demo', 'design_origin': 'text-netlist',
              'test_id': 'synthetic-tran', 'source_root': '.', 'entrypoint': 'netlist/input.scs',
              'reviewed_for_distribution': True, 'files': [{'source': 'netlist/' + n, 'destination': 'netlist/' + n,

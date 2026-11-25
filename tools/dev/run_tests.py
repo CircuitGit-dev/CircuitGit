@@ -144,6 +144,7 @@ def build_plan(*, quick=False, include_spiceowl=False, has_node=True):
     # 3. Local open-source SPICE (ngspice/Xyce + open PDKs), runner, monitoring, waveforms.
     sim_steps = [
         ('tools/workbench/test_local_opensource_sim.py', _py_unit('tools/workbench/test_local_opensource_sim.py')),
+        ('tools/workbench/test_rnl_sync_and_probes.py', _py_unit('tools/workbench/test_rnl_sync_and_probes.py')),
         ('tools/workbench/test_backend.py', _py_unit('tools/workbench/test_backend.py')),
         ('tests/waveforms/test_dataset_routes.py', _py_script('tests/waveforms/test_dataset_routes.py')),
     ]
@@ -213,6 +214,14 @@ def build_plan(*, quick=False, include_spiceowl=False, has_node=True):
     # 6. Frontend JavaScript unit tests (Node 22+), split by area for clear reporting.
     if has_node:
         node_bin = shutil.which('node') or 'node'
+        has_real_sar = (
+            (ROOT / 'projects/real-sar-20261106/circuit.scs').is_file()
+            and (ROOT / 'apps/web/assets/real-sar.circuit.scs').is_file()
+        )
+        viewer_patterns = (
+            ['tests/core.test.mjs', 'tests/viewer-mapping.test.mjs', 'tests/viewer-hierarchy.test.mjs', 'tests/viewer-vendor.test.mjs']
+            if has_real_sar else ['tests/viewer-vendor.test.mjs']
+        )
         if quick:
             groups = [
                 ('frontend: demo/remote/library/waveforms', [
@@ -229,12 +238,14 @@ def build_plan(*, quick=False, include_spiceowl=False, has_node=True):
                 ('frontend: demo & context & waveforms', ['tests/demo/*.test.mjs', 'tests/context/*.test.mjs', 'tests/waveforms/*.test.mjs']),
                 ('frontend: remote & library & workflow', ['tests/remote/*.test.mjs', 'tests/library/*.test.mjs', 'tests/workflow/*.test.mjs', 'tests/native/*.test.mjs']),
                 ('frontend: studio panels', ['tests/studio/*.test.mjs']),
-                ('frontend: viewer & engineering', ['tests/core.test.mjs', 'tests/viewer-mapping.test.mjs', 'tests/viewer-hierarchy.test.mjs', 'tests/viewer-vendor.test.mjs']),
+                ('frontend: viewer & engineering', viewer_patterns),
                 ('frontend: codex & ai ui', ['tests/codex/*/*.test.mjs', 'tests/codex_ui/*.test.mjs', 'tests/ai/*.test.mjs']),
             ]
         frontend_steps = []
         for label, patterns in groups:
             node_files = _collect_node_tests(patterns)
+            if not has_real_sar:
+                node_files = [f for f in node_files if f != 'tests/codex/schematic/data.test.mjs']
             if node_files:
                 frontend_steps.append((f'{label} ({len(node_files)} files)', [node_bin, '--test', *node_files]))
         plan['frontend'] = frontend_steps

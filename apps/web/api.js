@@ -36,6 +36,7 @@ export class Gateway{
   simulationBackend(){return this.request('/simulation/backend');}
   configureSimulationBackend(body){return this.request('/simulation/backend',{method:'POST',body,timeout:30000});}
   schematic(projectId,path,sourceHash){return this.request('/schematic?'+new URLSearchParams({project_id:projectId,path,...(sourceHash?{source_hash:sourceHash}:{})}));}
+  liveSchematic(projectId,path,sourceHash){return this.request('/schematic/live?'+new URLSearchParams({project_id:projectId,path,...(sourceHash?{source_hash:sourceHash}:{})}));}
 }
 
 export function normalizePublication(publication){if(!publication)return null;return {...publication,backend_status:publication.status,status:publication.status==='complete'?'published':publication.status};}

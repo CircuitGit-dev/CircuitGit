@@ -498,7 +498,7 @@ class Workspace:
             if not self.clean():raise Conflict('runtime workspace has external/uncommitted changes')
             preview=self.preview(base,changes);review=json.loads((self.runtime/'reviews'/f'{preview["review_id"]}.json').read_text())
             for c in review['changes']:
-                path=self.file_path(c['path']);tmp=path.with_name(path.name+'.workbench-tmp');tmp.write_text(c['content']);tmp.replace(path)
+                path=self.file_path(c['path']);tmp=path.with_name(path.name+'.workbench-tmp');tmp.write_bytes(c['content'].encode('utf-8'));tmp.replace(path)
             git(self.root,'add','--',*[c['path'] for c in review['changes']]);git(self.root,'-c','user.name=IC Workbench','-c','user.email=ic-workbench@localhost','commit','-m',message)
             head=self.head();result={'source_commit':head,'branch':self.branch,'review_id':preview['review_id'],'push_status':'not_requested'}
             if push:self.push();result['push_status']='confirmed'

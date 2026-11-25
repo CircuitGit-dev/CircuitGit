@@ -433,7 +433,7 @@ class DirectOperatorTests(unittest.TestCase):
     def test_trusted_settings_accept_explicit_mode_and_reject_unknown_or_writable_files(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'ci.local.json'
-            settings = {'schema': 'circuitgit.spectre-ci.v1', 'client_config': '/etc/circuitgit/client.local.json',
+            settings = {'schema': 'circuitgit.spectre-ci.v1', 'client_config': str(Path(tmp) / 'client.local.json'),
                         'testbenches': self.settings['testbenches']}
             path.write_text(json.dumps(settings)); path.chmod(0o600)
             self.assertNotIn('execution_mode', load_settings(path))
@@ -441,8 +441,9 @@ class DirectOperatorTests(unittest.TestCase):
             self.assertEqual(load_settings(path)['execution_mode'], 'direct')
             settings['execution_mode'] = 'auto-approve'; path.write_text(json.dumps(settings))
             with self.assertRaises(ValueError): load_settings(path)
-            settings['execution_mode'] = 'direct'; path.write_text(json.dumps(settings)); path.chmod(0o666)
-            with self.assertRaises(ValueError): load_settings(path)
+            if os.name != 'nt':
+                settings['execution_mode'] = 'direct'; path.write_text(json.dumps(settings)); path.chmod(0o666)
+                with self.assertRaises(ValueError): load_settings(path)
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

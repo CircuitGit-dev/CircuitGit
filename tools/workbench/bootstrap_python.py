@@ -403,6 +403,16 @@ def ensure_python(root=ROOT, *, run=None, candidates=None, progress=None, extras
         return python
 
 
+def _windows_local_python(root, *, run=None):
+    """Select a local Python 3.11+ on Windows when upstream SpiceOwl lacks POSIX fcntl."""
+    run = run or subprocess.run
+    for candidate in interpreter_candidates(root):
+        observation = probe(candidate, run, ())
+        if compatible(observation):
+            return candidate
+    return None
+
+
 def run_entrypoint(entry, application_main, *, argv=None, root=ROOT):
     """Guard only normal __main__ startup; importing an application does no setup."""
     arguments = list(sys.argv[1:] if argv is None else argv)
@@ -413,6 +423,16 @@ def run_entrypoint(entry, application_main, *, argv=None, root=ROOT):
     try:
         python = ensure_python(root)
     except (BootstrapError, OSError) as error:
+        if IS_WINDOWS and 'ModuleNotFoundError' in str(error):
+            fallback = _windows_local_python(root)
+            if fallback is not None:
+                print(
+                    '[CircuitGit] Windows 原生模式：上游 SpiceOwl 模块依赖 POSIX fcntl，'
+                    '直接启动本地工作台（支持 ngspice/Xyce、RNL 原理图、器件库与 Git/PR 工作流）。',
+                    file=sys.stderr, flush=True,
+                )
+                return subprocess.call([str(fallback), '-E', '-s', '-B', str(entry), *arguments],
+                                       cwd=str(root), env=safe_environment())
         print('[CircuitGit] ' + str(error), file=sys.stderr, flush=True)
         return 1
     if (Path(sys.prefix).resolve() == python.parent.parent.resolve()
@@ -432,16 +452,30 @@ def main(argv=None, *, root=ROOT):
     options, forwarded = parser.parse_known_args(argv)
     if options.setup_only and forwarded:
         parser.error('--setup-only does not accept application arguments')
+    entry_path = Path(root) / 'tools/workbench' / (options.entry + '.py')
+    if not options.setup_only and any(flag in forwarded for flag in ('--help', '-h')):
+        return subprocess.call([sys.executable, '-E', '-s', '-B', str(entry_path), *forwarded],
+                               cwd=str(root), env=safe_environment())
     try:
         python = ensure_python(root)
     except (BootstrapError, OSError) as error:
+        if IS_WINDOWS and not options.setup_only and 'ModuleNotFoundError' in str(error):
+            fallback = _windows_local_python(root)
+            if fallback is not None:
+                print(
+                    '[CircuitGit] Windows 原生模式：上游 SpiceOwl 模块依赖 POSIX fcntl，'
+                    '直接启动本地工作台（支持 ngspice/Xyce、RNL 原理图、器件库与 Git/PR 工作流）。',
+                    file=sys.stderr, flush=True,
+                )
+                return subprocess.call([str(fallback), '-E', '-s', '-B', str(entry_path), *forwarded],
+                                       cwd=str(root), env=safe_environment())
         print('[CircuitGit] ' + str(error), file=sys.stderr, flush=True)
         return 1
     if options.setup_only:
         print(json.dumps({'status': 'ready', 'python': str(python),
                           'spiceowl_commit': read_pin(Path(root))['commit']}))
         return 0
-    command = [str(python), '-E', '-s', '-B', str(Path(root) / 'tools/workbench' / (options.entry + '.py')), *forwarded]
+    command = [str(python), '-E', '-s', '-B', str(entry_path), *forwarded]
     return subprocess.call(command, cwd=str(root), env=safe_environment())
 
 

@@ -11,7 +11,11 @@ export function freshness(manifest,context){
   if(f?.dirty || !f?.currentTextSha256 || f.path!==(manifest.source?.canonical_path||manifest.source?.path) ||
      f.currentTextSha256!==(display?.sha256||manifest.source?.sha256) || g?.sourceMatch!==true || g?.state==='stale')
     return {ok:false,status:'source_mismatch',message:'历史运行 / 当前电气源不同或未验证；已禁用原理图同步。'};
-  if(g?.bundleCommit!==manifest.geometry?.bundle_commit || g?.manifestSha256!==manifest.geometry?.manifest_sha256)
+  const isLocalSnapshot=manifest.geometry?.kind==='local_export_snapshot'&&manifest.geometry?.bundle_commit===null;
+  if(isLocalSnapshot){
+    if(g?.manifestSha256!==manifest.geometry?.manifest_sha256||(manifest.geometry?.bundle_sha256&&g?.bundleSha256!==manifest.geometry.bundle_sha256))
+      return {ok:false,status:'geometry_mismatch',message:'实时 RNL 原理图身份不同；已禁用原理图同步。'};
+  }else if(g?.bundleCommit!==manifest.geometry?.bundle_commit || g?.manifestSha256!==manifest.geometry?.manifest_sha256)
     return {ok:false,status:'geometry_mismatch',message:'几何 bundle 身份不同；已禁用原理图同步。'};
   if(display)return {ok:true,status:'historical_comment_append',message:`历史运行 · 仅证明中已核验的尾部注释不同（${display.suffix_bytes}字节），未重新仿真。run源 ${display.run_source_sha256.slice(0,12)} → 视图源 ${display.sha256.slice(0,12)}；后续修改禁用同步。`};
   if(context?.project?.sourceCommit!==manifest.source_commit)return {ok:true,status:'historical_same_source',message:'历史运行；当前源内容哈希相同，几何身份已绑定。点击查询此历史结果（不代表当前配置的新仿真）。'};

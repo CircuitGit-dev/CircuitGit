@@ -57,7 +57,9 @@ export async function mountStudio({ui:providedUI}={}){
     if(nativeLoading||nativeError){nativeState=null;contextSelection=null;$('studio-native-note').textContent=nativeError?'原生图加载失败：'+nativeError:'正在读取固定版本的原生图…';$('studio-native-note').title=nativeError;$('studio-history-label').hidden=true;ui.setNativeState({loading:nativeLoading,hidden:!nativeLoading});refreshContext();return;}
     if(nativeModel&&nativeEntry){nativeState={...entryStatus(nativeModel,nativeEntry,state.file?.currentHash,{dirty:state.dirty}),entry:nativeEntry.id,displayedLevel:doc?.levels[current]?.title||null,files:manifest?.files||[]};}
     const n=nativeState;const rootPath=manifest?`/${manifest.id}/${manifest.entry}`:null;const foreign=doc&&rootPath&&doc.path!==rootPath;if(foreign){nativeState=null;contextSelection=null;refreshContext();$('studio-native-note').textContent='Viewer 本地文档 · 未绑定 canonical 源或仿真结果';ui.setNativeState({loading:false,hidden:false});return;}
-    const label=n?.snapshotOnly?'独立库 / 符号快照 · 无 canonical 映射':n?.stale?'电气源已变化 · 原生历史快照':n?'原生 Virtuoso · '+(n.fidelity||'partial'):'无可同步的原生图';
+    const liveSync=n?.layoutSync;
+    const liveLabel=liveSync?`实时 RNL 原理图 · 保留 ${liveSync.preserved_instances?.length||0}/${(liveSync.preserved_instances?.length||0)+(liveSync.added_instances?.length||0)} 元件布局`:'实时 RNL 原理图';
+    const label=n?.snapshotOnly?'独立库 / 符号快照 · 无 canonical 映射':n?.stale?'电气源已变化 · 原理图历史快照':n?.mode==='live-rnl'?liveLabel:n?'原生 Virtuoso · '+(n.fidelity||'partial'):'无可同步的原生图';
     $('studio-native-note').textContent=label+(contextSelection?` · ${contextSelection.kind} ${contextSelection.name}${contextSelection.canonical?' → L'+contextSelection.line_start:''}`:'');
     $('studio-native-note').title=n?JSON.stringify({bundle:n.bundleCommit,source:n.sourceCommit,source_sha256:n.boundSourceHash,entry:n.entry,coverage:n.coverage,losses:n.losses},null,2):label;
     $('studio-history-label').hidden=!n?.stale;
@@ -107,8 +109,15 @@ export async function mountStudio({ui:providedUI}={}){
     nativePayload=null;nativeModel=null;nativeState=null;manifest=null;state.nativeFiles=[];
     if(!path.endsWith('.scs')){publishNative();return;}
     const payload=await api.schematic(projectId(state.active),path,hash);if(generation!==epoch)return;
-    if(payload.geometry?.mode!=='native'){publishNative();return;}
-    nativePayload=payload;nativeModel=normalizeNative(payload,location.href);
+    let activePayload=payload;
+    if(payload.geometry?.mode!=='native'||!payload.geometry?.available||payload.geometry?.stale){
+      try{
+        const live=await api.liveSchematic(projectId(state.active),path,hash);if(generation!==epoch)return;
+        if(live?.geometry?.mode==='live-rnl'&&live.geometry.available)activePayload=live;
+      }catch{}
+    }
+    if(!['native','live-rnl'].includes(activePayload.geometry?.mode)||!activePayload.geometry?.available){publishNative();return;}
+    nativePayload=activePayload;nativeModel=normalizeNative(activePayload,location.href);
     $('studio-entry').replaceChildren(...nativeModel.entries.map(e=>new Option(e.label?.startsWith(e.export_namespace+':')?e.label:e.export_namespace?`${e.export_namespace}: ${e.label}`:e.label,e.id)));
     await loadEntry(nativeModel.defaultEntry.id);
   }

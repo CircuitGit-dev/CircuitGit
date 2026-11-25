@@ -30,7 +30,7 @@ class InstallTests(unittest.TestCase):
         source={'mcpServers':{'ic-workbench':{'type':'stdio','command':'python3'}}}
         result=configure_manifest(source,Path('/fixture/settings.json'))
         self.assertEqual(result['mcpServers']['ic-workbench']['command'],'python3')
-        self.assertEqual(result['mcpServers']['ic-workbench']['args'][-1],'/fixture/settings.json')
+        self.assertEqual(result['mcpServers']['ic-workbench']['args'][-1],str(Path('/fixture/settings.json')))
         self.assertNotIn('args',source['mcpServers']['ic-workbench'])
         source['mcpServers']['ic-workbench']['command']='/usr/bin/python3'
         with self.assertRaisesRegex(ValueError,'portable'):configure_manifest(source,Path('/fixture/settings.json'))

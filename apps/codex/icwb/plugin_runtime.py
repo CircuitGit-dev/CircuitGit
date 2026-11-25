@@ -90,7 +90,7 @@ class PluginRuntime:
         except (OSError,ValueError,KeyError) as error:raise Failure('setup_required','Installed project configuration cannot be read: '+str(error),4)
 
     def probe(self,cfg):
-        conn=http.client.HTTPConnection('127.0.0.1',self.port,timeout=2)
+        conn=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5)
         try:
             onboarding=cfg.get('onboarding_only') is True
             conn.request('GET','/api/health' if onboarding else '/api/project')
@@ -117,7 +117,8 @@ class PluginRuntime:
             return data
         except ConnectionRefusedError:return None
         except OSError as error:
-            if error.errno==errno.ECONNREFUSED:return None
+            refused = {errno.ECONNREFUSED, getattr(errno, 'WSAECONNREFUSED', None)}
+            if error.errno in refused or getattr(error, 'winerror', None) == 10061:return None
             raise Failure('gateway_unavailable','Local gateway cannot be reached; startup was not retried',75)
         except (http.client.HTTPException,ValueError,KeyError):raise Failure('gateway_conflict','The configured port did not return a compatible project registry',4)
         finally:conn.close()

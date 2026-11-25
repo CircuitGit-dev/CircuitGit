@@ -91,7 +91,7 @@ class DeduplicateTest(unittest.TestCase):
         # Both canonical-file relative dependencies and old logical paths are present.
         self.assertIn("lib/first/Child/schematic/eda-symbol.rnl", view["aliases"])
         symbol = view["aliases"]["lib/first/Child/schematic/eda-symbol.rnl"]
-        self.assertIn(str(Path(symbol).parent / "eda-style.rnl"), view["aliases"])
+        self.assertIn((Path(symbol).parent / "eda-style.rnl").as_posix(), view["aliases"])
         changed = self.child.replace(b"r=1k", b"r=2k")
         self.write(child, changed)
         self.assertEqual(MOD.view_snapshot(self.root, view)[parent_child], changed)

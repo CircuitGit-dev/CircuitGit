@@ -19,7 +19,7 @@ import server
 
 CIRCUIT='projects/demo/circuit.scs'
 CONFIG='projects/demo/config.json'
-AUX='projects/demo/aux.scs'
+AUX='projects/demo/extra.scs'
 
 class VersionControlTests(unittest.TestCase):
     def setUp(self):
@@ -40,7 +40,7 @@ class VersionControlTests(unittest.TestCase):
                  'projects/demo/a[1].scs','projects/demo/space file.scs','projects/demo/binary.bin','projects/demo/link.scs',
                  'projects/demo/pdk/foundry.scs','projects/demo/credentials.json'],
                  'configurations':[{'id':'TRAN','configuration_path':CONFIG,'bundle_template':'sim/demo.json',
-                                    'source_replacements':[{'source':AUX,'destination':'netlist/aux.scs'}]}]}
+                                    'source_replacements':[{'source':AUX,'destination':'netlist/extra.scs'}]}]}
         cfg={'runtime_root':str(self.base/'runtime'),'seed_repo':str(seed),'github_repo':'fixture/private',
              'runtime_branch':'codex/version-test','projects':[project]}
         self.ws=workspace.Workspace(cfg,{},b'synthetic')
@@ -53,7 +53,7 @@ class VersionControlTests(unittest.TestCase):
 
     def write(self,path,text):
         p=self.repo/path;p.parent.mkdir(parents=True,exist_ok=True)
-        p.write_bytes(text) if isinstance(text,bytes) else p.write_text(text)
+        p.write_bytes(text if isinstance(text,bytes) else text.encode('utf-8'))
 
     def commit(self,message):
         self.g('add','--all');self.g('commit','-m',message)

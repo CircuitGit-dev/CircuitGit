@@ -11,3 +11,13 @@ test('same immutable electrical bytes across commits are labelled historical',()
 test('ordinary node is never a current and instance needs terminal choice',()=>{assert.equal(resolveSelection(manifest,ctx({kind:'net',name:'R0'}),catalog).status,'unmapped');const r=resolveSelection(manifest,ctx({kind:'instance',name:'R0'}),catalog);assert.equal(r.status,'terminal_required');assert.equal(resolveSelection(manifest,ctx({kind:'terminal',name:'R0',terminalName:'1'}),catalog).status,'saved_state_unknown');});
 test('shared context occurrence always identifies parent',()=>{assert.deepEqual(normalizeSelection({kind:'instance',name:'R0',occurrencePath:['DUT'],occurrenceNamespace:'native-export',occurrenceResolved:true}).occurrence_path,['DUT']);});
 test('target ID absent from run catalog is fail closed',()=>{assert.equal(resolveSelection(manifest,ctx(),{signals:[]}).status,'signal_absent');});
+test('live-rnl local_export_snapshot probes require exact bundle and manifest sha256',()=>{
+  const liveMap=structuredClone(manifest);
+  liveMap.geometry={kind:'local_export_snapshot',bundle_commit:null,bundle_sha256:'b'.repeat(64),manifest_sha256:'c'.repeat(64),entry_id:'rc-demo'};
+  const c=ctx();c.geometry={...c.geometry,mode:'live-rnl',bundleCommit:null,bundleSha256:'b'.repeat(64),manifestSha256:'c'.repeat(64)};
+  assert.equal(resolveSelection(liveMap,c,catalog).status,'resolved');
+  const badBundle=structuredClone(c);badBundle.geometry.bundleSha256='0'.repeat(64);
+  assert.equal(freshness(liveMap,badBundle).status,'geometry_mismatch');
+  const missingBundle=structuredClone(c);delete missingBundle.geometry.bundleSha256;
+  assert.equal(freshness(liveMap,missingBundle).status,'geometry_mismatch');
+});

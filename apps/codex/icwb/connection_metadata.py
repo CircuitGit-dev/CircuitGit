@@ -80,6 +80,11 @@ def discover_runtime(config, *, search_path=None, app_roots=None):
                 hit = shutil.which(candidate_name, path=path)
                 if hit:
                     return hit
+            # shutil.which on Windows skips extensionless files; check absolute PATH entries directly.
+            for directory in path.split(os.pathsep):
+                direct = Path(directory) / name
+                if direct.is_file():
+                    return str(direct)
             return None
         return shutil.which(name, path=path)
 

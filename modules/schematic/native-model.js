@@ -2,23 +2,26 @@
 const HASH=/^[a-f0-9]{64}$/i;
 export function localURL(value,base){const url=new URL(value,base);if(url.origin!==new URL(base).origin||!['http:','https:'].includes(url.protocol))throw Error('Native assets must use the private gateway origin');return url.href;}
 export function normalizeNative(payload,base){
-  const g=payload?.geometry||{};if(g.integrity==='invalid'||g.state==='invalid')throw Error('Native geometry integrity is invalid');if(g.mode!=='native'&&payload?.kind!=='native-rnl')throw Error('No native geometry descriptor');
+  const g=payload?.geometry||{};if(g.integrity==='invalid'||g.state==='invalid')throw Error('Native geometry integrity is invalid');if(!['native','live-rnl'].includes(g.mode)&&payload?.kind!=='native-rnl')throw Error('No native geometry descriptor');
   const binding=g.source_binding||{};const bound=binding.geometry_source_sha256||payload.bound_source_hash;
   const cells=g.cells||payload.entries||[];const root=g.root_cell||payload.default_entry;
   const entries=cells.map((cell,i)=>{const id=cell.id||cell.cell_id||cell.name||cell.cell||String(i);return {...cell,id,label:cell.label||cell.name||cell.cell_view?.cell||cell.cell||id,level:cell.level||cell.cell_view?.cell||cell.cell||id,manifest:localURL(cell.viewer_manifest_url||cell.manifest_url||g.viewer_manifest_url,base)};});
   if(!entries.length&&g.viewer_manifest_url)entries.push({id:root||g.cell_view?.cell||'root',label:g.cell_view?.cell||'Root',level:g.cell_view?.cell||g.level,manifest:localURL(g.viewer_manifest_url,base)});
   if(!entries.length)throw Error('No exported native cell entrypoints are available');
   for(const file of g.files||[])if(file.url)localURL(file.url,base);
-  return {payload,geometry:g,entries,boundHash:HASH.test(bound||'')?bound:null,sourcePath:payload.source_path,bundleCommit:g.bundle_commit||null,sourceCommit:binding.geometry_source_commit||payload.source_commit||null,defaultEntry:entries.find(e=>e.id===root)||entries[0],mapping:g.mapping||payload.mapping||null,mappingURL:g.mapping_url?localURL(g.mapping_url,base):null};
+  return {payload,geometry:g,mode:g.mode==='live-rnl'?'live-rnl':'native',entries,boundHash:HASH.test(bound||'')?bound:null,sourcePath:payload.source_path,bundleCommit:g.bundle_commit||null,bundleSha256:HASH.test(g.bundle_sha256||'')?g.bundle_sha256:null,layoutSync:g.layout_sync||null,sourceCommit:binding.geometry_source_commit||payload.source_commit||null,defaultEntry:entries.find(e=>e.id===root)||entries[0],mapping:g.mapping||payload.mapping||null,mappingURL:g.mapping_url?localURL(g.mapping_url,base):null};
 }
 export function nativeStatus(model,currentHash,{dirty=false}={}){
   const {payload,geometry:g,boundHash}=model;const sourceMatch=!!boundHash&&boundHash===currentHash&&!dirty;
   const stale=!!payload.stale||g.state==='stale'||!sourceMatch;
   const integrity=g.integrity==='valid';const losses=Array.isArray(g.losses)?g.losses:null;
+  if(model.mode==='live-rnl'||g.mode==='live-rnl'){
+    return {mode:'live-rnl',state:stale?'stale':integrity?'ready':'invalid',stale,sourceMatch,nativeReady:false,liveReady:integrity&&!stale,integrity:g.integrity||'unknown',fidelity:g.fidelity||'live-incremental-rnl',losses:losses||[],coverage:g.coverage||null,layoutSync:model.layoutSync||g.layout_sync||null,boundSourceHash:boundHash,currentSourceHash:currentHash,bundleCommit:null,bundleSha256:model.bundleSha256||g.bundle_sha256||null,sourceCommit:model.sourceCommit};
+  }
   const verified=g.fidelity==='verified'||g.fidelity==='exact';
   const blocking=losses?.some(l=>l.blocking===true||l.severity==='error')||false;
   const ready=integrity&&verified&&losses!==null&&!blocking&&!stale&&payload.native_ready!==false;
-  return {mode:'native',state:stale?'stale':ready?'ready':g.state==='invalid'?'invalid':'partial',stale,sourceMatch,nativeReady:ready,integrity:g.integrity||'unknown',fidelity:g.fidelity||'unverified',losses,coverage:g.coverage||null,boundSourceHash:boundHash,currentSourceHash:currentHash,bundleCommit:model.bundleCommit,sourceCommit:model.sourceCommit};
+  return {mode:'native',state:stale?'stale':ready?'ready':g.state==='invalid'?'invalid':'partial',stale,sourceMatch,nativeReady:ready,integrity:g.integrity||'unknown',fidelity:g.fidelity||'unverified',losses,coverage:g.coverage||null,boundSourceHash:boundHash,currentSourceHash:currentHash,bundleCommit:model.bundleCommit,bundleSha256:model.bundleSha256||null,sourceCommit:model.sourceCommit};
 }
 export function sourceSelection(mapping,event,currentHash,{allowCanonical=false}={}){
   const objects=Array.isArray(mapping)?mapping:mapping?.objects||[];

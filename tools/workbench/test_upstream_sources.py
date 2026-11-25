@@ -1,5 +1,6 @@
 """Disposable local Git objects; initialization is mocked and never uses network."""
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -64,7 +65,7 @@ class UpstreamTests(UpstreamFixture):
         for name,row in result['sources'].items():
             self.assertEqual(row['head_commit'],self.commits[name]);self.assertEqual(row['gitlink_commit'],self.commits[name])
             self.assertTrue(row['gitlink_verified']);self.assertRegex(row['tree'],r'^[a-f0-9]{40}$')
-        self.assertTrue(all(options['env']['GIT_CONFIG_GLOBAL']=='/dev/null' for _,options in self.calls))
+        self.assertTrue(all(options['env']['GIT_CONFIG_GLOBAL']==os.devnull for _,options in self.calls))
 
     def test_archive_below_a_git_parent_remains_unchecked_without_git_calls(self):
         archive=self.root/'archive';archive.mkdir();self.metadata(archive)

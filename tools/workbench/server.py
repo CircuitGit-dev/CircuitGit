@@ -10,6 +10,7 @@ from workspace import Workspace,Conflict,VersionControlError
 from publisher import Publisher
 from waveforms import WaveformService, WaveformError, dispatch as waveform_dispatch
 from geometry import Geometry,InvalidGeometry
+import rnl_sync
 from supervision import Supervision, execution_target
 from simulation_runtime import SimulationRuntime
 from spiceowl_readonly import SpiceReadAdapter,SpiceReadError
@@ -152,7 +153,15 @@ class Application:
             self.runner.resource_recheck=self.resource_pool.recheck
         self.geometry=Geometry(self.workspace)
         self.supervision=Supervision(self.runner,self.workspace.projects)
-        self.waveforms=WaveformService(self.runner,cfg.get('waveform_bindings',{}),cfg.get('waveform_derivatives',{}),source_reader=self.geometry.blob)
+        self.waveforms=WaveformService(
+            self.runner,
+            cfg.get('waveform_bindings',{}),
+            cfg.get('waveform_derivatives',{}),
+            source_reader=self.geometry.blob,
+            live_mapper=lambda record,identity,signals,dataset_id=None: rnl_sync.derive_run_waveform_mapping(
+                self.workspace,self.geometry,record,identity,signals,dataset_id=dataset_id
+            ),
+        )
         self.ai=None
         self.token=secrets.token_urlsafe(32);self.pool=concurrent.futures.ThreadPoolExecutor(max_workers=2);self.operations={};self.mutex=threading.Lock()
         self.simulation=SimulationRuntime(self)
@@ -349,6 +358,21 @@ class Handler(BaseHTTPRequestHandler):
                 data=self.app.geometry.schematic(get('project_id'),get('path'),get('source_hash'),'http://127.0.0.1:'+str(self.server.server_port))
                 data.update(adapter_url='/viewer-adapter/index.js' if (self.app.web/'viewer-adapter/index.js').exists() else None,version='RNL native geometry v1',limitations=['Integrity is checked by the gateway; fidelity requires committed owner validation.'])
                 return self.response(data)
+            if path=='/api/schematic/live':
+                origin='http://127.0.0.1:'+str(self.server.server_port)
+                expected=get('source_hash') or None
+                bundle=rnl_sync.live_schematic_for_workspace(self.app.workspace,self.app.geometry,get('project_id'),get('path'),origin,expected_sha256=expected)
+                data=bundle['payload']
+                data.update(adapter_url='/viewer-adapter/index.js' if (self.app.web/'viewer-adapter/index.js').exists() else None,version='RNL live incremental sync v1',limitations=['Live RNL preserves existing @RNL placements for unchanged instances; does not claim Virtuoso native fidelity.'])
+                return self.response(data)
+            if path in ('/api/schematic/live-manifest','/api/schematic/live-file'):
+                required=['project_id','path','source_sha256']
+                if set(qs)!=set(required) or any(len(qs[k])!=1 or not get(k) for k in required):raise ValueError('exact pinned live schematic query parameters required')
+                origin='http://127.0.0.1:'+str(self.server.server_port)
+                bundle=rnl_sync.live_schematic_for_workspace(self.app.workspace,self.app.geometry,get('project_id'),get('path'),origin,expected_sha256=get('source_sha256'))
+                if path.endswith('/live-manifest'):
+                    return self.send(200,bundle['manifest_bytes'],'application/json')
+                return self.send(200,bundle['rnl_bytes'],'text/plain; charset=utf-8')
             if path in ['/api/geometry/file','/api/geometry/viewer-manifest']:
                 required=['project_id','bundle_commit','manifest_sha256','path' if path.endswith('/file') else 'entry']
                 if set(qs)!=set(required) or any(len(qs[k])!=1 or not get(k) for k in required):raise ValueError('exact pinned geometry query parameters required')

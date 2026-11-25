@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 from urllib.parse import unquote,urlsplit
+from urllib.request import url2pathname
 
 import bootstrap_python as bootstrap
 from test_upstream_sources import UpstreamFixture
@@ -61,7 +62,7 @@ class Runtime:
                 return subprocess.CompletedProcess(command, 1, '', 'Synthetic network unavailable')
             observation = self.observations[command[0]]
             if ' @ file:' in command[-1]:
-                url=command[-1].split(' @ ',1)[1];path=Path(unquote(urlsplit(url).path))
+                url=command[-1].split(' @ ',1)[1];path=Path(url2pathname(urlsplit(url).path))
                 pin=bootstrap.read_pin(self.git_root)
                 observation['dependency']=self.dependency(Path(observation['prefix']),pin)
                 observation['dependency']['direct_url']={'url':url,'archive_info':{'hashes':{'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}}}
