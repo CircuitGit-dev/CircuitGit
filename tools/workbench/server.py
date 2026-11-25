@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Loopback-only workbench HTTP v1. Installed code executes; repository scripts never do."""
-import argparse, concurrent.futures, json, mimetypes, os, re, secrets, threading
+import argparse, concurrent.futures, json, mimetypes, os, re, secrets, socketserver, threading
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit,parse_qs,unquote
@@ -477,6 +477,10 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:self.error(e)
 class Server(ThreadingHTTPServer):
     daemon_threads=True
+    def server_bind(self):
+        # Avoid blocking reverse DNS lookups (socket.getfqdn) on loopback binds.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 def main():
     p=argparse.ArgumentParser();p.add_argument('--config',required=True,type=Path);p.add_argument('--web-root',required=True,type=Path);p.add_argument('--host',default='127.0.0.1');p.add_argument('--port',type=int,default=8766);a=p.parse_args()
     if a.host!='127.0.0.1':p.error('only 127.0.0.1 is supported; public bind is forbidden')

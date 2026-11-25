@@ -8,6 +8,7 @@ import re
 import secrets
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import socketserver
 from urllib.parse import parse_qs, urlsplit, urlencode
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -502,6 +503,10 @@ class Handler(BaseHTTPRequestHandler):
 
 class Server(ThreadingHTTPServer):
     daemon_threads = True
+    def server_bind(self):
+        # Avoid blocking reverse DNS lookups (socket.getfqdn) on loopback binds.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)

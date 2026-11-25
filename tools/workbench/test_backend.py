@@ -34,7 +34,11 @@ class BackendTests(unittest.TestCase):
         c=http.client.HTTPConnection('127.0.0.1',self.http.server_port)
         c.request('POST','/api/sync',body='{"not_consumed":true}',headers={'Origin':self.origin,'Content-Type':'application/json','X-Workbench-Token':'expired'})
         response=c.getresponse();self.assertEqual(response.status,403);response.read()
-        self.assertEqual(c.sock.recv(1),b'','Rejected body must not survive on a keepalive connection')
+        try:
+            trailing=c.sock.recv(1) if c.sock else b''
+        except ConnectionResetError:
+            trailing=b''
+        self.assertEqual(trailing,b'','Rejected body must not survive on a keepalive connection')
         c.close()
     def test_commit_and_signed_materialization(self):
         base=self.app.workspace.head();path='projects/demo/circuit.scs';body={'base_commit':base,'changes':[{'path':path,'content':self.app.workspace.file(path)['content']+'// reviewed edit\n'}]}
