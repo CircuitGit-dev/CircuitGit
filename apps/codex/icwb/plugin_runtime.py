@@ -206,7 +206,7 @@ class PluginRuntime:
                          stdin=subprocess.DEVNULL,**detached_popen_kwargs())
                 self._owned_process=process
                 record['pid']=process.pid;atom(attempts,record)
-                deadline=time.monotonic()+8
+                deadline=time.monotonic()+20
                 while time.monotonic()<deadline:
                     if process.poll() is not None:raise Failure('startup_failed','Bundled gateway stopped during startup; inspect plugin diagnostics',4)
                     project=self.probe(cfg)
