@@ -135,7 +135,8 @@ export function mount(host) {
   function renderConfiguration(parent,s,conf,effective,blocked){
     const descriptor=s.descriptor,edit=(path,value)=>controller.edit(path,value),basis=s.preview?'预览编译值':'已保存生效值';
     const values=effective.tran?.values||{},si=effective.tran?.values_si||{};
-    const analysis=detail(parent,'analysis','瞬态分析','transient');
+    const isTran=!s.configurationId||!/^AC/i.test(s.configurationId)&&!/^DC/i.test(s.configurationId);
+    const analysis=detail(parent,'analysis',isTran?'瞬态分析':'分析设置',isTran?'transient':String(s.configurationId||'analysis').toLowerCase());
     const diagram=el('figure',undefined,'ic-sim-timeline');diagram.setAttribute('aria-label','瞬态分析时间范围示意，不是仿真波形');
     const range=el('div',undefined,'ic-sim-time-range');range.append(el('span','0 s'),el('strong',timeValue(si.stop,values.stop)));diagram.append(range,el('div',undefined,'ic-sim-time-axis'));
     diagram.append(el('figcaption',`最大步长 ≤ ${timeValue(si.maxstep,values.maxstep)} · ${basis}`));analysis.append(diagram);
@@ -238,7 +239,7 @@ export function mount(host) {
     const prepare=section(parent,'配置与计划');
     const toolbar=el('div',undefined,'ic-sim-toolbar');
     const incompleteSave=conf?.save&&(!Array.isArray(conf.save.signals)||!conf.save.signals.length);
-    toolbar.append(button('预览差异',()=>controller.preview(),blocked||!conf||!dirty||incompleteSave),button(s.pushAfterSave?'提交并推送配置':'保存配置',()=>controller.commit(),blocked||!s.preview||!controller.commitMessageValid()),button('生成计划',()=>controller.plan(),blocked||dirty));prepare.append(toolbar);
+    toolbar.append(button('预览差异',()=>controller.preview(),blocked||!conf||!dirty||incompleteSave,stage===0?'ic-sim-primary':''),button(s.pushAfterSave?'提交并推送配置':'保存配置',()=>controller.commit(),blocked||!s.preview||!controller.commitMessageValid(),stage===1?'ic-sim-primary':''),button('生成计划',()=>controller.plan(),blocked||dirty,stage===2?'ic-sim-primary':''));prepare.append(toolbar);
     if(s.preview&&s.commitMessage){
       const message=s.commitMessage,box=section(prepare,'提交说明');
       const title=field(box,'标题','commit-title',message.title,'AI 生成或手动填写',value=>controller.setCommitTitle(value),{disabled:blocked});title.maxLength=80;
@@ -256,7 +257,7 @@ export function mount(host) {
     const backend=host.getProject()?.simulation_backend;
     const isLocalBackend=backend?.transport==='local';
     const submit=section(parent,isLocalBackend?`本地执行（${backend.engine}）`:'远端执行');
-    submit.append(button(isLocalBackend?`本地预检（${backend.engine}，无需许可）`:'远端预检（不启动仿真）',()=>controller.preflight(),blocked||!s.plan||dirty));
+    submit.append(button(isLocalBackend?`本地预检（${backend.engine}，无需许可）`:'远端预检（不启动仿真）',()=>controller.preflight(),blocked||!s.plan||dirty,stage===3?'ic-sim-primary':''));
     note(submit,isLocalBackend?'预检只校验本机开源仿真器与 PDK 文件哈希，不访问云端，不启动仿真。':'预检会访问远端；点击后才执行。');
     const consent=el('label',undefined,'ic-sim-consent'),check=el('input');check.type='checkbox';check.dataset.field='confirm-submit';check.disabled=blocked||!s.preflight||!!s.submitAttempt;
     consent.append(check,document.createTextNode('我确认按此版本启动一个新的仿真任务'));submit.append(consent);

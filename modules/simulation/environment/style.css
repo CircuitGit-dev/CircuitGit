@@ -1,8 +1,23 @@
-.ic-env{display:grid;gap:12px;min-width:0}
-.ic-env-card> .ic-sim-section-head{margin-bottom:8px}
+.ic-env{display:grid;gap:10px;min-width:0}
+.ic-env-stepper{margin:0 0 2px}
+.ic-env-card{transition:border-color .15s ease}
+.ic-env-card.is-active{border-color:#94b4cf;box-shadow:0 1px 4px #28598314}
+.ic-env-card.is-done>.ic-sim-section-head .ic-env-number{background:#e7f4ed;border-color:#a8d5bc;color:#1f6445;font-weight:600}
+.ic-env-card.is-active>.ic-sim-section-head .ic-env-number{background:#315f88;border-color:#315f88;color:#fff;font-weight:600}
+.ic-env-card-meta{display:inline-flex;align-items:center;gap:6px}
+.ic-env-step-toggle{font-size:10px!important;padding:2px 5px!important}
+.ic-env-collapsed-summary{margin:4px 0 0!important;font-size:11px!important;color:#4a5e70!important}
+.ic-env-card> .ic-sim-section-head{margin-bottom:6px}
 .ic-env-card h3{display:flex;align-items:center;gap:7px}
 .ic-env-number{display:grid;place-items:center;width:20px;height:20px;flex-shrink:0;border:1px solid #c6d4df;border-radius:50%;font:11px ui-monospace,monospace;color:#315f88}
 .ic-env-step-type{font-size:10px;color:#687583}
+.ic-env-connection{padding:8px 10px;border:1px solid #dfe6ed;border-radius:6px;background:#f8fafc}
+.ic-env-connection.is-connected{background:#eff7f2;border-color:#c2decb}
+.ic-env-connection-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}
+.ic-env-conn-badge{font-size:11px;font-weight:600;color:#354a5d}
+.ic-env-connection.is-connected .ic-env-conn-badge{color:#1d6344}
+.ic-env-conn-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.ic-env-conn-controls .ic-sim-field{flex:1 1 130px;margin:0}
 .ic-env-file{display:inline-flex;position:relative;align-items:center;padding:6px 9px;border:1px solid #c9d3dc;border-radius:4px;font-size:11px;color:#315f88;cursor:pointer}
 .ic-env-file input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .ic-env-file:focus-within{outline:2px solid #739abe;outline-offset:2px}
@@ -30,7 +45,6 @@
 .ic-env-probe{border-top:1px solid #e8edf1;margin-top:12px;padding-top:6px}
 .ic-env h4{font-size:11px;overflow-wrap:anywhere}
 .ic-env .ic-sim-section-head{flex-wrap:wrap;gap:6px}
-.ic-env-connection{padding:8px 10px;border:1px solid #e1e7ed;border-radius:4px}
 .ic-env .ic-sim-field input,.ic-env .ic-sim-field textarea,.ic-env .ic-sim-field select{min-width:0;max-width:100%}
 .ic-env-directories{display:flex;flex-wrap:wrap;gap:6px;border:0;padding:0;margin:10px 0}
 .ic-env-directories legend{font-size:10px;color:#687583;margin-bottom:6px}

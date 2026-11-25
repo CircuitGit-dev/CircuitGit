@@ -44,7 +44,8 @@ function createChrome(){
 export function attachSchematicChrome(){
   const drawing=document.querySelector('main.drawing');if(!drawing||document.getElementById('studio-provenance'))return;
   const provenance=node('div','studio-provenance');provenance.id='studio-provenance';
-  provenance.innerHTML='<span id="studio-native-note">正在读取电路…</span><label id="studio-history-label" hidden><input id="studio-history" type="checkbox"> 显示历史几何</label><button id="studio-source-button" type="button" disabled>查看 / 编辑源码…</button>';
+  provenance.innerHTML='<button id="studio-sidebar-toggle" type="button" title="展开或收起网表与层级侧边栏">☰ 侧边栏</button><span id="studio-native-note">正在读取电路…</span><label id="studio-history-label" hidden><input id="studio-history" type="checkbox"> 显示历史几何</label><button id="studio-source-button" type="button" disabled>查看 / 编辑源码…</button>';
+  provenance.querySelector('#studio-sidebar-toggle').onclick=()=>{try{window.viewer?.command?.('toggle-netlist');}catch{}};
   drawing.insertBefore(provenance,document.getElementById('canvas'));
 }
 

@@ -44,12 +44,14 @@ export function mountRemoteNode(host) {
   const $=s=>root.querySelector(s),welcome=$('.cg-node-welcome'),form=$('form'),connected=$('.cg-node-connected'),status=$('.cg-node-status'),chat=$('.cg-node-chat'),projects=$('select');
   const localButton=$('[data-action=local]'),openButton=$('[data-action=open-project]'),canvasButton=$('[data-action=use-canvas]'),loginButton=$('[data-action=login]');
   const initialSettings=doc.createElement('div'),initialToggle=doc.createElement('button'),initialHint=doc.createElement('span'),settingsHome=doc.createElement('div'),connectionSettings=doc.createElement('details'),connectionSummary=doc.createElement('summary');
-  initialSettings.className='cg-node-initial-settings';initialToggle.type='button';initialToggle.textContent='⚙';initialToggle.setAttribute('aria-label','AI连接设置');initialToggle.setAttribute('aria-expanded','false');initialHint.textContent='在设置中连接你的 Codex';initialSettings.append(initialToggle,initialHint);
+  initialSettings.className='cg-node-initial-settings';initialToggle.type='button';initialToggle.textContent='⚙';initialToggle.setAttribute('aria-label','AI连接设置');initialToggle.setAttribute('aria-expanded','false');initialHint.textContent='在设置中连接工作台助手（Codex + 远端仿真 + 本地库）';initialSettings.append(initialToggle,initialHint);
   settingsHome.className='cg-node-settings-home';settingsHome.hidden=true;connectionSettings.className='cg-node-connection-settings';connectionSummary.textContent='连接与工程';connectionSettings.append(connectionSummary,welcome,connected,status);settingsHome.append(connectionSettings);root.insertBefore(initialSettings,chat);root.insertBefore(settingsHome,chat);
   function showConnectionSettings(){settingsHome.hidden=false;connectionSettings.open=true;initialToggle.setAttribute('aria-expanded','true');}
   initialToggle.onclick=()=>{settingsHome.hidden=!settingsHome.hidden;initialToggle.setAttribute('aria-expanded',String(!settingsHome.hidden));if(!settingsHome.hidden)connectionSettings.open=true;};
-  let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true,ownerWindow=null,ownerTimer=null,ownerResolve=null,inflightTurns=0;
+  let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true,ownerWindow=null,ownerTimer=null,ownerResolve=null,inflightTurns=0,ownsClient=true;
   let nodeConnectionId=null,onboardingChoice=null,choiceTask=null;
+  const connListeners=new Set();
+  const emitConn=()=>{const state={connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai};for(const fn of connListeners)try{fn(state);}catch{}};
   const pendingDrafts=createAssistanceQueue({element:root,apply:draft=>ai?.queueDraft(draft)||{status:'queued',message:'请先连接并选择现有对话；请求已保留。'},getAvailability:()=>({available:!!ai,message:!client?'尚未连接；请手动连接 Codex，仿真请求已保留。':!ai?'请选择工程并打开对话；请求已保留，不会自动新建。':'请选择或新建目标对话；请求已保留，尚未发送。'})});root.insertBefore(pendingDrafts.element,chat);
   const queueDraft=draft=>{if(ai)return ai.queueDraft(draft);showConnectionSettings();return pendingDrafts.enqueue(draft);};
   const listeners=new Set();
@@ -85,7 +87,7 @@ export function mountRemoteNode(host) {
     if(p?.libraryId&&p?.cellId)return 'library:'+p.libraryId+'/'+p.cellId;
     return !p||p.id==='rc-demo'?'library:basics/rc-smoke':null;
   }
-  function drop(){for(const draft of ai?.takePendingDrafts?.()||[])pendingDrafts.enqueue(draft);++epoch;host.libraryBridge?.unbind();if(client)host.onboarding?.unbindClient(client);nodeConnectionId=null;onboardingChoice=null;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;client?.close();client=null;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);pendingDrafts.render();}
+  function drop(){for(const draft of ai?.takePendingDrafts?.()||[])pendingDrafts.enqueue(draft);++epoch;const prev=client,owned=ownsClient;host.libraryBridge?.unbind();if(prev){if(!host.onboarding?.unbindClient(prev)&&!owned)host.onboarding?.disconnect?.();}nodeConnectionId=null;onboardingChoice=null;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;if(owned)prev?.close();client=null;ownsClient=true;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);pendingDrafts.render();emitConn();}
   async function refreshOnboardingChoice(){
     if(choiceTask)return choiceTask;
     const generation=epoch;
@@ -127,11 +129,8 @@ export function mountRemoteNode(host) {
     return result;
   }
 
-  async function connect(url,code,generation,local=false){
-    client=createNodeClient({url,accessCode:code,onUnauthorized:()=>{
-      if(generation!==epoch||destroyed)return;disconnect();message('连接授权已失效，请重新授权。未自动重发操作。',true);
-    }});
-    const info=await client.request('/node/info');if(generation!==epoch||destroyed)return;
+  async function finishConnect(candidate,info,generation,local=false,owned=true){
+    client=candidate;ownsClient=owned;
     if(info?.schema!=='circuitgit.remote-node.v1'||info.single_owner!==true||info.auth!=='bearer'||!info.capabilities?.chat)throw Error('未找到兼容的 CircuitGit 连接服务。');
     nodeConnectionId=info.connection_id||null;
     if(info.capabilities.simulation_onboarding===true&&!host.onboarding?.getState().connected){
@@ -146,14 +145,31 @@ export function mountRemoteNode(host) {
     await refreshOnboardingChoice();if(generation!==epoch||destroyed)return;
     const preferred=canvasProject();
     if(onboardingChoice)projects.value=onboardingChoice.project.id;else if(seen.has(preferred))projects.value=preferred;else if(catalog.projects.length===1)projects.value=catalog.projects[0].id;
-    $('.cg-node-identity strong').textContent=local?'本机 Codex':info.name||'CircuitGit server';
-    form.elements.accessCode.value='';welcome.hidden=true;connected.hidden=false;accountReady=true;
+    $('.cg-node-identity strong').textContent=local?'本机 Codex · 统一助手':info.name||'CircuitGit server';
+    form.elements.accessCode.value='';welcome.hidden=true;connected.hidden=false;accountReady=true;emitConn();
     if(local&&info.capabilities.local_login){
       $('.cg-node-account').hidden=false;message('已授权，正在检查本机 Codex 登录状态…');
       try{await refreshAccount(generation);}catch(error){if(generation===epoch&&!destroyed){accountReady=false;openButton.disabled=true;message(error.message,true);return;}}
       if(generation!==epoch||destroyed)return;
     }
-    message(accountReady?'已连接。选择工程后打开对话。':'请在官方页面完成登录，然后继续。');pendingDrafts.render();
+    message(accountReady?'已连接（AI / 远端仿真 / 本地库共用）。选择工程后打开对话。':'请在官方页面完成登录，然后继续。');pendingDrafts.render();
+  }
+  async function connect(url,code,generation,local=false){
+    const candidate=createNodeClient({url,accessCode:code,onUnauthorized:()=>{
+      if(generation!==epoch||destroyed)return;disconnect();message('连接授权已失效，请重新授权。未自动重发操作。',true);
+    }});
+    client=candidate;ownsClient=true;
+    const info=await client.request('/node/info');if(generation!==epoch||destroyed)return;
+    await finishConnect(candidate,info,generation,local,true);
+  }
+  async function adoptClient(candidate,info,{local=true}={}){
+    if(destroyed||!candidate||!info?.capabilities?.chat)return false;
+    if(client===candidate)return true;
+    if(busy||client)return false;
+    drop();const generation=epoch;setBusy(true);emitConn();
+    try{await finishConnect(candidate,info,generation,local,false);return true;}
+    catch(error){if(generation===epoch&&!destroyed){client=null;ownsClient=true;message(error.message,true);emitConn();}return false;}
+    finally{if(generation===epoch&&!destroyed){setBusy(false);emitConn();}}
   }
 
   localButton.onclick=async()=>{
@@ -288,5 +304,5 @@ export function mountRemoteNode(host) {
   }
   const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 Codex',run:()=>{parent.setVisible(true);if(!context){showConnectionSettings();(connected.hidden?localButton:openButton).focus();}else ai?.show();}});
   const offAssistance=host.agentAssistance?.registerReceiver(queueDraft);
-  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],destroy(){if(destroyed)return;destroyed=true;offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
+  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],adoptClient,connectLocal:()=>{parent.setVisible(true);showConnectionSettings();return localButton.onclick();},disconnect,getConnectionState:()=>({connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai}),subscribeConnection(fn){connListeners.add(fn);return()=>connListeners.delete(fn);},destroy(){if(destroyed)return;destroyed=true;connListeners.clear();offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
 }

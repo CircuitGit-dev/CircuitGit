@@ -16,6 +16,7 @@ import {clearDrawing,fit} from '../vendor/rnl-viewer/drawing.js';
 import {clearSource} from '../vendor/rnl-viewer/text.js';
 import {renderHierarchy} from '../vendor/rnl-viewer/hierarchy.js';
 import {createLayout} from './layout.js';
+import {mountWorkspaceHub} from './workspace-hub.js';
 import {whenVisible} from './lazy-slot.js';
 import {createCommitMessage} from '../../../modules/workspace/commit-message.js';
 import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
@@ -193,7 +194,21 @@ export async function mountStudio({ui:providedUI}={}){
   const getSimulationMode=()=>!state.active?.configurations?.length||!!doc&&(!manifest||!doc.path.startsWith('/'+manifest.id+'/'))?'environment':'project';
   const host=Object.freeze({version:1,agentAssistance,requestAgentAssistance:request=>agentAssistance.request(request),context:contextOwner.api,gateway:api,slots:ui.slots,registerCommand:register,notify,plot,onboarding,onboardingSync,getSimulationMode,
     ...(ui.slots.waveforms?{openOnboardingWaveforms}:{}),getOnboardingSource,getProject:identity,getRuns:()=>clone(state.jobs),selectRun,openSource:openCanonicalEditor,createCommitMessage:options=>createCommitMessage({gateway:api,...options}),versioning:Object.freeze({sync:syncRepository}),async refresh({project=false,runs=false}={}){if(project)await loadProject();if(runs)await refreshRuns();}});
-  window.addEventListener('pagehide',()=>{agentAssistance.destroy();onboardingSync.destroy();onboarding.disconnect();},{once:true});
+  let healthCaps=null;
+  const workspaceHub=mountWorkspaceHub({
+    toolbar:$('studio-toolbar'),
+    mode:'live',
+    getStatus:()=>({
+      ai:Boolean(healthCaps?.ai),
+      simulation:healthCaps?.simulation_onboarding!==false,
+      library:healthCaps?.git!==false,
+      detail:state.project?.branch?`当前分支：${state.project.branch} · ${(state.project.source_commit||'').slice(0,8)}`:'',
+    }),
+    onOpenConnections:()=>{try{command('help.agent-connections');}catch(error){notify(error.message,{kind:'warning'});}},
+    onOpenSimulation:()=>{ui.slots.simulation.setVisible(true);},
+    onOpenAI:()=>{ui.slots.ai.setVisible(true);},
+  });
+  window.addEventListener('pagehide',()=>{workspaceHub.destroy();agentAssistance.destroy();onboardingSync.destroy();onboarding.disconnect();},{once:true});
   Object.defineProperty(window,'ICRNLStudio',{value:host,writable:false});
   register({id:'project.choose',menu:'project',label:'选择项目…',run:()=>$('studio-project').focus()});
   register({id:'project.source',menu:'project',label:'查看 / 编辑源码…',run:()=>openCanonicalEditor(),enabled:()=>!!state.file});
@@ -310,6 +325,6 @@ export async function mountStudio({ui:providedUI}={}){
   }
   setSidebarWidth(300);setPane('hierarchy');
   controls();addonsReady=mountAddons();void addonsReady.catch(error=>notify(error.message,{kind:'warning'}));
-  try{const health=await healthReady;if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';await loadProject();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();notify(error.message,{kind:'error'});}
+  try{const health=await healthReady;healthCaps=health?.capabilities||null;workspaceHub.update();if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';await loadProject();workspaceHub.update();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();workspaceHub.update();notify(error.message,{kind:'error'});}
   return host;
 }

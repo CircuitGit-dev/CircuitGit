@@ -55,6 +55,16 @@ export function createAnalysisPanel({render,opened,onError}){
           for(const signal of (name==='devices'?devices:signals)){const row=el('label',undefined,'ic-env-choice'),input=el('input');input.type='checkbox';input.checked=selected.includes(signal.id);input.disabled=controller.locked;input.dataset.analysisInput=name;input.dataset.signalId=signal.id;input.addEventListener('change',()=>{inputs[name]=input.checked?[...selected,signal.id]:selected.filter(id=>id!==signal.id);render();});row.append(input,doc.createTextNode((signal.label||signal.name||signal.id)+' · '+(name==='devices'?signal.id:signal.unit||'未知单位')+(name!=='devices'&&selected.includes(signal.id)?' · 第 '+(selected.indexOf(signal.id)+1)+' 列':'')));group.append(row);}box.append(group);
         }else field(label,'input-'+name,options,inputs[name],value=>{if(value)inputs[name]=value;else delete inputs[name];});
       }
+      const quickParams={spec_analyze:[['fs_hz','采样率 fs (Hz)','例如 1e9'],['f_in_hz','输入频率 fin (Hz)','可选']],coherent_fft:[['fs_hz','采样率 fs (Hz)','例如 1e9'],['n_fft','FFT 点数','可选']],sine_fit3:[['fs_hz','采样率 fs (Hz)','例如 1e9'],['f_in_hz','输入频率 fin (Hz)','例如 1e6']],sine_fit4:[['fs_hz','采样率 fs (Hz)','例如 1e9']],tran_metrics:[['settling_band_pct','建立误差带 (%)','例如 1']]}[operation]||[];
+      if(quickParams.length){
+        let parsedQuick={};try{parsedQuick=parseEnvironmentJson(parameters,{maxBytes:65536});}catch{parsedQuick={};}
+        for(const [paramKey,paramLabel,placeholder] of quickParams){
+          const row=el('label',undefined,'ic-sim-field'),input=el('input');input.type='number';input.step='any';input.placeholder=placeholder;input.disabled=controller.locked;
+          input.value=parsedQuick[paramKey]??'';input.dataset.environmentField='analysis-quick-'+paramKey;
+          input.addEventListener('change',()=>{try{const next=parseEnvironmentJson(parameters,{maxBytes:65536});const raw=input.value.trim();if(raw==='')delete next[paramKey];else{const num=Number(raw);if(!Number.isFinite(num))throw Error(paramLabel+' 需为有限数值。');next[paramKey]=num;}parameters=JSON.stringify(next,null,2);render();}catch(error){onError(error);}});
+          row.append(el('span',paramLabel),input);box.append(row);
+        }
+      }
       const detail=el('details',undefined,'ic-sim-detail');detail.dataset.environmentDetail='analysis-options';detail.open=opened.has('analysis-options');detail.append(el('summary','算法参数与测量判据'));detail.addEventListener('toggle',()=>{if(detail.isConnected)detail.open?opened.add('analysis-options'):opened.delete('analysis-options');});
       const json=(label,key,value,changed)=>{const row=el('label',undefined,'ic-env-code-field'),area=el('textarea');row.append(el('span',label));area.rows=5;area.value=value;area.spellcheck=false;area.disabled=controller.locked;area.dataset.environmentField='analysis-'+key;area.addEventListener('input',()=>changed(area.value));row.append(area);detail.append(row);};
       json('算法参数 JSON','parameters',parameters,value=>parameters=value);note(detail,'例如采样率、目标频率或 settling band。信号通过上方选择；后端由单独选项指定。DC 的 device_contracts 以已选器件 ID 为键，须明确提供模型 region 映射或 Vdsat 电压约定；缺失时保持 unknown。');

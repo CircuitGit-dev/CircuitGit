@@ -30,6 +30,8 @@ async function start(){
   setPane(load('side-pane','hierarchy'));setShowFailed(load('show-failed',true));setSemanticsOnly(load('semantics-only',false));setRnlOnly(load('rnl-only',false));setCheck('toggle-edit',false);setIndexHeight(load('index-height',260));
   setGrid({shown:load('grid-shown',true),style:load('grid-style','dots'),spacing:load('grid-spacing','auto'),major:load('grid-major',5),axes:load('grid-axes',false)});setHoverNames(load('hover-names',true));renderUnplaced();
   // Pool/core preparation and command metadata have independent inputs.
+  // Suppress upstream external public-package catalog errors in offline/self-contained CircuitGit builds.
+  window.addEventListener('public-package-status',event=>{if(/unavailable|catalog/i.test(String(event.detail||'')))event.stopImmediatePropagation();},true);
   await Promise.all([startCommands(),startPool()]);showMenuBar(true);
   document.getElementById('sidebar').addEventListener('contextmenu',event=>{if(!event.target.closest('input,textarea,select,[contenteditable]'))event.preventDefault();});
   window.viewer={get doc(){return doc;},get level(){return current;},get path(){return path.map(step=>({...step}));},get selected(){return selected;},command,checked:isChecked,get grid(){return gridState();},menuBar:showMenuBar,get edits(){return {unsaved:dirtyPaths(),unapplied:unappliedPaths()};}};

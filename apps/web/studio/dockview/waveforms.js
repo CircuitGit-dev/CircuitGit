@@ -56,6 +56,20 @@ export function mount(host,{api=waveformAPI(),labels={}}={}){
   const runButton=document.createElement('button');runButton.type='button';runButton.className='wf-open-run';runButton.textContent='打开运行…';runButton.title='打开已有运行 (O)';runButton.onclick=()=>{show(runs);void listRuns();};aside.append(runButton);
   aside.append($('.wf-legend'));
   const add=document.createElement('button');add.type='button';add.className='wf-add-signals';add.textContent='+ 添加信号';add.title='添加信号 (L)';add.onclick=()=>show(signals);aside.append(add);
+  const quickBar=document.createElement('div');quickBar.className='wf-quick-bar';quickBar.setAttribute('aria-label','波形快捷工具');
+  const qBtn=(label,title,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.title=title;b.onclick=fn;quickBar.append(b);return b;};
+  const toggleProbe=kind=>{
+    if(mode===kind){try{window.viewer?.command?.('plot.exit');}catch{}return;}
+    try{window.viewer?.command?.('plot.'+kind);}catch(err){host.notify?.(err.message||String(err),{kind:'warning'});}
+  };
+  const vProbeBtn=qBtn('电压探针','点击原理图节点添加电压波形（Esc 退出）',()=>toggleProbe('voltage'));
+  const iProbeBtn=qBtn('电流探针','点击原理图器件添加电流波形（Esc 退出）',()=>toggleProbe('current'));
+  qBtn('适配','适配全部时间范围 (F)',()=>$('[data-action="fit"]')?.click());
+  qBtn('测量','查看游标测量与数据详情 (M)',()=>show(details));
+  qBtn('快捷键','查看波形快捷键 (?)',()=>show(help));
+  const syncProbeButtons=()=>{vProbeBtn.classList.toggle('is-active',mode==='voltage');vProbeBtn.setAttribute('aria-pressed',String(mode==='voltage'));iProbeBtn.classList.toggle('is-active',mode==='current');iProbeBtn.setAttribute('aria-pressed',String(mode==='current'));};
+  syncProbeButtons();
+  root.insertBefore(quickBar,body);
   chart.classList.add('wf-chart');
   for(const node of [...chart.children])if(node!==plot&&!node.classList.contains('wf-native-view'))storage.append(node);
   if($('.wf-top'))storage.append($('.wf-top'));
@@ -101,7 +115,7 @@ export function mount(host,{api=waveformAPI(),labels={}}={}){
     host.registerCommand({id:'plot.shortcuts',menu:'plot',label:'波形快捷键 (?)',run:()=>show(help)})
   ];
   let destroyed=false;
-  const controller={setPlotMode(value){mode=value;},openWindow(){slot.setVisible(true);plot.focus();return {opened:true};},onSelection(ctx){void panel.probe(ctx);},destroy(){if(destroyed)return;destroyed=true;unsubscribe();statusObserver.disconnect();choiceObserver.disconnect();listeners.forEach(fn=>fn());unregister.forEach(fn=>fn?.());for(const d of dialogs){if(d.open)d.close();d.remove();}panel.destroy();css.remove();}};
+  const controller={setPlotMode(value){mode=value;syncProbeButtons();},openWindow(){slot.setVisible(true);plot.focus();return {opened:true};},onSelection(ctx){void panel.probe(ctx);},destroy(){if(destroyed)return;destroyed=true;unsubscribe();statusObserver.disconnect();choiceObserver.disconnect();listeners.forEach(fn=>fn());unregister.forEach(fn=>fn?.());for(const d of dialogs){if(d.open)d.close();d.remove();}quickBar.remove();panel.destroy();css.remove();}};
   const detach=host.plot.attach(controller);
   return {controller,destroy(){detach?.();}};
 }

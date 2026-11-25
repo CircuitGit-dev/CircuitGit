@@ -83,7 +83,7 @@ export function snapshotOnboardingSource(doc,{hasBuffer=()=>false,fileText=()=>'
   return {file_name:doc.path.split('/').pop()||'circuit.scs',text};
 }
 
-export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=pairLocal,clientFactory=createNodeClient,pendingStore=createOnboardingPendingStore(),selectionStore=createOnboardingSelectionStore()}={}){
+export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=pairLocal,clientFactory=createNodeClient,pendingStore=createOnboardingPendingStore(),selectionStore=createOnboardingSelectionStore(),onPaired=null,onDisconnected=null}={}){
   let transport=null,pairing=null,epoch=0,connecting=false,connectionId=null,storeIdentity=null,endpoint=null,error=null,capabilities={},selectedIntakeId=null,ownsTransport=false,bindingClient=null,selectionTicket=0;
   const mode=gateway?'same-origin':'paired-local',listeners=new Set(),attempted=new Set(),intakes=new Set(),sessions=new Map(),scopeWrites=new Map();
   let selectionQueue=Promise.resolve();
@@ -101,7 +101,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
   }
   const getState=()=>({connected:!!transport,connecting,mode,revision:epoch,connectionId,storeIdentity,endpoint,error,capabilities:clone(capabilities),selectedIntakeId});
   const publish=()=>{for(const listener of listeners)listener(getState());};
-  function disconnect(){epoch++;selectionTicket++;pairing?.cancel();pairing=null;if(ownsTransport)transport?.close();transport=null;ownsTransport=false;bindingClient=null;connecting=false;connectionId=null;storeIdentity=null;endpoint=null;error=null;capabilities={};selectedIntakeId=null;intakes.clear();sessions.clear();publish();}
+  function disconnect(){const prev=transport,owned=ownsTransport;epoch++;selectionTicket++;pairing?.cancel();pairing=null;if(owned)prev?.close();transport=null;ownsTransport=false;bindingClient=null;connecting=false;connectionId=null;storeIdentity=null;endpoint=null;error=null;capabilities={};selectedIntakeId=null;intakes.clear();sessions.clear();publish();if(prev&&owned)try{onDisconnected?.(prev);}catch{}}
   async function connect(options={}){
     if(connecting)throw failure('连接正在进行。','connection_busy');
     if(!options||typeof options!=='object'||Object.keys(options).some(key=>key!=='port')||options.port!==undefined&&(!Number.isInteger(options.port)||options.port<1||options.port>65535))throw failure('高级连接只接受明确的本机端口。','invalid_connection');
@@ -131,7 +131,9 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       for(const record of pending){attempted.add(pendingKey(record));intakes.add(record.intake_id);}
       if(selected)intakes.add(selected);
       connectionId=scope;storeIdentity=storeId;endpoint=resolvedEndpoint;selectedIntakeId=selected;
-      capabilities=clone(info.capabilities);transport=candidate;ownsTransport=!gateway;connecting=false;error=null;publish();return getState();
+      capabilities=clone(info.capabilities);transport=candidate;ownsTransport=!gateway;connecting=false;error=null;publish();
+      if(!gateway&&typeof onPaired==='function')try{onPaired({client:candidate,info:clone(info),local:true});}catch{}
+      return getState();
     }catch(problem){if(!gateway)candidate?.close();if(generation===epoch){transport=null;connecting=false;connectionId=null;storeIdentity=null;endpoint=null;error=problem.message;publish();}throw problem;}
   }
   /** Reuse an already authorized browser helper; its AI adapter owns the client. */

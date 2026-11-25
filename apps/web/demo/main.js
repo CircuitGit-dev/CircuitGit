@@ -1,5 +1,6 @@
 import {createAgentAssistance} from '../ai/assistance.js';
 import {createLayout} from '../studio/layout.js';
+import {mountWorkspaceHub} from '../studio/workspace-hub.js';
 import {whenVisible} from '../studio/lazy-slot.js';
 import {mountWorkflowLink} from '../studio/workflow-link.js';
 import {openSource,showBuilt,adoptSource,isLoading} from '../vendor/rnl-viewer/open.js';
@@ -82,7 +83,21 @@ export async function mountStudio({ui:providedUI}={}) {
   const workflowLink=mountWorkflowLink(host);
   window.addEventListener('pagehide',()=>workflowLink.destroy(),{once:true});
   host.libraryBridge=createLibraryBridge();
-  host.onboarding=createOnboardingBridge({win:window});
+  let pairedFromOnboarding=null,remoteAI=null,workspaceHub=null;
+  host.onboarding=createOnboardingBridge({
+    win:window,
+    onPaired:({client,info,local})=>{
+      pairedFromOnboarding={client,info,local};
+      if(info?.capabilities?.library_workflow===true)host.libraryBridge.bind(client,{supported:local});
+      if(remoteAI)void remoteAI.adoptClient(client,info,{local});
+      workspaceHub?.update();
+    },
+    onDisconnected:()=>{
+      pairedFromOnboarding=null;
+      host.libraryBridge.unbind();
+      workspaceHub?.update();
+    },
+  });
   host.getOnboardingSource=()=>snapshotOnboardingSource(doc,{hasBuffer,fileText});
   host.prepareOnboardingWaveformSlot=()=>{stopReference();onboardingWaves=true;ui.slots.waveforms.setVisible(true);};
   host.openOnboardingWaveforms=async payload=>{
@@ -122,7 +137,7 @@ export async function mountStudio({ui:providedUI}={}) {
   }
   function showReferenceConfiguration(){if(!referenceActive())return;simulationPage='reference';renderSimulationPage();ui.slots.simulation.setVisible(true);}
   environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
-  window.addEventListener('pagehide',()=>{agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
+  window.addEventListener('pagehide',()=>{workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
     if(waveformMount||!referenceActive()||onboardingWaves)return;
@@ -188,6 +203,7 @@ cd CircuitGit
 python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/getting-started.md" target="_blank" rel="noopener">安装与连接说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
   const libraryManager=mountLibraryManager({toolbar:$('studio-toolbar'),libraryPane:$('pane-files'),onOpen:openLibrary,onReference:openReference,onSelection:value=>{versionSelection=value;emit();},notify:ui.notify});
+  for(const id of ['studio-project','studio-entry']){const label=$(id)?.closest('label');if(label){label.classList.add('demo-library-trigger');label.title='点击浏览并切换公开电路库';label.addEventListener('click',()=>libraryManager.show());}}
   register({id:'project.library',menu:'project',label:'Library Manager…',run:()=>libraryManager.show()});
   register({id:'project.reference',menu:'project',label:'返回 RC 解析参考',run:openReference});
   function stopReference(){
@@ -323,7 +339,29 @@ python3 -B tools/workbench/launch.py</pre><p><a href="${REPO}/blob/main/docs/get
     $('studio-native-note').textContent='已导入网表 · 在 Simulation 配置服务器与 PDK';emit();void showEnvironment().catch(panelError);
     if(snapshot)void sha256(snapshot.text).then(hash=>{if(doc===openedDoc&&context.file?.path===openedDoc.path){context={...context,file:{...context.file,currentTextSha256:hash}};emit();}});
   });
-  const aiLoader=whenVisible(ui.slots.ai,()=>import('../remote/panel.js').then(module=>module.mountRemoteNode(host)),{onError:panelError});agentAssistance.setLoader(()=>aiLoader.ensure());
+  const aiLoader=whenVisible(ui.slots.ai,async()=>{
+    const module=await import('../remote/panel.js');
+    const handle=module.mountRemoteNode(host);
+    remoteAI=handle;
+    handle.subscribeConnection(()=>workspaceHub?.update());
+    if(pairedFromOnboarding)void handle.adoptClient(pairedFromOnboarding.client,pairedFromOnboarding.info,{local:pairedFromOnboarding.local});
+    workspaceHub?.update();
+    return handle;
+  },{onError:panelError});agentAssistance.setLoader(()=>aiLoader.ensure());
+  workspaceHub=mountWorkspaceHub({
+    toolbar:$('studio-toolbar'),
+    mode:'demo',
+    getStatus:()=>{
+      const ob=host.onboarding.getState(),aiState=remoteAI?.getConnectionState?.()||{};
+      const lib=host.libraryBridge.getState();
+      return {ai:Boolean(aiState.connected),simulation:Boolean(ob.connected),library:Boolean(lib.connected),connecting:Boolean(ob.connecting||aiState.connecting),detail:ob.endpoint?'助手地址：'+ob.endpoint:''};
+    },
+    subscribe:fn=>{const off1=host.onboarding.subscribe(fn),off2=host.libraryBridge.subscribe(fn);return()=>{off1?.();off2?.();};},
+    onConnect:async()=>{const handle=await aiLoader.ensure();await handle?.connectLocal?.();},
+    onDisconnect:()=>{remoteAI?.disconnect?.();host.onboarding.disconnect();},
+    onOpenAI:()=>{ui.slots.ai.setVisible(true);void aiLoader.ensure();},
+    onOpenSimulation:()=>{void showEnvironment().catch(panelError);},
+  });
   const versionLoader=whenVisible(ui.slots.versions,async()=>{const {mountLibraryVersions}=await import('../library/versions.js');libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});return libraryVersions;},{onError:panelError});
   setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});
   await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false);

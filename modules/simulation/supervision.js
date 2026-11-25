@@ -216,11 +216,13 @@ export function mountSupervision(root, {host}) {
     const state = controller.state, run = controller.selectedRun();
     const identity = JSON.stringify([state.projectId, run?.run_id, run?.source_commit]);
     if (identity !== detailIdentity) { detailsOpen = false; detailIdentity = identity; }
-    else { const existing = root.querySelector('details'); if (existing) detailsOpen = existing.open; }
+    else { const existing = root.querySelector('[data-supervision-inner]'); if (existing) detailsOpen = existing.open; }
     root.replaceChildren();
-    const card = element('section', undefined, 'ic-sim-card'); card.setAttribute('aria-label', 'SpiceOwl 保存的仿真监督记录');
-    const head = element('div', undefined, 'ic-sim-section-head');
-    head.append(element('h3', 'SpiceOwl · 仿真监督'), element('span', '保存的观察', 'ic-sim-status'));
+    const card = element('details', undefined, 'ic-sim-detail'); card.setAttribute('aria-label', 'SpiceOwl 保存的仿真监督记录');
+    card.dataset.supervisionCard = '';
+    card.open = Boolean(run || state.status === 'error' || detailsOpen);
+    const head = element('summary');
+    head.append(element('span', 'SpiceOwl · 仿真监督'), element('span', run ? '已选任务' : '保存的观察', 'ic-sim-status'));
     card.append(head); root.append(card);
     const toolbar = element('div', undefined, 'ic-sim-toolbar');
     toolbar.append(button(state.status === 'loading' ? '读取中…' : '刷新本地记录', () => controller.refresh(), !state.projectId || state.status === 'loading'));
@@ -253,7 +255,7 @@ export function mountSupervision(root, {host}) {
     const waveformButton = button('查看保存波形', () => controller.openWaveforms(), !policy.allowed);
     waveformButton.title = policy.reason || '打开当前所选运行的保存波形'; toolbar.append(waveformButton);
     if (!policy.allowed) note(card, policy.reason);
-    const details = element('details', undefined, 'ic-sim-detail'); details.open = detailsOpen;
+    const details = element('details', undefined, 'ic-sim-detail'); details.dataset.supervisionInner = ''; details.open = detailsOpen;
     details.append(element('summary', '身份、指标与原始记录'));
     details.addEventListener('toggle', () => { if (details.isConnected) detailsOpen = details.open; });
     card.append(details);
