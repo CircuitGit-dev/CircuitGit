@@ -69,6 +69,7 @@ jobs:
           git config --global user.name "CircuitGit CI"
           git config --global user.email "ci@circuitgit.invalid"
           git config --global init.defaultBranch main
+          git config --global core.autocrlf false
 
       - name: Install ngspice (macOS)
         if: runner.os == 'macOS'

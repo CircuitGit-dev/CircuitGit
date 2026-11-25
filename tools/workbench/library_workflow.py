@@ -18,7 +18,7 @@ import shutil
 import subprocess
 import tempfile
 
-from platform_compat import file_lock, git_credential_helper, git_devnull
+from platform_compat import file_lock, fsync_dir, git_credential_helper, git_devnull
 
 
 SCHEMA = "circuitgit.library-workflow.v1"
@@ -466,11 +466,7 @@ class LibraryWorkflow:
         self._fsync_dir(path.parent)
 
     def _fsync_dir(self, path):
-        fd = os.open(path, os.O_RDONLY)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
+        fsync_dir(path)
 
     def _record(self, path):
         self._safe_local(path)

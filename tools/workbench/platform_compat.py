@@ -31,8 +31,8 @@ else:
 
 _POSIX_SAFE_PATH_SPACE = re.compile(r'^/[A-Za-z0-9_./ +-]+$')
 _POSIX_SAFE_PATH_NOSPACE = re.compile(r'^/[A-Za-z0-9_./+-]+$')
-_WIN_SAFE_PATH_SPACE = re.compile(r'^[A-Za-z]:[\\/][A-Za-z0-9_.\\/ +-]*$')
-_WIN_SAFE_PATH_NOSPACE = re.compile(r'^[A-Za-z]:[\\/][A-Za-z0-9_.\\/+-]*$')
+_WIN_SAFE_PATH_SPACE = re.compile(r'^[A-Za-z]:[\\/][A-Za-z0-9_.\\/ ~()+-]*$')
+_WIN_SAFE_PATH_NOSPACE = re.compile(r'^[A-Za-z]:[\\/][A-Za-z0-9_.\\/ ~()+-]*$')
 
 
 def _fileno(stream_or_fd):
@@ -107,6 +107,17 @@ def fchmod_private(fd, mode=0o600):
     """Apply POSIX private permissions to an open file descriptor when supported."""
     if not IS_WINDOWS and hasattr(os, 'fchmod'):
         os.fchmod(fd, mode)
+
+
+def fsync_dir(path):
+    """Flush directory metadata on POSIX; safe no-op on Windows (cannot os.open dirs)."""
+    if IS_WINDOWS:
+        return
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def is_owner_private_file(path, *, max_size=None, allow_root=False, reject_mode_mask=0o077):

@@ -38,6 +38,8 @@ class CrossPlatformCompatTests(unittest.TestCase):
             '/opt/homebrew/bin/ngspice',
             '/Users/alice/My Projects/sky130A',
             'C:\\Program Files\\ngspice\\bin\\ngspice_con.exe',
+            'C:\\Program Files (x86)\\ngspice\\bin\\ngspice_con.exe',
+            'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\ic_on_github_runs',
             'C:/Users/alice/pdk/sky130A',
             'D:\\work\\ic_on_github_runs',
         ):
@@ -73,8 +75,8 @@ class CrossPlatformCompatTests(unittest.TestCase):
 
     def test_venv_and_git_credential_helpers(self):
         root = Path('/tmp/fake-env')
-        self.assertTrue(str(platform_compat.venv_python_path(root, windows=False)).endswith('bin/python'))
-        self.assertTrue(str(platform_compat.venv_python_path(root, windows=True)).replace('\\', '/').endswith('Scripts/python.exe'))
+        self.assertTrue(platform_compat.venv_python_path(root, windows=False).as_posix().endswith('bin/python'))
+        self.assertTrue(platform_compat.venv_python_path(root, windows=True).as_posix().endswith('Scripts/python.exe'))
         helper = platform_compat.git_credential_helper('C:\\Program Files\\GitHub CLI\\gh.exe', windows=True)
         self.assertNotIn('\\', helper)
         self.assertIn('C:/Program Files/GitHub CLI/gh.exe', helper)

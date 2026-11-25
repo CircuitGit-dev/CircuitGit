@@ -27,6 +27,7 @@ def _python_env():
     paths = [
         str(ROOT / 'tools/workbench'),
         str(ROOT / 'tools/dev'),
+        str(ROOT / 'tools/ci'),
         str(ROOT / 'apps/codex'),
         str(ROOT / 'modules/gateway_client'),
     ]

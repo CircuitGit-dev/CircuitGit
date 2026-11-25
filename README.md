@@ -2,9 +2,16 @@
 
 <h1 align="center">CircuitGit</h1>
 <p align="center"><strong>AI-native circuit design, versioned on GitHub.</strong></p>
-<p align="center"><a href="https://circuitgit-dev.github.io/CircuitGit/workflow/index.html"><strong>Explore the product showcase</strong></a> · <a href="https://circuitgit-dev.github.io/CircuitGit/">Open workbench</a> · <a href="docs/getting-started.md">Get started</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
+<p align="center"><a href="https://circuitgit-dev.github.io/CircuitGit/workflow/index.html"><strong>Explore the product showcase</strong></a> · <a href="https://circuitgit-dev.github.io/CircuitGit/">Open workbench</a> · <a href="docs/open-source-simulation.md">Local open-source simulation</a> · <a href="docs/cross-platform-testing.md">Windows / macOS &amp; Testing</a> · <a href="docs/remote-node.md">Connect your Codex node</a> · <a href="README.zh-CN.md">中文介绍</a></p>
 
-CircuitGit is an AI-native environment for local circuit design and Git-based circuit versioning. Agents read and edit circuit source directly in a local checkout, RNL renders the schematic, and Git records reviewable design changes. Everyday source editing and schematic viewing do not require an online Virtuoso session; SpiceOwl provides tools for remote simulation preparation, supervision and analysis.
+CircuitGit is an AI-native environment for local circuit design and Git-based circuit versioning on **macOS, Windows 10/11, and Linux**. Agents read and edit circuit source directly in a local checkout, RNL renders the schematic, local `ngspice`/`Xyce` (with optional open PDKs) or remote Spectre runs simulations, and Git records reviewable design changes. Everyday source editing, schematic viewing, and local open-source simulation do not require an online Virtuoso session or commercial licenses; SpiceOwl provides tools for remote licensed simulation preparation, supervision and analysis.
+
+## Highlights & New Capabilities
+
+- **Native macOS, Windows 10/11 & Linux support (zero-CLI daily workflow)**: Double-click **`Start CircuitGit.bat`** on Windows or **`Start CircuitGit.command`** on macOS once to start the local helper; all subsequent design, simulation, and Git actions run in the browser. A shared zero-dependency OS layer (`platform_compat.py`) and static CI guard keep future features cross-platform automatically ([guide](docs/cross-platform-testing.md)).
+- **Local open-source SPICE & open PDKs in the Web UI**: Run **`ngspice`** or **`Xyce`** locally without SSH or commercial licenses, with built-in PDK-free models (`rc-smoke`, `open-cmos-inverter` TRAN/DC/AC) or local **`SKY130` / `GF180MCU` / `IHP SG13G2`** PDK profiles—auto-detected and configurable directly in **Simulation → 环境与PDK** ([guide](docs/open-source-simulation.md)).
+- **Full circuit library CRUD, Git branches & multi-cell PRs**: Create new libraries, create or clone cells, create/switch Git branches, and open multi-cell related Pull Requests directly from the web **Versions** panel or through Agent/MCP tools ([guide](docs/circuit-libraries.md)).
+- **Cross-platform one-command test runner & GitHub Actions CI**: Run `python3 -B tools/dev/run_tests.py` (or `python -B tools/dev/run_tests.py` on Windows) locally to verify architecture/cross-platform guards, builds, browser helper, local `ngspice` simulation, library CRUD/PRs, AI/MCP, and frontend tests—matching our automated macOS / Windows / Linux [Cross-Platform CI](.github/workflows/cross-platform-ci.yml).
 
 ## Product showcase
 
@@ -53,9 +60,11 @@ Connection, account, project and model controls are grouped in the chat's **sett
 | Capability | Implementation |
 |---|---|
 | Circuit viewing | RNL Viewer and its WebAssembly renderer; preserved schematic positions and wiring when exported geometry is supplied |
-| Simulation workflow | Versioned configuration → reviewed changes → plan/preflight → Spectre submission → result collection → GitHub archive |
-| Waveform analysis | Saved transient voltage/current signals, exact probe mappings, cursors, smooth pan/zoom, and display decimation |
-| Circuit version control | Library/cell source diffs, local before/after checkpoints, scoped Git commits, PR create/update, registered TB CI, and restoration as a new change |
+| Local open-source simulation | Zero-license local `ngspice` / `Xyce` with pure-Python cross-platform supervisor, Web UI configuration, and `builtin` / `SKY130` / `GF180MCU` / `IHP SG13G2` PDK profiles |
+| Remote commercial simulation | Versioned configuration → reviewed changes → plan/preflight → Spectre submission via SSH/SpiceOwl → result collection → GitHub archive |
+| Waveform analysis | Saved TRAN/DC/AC voltage & current signals, exact probe mappings, cursors, smooth pan/zoom, and display decimation |
+| Circuit version control | Library/cell CRUD (`create_library`, `create_cell`, `clone_cell`), Git branch create/switch, source diffs, checkpoints, scoped commits, single/multi-cell PRs, TB CI, and restore |
+| Cross-platform runtime & CI | Native macOS (`Start CircuitGit.command`), Windows (`Start CircuitGit.bat`), and Linux support with unified `platform_compat.py`, static guards, local `run_tests.py`, and 3-OS GitHub Actions matrix |
 | AI integration | MCP tools and interactive resources; web chat through an explicitly authorized owner node, with models, settings, images and sessions |
 | Workspace | Rearrangeable, closable, floating panels with layout persistence |
 

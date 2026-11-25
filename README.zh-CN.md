@@ -4,9 +4,16 @@
 
 **AI 原生电路设计，让每一次电路修改都能在 GitHub 上追踪。**
 
-**[查看产品展示](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html)** · [打开网页工作台](https://circuitgit-dev.github.io/CircuitGit/) · [连接 Codex 节点](docs/remote-node.md) · [安装与连接](docs/getting-started.md) · [English](README.md)
+**[查看产品展示](https://circuitgit-dev.github.io/CircuitGit/workflow/index.html)** · [打开网页工作台](https://circuitgit-dev.github.io/CircuitGit/) · [本地开源仿真](docs/open-source-simulation.md) · [Windows / macOS 兼容与测试](docs/cross-platform-testing.md) · [连接 Codex 节点](docs/remote-node.md) · [English](README.md)
 
-CircuitGit 是面向本地电路设计与 Git 电路版本管理的 AI-native 环境。Agent 直接读写本地 checkout 中的电路源，RNL 呈现原理图，Git 保存可审阅的设计变化。日常源编辑和看图不依赖在线 Virtuoso 会话；需要远端仿真时，由 SpiceOwl 工具协助准备环境、监督运行和分析结果。
+CircuitGit 是面向本地电路设计与 Git 电路版本管理的 AI-native 环境，原生支持 **macOS、Windows 10/11 与 Linux**。Agent 直接读写本地 checkout 中的电路源，RNL 呈现原理图，本地 `ngspice`/`Xyce`（含开源 PDK）或远端商业 Spectre 执行仿真，Git 保存可审阅的设计变化。日常源编辑、看图与本地开源仿真不依赖在线 Virtuoso 会话或商业许可；需要远端商业仿真时，由 SpiceOwl 工具协助准备环境、监督运行和分析结果。
+
+## 核心新特性
+
+- **原生跨平台支持（macOS / Windows 10/11 / Linux，网页零命令行）**：Windows 双击 **`Start CircuitGit.bat`**、macOS 双击 **`Start CircuitGit.command`** 启动一次本机助手即可，日常电路设计、仿真与 Git 协作全部在网页端点击完成；底层由统一零依赖兼容层 `platform_compat.py` 托管，并由 `check_structure.py` 静态门禁长期防止平台回归（详见 [跨平台兼容与测试指南](docs/cross-platform-testing.md)）。
+- **本地开源仿真（ngspice / Xyce + 开源 PDK）与网页一键切换**：无需商业许可和 SSH 服务器，在网页 **Simulation → 环境与PDK** 即可自动检测本机 `ngspice`/`Xyce` 与 **`SKY130` / `GF180MCU` / `IHP SG13G2`** 开源 PDK，一键预检并切换；内置 `rc-smoke` 与 `open-cmos-inverter`（TRAN / DC / AC）开箱即跑（详见 [本地开源仿真说明](docs/open-source-simulation.md)）。
+- **电路库完整 CRUD、Git 分支切换与跨 Cell 关联 PR**：支持在网页 **版本** 面板或通过 Agent/MCP 直接新建电路库、新建/克隆电路单元、创建与切换分支，以及提交包含多个关联单元的 Pull Request（详见 [电路库指南](docs/circuit-libraries.md)）。
+- **全功能一键测试运行器与三端 GitHub Actions 自动测试**：新开发者或用户运行 `python3 -B tools/dev/run_tests.py`（Windows 用 `python -B tools/dev/run_tests.py`）即可一键验证全模块功能；[Cross-Platform CI](.github/workflows/cross-platform-ci.yml) 自动在 `macos-latest`、`windows-latest`、`ubuntu-latest` 三端持续跑测并支持手动触发。
 
 ## 产品展示
 
