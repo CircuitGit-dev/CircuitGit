@@ -78,3 +78,5 @@
 .ic-env-analysis-signals legend{font-size:11px;color:#687583}
 .ic-env-analysis .ic-env-code-field textarea{min-height:96px}
 .ic-env-lut{margin:12px 0;padding:0 10px;border-left:2px solid #c6d4df}
+.ic-env-prefs-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0;padding:6px 8px;border:1px solid #d4e2ee;border-radius:5px;background:#f4f8fc}
+.ic-env-prefs-bar button{font-size:11px}

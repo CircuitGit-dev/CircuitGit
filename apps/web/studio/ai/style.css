@@ -97,6 +97,7 @@
 }
 .ic-ai-studio .ic-ai-form .ic-ai-add-image { padding-inline: 8px; }
 .ic-ai-studio .ic-ai-form .ic-ai-settings-button { flex: 0 0 32px; width: 32px; padding: 0; font: 18px/1 system-ui,sans-serif; }
+.ic-ai-studio .ic-ai-form.is-draft-received textarea { border-color: #2b6796; box-shadow: 0 0 0 2px #2b679633; transition: box-shadow .2s ease, border-color .2s ease; }
 .ic-ai-studio .ic-ai-attachments { max-height: 145px; overflow: auto; }
 .ic-ai-studio .ic-ai-image-previews { flex-wrap: nowrap; overflow-x: auto; }
 .ic-ai-studio .ic-ai-image-preview { flex: 0 0 auto; }

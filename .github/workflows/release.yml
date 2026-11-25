@@ -1,0 +1,138 @@
+name: Build & Publish Portable Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_label:
+        description: 'Optional archive suffix (defaults to short commit SHA)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  package-portable-bundle:
+    name: Build Portable CircuitGit Bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify structure and build web + codex packages
+        run: |
+          python3 -B tools/dev/check_structure.py
+          python3 -B tools/dev/build.py all
+          python3 -B tools/dev/build_pages.py
+
+      - name: Package cross-platform portable ZIP
+        env:
+          INPUT_LABEL: ${{ inputs.release_label }}
+        run: |
+          python3 - <<'PY'
+          import os, subprocess, zipfile
+          from pathlib import Path
+
+          root = Path('.').resolve()
+          ref = os.environ.get('GITHUB_REF_NAME', '').strip()
+          sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
+          label = os.environ.get('INPUT_LABEL', '').strip() or (ref if ref.startswith('v') else sha)
+          safe_label = ''.join(c if c.isalnum() or c in '._-' else '-' for c in label)
+          out_dir = root / 'release-artifacts'
+          out_dir.mkdir(exist_ok=True)
+          archive_name = f'CircuitGit-portable-{safe_label}.zip'
+          archive_path = out_dir / archive_name
+          prefix = f'CircuitGit-{safe_label}'
+
+          explicit_files = [
+              'Start CircuitGit.bat',
+              'Start CircuitGit.command',
+              'README.md',
+              'README.zh-CN.md',
+              'LICENSE',
+              'THIRD_PARTY_NOTICES.md',
+              'workspace.json',
+              'config/workbench.example.json',
+              'config/site.example.json',
+          ]
+          explicit_dirs = [
+              'apps',
+              'modules',
+              'contracts',
+              'tools',
+              'projects',
+              'lib',
+              'web',
+              'dist/ic-workbench',
+          ]
+          skip_parts = {'__pycache__', '.git', '.venv', '.local', '.test-state', 'node_modules'}
+
+          def should_skip(rel: Path) -> bool:
+              if any(p in skip_parts for p in rel.parts):
+                  return True
+              name = rel.name
+              if name.endswith(('.pyc', '.pyo')) or '.local.' in name:
+                  return True
+              return False
+
+          count = 0
+          with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+              for item in explicit_files:
+                  p = root / item
+                  if p.is_file() and not p.is_symlink():
+                      info = zipfile.ZipInfo.from_file(p, f'{prefix}/{item}')
+                      if item == 'Start CircuitGit.command':
+                          info.external_attr = 0o100755 << 16
+                      info.compress_type = zipfile.ZIP_DEFLATED
+                      zf.writestr(info, p.read_bytes())
+                      count += 1
+              for d in explicit_dirs:
+                  base = root / d
+                  if not base.is_dir():
+                      continue
+                  for p in sorted(base.rglob('*')):
+                      if p.is_symlink() or not p.is_file():
+                          continue
+                      rel = p.relative_to(root)
+                      if should_skip(rel):
+                          continue
+                      info = zipfile.ZipInfo.from_file(p, f'{prefix}/{rel.as_posix()}')
+                      info.compress_type = zipfile.ZIP_DEFLATED
+                      zf.writestr(info, p.read_bytes())
+                      count += 1
+
+          print(f'Created {archive_path} with {count} files ({archive_path.stat().st_size} bytes)')
+          PY
+
+      - name: Upload portable archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: circuitgit-portable-bundle
+          path: release-artifacts/*.zip
+          retention-days: 30
+
+      - name: Create GitHub Release for tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" release-artifacts/*.zip \
+            --generate-notes \
+            --title "CircuitGit ${GITHUB_REF_NAME}"

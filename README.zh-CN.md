@@ -12,9 +12,10 @@ CircuitGit 是面向本地电路设计与 Git 电路版本管理的 AI-native �
 
 - **原生跨平台支持（macOS / Windows 10/11 / Linux，网页零命令行）**：Windows 双击 **`Start CircuitGit.bat`**、macOS 双击 **`Start CircuitGit.command`** 启动一次本机助手即可，日常电路设计、仿真与 Git 协作全部在网页端点击完成；底层由统一零依赖兼容层 `platform_compat.py` 托管，并由 `check_structure.py` 静态门禁长期防止平台回归（详见 [跨平台兼容与测试指南](docs/cross-platform-testing.md)）。
 - **本地开源仿真（ngspice / Xyce + 开源 PDK）与网页一键切换**：无需商业许可和 SSH 服务器，在网页 **Simulation → 环境与PDK** 即可自动检测本机 `ngspice`/`Xyce` 与 **`SKY130` / `GF180MCU` / `IHP SG13G2`** 开源 PDK，一键预检并切换；内置 `rc-smoke` 与 `open-cmos-inverter`（TRAN / DC / AC）开箱即跑（详见 [本地开源仿真说明](docs/open-source-simulation.md)）。
-- **电路库完整 CRUD、Git 分支切换与跨 Cell 关联 PR**：支持在网页 **版本** 面板或通过 Agent/MCP 直接新建电路库、新建/克隆电路单元、创建与切换分支，以及提交包含多个关联单元的 Pull Request（详见 [电路库指南](docs/circuit-libraries.md)）。
-- **网表 ↔ RNL 实时增量保布局与新仿真原理图探针**：编辑网表或打开开源电路（`rc-smoke`、`open-cmos-inverter` 或新建单元）时，自动生成绑定源码哈希的实时 RNL 原理图（`/api/schematic/live`），对未改动器件增量保留已有 `@RNL` 位置与走线，并为新运行的本地（`ngspice`/`Xyce`）与远端仿真自动生成通过 `validate_mapping()` 校验的 `ic.waveform-map.v1` 探针绑定，点击节点即可绘制实时波形。
-- **全功能一键测试运行器与三端 GitHub Actions 自动测试**：新开发者或用户运行 `python3 -B tools/dev/run_tests.py`（Windows 用 `python -B tools/dev/run_tests.py`）即可一键验证全模块功能；[Cross-Platform CI](.github/workflows/cross-platform-ci.yml) 自动在 `macos-latest`、`windows-latest`、`ubuntu-latest` 三端持续跑测并支持手动触发。
+- **全局统一连接中心与 AI / SpiceOwl 双向调度**：顶栏新增统一连接中心，一次授权同时打通 Codex AI、远端 SpiceOwl 商业仿真与本地电路库/Git；仿真「运行」页统一汇聚项目任务与远端独立网表任务，支持一键记住并套用常用远端主机与 PDK 搜索提示，并可跨面板将诊断上下文填入 AI 对话草稿。
+- **Live 与 Demo 统一的电路库 CRUD、Git 分支切换与跨 Cell 关联 PR**：无论是网页演示还是本地 Live 工作台，均配备同款 `Library → Cell → View` 电路库管理器（`Library Manager`）与统一版本管理面板，支持新建电路库、新建/克隆电路单元、创建与切换本地分支以及提交单/多单元关联 Pull Request（详见 [电路库指南](docs/circuit-libraries.md)）。
+- **网表 ↔ RNL 实时增量保布局与远端/本地仿真原理图点选探针**：编辑网表或打开开源电路时，自动生成绑定源码哈希的实时 RNL 原理图（`/api/schematic/live`），增量保留未改动器件的 `@RNL` 布局与走线，并为**远端 SpiceOwl/Spectre 仿真**及**本地 `ngspice`/`Xyce` 仿真**自动生成基于源码 SHA-256 严格校验的原理图探针映射，点击节点或器件端子即可直接绘制波形。
+- **全功能一键测试运行器、三端 CI 与便携开源 Release 打包**：运行 `python3 -B tools/dev/run_tests.py`（Windows 用 `python -B tools/dev/run_tests.py`）即可一键验证全模块功能；[Cross-Platform CI](.github/workflows/cross-platform-ci.yml) 在 `macos-latest`、`windows-latest`、`ubuntu-latest` 三端持续跑测，[便携 Release 打包工作流](.github/workflows/release.yml) 支持按版本标签自动产出免 `git clone` 双击启动的跨平台压缩包。
 
 ## 产品展示
 

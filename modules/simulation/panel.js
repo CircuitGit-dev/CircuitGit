@@ -3,6 +3,8 @@ import {safeReceiptLink,fullCollection} from './receipts.js';
 import {mountSupervision} from './supervision.js';
 import {mountRuntime} from './runtime.js';
 import {mountEnvironmentWizard} from './environment/panel.js';
+import {onboardingWaveformsAvailable} from './environment/model.js';
+import {environmentAgentAssistance} from './agent-assistance.js';
 import {mountLocalBackend} from './local-backend.js';
 
 const ANALYSIS_FIELDS=[['stop','结束时间','s（n / p）'],['maxstep','最大步长','s（n / p）'],['errpreset','精度预设',''],['method','积分方法',''],['maxiters','迭代上限','次']];
@@ -35,6 +37,8 @@ export function mount(host) {
   const requestAgentAssistance=typeof host.requestAgentAssistance==='function'?request=>host.requestAgentAssistance(request):null;
   const environment=mountEnvironmentWizard(environmentRoot,{adapter:host.onboarding,pendingStore:host.onboarding?.pendingStore,getSource:host.getOnboardingSource,onRun:host.onboarding?.onRun,openWaveforms:host.openOnboardingWaveforms,canOpenWaveforms:host.canOpenOnboardingWaveforms,requestAgentAssistance,notify:host.notify});
   const unregisterEnvironment=host.onboardingSync?.register(environment.controller);
+  const offOnboardingSync=host.onboardingSync?.subscribe?.(()=>render());
+  const offOnboardingBridge=host.onboarding?.subscribe?.(()=>render());
   const runtime=mountRuntime(runtimeRoot,{host,requestAgentAssistance,actions:{submit:()=>controller.runDirect(),collect:run=>controller.collectDirect(run.run_id)},
     actionPolicy:run=>({submit:typeof controller?.runDirect==='function'&&!!controller.state.descriptor&&!controller.state.busy&&!controller.receipts.busy&&!controller.state.contextBlocked&&!controller.state.suspended&&!controller.draftDirty()&&!controller.directSubmissionBlocked(),
       collect:typeof controller?.collectDirect==='function'&&!controller.state.busy&&!controller.receipts.busy&&!controller.state.contextBlocked&&!controller.state.suspended&&!!run&&controller.state.runs.some(row=>(row.run_id||row.job_id)===run.run_id&&row.source_commit===run.source_commit&&(row.associated_project_id||row.project_id)===controller.state.projectId)})});
@@ -110,8 +114,9 @@ export function mount(host) {
     if(s.contextBlocked)note(root,'项目正在加载、版本未对齐或源文件有未保存修改。配置操作已暂停。','ic-sim-note');
     if(s.saveReceipt)note(root,`${s.saveReceipt.configurationId} · `+(s.saveReceipt.pushStatus==='confirmed'?'配置提交与推送已确认。':s.saveReceipt.pushStatus==='not_requested'?'配置提交已确认，未请求推送。':'保存回执已返回，请在提交页核对。'),'ic-sim-note');
     }
+    const envSession=environment.controller?.state?.session||null,envJob=envSession?.job||null;
     const nav=el('nav',undefined,'ic-sim-nav');nav.setAttribute('aria-label','仿真工作流');
-    for(const [id,label] of [['environment','环境与 PDK'],['config','配置'],['workflow','提交'],['jobs','运行 · '+projectRuns(s).length],['runtime','资源与监控']]){
+    for(const [id,label] of [['environment','环境与 PDK'],['config','配置'],['workflow','提交'],['jobs','运行 · '+(projectRuns(s).length+(envJob?1:0))],['runtime','资源与监控']]){
       const tab=button(label,()=>showPage(id),false,page===id?'is-active':'');tab.dataset.field='page-'+id;tab.setAttribute('aria-pressed',String(page===id));nav.append(tab);
     }root.append(nav);
     const configPage=el('div',undefined,'ic-sim-page'),workflowPage=el('div',undefined,'ic-sim-page'),jobsPage=el('div',undefined,'ic-sim-page'),runtimePage=el('div',undefined,'ic-sim-page'),environmentPage=el('div',undefined,'ic-sim-page');
@@ -278,6 +283,30 @@ export function mount(host) {
     }
   }
   function renderJobs(parent,s){
+    const envSession=environment.controller?.state?.session||null,envJob=envSession?.job||null;
+    if(envJob){
+      const card=el('article',undefined,'ic-sim-job is-onboarding-run');card.dataset.onboardingRunId=envJob.run_id||envJob.job_id;
+      const head=el('div',undefined,'ic-sim-section-head');
+      head.append(el('h3',`远端独立网表 · ${envSession.source?.file_name||'网表'} (${envJob.configuration||'实验'})`),badge(RUN_LABELS[envJob.state]||envJob.state||'状态未知',/failed|failure|unknown|reconcile/.test(envJob.state||'')?'warning':''));card.append(head);
+      const known=el('div',undefined,'ic-sim-known-data');
+      known.append(badge('远端 SpiceOwl'));
+      if(envJob.execution_target)known.append(badge('主机 '+envJob.execution_target));
+      if(envJob.source_commit)known.append(badge('commit '+envJob.source_commit.slice(0,8)));
+      const waveReady=onboardingWaveformsAvailable({intake:envSession,job:envJob});
+      if(waveReady)known.append(badge('波形已就绪 · 支持原理图探针'));
+      card.append(known);
+      const buttons=el('div',undefined,'ic-sim-toolbar');
+      if(waveReady&&typeof host.openOnboardingWaveforms==='function'){
+        buttons.append(button('查看波形（原理图探针）',()=>host.openOnboardingWaveforms({intake:envSession,job:envJob}),false,'ic-sim-primary'));
+      }
+      buttons.append(button('刷新远端状态',()=>environment.controller.inspect(),!!environment.controller?.state?.busy));
+      buttons.append(button('环境与分析详情 →',()=>showPage('environment'),false,'ic-sim-quiet'));
+      if(typeof requestAgentAssistance==='function'){
+        buttons.append(button('请 Agent 诊断',()=>requestAgentAssistance(environmentAgentAssistance('diagnosis',environment.controller.state,environment.controller.agentEditor)),false,'ic-sim-quiet'));
+      }
+      card.append(buttons);
+      parent.append(card);
+    }
     const heading=el('div',undefined,'ic-sim-section-head');heading.append(el('h3','运行记录'),button('刷新任务列表',()=>controller.refreshRuns(),!!s.busy||controller.receipts.busy,'ic-sim-quiet'));parent.append(heading);
     note(parent,'当前工程的已保存记录；刷新列表不会查询远端。');
     for(const run of projectRuns(s)){
@@ -322,7 +351,7 @@ export function mount(host) {
       for(const item of links){const safe=safeReceiptLink(item.url,{repo,run:id,origin:location.origin,kind:item.kind});if(safe){const a=el('a',item.name);a.href=safe;a.target='_blank';a.rel='noopener noreferrer';const line=el('p');line.append(a);box.append(line);}}
       parent.append(card);
     }
-    if(!projectRuns(s).length)note(parent,'暂无运行记录。生成计划并明确提交后，任务会出现在这里。');
+    if(!projectRuns(s).length&&!envJob)note(parent,'暂无运行记录。在「环境与 PDK」或「提交」中启动仿真后，任务会统一出现在这里。');
   }
   controller=createController(host,render);render();
   const protectDrafts=event=>{if(controller.getDrafts().length){event.preventDefault();event.returnValue='';}};
@@ -339,5 +368,5 @@ export function mount(host) {
     {id:'git.archive-run',menu:'git',label:'归档选中任务至私有 GitHub',run:call(()=>controller.receipts.archive(selectedReceipt())),enabled:()=>selectedPolicy().archive===true},
     {id:'simulation.receipt',menu:'simulation',label:'查看选中任务的本地回执',run:call(()=>{slot.setVisible(true);const id=selectedReceipt();page='jobs';opened.add('receipt-'+id);const box=[...root.querySelectorAll('[data-detail]')].find(e=>e.dataset.detail==='receipt-'+id);if(box)box.open=true;return controller.receipts.inspect(id);}),enabled:()=>!!controller.receipts.selectedId()&&!controller.receipts.busy}
   ].map(c=>host.registerCommand(c));
-  return {environment,destroy(){disposed=true;window.removeEventListener('beforeunload',protectDrafts);unregisterEnvironment?.();controller.destroy();supervision.destroy();runtime.destroy();localBackend.destroy();environment.destroy();commands.forEach(remove=>remove());sheet.remove();root.remove();}};
+  return {environment,destroy(){disposed=true;window.removeEventListener('beforeunload',protectDrafts);offOnboardingSync?.();offOnboardingBridge?.();unregisterEnvironment?.();controller.destroy();supervision.destroy();runtime.destroy();localBackend.destroy();environment.destroy();commands.forEach(remove=>remove());sheet.remove();root.remove();}};
 }

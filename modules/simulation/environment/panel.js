@@ -6,6 +6,7 @@ import {appendPdkLut} from './lut.js';
 import {checkPdkScopeSelection} from './agent-testbench.js';
 import {recoveryMessage} from './recovery.js';
 import {environmentAgentAssistance} from '../agent-assistance.js';
+import {loadRemoteSimPrefs,saveRemoteSimPrefs,clearRemoteSimPrefs} from './preferences.js';
 
 const labels={idle:'待设置',loading:'处理中',complete:'已读取',error:'未完成',unknown:'待核对'};
 const intentRows=[['supply_v','供电 / V'],['frequency_hz','输入频率 / Hz'],['temperature_c','运行温度 / °C'],['nominal_temperature_c','模型标称温度 / °C'],['input_port','输入端口'],['output_port','输出端口'],['vdd_port','供电端口'],['vss_port','参考地端口'],['cycles','仿真周期数'],['load_f','输出负载 / F'],['rise_s','输入上升时间 / s'],['fall_s','输入下降时间 / s'],['points_per_period','每周期采样点数']];
@@ -140,12 +141,33 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
 
     const host=card(root,2,'服务器',step2Done?`已探测 ${s.probe.result?.probes?.length||0} 台`:'探测后自动匹配',{done:step2Done,active:currentStep===2,summaryText:s.targets.length?'主机范围：'+s.targets.join('、'):''}),aliases=detail(host,'ssh-aliases','选择本机 SSH 配置');aliases.append(button('读取本机别名',()=>controller.loadAliases(),locked||!connected));
     assistance(host,'environment','请 Agent 检查环境与 PDK');
+    const savedPrefs=loadRemoteSimPrefs();
+    if(savedPrefs&&!s.targets.length){
+      const prefBar=el('div',undefined,'ic-env-prefs-bar');
+      const summary=[savedPrefs.targets.join(', '),savedPrefs.search_paths?'含 PDK 搜索路径':'',savedPrefs.cds_lib_hint?'含 cds.lib 提示':''].filter(Boolean).join(' · ');
+      const applyPref=button('套用上次主机与 PDK 提示：'+summary,()=>{
+        if(savedPrefs.targets.length)controller.setTargets(savedPrefs.targets);
+        if(savedPrefs.search_paths)controller.setHint('search_paths',savedPrefs.search_paths);
+        if(savedPrefs.cds_lib_hint)controller.setHint('cds_lib_hint',savedPrefs.cds_lib_hint);
+        notify('已载入上次保存的主机范围与 PDK 提示，请核对后探测。',{kind:'info'});
+      },locked);
+      applyPref.dataset.environmentApplyPrefs='';
+      const forgetPref=button('清除记忆',()=>{clearRemoteSimPrefs();render();},locked);
+      forgetPref.classList.add('ic-sim-quiet');forgetPref.dataset.environmentClearPrefs='';
+      prefBar.append(applyPref,forgetPref);host.append(prefBar);
+    }
     for(const item of s.aliases.result?.hosts||[]){const row=el('label',undefined,'ic-env-choice'),check=el('input');check.type='checkbox';check.checked=s.targets.includes(item.alias);check.disabled=locked;check.addEventListener('change',call(()=>controller.setTargets(check.checked?[...s.targets,item.alias]:s.targets.filter(target=>target!==item.alias))));row.append(check,doc.createTextNode(item.alias));aliases.append(row);}
     field(host,'允许的主机范围','ssh-targets',s.targets.join('\n'),value=>controller.setTargets(value.split(/[\n,]/).map(item=>item.trim()).filter(Boolean)),{placeholder:'SSH alias 或 user@host，每行一个',disabled:locked,multiline:true});note(host,'读取别名和编辑范围不会连接主机。运行时仅在此范围内选择资源合适的主机。');
+    const rememberCurrentPrefs=()=>{if(s.targets.length||s.hints.search_paths.trim()||s.hints.cds_lib_hint.trim())saveRemoteSimPrefs({targets:s.targets,search_paths:s.hints.search_paths,cds_lib_hint:s.hints.cds_lib_hint});};
     const probeActions=el('div',undefined,'ic-sim-toolbar');
-    const primaryProbe=button(s.busy==='probe'?'探测中…':s.busy==='pdk'?'匹配 PDK 中…':s.setupDirty?'应用环境并重新匹配':'探测并匹配 PDK',()=>controller.probeAndMatch(),locked||!connected||!s.targets.length||s.targets.length>2||s.intake.status!=='complete');
+    const primaryProbe=button(s.busy==='probe'?'探测中…':s.busy==='pdk'?'匹配 PDK 中…':s.setupDirty?'应用环境并重新匹配':'探测并匹配 PDK',()=>{rememberCurrentPrefs();return controller.probeAndMatch();},locked||!connected||!s.targets.length||s.targets.length>2||s.intake.status!=='complete');
     primaryProbe.classList.add('ic-sim-primary');
-    probeActions.append(primaryProbe,button('只探测所选主机',()=>controller.probeHost(),locked||!connected||!s.targets.length||s.intake.status!=='complete'));
+    probeActions.append(primaryProbe,button('只探测所选主机',()=>{rememberCurrentPrefs();return controller.probeHost();},locked||!connected||!s.targets.length||s.intake.status!=='complete'));
+    if(s.targets.length){
+      const saveBtn=button('记住主机与 PDK 提示',()=>{rememberCurrentPrefs();notify('已记住当前主机范围与 PDK 搜索提示（仅存本机非敏感标识）。',{kind:'info'});render();},locked);
+      saveBtn.classList.add('ic-sim-quiet');saveBtn.dataset.environmentSavePrefs='';
+      probeActions.append(saveBtn);
+    }
     host.append(probeActions);note(host,'环境探测最多 8 台主机；完整 PDK 发现每批最多 2 台。多主机探测后，在 PDK 高级设置中明确选择本批主机。');resultError(host,s.aliases);resultError(host,s.probe);
     const hostEvidence=s.probe.result?.probes?.length?detail(host,'host-evidence','环境观察与高级配置'):null;
     for(const probe of s.probe.result?.probes||[]){const summary=el('div',undefined,'ic-env-probe');summary.append(el('h4',probe.ssh_target));note(summary,'观察时间：'+probe.observed_at);environmentSummary(summary,probe.environment);note(summary,'许可证项表示配置存在情况，未执行 license checkout。');
