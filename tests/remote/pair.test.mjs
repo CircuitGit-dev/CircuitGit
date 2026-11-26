@@ -10,6 +10,7 @@ import {
   clearSessionGrant,
 } from '../../apps/web/remote/pair.js';
 import {buildInstallCommand,sanitizeInstallDir} from '../../apps/web/studio/workspace-hub.js';
+import {visibleCatalogProjects} from '../../apps/web/remote/panel.js';
 
 function fixture(blocked=false){
   let listener;const timers=new Map();let timer=0;
@@ -84,4 +85,14 @@ test('buildInstallCommand generates safe macOS/Linux and Windows one-liners with
   );
   assert.equal(sanitizeInstallDir('~/ok; rm -rf /',false),'~/CircuitGit');
   assert.equal(sanitizeInstallDir('C:\\bad$(whoami)',true),'%USERPROFILE%\\CircuitGit');
+});
+
+test('visibleCatalogProjects deduplicates runtime entries shadowed by Git library cells',()=>{
+  const rows=visibleCatalogProjects([
+    {id:'pipetisar-real-TB_PIPE_RS9_N06',name:'PIPETISAR / TB_PIPE_RS9_N06'},
+    {id:'open-cmos-inverter',name:'Open CMOS Inverter'},
+    {id:'library:pipetisar-real/TB_PIPE_RS9_N06',name:'PIPETISAR / TB_PIPE_RS9_N06',runtime_project_id:'pipetisar-real-TB_PIPE_RS9_N06'},
+  ]);
+  assert.deepEqual(rows.map(r=>r.id),['open-cmos-inverter','library:pipetisar-real/TB_PIPE_RS9_N06']);
+  assert.throws(()=>visibleCatalogProjects([{id:'dup'},{id:'dup'}]),/无效/);
 });

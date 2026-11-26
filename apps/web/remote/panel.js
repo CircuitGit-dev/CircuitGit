@@ -6,6 +6,20 @@ import {mount as mountAI} from '../studio/ai/index.js';
 const REPO='https://github.com/CircuitGit-dev/CircuitGit';
 const DOCS=REPO+'/blob/main/docs/remote-node.md';
 
+/** Deduplicate runtime project entries already represented by a Git-backed library cell. */
+export function visibleCatalogProjects(list) {
+  if (!Array.isArray(list)) throw Error('助手返回的工程目录无效。');
+  const seen = new Set(), shadowedRuntime = new Set();
+  for (const p of list) {
+    if (typeof p?.id !== 'string' || !p.id || seen.has(p.id)) throw Error('返回的工程列表无效。');
+    seen.add(p.id);
+    if (p.id.startsWith('library:') && typeof p.runtime_project_id === 'string' && p.runtime_project_id) {
+      shadowedRuntime.add(p.runtime_project_id);
+    }
+  }
+  return list.filter(p => p.id.startsWith('library:') || !shadowedRuntime.has(p.id));
+}
+
 /** Remote chat owns its context; the public preview never supplies an engineering identity. */
 export function mountRemoteNode(host) {
   const parent=host.slots.ai,doc=parent.element.ownerDocument,win=doc.defaultView;
@@ -142,12 +156,13 @@ export function mountRemoteNode(host) {
     }
     host.libraryBridge?.bind(client,{supported:local&&info.capabilities.library_workflow===true});
     const catalog=await client.request('/ai/catalog');if(generation!==epoch||destroyed)return;
-    if(!Array.isArray(catalog.projects))throw Error('助手返回的工程目录无效。');
-    const seen=new Set();projects.replaceChildren(new Option('选择工程',''));
-    for(const p of catalog.projects){if(typeof p.id!=='string'||!p.id||seen.has(p.id))throw Error('返回的工程列表无效。');seen.add(p.id);projects.add(new Option(p.name||p.id,p.id));}
+    const visibleProjects=visibleCatalogProjects(catalog.projects);
+    const seen=new Set(visibleProjects.map(p=>p.id));
+    projects.replaceChildren(new Option('选择工程',''));
+    for(const p of visibleProjects){projects.add(new Option(p.name||p.id,p.id));}
     await refreshOnboardingChoice();if(generation!==epoch||destroyed)return;
     const preferred=canvasProject();
-    if(onboardingChoice)projects.value=onboardingChoice.project.id;else if(seen.has(preferred))projects.value=preferred;else if(catalog.projects.length===1)projects.value=catalog.projects[0].id;
+    if(onboardingChoice)projects.value=onboardingChoice.project.id;else if(seen.has(preferred))projects.value=preferred;else if(visibleProjects.length===1)projects.value=visibleProjects[0].id;
     $('.cg-node-identity strong').textContent=local?'本机 Codex · 统一助手':info.name||'CircuitGit server';
     form.elements.accessCode.value='';welcome.hidden=true;connected.hidden=false;accountReady=true;emitConn();
     if(local&&info.capabilities.local_login){
