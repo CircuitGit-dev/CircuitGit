@@ -10,7 +10,7 @@ from test_sessions import ROOT, FakeRpc as BaseRpc, context, source_call
 from icwb.ai import AiSession
 from icwb.development import DEVELOPER_INSTRUCTIONS, development_info
 from icwb.host import AiRoutes
-from icwb.service import Service, Failure
+from icwb.service import Service, Failure, canonical
 
 
 class DeveloperRpc(BaseRpc):
@@ -123,7 +123,7 @@ class DevelopmentTests(unittest.TestCase):
         self.assertNotIn((ROOT / 'prompts/workbench.md').read_text(), params['developerInstructions'])
         self.assertEqual(receipt['development_workspace'], str(self.code))
         prompt = [row['params'] for row in session.rpc.sent if row.get('method') == 'turn/start'][-1]['input'][0]['text']
-        self.assertIn('separate LIVE CIRCUIT RUNTIME', prompt); self.assertIn(json.dumps(str(self.code)), prompt)
+        self.assertIn('separate LIVE CIRCUIT RUNTIME', prompt); self.assertIn(canonical(str(self.code)), prompt)
         self.assertNotIn('No automatic approval or native shell/file execution is granted.', prompt)
         self.assertTrue(all('approvalPolicy' not in row.get('params', {}) and 'approvalsReviewer' not in row.get('params', {}) for row in session.rpc.sent))
 
