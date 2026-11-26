@@ -406,6 +406,7 @@ export async function mountStudio({ui:providedUI}={}) {
     },
     onOpenQuickProject:()=>{void host.openProjectCanvas({libraryId:'pipetisar-real'});},
     onOpenVerilogA:(model,opts)=>verilogaPanel.openModel(model,opts),
+    onOpenSchematic:()=>{ui.slots.schematic?.setVisible(true);},
     resolveVerilogA:masterName=>resolveVerilogAModel({
       masterName,
       importedProject,

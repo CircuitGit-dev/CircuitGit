@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {remainingLayout,homeRelations,boundedFloat} from '../../apps/web/studio/dockview/homes.js';
+import {remainingLayout,homeRelations,boundedFloat,shouldShareSchematicSidebar} from '../../apps/web/studio/dockview/homes.js';
 import {projectRuns} from '../../apps/web/studio/dockview/waveforms.js';
 const layout=()=>({grid:{width:1000,height:800,orientation:'HORIZONTAL',root:{type:'branch',data:[{type:'leaf',size:600,data:{id:'one',views:['schematic'],activeView:'schematic'}}]}},panels:{schematic:{id:'schematic'},waveforms:{id:'waveforms'}},activeGroup:'one',floatingGroups:[{data:{id:'two',views:['waveforms'],activeView:'waveforms'},position:{left:40,top:50,width:600,height:400}}]});
 test('return fingerprint permits focus and float resizing but rejects unrelated layout edits',()=>{
@@ -22,4 +22,37 @@ test('floating dimensions stay within the new viewport',()=>{
 test('run picker never offers another project or assumes global active run',()=>{
  const a={run_id:'one',associated_project_id:'p'},b={run_id:'two',project_id:'q'},c={run_id:'three',project_id:'p'};
  assert.deepEqual(projectRuns([a,b,c],'p'),[a,c]);assert.deepEqual(projectRuns([a,b,c],'none'),[]);
+});
+test('Verilog-A shares the schematic left sidebar when tabbed in the same grid group',()=>{
+ const sharedGroup={id:'main'};
+ const otherGroup={id:'right'};
+ assert.equal(shouldShareSchematicSidebar({
+  verilogaPanel:{isVisible:true,group:sharedGroup,locationType:'grid'},
+  schematicPanel:{isVisible:false,group:sharedGroup,locationType:'grid'},
+  hasVerilogaMount:true,
+ }),true);
+ // Side-by-side split: schematic already displays the sidebar
+ assert.equal(shouldShareSchematicSidebar({
+  verilogaPanel:{isVisible:true,group:otherGroup,locationType:'grid'},
+  schematicPanel:{isVisible:true,group:sharedGroup,locationType:'grid'},
+  hasVerilogaMount:true,
+ }),false);
+ // Floating Verilog-A window never steals the docked sidebar
+ assert.equal(shouldShareSchematicSidebar({
+  verilogaPanel:{isVisible:true,group:otherGroup,locationType:'floating'},
+  schematicPanel:{isVisible:false,group:sharedGroup,locationType:'grid'},
+  hasVerilogaMount:true,
+ }),false);
+ // Hidden Verilog-A tab or closed mount never shares
+ assert.equal(shouldShareSchematicSidebar({
+  verilogaPanel:{isVisible:false,group:sharedGroup,locationType:'grid'},
+  schematicPanel:{isVisible:false,group:sharedGroup,locationType:'grid'},
+  hasVerilogaMount:true,
+ }),false);
+ // Docked Verilog-A still keeps the sidebar even if the schematic tab was closed
+ assert.equal(shouldShareSchematicSidebar({
+  verilogaPanel:{isVisible:true,group:sharedGroup,locationType:'grid'},
+  schematicPanel:null,
+  hasVerilogaMount:true,
+ }),true);
 });

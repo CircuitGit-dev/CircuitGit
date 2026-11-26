@@ -33,6 +33,8 @@ body.ic-dockview .studio-dock-empty button{border:1px solid #dce3ec;padding:7px 
 body.ic-dockview #app{height:100%;width:100%;grid-template-columns:clamp(210px,var(--sidebar-w,280px),max(230px,calc(100% - 220px))) 6px minmax(0,1fr);min-height:0;}
 body.ic-dockview #app.sidebar-hidden{grid-template-columns:0 0 minmax(0,1fr);}
 body.ic-dockview #app .drawing{grid-column:3;grid-row:1;visibility:visible;min-height:0;}
+body.ic-dockview #app.cg-showing-veriloga .drawing{display:none!important;}
+body.ic-dockview #app.cg-showing-veriloga>#studio-veriloga-content{grid-column:3;grid-row:1;min-width:0;min-height:0;height:100%;width:100%;overflow:hidden;}
 body.ic-dockview #app .sidebar{grid-column:1;grid-row:1;min-width:0;overflow:hidden;border:0;}
 body.ic-dockview #app .vsplit{grid-column:2;position:relative;z-index:4;cursor:col-resize;background:#edf2ef;border-left:1px solid #d7e2dc;border-right:1px solid #d7e2dc;touch-action:none;transition:background-color .12s ease;}
 body.ic-dockview #app .vsplit::after{content:'';position:absolute;top:50%;left:50%;width:2px;height:28px;transform:translate(-50%,-50%);border-radius:2px;background:#9cb4a8;opacity:.75;transition:background-color .12s ease,height .12s ease;}

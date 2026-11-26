@@ -162,16 +162,21 @@ body.ic-studio .sidebar [role=treeitem],body.ic-studio .sidebar .tree-row{overfl
 /* Verilog-A behavioral model code panel & schematic jump affordances */
 .cg-va-panel{display:flex;flex-direction:column;height:100%;min-height:0;min-width:0;background:#fff;color:#1f332b;font:12px/1.5 system-ui,sans-serif;}
 .cg-va-panel [hidden]{display:none!important;}
-.cg-va-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #dce5e0;background:#f5faf7;flex:none;}
+.cg-va-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:5px 8px;min-height:28px;border-bottom:1px solid #dce5e0;background:#f5faf7;flex:none;box-sizing:border-box;}
 .cg-va-title-wrap{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 160px;}
 .cg-va-badge{flex:none;padding:2px 7px;border-radius:999px;background:#177753;color:#fff;font:600 10px/1.35 system-ui,sans-serif;letter-spacing:.02em;}
 .cg-va-title{font-size:12px;color:#17382b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cg-va-select{flex:1;min-width:120px;max-width:100%;padding:4px 7px;border:1px solid #c4d7cd;border-radius:4px;background:#fff;color:#17382b;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;}
+.cg-va-select{flex:1;min-width:120px;max-width:100%;padding:3px 7px;border:1px solid #c4d7cd;border-radius:4px;background:#fff;color:#17382b;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;}
 .cg-va-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:none;}
-.cg-va-btn{padding:4px 8px;border:1px solid #c7dad0;border-radius:4px;background:#fff;color:#215741;font:11px/1.35 system-ui,sans-serif;cursor:pointer;white-space:nowrap;}
+.cg-va-btn{padding:3px 8px;border:1px solid #c7dad0;border-radius:4px;background:#fff;color:#215741;font:11px/1.35 system-ui,sans-serif;cursor:pointer;white-space:nowrap;}
 .cg-va-btn:hover:not(:disabled){background:#eaf6f0;border-color:#98c4af;}
 .cg-va-btn:disabled{opacity:.45;cursor:default;}
-.cg-va-provenance{padding:4px 10px;border-bottom:1px solid #e9f0ec;background:#fafcfb;color:#5f746b;font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none;}
+.cg-va-provenance{display:flex;align-items:center;gap:10px;min-height:22px;padding:2px 8px;border-bottom:1px solid var(--line,#dce3ec);background:#fff;color:var(--muted,#5f746b);font-size:10px;flex:none;box-sizing:border-box;}
+.cg-va-provenance-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;}
+.cg-va-sidebar-toggle{flex:none;border:1px solid var(--line,#dce3ec);border-radius:4px;background:transparent;color:var(--muted,#5f746b);font-size:10px;padding:2px 6px;white-space:nowrap;cursor:pointer;}
+.cg-va-sidebar-toggle:hover{background:var(--hover,#edf3f0);color:var(--fg,#1f332b);}
+#studio-veriloga-content:not([data-shared-sidebar="true"]) .cg-va-sidebar-toggle{display:none;}
+#studio-veriloga-content:not([data-shared-sidebar="true"]) .cg-va-provenance.is-empty{display:none;}
 .cg-va-instance{padding:8px 10px;border-bottom:1px solid #d5e6dd;background:#eef8f3;display:grid;gap:6px;flex:none;}
 .cg-va-instance-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
 .cg-va-instance-head strong{font-size:12px;color:#144d36;}

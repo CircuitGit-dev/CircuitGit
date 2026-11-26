@@ -44,3 +44,10 @@ export function boundedFloat(position,area){
   const width=Math.max(100,Math.min(position.width,area.width)),height=Math.max(100,Math.min(position.height,area.height));
   return {width,height,left:Math.max(0,Math.min(position.left,area.width-width)),top:Math.max(0,Math.min(position.top,area.height-height))};
 }
+
+/** Share the schematic left sidebar with Verilog-A when tabbed in the same grid group. */
+export function shouldShareSchematicSidebar({verilogaPanel=null,schematicPanel=null,hasVerilogaMount=false}={}){
+  if(!verilogaPanel?.isVisible||!hasVerilogaMount||verilogaPanel.locationType!=='grid')return false;
+  if(schematicPanel?.isVisible)return false;
+  return !schematicPanel||verilogaPanel.group===schematicPanel.group;
+}

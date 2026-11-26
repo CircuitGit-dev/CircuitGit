@@ -39,6 +39,7 @@ export function mountSchematicSidebar({
   onOpenCell=null,
   onOpenQuickProject=null,
   onOpenVerilogA=null,
+  onOpenSchematic=null,
   resolveVerilogA=null,
 }={}){
   const app=document.getElementById('app');
@@ -351,6 +352,7 @@ export function mountSchematicSidebar({
     }));
     window.dispatchEvent(new Event('viewer-navigate'));
     void navigate({path:steps,selection:null,reveal:true});
+    onOpenSchematic?.();
     requestAnimationFrame(()=>renderExplorer());
   }
 
@@ -610,6 +612,13 @@ export function mountSchematicSidebar({
   const onViewerEvent=()=>scheduleRefresh();
   window.addEventListener('viewer-navigate',onViewerEvent);
   window.addEventListener('library-shown',onViewerEvent);
+  const hierarchyPane=document.getElementById('pane-hierarchy');
+  const onHierarchyClick=event=>{
+    if(app.classList.contains('cg-showing-veriloga')&&event.target?.closest?.('[role="treeitem"],.tree-row,button')){
+      onOpenSchematic?.();
+    }
+  };
+  hierarchyPane?.addEventListener('click',onHierarchyClick);
   const levelPathEl=document.getElementById('level-path');
   const pathObserver=levelPathEl?new MutationObserver(scheduleRefresh):null;
   if(levelPathEl&&pathObserver)pathObserver.observe(levelPathEl,{childList:true,subtree:true,characterData:true});
@@ -626,6 +635,7 @@ export function mountSchematicSidebar({
       appResizeObserver.disconnect();
       tabObserver.disconnect();
       pathObserver?.disconnect();
+      hierarchyPane?.removeEventListener('click',onHierarchyClick);
       window.removeEventListener('viewer-navigate',onViewerEvent);
       window.removeEventListener('library-shown',onViewerEvent);
       document.removeEventListener('pointerdown',onDocumentPointerDown);

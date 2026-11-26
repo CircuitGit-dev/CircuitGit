@@ -1,5 +1,5 @@
 import {createDockview,themeLight} from '../../vendor/dockview/dockview.js';
-import {remainingLayout,homeRelations,boundedFloat} from './homes.js';
+import {remainingLayout,homeRelations,boundedFloat,shouldShareSchematicSidebar} from './homes.js';
 import {stylesheet} from '../styles.js';
 
 const TITLES={schematic:'原理图',simulation:'仿真',waveforms:'波形',ai:'AI',versions:'版本管理',veriloga:'Verilog-A'};
@@ -17,29 +17,72 @@ export async function mountDockview(ui){
   const roots={},mounts={};
   for(const [id,node] of Object.entries(nodes)){const root=document.createElement('section');root.className='studio-panel studio-panel-'+id;root.dataset.studioPanel=id;root.hidden=true;root.inert=true;root.setAttribute('aria-label',TITLES[id]);root.append(node);parking.append(root);roots[id]=root;}
   let restoring=false,saveTimer,saveFailed=false;const homes=new Map(),floatPositions=new Map(),dragHomes=new Map();
-  let resizeFrame=null,schematicSize='';
+  let resizeFrame=null,schematicSize='',sharingSidebar=false;
   const resize=()=>{if(resizeFrame!==null)return;resizeFrame=requestAnimationFrame(()=>{resizeFrame=null;
     // Plot-only changes and floating moves must not relayout the entire RNL shell.
-    const key=app.clientWidth+':'+app.clientHeight;if(key===schematicSize||!app.clientWidth||!app.clientHeight)return;
+    const key=app.clientWidth+':'+app.clientHeight+':'+app.classList.contains('sidebar-hidden')+':'+document.documentElement.style.getPropertyValue('--sidebar-w');
+    if(key===schematicSize||!app.clientWidth||!app.clientHeight)return;
     schematicSize=key;window.dispatchEvent(new Event('resize'));
   });};
+  function panelSummary(panel){
+    return panel?{isVisible:!!panel.api.isVisible,group:panel.group,locationType:panel.api.location.type}:null;
+  }
+  function moveWithScroll(node,target){
+    if(!node||!target||node.parentElement===target)return false;
+    const saved=[];
+    for(const sc of node.querySelectorAll('.cg-exp-body,#source,#hierarchy-tree,#pane-usages,.cg-pool-drawer-body,.cg-va-code-wrap')){
+      if(sc.scrollTop||sc.scrollLeft)saved.push([sc,sc.scrollTop,sc.scrollLeft]);
+    }
+    target.append(node);
+    for(const [sc,top,left] of saved){sc.scrollTop=top;sc.scrollLeft=left;}
+    return true;
+  }
+  function syncSharedSidebar(){
+    if(!api)return;
+    const vaPanel=api.getPanel('veriloga');
+    const schPanel=api.getPanel('schematic');
+    const shared=shouldShareSchematicSidebar({
+      verilogaPanel:panelSummary(vaPanel),
+      schematicPanel:panelSummary(schPanel),
+      hasVerilogaMount:!!mounts.veriloga,
+    });
+    const prev=sharingSidebar;
+    sharingSidebar=shared;
+    if(shared){
+      app.classList.add('cg-showing-veriloga');
+      nodes.veriloga.dataset.sharedSidebar='true';
+      moveWithScroll(nodes.veriloga,app);
+      moveWithScroll(app,roots.veriloga);
+    }else{
+      app.classList.remove('cg-showing-veriloga');
+      delete nodes.veriloga.dataset.sharedSidebar;
+      moveWithScroll(nodes.veriloga,roots.veriloga);
+      moveWithScroll(app,roots.schematic);
+      if(prev&&schPanel?.api.isVisible){schematicSize='';resize();}
+    }
+  }
   function visibility(id,shown){
     const root=roots[id],target=shown?mounts[id]:parking;
     // Keep inactive content connected: RNL still resolves controls by document-wide IDs.
     // Dockview may detach an inactive tab's container during a restore or tab switch.
     if(target&&root.parentElement!==target)target.append(root);
-    if(root.hidden===!shown)return;
-    root.hidden=!shown;root.inert=!shown;ui.slots[id]?.visibilityChanged?.(shown);if(id==='schematic')resize();
+    const changed=root.hidden!==!shown;
+    if(changed){
+      root.hidden=!shown;root.inert=!shown;ui.slots[id]?.visibilityChanged?.(shown);
+    }
+    syncSharedSidebar();
+    if(changed&&id==='schematic'&&shown)resize();
   }
 
-  const api=createDockview(area,{
+  let api=null;
+  api=createDockview(area,{
     theme:themeLight,defaultRenderer:'always',singleTabMode:'default',floatingGroupBounds:'boundedWithinViewport',
     createComponent({id}){
       if(!roots[id])throw Error('Unknown Studio panel');
       const element=document.createElement('div');element.className='studio-panel-mount';mounts[id]=element;visibility(id,true);
       let subscription;
       return {element,init(params){subscription=params.api.onDidVisibilityChange(event=>visibility(id,event.isVisible));visibility(id,params.api.isVisible);},layout(){if(id==='schematic')resize();},
-        dispose(){subscription?.dispose();visibility(id,false);if(mounts[id]===element)delete mounts[id];}};
+        dispose(){subscription?.dispose();if(mounts[id]===element)delete mounts[id];visibility(id,false);}};
     },
     createRightHeaderActionComponent(group){
       const element=document.createElement('div');element.className='studio-panel-actions';
@@ -67,7 +110,7 @@ export async function mountDockview(ui){
   // Native drag-to-float also records the docked location before Dockview moves it.
   api.onWillDragPanel(event=>{if(event.panel.api.location.type==='grid')dragHomes.set(event.panel.id,rememberHome(event.panel.group,[event.panel.id]));});
   api.onWillDragGroup(event=>{const group=event.group;if(group.api.location.type==='grid'){const ids=group.panels.map(p=>p.id),home=rememberHome(group,ids);for(const id of ids)dragHomes.set(id,home);}});
-  api.onDidMovePanel(event=>{if(event.panel.api.location.type==='grid')dragHomes.delete(event.panel.id);});
+  api.onDidMovePanel(event=>{if(event.panel.api.location.type==='grid')dragHomes.delete(event.panel.id);syncSharedSidebar();});
   function dockGroup(group){
     if(group.api.location.type!=='floating')return;
     const current=api.toJSON(),memberIds=group.panels.map(p=>p.id),home=homes.get(memberIds[0]);
@@ -89,7 +132,7 @@ export async function mountDockview(ui){
       }
     }
     for(const id of memberIds)homes.delete(id);
-    resize();save();
+    syncSharedSidebar();resize();save();
   }
   const open=id=>{
     let panel=api.getPanel(id);
@@ -106,11 +149,11 @@ export async function mountDockview(ui){
     }
     panel.api.setActive();visibility(id,true);return panel;
   };
-  function resetLayout(){restoring=true;homes.clear();dragHomes.clear();try{api.clear();const s=open('schematic');api.addPanel({id:'simulation',component:'simulation',title:TITLES.simulation,renderer:'always',position:{referencePanel:s,direction:'right'},initialWidth:340,minimumWidth:260});const w=api.addPanel({id:'waveforms',component:'waveforms',title:TITLES.waveforms,renderer:'always',position:{referencePanel:s,direction:'below'},initialHeight:300});api.addPanel({id:'ai',component:'ai',title:TITLES.ai,renderer:'always',position:{referencePanel:'simulation',direction:'below'},initialHeight:300,minimumWidth:260});api.layout(area.clientWidth,area.clientHeight);api.getPanel('simulation').api.setSize({width:Math.min(360,area.clientWidth*.28)});api.getPanel('waveforms').api.setSize({height:Math.round(area.clientHeight*.40)});api.getPanel('ai').api.setSize({height:Math.round(area.clientHeight*.40)});s.api.setActive();}finally{restoring=false;}save();resize();}
+  function resetLayout(){restoring=true;homes.clear();dragHomes.clear();try{api.clear();const s=open('schematic');api.addPanel({id:'simulation',component:'simulation',title:TITLES.simulation,renderer:'always',position:{referencePanel:s,direction:'right'},initialWidth:340,minimumWidth:260});const w=api.addPanel({id:'waveforms',component:'waveforms',title:TITLES.waveforms,renderer:'always',position:{referencePanel:s,direction:'below'},initialHeight:300});api.addPanel({id:'ai',component:'ai',title:TITLES.ai,renderer:'always',position:{referencePanel:'simulation',direction:'below'},initialHeight:300,minimumWidth:260});api.layout(area.clientWidth,area.clientHeight);api.getPanel('simulation').api.setSize({width:Math.min(360,area.clientWidth*.28)});api.getPanel('waveforms').api.setSize({height:Math.round(area.clientHeight*.40)});api.getPanel('ai').api.setSize({height:Math.round(area.clientHeight*.40)});s.api.setActive();}finally{restoring=false;}syncSharedSidebar();save();resize();}
   function storedLayout(){return {schema:KEY,layout:api.toJSON(),homes:Object.fromEntries(homes),floatPositions:Object.fromEntries(floatPositions)};}
   function save(){if(restoring||saveFailed)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(storedLayout()));}catch{saveFailed=true;ui.notify('布局无法保存；当前排列仍保留。',{kind:'warning'});}},180);}
-  api.onDidLayoutChange(()=>{if(restoring)return;const layout=api.toJSON();for(const [id,home] of dragHomes){if(api.getPanel(id)?.api.location.type==='floating'){home.remaining=remainingLayout(layout,home.ids);for(const member of home.ids)homes.set(member,home);dragHomes.delete(id);}}save();});
-  api.onDidRemovePanel(()=>queueMicrotask(()=>{for(const id of Object.keys(roots))if(!api.getPanel(id))visibility(id,false);}));
+  api.onDidLayoutChange(()=>{syncSharedSidebar();if(restoring)return;const layout=api.toJSON();for(const [id,home] of dragHomes){if(api.getPanel(id)?.api.location.type==='floating'){home.remaining=remainingLayout(layout,home.ids);for(const member of home.ids)homes.set(member,home);dragHomes.delete(id);}}save();});
+  api.onDidRemovePanel(()=>queueMicrotask(()=>{for(const id of Object.keys(roots))if(!api.getPanel(id))visibility(id,false);syncSharedSidebar();}));
   for(const id of Object.keys(TITLES)){
     const slot=ui.slots[id]||{element:nodes[id],setBadge(){}};
     slot.setVisible=value=>{if(value)open(id);else api.getPanel(id)?.api.close();};

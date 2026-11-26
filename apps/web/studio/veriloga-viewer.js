@@ -56,7 +56,14 @@ export function mountVerilogAPanel({
   actions.append(jumpAnalogBtn,copyBtn,downloadBtn);
   header.append(titleWrap,actions);
 
-  const provenance=el('div','cg-va-provenance');
+  const provenance=el('div','cg-va-provenance is-empty');
+  const sidebarToggleBtn=el('button','cg-va-sidebar-toggle','☰ 侧边栏');
+  sidebarToggleBtn.id='studio-veriloga-sidebar-toggle';
+  sidebarToggleBtn.type='button';
+  sidebarToggleBtn.title='展开或收起网表与层级侧边栏';
+  sidebarToggleBtn.onclick=()=>{try{window.viewer?.command?.('toggle-netlist');}catch{}};
+  const provenanceText=el('span','cg-va-provenance-text','');
+  provenance.append(sidebarToggleBtn,provenanceText);
   const instanceCard=el('section','cg-va-instance');
   instanceCard.hidden=true;
   const metaBar=el('section','cg-va-meta');
@@ -84,8 +91,9 @@ export function mountVerilogAPanel({
     jumpAnalogBtn.hidden=true;
     copyBtn.disabled=true;
     downloadBtn.disabled=true;
-    provenance.textContent='';
-    provenance.hidden=true;
+    provenanceText.textContent='选择左侧电路层级或下方模型即可查看 Verilog-A 源码';
+    provenanceText.title='';
+    provenance.classList.add('is-empty');
     instanceCard.hidden=true;
     metaBar.hidden=true;
     codeWrap.hidden=true;
@@ -198,14 +206,14 @@ export function mountVerilogAPanel({
     copyBtn.disabled=!current.text;
     downloadBtn.disabled=!current.text;
 
-    provenance.hidden=false;
     const metaParts=[
       current.origin?`来源：${current.origin}`:'',
       current.path||fileBase,
       `${parsed.lineCount} 行`,
     ].filter(Boolean);
-    provenance.textContent=metaParts.join(' · ');
-    provenance.title=current.path||fileBase;
+    provenanceText.textContent=metaParts.join(' · ');
+    provenanceText.title=current.path||fileBase;
+    provenance.classList.remove('is-empty');
 
     // Render schematic instance context card if opened by clicking/double-clicking an instance.
     if(current.instance){

@@ -415,6 +415,7 @@ export async function mountStudio({ui:providedUI}={}){
     onOpenLibraryManager:()=>libraryManager?.show(),
     onOpenCell:({library,cell})=>{if(libraryManager&&library?.id&&cell?.id)void libraryManager.openProjectTop(library.id,cell.id);},
     onOpenVerilogA:(model,opts)=>verilogaPanel?.openModel(model,opts),
+    onOpenSchematic:()=>{ui.slots.schematic?.setVisible(true);},
     resolveVerilogA:masterName=>resolveVerilogAModel({
       masterName,
       doc,
