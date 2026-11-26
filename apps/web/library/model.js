@@ -115,6 +115,36 @@ export function classifyLibraryHierarchy(library){
 export function primaryProjectEntry(library){
   return classifyLibraryHierarchy(library).primary;
 }
+
+/** Human-friendly Virtuoso/EDA display labels for library views without altering manifest data. */
+export function formatViewLabel(view){
+  if(!view)return '';
+  const id=view.id,raw=String(view.label||'');
+  if(id==='schematic')return '原理图 (schematic)';
+  if(id==='symbol')return view.virtualSymbol?'符号 (symbol · 内嵌于 RNL)':'符号 (symbol)';
+  if(id==='netlist')return '网表 (netlist)';
+  if(id==='simulation')return /incomplete|models/i.test(raw)?'仿真配置 (simulation · 历史输入/需外部 PDK)':'仿真配置 (simulation)';
+  if(id==='docs')return '说明与依赖文档 (docs)';
+  return raw||id;
+}
+
+/**
+ * Expose embedded RNL `@DEFINE-SYMBOL` definitions as a `symbol` view entry for circuit cells
+ * that do not already declare a standalone `symbol` view, keeping testbenches schematic-first.
+ */
+export function displayViewsForCell(cell){
+  const raw=Array.isArray(cell?.views)?cell.views:[];
+  const hasSymbol=raw.some(v=>v.id==='symbol');
+  const schematic=raw.find(v=>v.id==='schematic'&&v.kind==='rnl');
+  const out=[];
+  for(const view of raw){
+    out.push(view);
+    if(view===schematic&&!hasSymbol&&cell?.kind==='circuit'){
+      out.push({...schematic,id:'symbol',label:'Embedded symbol',virtualSymbol:true,backingViewId:schematic.id});
+    }
+  }
+  return out;
+}
 async function pooled(items,task,concurrency=4){
   let index=0;const result=new Array(items.length);
   await Promise.all(Array.from({length:Math.min(items.length,concurrency)},async()=>{while(index<items.length){const i=index++;result[i]=await task(items[i],i);}}));return result;

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createLibraryClient,repositoryPath,validateCatalog,validateLibrary,filterLibraries,classifyLibraryHierarchy,primaryProjectEntry} from '../../apps/web/library/model.js';
+import {createLibraryClient,repositoryPath,validateCatalog,validateLibrary,filterLibraries,classifyLibraryHierarchy,primaryProjectEntry,formatViewLabel,displayViewsForCell} from '../../apps/web/library/model.js';
 const entry='lib/synthetic/cell/schematic/view.scs',dependency='lib/synthetic/cell/schematic/support/circuit.scs';
 const view={id:'schematic',label:'Synthetic native schematic',kind:'rnl',entry,files:[entry,dependency],level:'@top'};
 const library={schema:'circuitgit.library.v1',id:'synthetic',name:'Synthetic library',description:'Test only',cells:[{id:'cell',name:'Synthetic cell',kind:'circuit',directory:'lib/synthetic/cell',readme:'lib/synthetic/cell/README.md',project_id:null,requires_external_models:false,views:[view,{id:'docs',label:'Readme',kind:'markdown',entry:'lib/synthetic/cell/README.md',files:['lib/synthetic/cell/README.md']}]}]};
@@ -85,4 +85,25 @@ test('classifyLibraryHierarchy separates top-level entries from internal submodu
   assert.equal(primaryProjectEntry(lib).id,'tb_top');
   assert.deepEqual(h.topLevel.map(c=>c.id),['tb_top','dut_top']);
   assert.deepEqual(h.submodules.map(c=>c.id),['sub_comp']);
+});
+test('formatViewLabel and displayViewsForCell normalize labels and surface embedded RNL symbol views',()=>{
+  assert.equal(formatViewLabel({id:'schematic',label:'Native schematic'}),'原理图 (schematic)');
+  assert.equal(formatViewLabel({id:'simulation',label:'Historical inputs — models incomplete'}),'仿真配置 (simulation · 历史输入/需外部 PDK)');
+  assert.equal(formatViewLabel({id:'docs',label:'Evidence and dependencies'}),'说明与依赖文档 (docs)');
+  assert.equal(formatViewLabel({id:'symbol',label:'Native symbol'}),'符号 (symbol)');
+
+  const circuitViews=displayViewsForCell({kind:'circuit',views:[view,{id:'docs',label:'Evidence and dependencies',kind:'markdown'}]});
+  assert.deepEqual(circuitViews.map(v=>v.id),['schematic','symbol','docs']);
+  assert.equal(circuitViews[1].virtualSymbol,true);
+  assert.equal(circuitViews[1].backingViewId,'schematic');
+  assert.equal(formatViewLabel(circuitViews[1]),'符号 (symbol · 内嵌于 RNL)');
+
+  // Testbench cells stay schematic-first without a synthetic symbol view.
+  const tbViews=displayViewsForCell({kind:'testbench',views:[view,{id:'docs',label:'Evidence and dependencies',kind:'markdown'}]});
+  assert.deepEqual(tbViews.map(v=>v.id),['schematic','docs']);
+
+  // Cells that already declare a standalone symbol view do not duplicate it.
+  const standaloneViews=displayViewsForCell({kind:'circuit',views:[{id:'symbol',label:'Native symbol',kind:'rnl'}]});
+  assert.deepEqual(standaloneViews.map(v=>v.id),['symbol']);
+  assert.equal(standaloneViews[0].virtualSymbol,undefined);
 });

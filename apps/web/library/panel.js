@@ -1,4 +1,4 @@
-import {createLibraryClient,filterLibraries,classifyLibraryHierarchy} from './model.js';
+import {createLibraryClient,filterLibraries,classifyLibraryHierarchy,formatViewLabel,displayViewsForCell} from './model.js';
 
 /** Library browser lives with the existing RNL workspace; only explicit opens load circuit files. */
 export function mountLibraryManager({toolbar,libraryPane,onOpen,onReference,onSelection=()=>{},notify=()=>{},client=createLibraryClient()}){
@@ -56,22 +56,23 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onReference,onSe
     cells.disabled=busy||loading||!library.cells.length;
     return h;
   }
-  function selection(){const library=data.find(x=>x.id===libraries.value),cell=library?.cells.find(x=>x.id===cells.value),view=cell?.views.find(x=>x.id===views.value);return {library,cell,view};}
+  function selection(){const library=data.find(x=>x.id===libraries.value),cell=library?.cells.find(x=>x.id===cells.value),cellViews=displayViewsForCell(cell),view=cellViews.find(x=>x.id===views.value);return {library,cell,view};}
   function render(){
     const filtered=filterLibraries(data,search.value);options(libraries,filtered,selected.library,x=>x.name);const library=filtered.find(x=>x.id===libraries.value);
-    const hierarchy=populateCells(library,selected.cell);const cell=library?.cells.find(x=>x.id===cells.value);options(views,cell?.views||[],selected.view,x=>x.label);
+    const hierarchy=populateCells(library,selected.cell);const cell=library?.cells.find(x=>x.id===cells.value);const cellViews=displayViewsForCell(cell);options(views,cellViews,selected.view,formatViewLabel);
     selected={library:libraries.value,cell:cells.value,view:views.value};const exact=selection();
-    const nextKey=JSON.stringify([exact.library?.id,exact.cell?.id,exact.view?.id]);if(nextKey!==selectionKey){selectionKey=nextKey;onSelection(exact.view?exact:null);}
-    crumb.textContent=exact.cell?[exact.library.name,exact.cell.name,exact.view?.label].filter(Boolean).join(' / '):loaded?'没有匹配的单元':'按项目、顶层与视图浏览';
-    summary.textContent=exact.cell?.description||exact.library?.description||'';
+    const canonicalView=exact.view?.backingViewId?exact.cell?.views.find(v=>v.id===exact.view.backingViewId)||exact.view:exact.view;
+    const nextKey=JSON.stringify([exact.library?.id,exact.cell?.id,canonicalView?.id]);if(nextKey!==selectionKey){selectionKey=nextKey;onSelection(canonicalView?{library:exact.library,cell:exact.cell,view:canonicalView}:null);}
+    crumb.textContent=exact.cell?[exact.library.name,exact.cell.name,exact.view?formatViewLabel(exact.view):''].filter(Boolean).join(' / '):loaded?'没有匹配的单元':'按项目、顶层与视图浏览';
+    summary.textContent=exact.view?.virtualSymbol?'该单元的符号（@DEFINE-SYMBOL）内嵌于 RNL 原理图源码中；打开后会自动展开左侧「符号」面板查看 SVG 符号、引脚坐标与定义代码。':(exact.cell?.description||exact.library?.description||'');
     dependency.textContent=exact.cell?(exact.cell.requires_external_models?'需要外部模型 · 可查看已有原理图；本页不运行仿真。':'本页只浏览已发布文件；是否可重放仿真请查看单元说明。'):'';
     dependency.className=exact.cell?.requires_external_models?'cg-library-dependency':'';
-    identity.hidden=!exact.view;identityText.textContent=exact.view?JSON.stringify({library:exact.library.id,cell:exact.cell.id,project_id:exact.cell.project_id,view:exact.view.id,kind:exact.view.kind,entry:exact.view.entry,files:exact.view.files},null,2):'';
+    identity.hidden=!exact.view;identityText.textContent=exact.view?JSON.stringify({library:exact.library.id,cell:exact.cell.id,project_id:exact.cell.project_id,view:exact.view.id,kind:exact.view.kind,entry:exact.view.entry,files:exact.view.files,...(exact.view.virtualSymbol?{embedded_in:'schematic'}:{})},null,2):'';
     const topCell=hierarchy?.primary||null,topRnl=topCell?.views?.find(v=>v.kind==='rnl')||null;
     openTop.hidden=!topRnl||exact.cell?.id===topCell?.id&&exact.view?.id===topRnl?.id;
     openTop.disabled=busy||loading||!topRnl;
     openTop.textContent=topCell?`打开项目顶层 (${topCell.name})`:'打开项目顶层';
-    open.textContent=busy?'正在打开…':exact.view?.kind==='rnl'?'打开原理图':'查看文件';open.disabled=busy||loading||!exact.view;
+    open.textContent=busy?'正在打开…':exact.view?.id==='symbol'?'打开符号视图':exact.view?.kind==='rnl'?'打开原理图':'查看文件';open.disabled=busy||loading||!exact.view;
     refresh.disabled=reference.disabled=search.disabled=busy||loading;close.disabled=busy;
     if(!busy&&!loading&&loaded)status.textContent=`${filtered.length} 个项目 · ${filtered.reduce((n,l)=>n+l.cells.length,0)} 个单元`+(errors.length?` · ${errors.length} 个库读取失败：${errors.map(x=>x.name+'：'+x.message).join('；')}`:'');
   }
@@ -102,7 +103,7 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onReference,onSe
     try{const bundle=await client.loadView(value.view,{signal:request.signal});if(disposed||request.signal.aborted)return false;
       if(closeDialog&&dialog.open)dialog.close();
       const opened=await onOpen({...value,bundle});
-      if(opened!==false){result=true;notify('已打开项目 '+value.library.name+' · '+value.cell.name+'；可在原理图内双击下钻子模块。');}
+      if(opened!==false){result=true;notify(value.view.virtualSymbol?('已打开 '+value.cell.name+' 的符号视图（左侧「符号」面板可查看 SVG、引脚坐标与定义源码）。'):('已打开项目 '+value.library.name+' · '+value.cell.name+'；可在原理图内双击下钻子模块。'));}
     }catch(error){if(!disposed){errorText='打开失败：'+error.message;notify(errorText,{kind:'error'});}}
     finally{busy=false;if(!disposed){render();if(errorText&&closeDialog){status.textContent=errorText;if(!dialog.open)dialog.showModal();}}}
     return result;
