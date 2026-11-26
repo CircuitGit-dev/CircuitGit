@@ -28,6 +28,8 @@ class ResearchSimulationTests(unittest.TestCase):
         cls.temp=tempfile.TemporaryDirectory(prefix='research-inputs-');cls.seed=Path(cls.temp.name)/'seed';cls.seed.mkdir()
         for name in registered_inputs(ROOT,cls.catalog):
             dest=cls.seed/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/name,dest)
+        # Byte-exact copies and clones, as under core.autocrlf=false; source hashes are compared.
+        (cls.seed/'.gitattributes').write_bytes(b'* -text\n')
         subprocess.run(['git','init','-b','main',str(cls.seed)],check=True,capture_output=True)
         workspace.git(cls.seed,'add','.')
         workspace.git(cls.seed,'-c','user.name=Research fixture','-c','user.email=fixture@localhost','commit','-m','Pinned research inputs')

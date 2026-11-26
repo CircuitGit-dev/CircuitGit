@@ -35,6 +35,8 @@ class VersionControlTests(unittest.TestCase):
         self.write('projects/demo/pdk/foundry.scs','SECRET_PDK\n')
         self.write('projects/demo/credentials.json','SECRET_CREDENTIALS\n')
         self.write('apps/main.py','APPLICATION_SOURCE\n')
+        # Byte-exact seed and runtime clone, as under core.autocrlf=false; file hashes are compared.
+        self.write('.gitattributes','* -text\n')
         self.initial=self.commit('Initial synthetic project')
         project={'id':'demo','source_path':CIRCUIT,'read_paths':[AUX,'projects/demo/new.scs',
                  'projects/demo/a[1].scs','projects/demo/space file.scs','projects/demo/binary.bin','projects/demo/link.scs',

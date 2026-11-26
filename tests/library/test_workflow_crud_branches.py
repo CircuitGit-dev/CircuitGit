@@ -46,6 +46,8 @@ class LibraryCrudBranchesPrTests(unittest.TestCase):
         self.git("config", "user.email", "fixture@example.invalid")
         self.git("remote", "add", "origin", "https://github.com/fixture/circuits.git")
         self.write(".gitignore", ".local/\n")
+        # Byte-exact repository, as under core.autocrlf=false; file hashes are compared.
+        self.write(".gitattributes", "* -text\n")
         self.write("application.js", "// application code\n")
         self.write("lib/demo/gain/schematic/gain.scs", "simulator lang=spectre\nsubckt gain a b\nR0 (a b) resistor r=1k\nends gain\n")
         self.write("lib/demo/gain/README.md", "# Gain\n")
