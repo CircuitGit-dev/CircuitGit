@@ -3,7 +3,17 @@ name: Cross-Platform CI (macOS, Windows, Linux)
 on:
   push:
     branches: [main, 'feat/**', 'fix/**']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - 'THIRD_PARTY_NOTICES.md'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - 'THIRD_PARTY_NOTICES.md'
   workflow_dispatch:
     inputs:
       mode:
@@ -32,8 +42,118 @@ env:
   PYTHONIOENCODING: utf-8
 
 jobs:
+  detect-changes:
+    name: Route CI by changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      run_full_matrix: ${{ steps.scope.outputs.run_full_matrix }}
+      run_spiceowl_matrix: ${{ steps.scope.outputs.run_spiceowl_matrix }}
+      run_fast_web: ${{ steps.scope.outputs.run_fast_web }}
+      reason: ${{ steps.scope.outputs.reason }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify changed paths
+        id: scope
+        shell: python
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          PR_BASE: ${{ github.base_ref }}
+        run: |
+          import os, re, subprocess
+
+          event = os.environ.get('EVENT_NAME', '')
+          out_path = os.environ['GITHUB_OUTPUT']
+
+          def emit(full_matrix, spiceowl_matrix, reason):
+              fast_web = not full_matrix
+              with open(out_path, 'a', encoding='utf-8') as f:
+                  f.write(f'run_full_matrix={"true" if full_matrix else "false"}\n')
+                  f.write(f'run_spiceowl_matrix={"true" if spiceowl_matrix else "false"}\n')
+                  f.write(f'run_fast_web={"true" if fast_web else "false"}\n')
+                  f.write(f'reason={reason}\n')
+              print(f'CI routing: full_matrix={full_matrix}, spiceowl_matrix={spiceowl_matrix}, fast_web={fast_web} ({reason})')
+
+          if event == 'workflow_dispatch':
+              emit(True, True, 'manual workflow_dispatch')
+              raise SystemExit(0)
+
+          base = None
+          if event == 'pull_request' and os.environ.get('PR_BASE'):
+              base = f"origin/{os.environ['PR_BASE']}...HEAD"
+          elif event == 'push':
+              before = os.environ.get('BEFORE_SHA', '')
+              if before and set(before) != {'0'}:
+                  base = f"{before}..{os.environ['HEAD_SHA']}"
+
+          files = []
+          if base:
+              res = subprocess.run(['git', 'diff', '--name-only', base], capture_output=True, text=True)
+              if res.returncode == 0:
+                  files = [line.strip() for line in res.stdout.splitlines() if line.strip()]
+
+          if not files:
+              emit(True, True, 'fallback (no diff base available)')
+              raise SystemExit(0)
+
+          web_only_re = re.compile(
+              r'^(apps/web/|modules/|tools/dev/build_pages\.py$|docs/|.*\.md$|'
+              r'tests/(?:demo|remote|library|studio|ai|workflow)/[^/]+\.mjs$|tests/viewer-vendor\.test\.mjs$)'
+          )
+          spiceowl_re = re.compile(
+              r'^(submodules/spiceowl|contracts/spiceowl|tools/workbench/(?:bootstrap_python|spiceowl|onboarding|server|connect_browser|platform_compat)|'
+              r'tests/spiceowl/|\.github/workflows/cross-platform-ci\.yml$)'
+          )
+
+          non_web = [p for p in files if not web_only_re.match(p)]
+          spiceowl_hits = [p for p in files if spiceowl_re.match(p)]
+
+          print('Changed files:', files)
+          if not non_web:
+              emit(False, False, 'web/frontend-only change -> fast Linux check')
+          else:
+              emit(True, bool(spiceowl_hits), f'backend/tooling changed ({len(non_web)} files, spiceowl={len(spiceowl_hits)})')
+
+  fast-web-check:
+    name: Fast Web Check (Linux · JS + structure)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.run_fast_web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify structure, build, and frontend tests
+        shell: bash
+        run: |
+          python -B tools/dev/check_structure.py
+          python -B tools/dev/build.py web
+          node --test tests/demo/*.test.mjs tests/remote/*.test.mjs tests/library/*.test.mjs tests/studio/*.test.mjs tests/ai/*.test.mjs tests/workflow/*.test.mjs tests/viewer-vendor.test.mjs
+
   cross-platform-tests:
     name: ${{ matrix.label }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.run_full_matrix == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     strategy:
@@ -144,6 +264,8 @@ jobs:
 
   spiceowl-bootstrap-matrix:
     name: SpiceOwl Bootstrap (${{ matrix.os }})
+    needs: detect-changes
+    if: needs.detect-changes.outputs.run_spiceowl_matrix == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     strategy:
