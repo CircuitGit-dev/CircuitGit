@@ -32,14 +32,24 @@ export function mountSessions(host,{createPanel}={}) {
     if(!labels.length&&['suspended','error'].includes(state.phase))labels.push('已暂停');
     return labels.join(' · ');
   }
+  function preferredSessionId(){
+    for(const record of records.values()){
+      const paused=['suspended','error'].includes(record.state.phase)||['suspended','error'].includes(record.info.state)||number(record.state.suspendedApprovalCount)>0||number(record.info.suspended_approval_count)>0;
+      if(!paused)return record.id;
+    }
+    return records.keys().next().value||null;
+  }
   function publish(){
     if(destroyed)return;
     let active=0,pending=0,suspended=0;
     for(const record of records.values()){
-      const selected=record.id===activeId,state=record.state,label=status(state);
+      const selected=record.id===activeId,state=record.state,label=status(state),delReason=deleteReason(record);
+      record.tabWrap.classList.toggle('is-selected',selected);
       record.button.setAttribute('aria-selected',String(selected));record.button.tabIndex=selected?0:-1;
       record.button.setAttribute('aria-label',record.info.name+(label?' · '+label:''));record.button.title=record.info.name+(label?' · '+label:'');
       record.name.textContent=record.info.name;record.badge.textContent=label;record.badge.hidden=!label;
+      record.closeBtn.hidden=Boolean(delReason);record.closeBtn.disabled=loading||busy||Boolean(delReason);
+      record.closeBtn.setAttribute('aria-label','删除对话 '+record.info.name);record.closeBtn.title=delReason||'删除此对话';
       record.container.hidden=!selected;record.container.inert=!selected;
       const visible=selected&&slot.isVisible();
       if(record.panel&&record.visible!==visible){record.visible=visible;record.panel.setVisible(visible);}
@@ -70,8 +80,8 @@ export function mountSessions(host,{createPanel}={}) {
   }
   function dropRecord(id){
     const record=records.get(id);if(!record)return;
-    records.delete(id);record.panel.destroy();record.button.remove();record.container.remove();
-    if(activeId===id)activeId=records.keys().next().value||null;
+    records.delete(id);record.panel.destroy();record.tabWrap.remove();record.container.remove();
+    if(activeId===id)activeId=preferredSessionId();
   }
   function deleteReason(record){
     if(running(record.state))return '请先停止当前回合';
@@ -146,16 +156,17 @@ export function mountSessions(host,{createPanel}={}) {
   }
   function mountRecord(info){
     info=validate(info);if(records.has(info.session_id))throw Error('会话列表包含重复身份。');
-    const container=make('div','ic-ai-session-panel'),button=make('button','ic-ai-session-tab'),name=make('span','ic-ai-session-name'),badge=make('span','ic-ai-session-badge');
+    const container=make('div','ic-ai-session-panel'),tabWrap=make('div','ic-ai-session-tab-wrap'),button=make('button','ic-ai-session-tab'),name=make('span','ic-ai-session-name'),badge=make('span','ic-ai-session-badge'),closeBtn=make('button','ic-ai-session-close','×');
     const domId='ic-ai-session-'+crypto.randomUUID();container.id=domId;container.setAttribute('role','tabpanel');container.setAttribute('aria-label',info.name);container.dataset.sessionId=info.session_id;container.hidden=true;container.inert=true;
     button.id=domId+'-tab';button.type='button';button.setAttribute('role','tab');button.setAttribute('aria-controls',domId);container.setAttribute('aria-labelledby',button.id);button.append(name,badge);
-    const record={id:info.session_id,info,container,button,name,badge,panel:null,visible:null,state:{...idle(),phase:info.state||'idle',pendingApprovalCount:number(info.pending_approval_count),suspendedApprovalCount:number(info.suspended_approval_count)}};
-    records.set(record.id,record);tabs.append(button);body.append(container);button.onclick=()=>select(record.id);
+    closeBtn.type='button';closeBtn.setAttribute('aria-label','删除对话 '+info.name);closeBtn.title='删除此对话';tabWrap.append(button,closeBtn);
+    const record={id:info.session_id,info,container,tabWrap,button,name,badge,closeBtn,panel:null,visible:null,state:{...idle(),phase:info.state||'idle',pendingApprovalCount:number(info.pending_approval_count),suspendedApprovalCount:number(info.suspended_approval_count)}};
+    records.set(record.id,record);tabs.append(tabWrap);body.append(container);button.onclick=()=>select(record.id);closeBtn.onclick=()=>deleteSession(record.id);
     try{
       record.panel=createPanel(container,{sessionId:record.id,onStateChange(state){if(destroyed||records.get(record.id)!==record)return;record.state={...idle(),...state};publish();}});
       if(!record.panel||!['getState','focusInput','openDetails','setVisible','destroy'].every(key=>typeof record.panel[key]==='function'))throw Error('AI 面板没有满足冻结的会话挂点。');
       record.state={...idle(),...record.panel.getState()};
-    }catch(error){record.panel?.destroy?.();records.delete(record.id);button.remove();container.remove();throw error;}
+    }catch(error){record.panel?.destroy?.();records.delete(record.id);tabWrap.remove();container.remove();throw error;}
     return record;
   }
   function select(id,{focus=true}={}){
@@ -183,7 +194,7 @@ export function mountSessions(host,{createPanel}={}) {
       limit=result.max_sessions;
       const ids=new Set(infos.map(info=>info.session_id));for(const id of [...records.keys()])if(!ids.has(id))dropRecord(id);
       for(const info of infos){const existing=records.get(info.session_id);if(existing){existing.info=info;existing.container.setAttribute('aria-label',info.name);}else mountRecord(info);}
-      if(!activeId)activeId=records.keys().next().value||null;
+      if(!activeId)activeId=preferredSessionId();
     }catch(error){
       const text=error?.message||String(error);
       if(text.includes('AI adapter is not configured')){unavailable=true;clearMessage();retry.hidden=true;}
@@ -228,6 +239,6 @@ export function mountSessions(host,{createPanel}={}) {
     if(editDialog){editDialog.close();editDialog.remove();editDialog=null;}
     draftQueue.destroy();for(const record of records.values())record.panel.destroy();records.clear();root.remove();slot.setBadge(null);mounted.delete(slot.element);
   }
-  controller=Object.freeze({show,hide,toggle,openManager,queueDraft(draft){if(!loading&&!busy&&activeId){try{const result=applyDraft(draft);if(result.status==='prepared')return result;}catch(error){failure(error);}}return draftQueue.enqueue(draft);},takePendingDrafts:()=>draftQueue.take(),openCreate(){editName('create');},openDetails(){if(!destroyed){show();records.get(activeId)?.panel.openDetails();}},getState(){return Object.freeze({...idle(),...records.get(activeId)?.panel.getState()});},destroy});
+  controller=Object.freeze({show,hide,toggle,openManager,queueDraft(draft){if(!loading&&!busy&&activeId){try{const result=applyDraft(draft);if(result.status==='prepared')return result;}catch(error){failure(error);}}return draftQueue.enqueue(draft);},takePendingDrafts:()=>draftQueue.take(),openCreate(){editName('create');},deleteSession(id=activeId){deleteSession(id);},canDelete(id=activeId){const record=records.get(id);return Boolean(record&&!loading&&!busy&&!deleteReason(record));},openDetails(){if(!destroyed){show();records.get(activeId)?.panel.openDetails();}},getState(){return Object.freeze({...idle(),...records.get(activeId)?.panel.getState()});},destroy});
   mounted.set(slot.element,{host,controller});publish();void load();return controller;
 }

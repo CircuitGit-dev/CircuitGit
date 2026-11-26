@@ -41,7 +41,9 @@ body.ic-dockview .studio-dock-content{width:100%;height:100%;overflow:auto;}
 body.ic-dockview #studio-ai-content{padding:0;overflow:hidden;}
 body.ic-dockview .ic-ai-sessions-bar{background:#fff;border-bottom:1px solid #edf0f5;min-height:28px;padding:2px 7px;}
 body.ic-dockview .ic-ai-sessions-bar button{border:0;font-size:11px;background:transparent;}
-body.ic-dockview .ic-ai-session-tab[aria-selected=true]{background:#f0f5ff;box-shadow:none;}
+body.ic-dockview .ic-ai-session-tab-wrap{border:0;background:transparent;}
+body.ic-dockview .ic-ai-session-tab-wrap.is-selected{background:#f0f5ff;box-shadow:none;}
+body.ic-dockview .ic-ai-session-tab[aria-selected=true]{background:transparent;box-shadow:none;}
 body.ic-dockview .ic-ai-studio.ic-ai{padding:8px;grid-template-rows:minmax(0,1fr) auto;}
 body.ic-dockview .ic-ai-form{min-height:34px;}
 body.ic-dockview .ic-ai-form textarea{min-height:32px;border-radius:5px;background:#f7f9fc;}

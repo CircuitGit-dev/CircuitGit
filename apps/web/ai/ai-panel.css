@@ -29,7 +29,9 @@
 .ic-ai .ic-ai-settings-button[aria-expanded=true] { background: var(--bg,#f0f5ff); border-color: var(--accent,#327a9c); }
 .ic-ai-development { grid-column: 1/-1; min-width: 0; }
 .ic-ai-settings-state-note { grid-column: 1/-1; margin: 0; color: var(--muted,#526778); font: 12px/1.5 system-ui,sans-serif; }
-.ic-ai-settings-new-session { grid-column: 1/-1; justify-self: start; }
+.ic-ai-settings-state-actions { grid-column: 1/-1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ic-ai-settings-new-session { justify-self: start; }
+.ic-ai .ic-ai-settings-delete-session { color: #a33b32; }
 .ic-ai-configure-development { margin-top: 6px; }
 .ic-ai-development-details { margin-top: 4px; color: var(--muted,#526778); font: 11px/1.5 system-ui,sans-serif; }
 .ic-ai-development-details summary, .ic-ai-native-request summary { cursor: pointer; }

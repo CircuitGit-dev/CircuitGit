@@ -53,7 +53,7 @@ function renderAnswer(target, text) {
 }
 
 /** Independent mount. contextAdapter is the ONE explicit adapter shared with the waveform panel. */
-export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/api/health', onStateChange=()=>{}, postRequest=null, getRequest=null, presentation='diagnostic', sessionId='default', settingsContent=null, onNewSession=null, onConfigureDevelopment=null, prepareContext=null, onToolResult=null}) {
+export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/api/health', onStateChange=()=>{}, postRequest=null, getRequest=null, presentation='diagnostic', sessionId='default', settingsContent=null, onNewSession=null, onDeleteSession=null, canDeleteSession=null, onConfigureDevelopment=null, prepareContext=null, onToolResult=null}) {
   if (!contextAdapter?.getContext || !contextAdapter?.subscribe) throw Error('Explicit context adapter required');
   const clean = presentation === 'clean', doc = root.ownerDocument;
   root.classList.add('ic-ai'); root.dataset.presentation = presentation;
@@ -125,7 +125,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
   const appendImages=createImageHistory({document:doc,sessionId,read,alive:()=>!destroyed});
   let currentRun=null, modelSelect=null, nextModel='', modelChoices=new Map(), catalogReady=false, catalogGeneration=0, catalogAttempted=false, historyReady=!clean, panelVisible=false;
   let defaultModel='',nextEffort='',nextPermission='manual',permissionExplicit=false,effortSelect=null,permissionSelect=null,settingsButton=null,settingsBox=null,settingsNote=null;
-  let development={available:false,workspace:null,reason:null,access:'manual',can_configure:false},developmentState='unread',developmentLoading=null,developerOption=null,developmentInfo=null,developmentNote=null,developmentDetails=null,developmentPath=null,configureDevelopment=null,configuringDevelopment=false,settingsStateNote=null,newSessionButton=null;
+  let development={available:false,workspace:null,reason:null,access:'manual',can_configure:false},developmentState='unread',developmentLoading=null,developerOption=null,developmentInfo=null,developmentNote=null,developmentDetails=null,developmentPath=null,configureDevelopment=null,configuringDevelopment=false,settingsStateNote=null,settingsStateActions=null,newSessionButton=null,deleteSessionButton=null;
   const developmentAccessLabel=access=>access==='full'?'完全访问':'人工批准';
   const nativeApprovalMethods=new Set(['item/commandExecution/requestApproval','item/fileChange/requestApproval']);
   const effortLabels={none:'关闭',minimal:'极低',low:'低',medium:'中',high:'高',xhigh:'很高',max:'最高',ultra:'极高'};
@@ -159,8 +159,11 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     settingsButton.classList.toggle('error',Boolean(issue));
     settingsNote.textContent=issue||permissionNote;settingsNote.classList.toggle('error',Boolean(issue));
     const state=getState();settingsStateNote.hidden=!locked;
-    settingsStateNote.textContent=phase==='suspended'?(recovery.can_resume?'此回合已暂停；先恢复输入，再调整下一条消息的设置。':'此对话已暂停，原请求和历史保留。新建独立对话后可选择模型和权限。'):state.pendingApprovalCount||state.suspendedApprovalCount?'请先处理当前审批。':'当前回合正在处理，结束后可调整下一条消息的设置。';
-    newSessionButton.hidden=typeof onNewSession!=='function'||phase!=='suspended'||recovery.can_resume||Boolean(uncertain)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0;
+    settingsStateNote.textContent=phase==='suspended'?(recovery.can_resume?'此回合已暂停；先恢复输入，再调整下一条消息的设置。':'此对话已暂停，原请求和历史保留。可删除此对话，或新建独立对话后选择模型和权限。'):state.pendingApprovalCount||state.suspendedApprovalCount?'请先处理当前审批。':'当前回合正在处理，结束后可调整下一条消息的设置。';
+    const pausedNoResume=phase==='suspended'&&!recovery.can_resume&&!uncertain&&state.pendingApprovalCount===0&&state.suspendedApprovalCount===0;
+    newSessionButton.hidden=typeof onNewSession!=='function'||!pausedNoResume;
+    deleteSessionButton.hidden=typeof onDeleteSession!=='function'||!pausedNoResume||(typeof canDeleteSession==='function'&&!canDeleteSession());
+    settingsStateActions.hidden=newSessionButton.hidden&&deleteSessionButton.hidden;
     developerOption.disabled=!development.available||developmentState!=='ready';developerOption.textContent='开发者模式'+(development.available?(development.access==='full'?' · 完全访问':''):' · 暂不可用');
     developmentInfo.hidden=nextPermission!=='developer'&&development.available;
     developmentNote.textContent=developmentState==='unread'?'展开设置后读取开发环境。':developmentState==='loading'?'正在读取开发环境…':developmentState==='error'?'暂时无法读取开发环境；其他模式仍可使用。':development.available?'工作目录由本机配置固定。':'开发者模式尚未配置或当前目录不可用。';
@@ -189,9 +192,9 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     developerOption=new Option('开发者模式 · 暂不可用','developer');developerOption.disabled=true;permissionSelect.append(new Option('人工批准','manual'),new Option('只读','read_only'),developerOption);settingsNote=make('p','ic-ai-settings-note');settingsNote.setAttribute('aria-live','polite');
     developmentInfo=make('div','ic-ai-development');developmentNote=make('p','ic-ai-development-note');developmentDetails=make('details','ic-ai-development-details');developmentPath=make('pre');developmentDetails.append(make('summary','','开发工作目录 / 详情'),developmentPath);developmentInfo.append(developmentNote,developmentDetails);
     configureDevelopment=make('button','ic-ai-configure-development','配置本机开发权限…');configureDevelopment.type='button';configureDevelopment.hidden=true;configureDevelopment.onclick=async()=>{if(configureDevelopment.disabled)return;configuringDevelopment=true;changed();try{await onConfigureDevelopment?.();if(!destroyed)await loadDevelopment();}catch(error){if(!destroyed)imageComposer?.message(error.message,true);}finally{configuringDevelopment=false;if(!destroyed)changed();}};developmentInfo.append(configureDevelopment);
-    settingsStateNote=make('p','ic-ai-settings-state-note');settingsStateNote.setAttribute('role','status');newSessionButton=make('button','ic-ai-settings-new-session','新建对话并配置');newSessionButton.type='button';newSessionButton.hidden=true;newSessionButton.onclick=()=>onNewSession?.();
-    modelField.append(make('span','','模型'),modelSelect);effortField.append(make('span','','思考强度'),effortSelect);permissionField.append(make('span','','操作权限'),permissionSelect);settingsBox.append(settingsStateNote,newSessionButton,modelField,effortField,permissionField,settingsNote,developmentInfo);form.append(settingsBox);
-    settingsButton.onclick=()=>{settingsBox.hidden=!settingsBox.hidden;settingsButton.setAttribute('aria-expanded',String(!settingsBox.hidden));if(!settingsBox.hidden){loadDevelopment();if(!catalogReady)loadModels({preserveSelection:true});}};
+    settingsStateNote=make('p','ic-ai-settings-state-note');settingsStateNote.setAttribute('role','status');settingsStateActions=make('div','ic-ai-settings-state-actions');settingsStateActions.hidden=true;newSessionButton=make('button','ic-ai-settings-new-session','新建对话并配置');newSessionButton.type='button';newSessionButton.hidden=true;newSessionButton.onclick=()=>onNewSession?.();deleteSessionButton=make('button','ic-ai-settings-delete-session ic-ai-delete','删除此对话');deleteSessionButton.type='button';deleteSessionButton.hidden=true;deleteSessionButton.onclick=()=>onDeleteSession?.();settingsStateActions.append(newSessionButton,deleteSessionButton);
+    modelField.append(make('span','','模型'),modelSelect);effortField.append(make('span','','思考强度'),effortSelect);permissionField.append(make('span','','操作权限'),permissionSelect);settingsBox.append(settingsStateNote,settingsStateActions,modelField,effortField,permissionField,settingsNote,developmentInfo);form.append(settingsBox);
+    settingsButton.onclick=()=>{settingsBox.hidden=!settingsBox.hidden;settingsButton.setAttribute('aria-expanded',String(!settingsBox.hidden));if(!settingsBox.hidden){syncSettings();loadDevelopment();if(!catalogReady)loadModels({preserveSelection:true});}};
     form.addEventListener('keydown',event=>{if(event.key==='Escape'&&!settingsBox.hidden){event.preventDefault();event.stopPropagation();settingsBox.hidden=true;settingsButton.setAttribute('aria-expanded','false');settingsButton.focus();}});
     effortSelect.onchange=()=>{if(settingsLocked()){effortSelect.value=nextEffort;return;}nextEffort=effortSelect.value;changed();};
     permissionSelect.onchange=()=>{if(settingsLocked()||permissionSelect.value==='developer'&&(!development.available||developmentState!=='ready')){permissionSelect.value=nextPermission;return;}nextPermission=permissionSelect.value;permissionExplicit=true;changed();};refreshEfforts();

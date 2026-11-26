@@ -45,7 +45,7 @@ export function mount(host) {
     const panel=mountAI(root,{presentation:'clean',sessionId,contextAdapter:host.context,
       prepareContext:host.prepareAiContext||(host.onboardingSync?(fallback=>host.onboardingSync.contextFor({fallback,refresh:true})):null),
       onToolResult:host.onboardingSync?(result=>host.onboardingSync.handleToolResult(result)):null,
-      settingsContent:host.aiSettings?.element,onConfigureDevelopment:host.aiSettings?.configureDevelopment,onNewSession:()=>wrapper?.openCreate(),
+      settingsContent:host.aiSettings?.element,onConfigureDevelopment:host.aiSettings?.configureDevelopment,onNewSession:()=>wrapper?.openCreate(),onDeleteSession:()=>wrapper?.deleteSession(sessionId),canDeleteSession:()=>Boolean(wrapper?.canDelete(sessionId)),
       getRequest:suffix=>host.gateway.request('/ai'+suffix),
       postRequest:(suffix,body)=>host.gateway.request('/ai'+suffix,{method:'POST',body}),onStateChange});
     const composer=root.querySelector('.ic-ai-form'),details=root.ownerDocument.createElement('div');
