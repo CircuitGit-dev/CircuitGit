@@ -1,6 +1,6 @@
 .ic-sim-panel {
-  --sim-ink:#253343;--sim-muted:#687583;--sim-line:#dfe5eb;--sim-blue:#315f88;--sim-wash:#f5f7f9;
-  container-type:inline-size;box-sizing:border-box;min-width:0;max-width:100%;padding:14px;
+  --sim-ink:#1e352b;--sim-muted:#5f746b;--sim-line:#dae5df;--sim-blue:#177753;--sim-wash:#f4f9f6;
+  container-type:inline-size;box-sizing:border-box;min-width:0;max-width:100%;padding:10px 12px;
   background:#fff;color:var(--sim-ink);font:12px/1.5 system-ui,sans-serif;overflow-wrap:anywhere;
 }
 .ic-sim-panel *{box-sizing:border-box;min-width:0}
@@ -11,16 +11,24 @@
 .ic-sim-heading,.ic-sim-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ic-sim-section-head{flex-wrap:wrap}
 .ic-sim-panel .ic-sim-status{display:inline-block;max-width:100%;padding:2px 6px;border-radius:4px;background:#edf1f4;color:#5a6876;font:10px/1.4 system-ui,sans-serif;font-weight:500}
-.ic-sim-panel .ic-sim-status.active{color:#285983;background:#edf4fc}
+.ic-sim-panel .ic-sim-status.active{color:#156445;background:#e6f5ed}
 .ic-sim-panel .ic-sim-status.draft,.ic-sim-panel .ic-sim-status.warning{color:#8a6026;background:#faf2e4}
+.ic-sim-circuit-bar{padding:8px 10px;border:1px solid #d4e4dc;border-radius:7px;background:linear-gradient(135deg,#f5fbf8 0%,#f7faf9 100%);display:grid;gap:4px}
+.ic-sim-circuit-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ic-sim-circuit-title{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.ic-sim-circuit-title strong{font-size:12px;color:#14382a;overflow-wrap:anywhere}
+.ic-sim-circuit-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.ic-sim-circuit-actions button{font-size:11px;padding:2px 6px;color:#196a4a}
+.ic-sim-circuit-actions button:hover{background:#e4f3eb;border-color:#b7d8c7}
+.ic-sim-circuit-bar .ic-sim-note{margin:0;font-size:10.5px}
 .ic-sim-config-selector{display:flex;align-items:center;gap:8px;margin-top:9px}
 .ic-sim-config-selector .ic-sim-field{flex:1;margin:0;grid-template-columns:auto minmax(0,1fr)}
 .ic-sim-config-selector>button{flex-shrink:0}
 .ic-sim-panel .ic-sim-project{margin-top:5px;color:var(--sim-muted);font-size:10px}
-.ic-sim-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:3px;margin:13px 0;background:var(--sim-wash);border:1px solid var(--sim-line);border-radius:6px}
-.ic-sim-panel .ic-sim-nav button{padding:6px 3px;background:transparent;border-color:transparent;color:var(--sim-muted);white-space:nowrap;font-size:11px}
-.ic-sim-panel .ic-sim-nav button.is-active{color:var(--sim-blue);background:white;border-color:var(--sim-line);font-weight:650;box-shadow:0 1px 2px #23384b08}
-.ic-sim-page{display:grid;gap:12px}
+.ic-sim-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;padding:3px;margin:0 0 10px;background:var(--sim-wash);border:1px solid var(--sim-line);border-radius:7px}
+.ic-sim-panel .ic-sim-nav button{padding:6px 4px;background:transparent;border-color:transparent;color:var(--sim-muted);white-space:nowrap;font-size:11.5px;border-radius:5px}
+.ic-sim-panel .ic-sim-nav button.is-active{color:var(--sim-blue);background:white;border-color:var(--sim-line);font-weight:650;box-shadow:0 1px 2px #163d2d12}
+.ic-sim-page{display:grid;gap:10px}
 .ic-sim-runtime{display:grid;gap:10px;min-width:0}
 .ic-runtime-hosts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:8px}
 .ic-runtime-metrics,.ic-runtime-acceptance{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 8px;margin:9px 0;font-size:11px}
@@ -64,10 +72,10 @@
 .ic-sim-field>span{font-size:11px;color:#4e5e6d}
 .ic-sim-field>small{grid-column:1/-1;font-size:10px;color:var(--sim-muted)}
 .ic-sim-panel button{border:1px solid #c9d3dc;border-radius:4px;padding:6px 9px;background:#fff;color:#3e5265;cursor:pointer;font:11px/1.4 system-ui,sans-serif;white-space:normal}
-.ic-sim-panel button:hover:not(:disabled){background:#f0f5fa;border-color:#a5bacd}
+.ic-sim-panel button:hover:not(:disabled){background:#eef7f2;border-color:#9fc7b4}
 .ic-sim-panel button:disabled{opacity:.45;cursor:not-allowed}
 .ic-sim-panel .ic-sim-primary{color:#fff;background:var(--sim-blue);border-color:var(--sim-blue)}
-.ic-sim-panel .ic-sim-primary:hover:not(:disabled){background:#264e71;border-color:#264e71}
+.ic-sim-panel .ic-sim-primary:hover:not(:disabled){background:#136244;border-color:#136244}
 .ic-sim-panel .ic-sim-quiet{border-color:transparent;background:transparent;color:var(--sim-muted);padding:4px}
 .ic-sim-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:9px 0 4px}
 .ic-sim-panel .ic-sim-note{font-size:10px;line-height:1.65;color:var(--sim-muted);margin:7px 0}

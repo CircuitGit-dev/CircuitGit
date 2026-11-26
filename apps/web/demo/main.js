@@ -39,11 +39,6 @@ const signals=[
   {id:'ir',label:'I(R0:1)',psf_name:'R0:1',unit:'A',quantity:'current',polarity:'into_terminal'},
 ].map(s=>({...s,status:'available',analysis:'tran',domain:[0,12e-9]}));
 
-function download(name,text,type='text/plain') {
-  const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');
-  a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-function section(root,html){root.replaceChildren();const e=document.createElement('div');e.className='demo-section';e.innerHTML=html;root.append(e);return e;}
 function dialog(title,content) {
   const d=document.createElement('dialog');d.className='demo-dialog';d.setAttribute('aria-label',title);const h=document.createElement('h2');h.textContent=title;
   const close=document.createElement('button');close.textContent='关闭';close.onclick=()=>{d.close();d.remove();};
@@ -61,7 +56,7 @@ export async function mountStudio({ui:providedUI}={}) {
   brand.replaceChildren();const image=document.createElement('img');image.src=new URL('../branding/circuitgit.svg',import.meta.url);image.alt='';brand.append(image,document.createTextNode('CircuitGit'));
   $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-project').disabled=true;
   $('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-entry').disabled=true;
-  $('studio-run').replaceChildren(new Option('解析参考 · 可连 SSH 跑 Spectre','reference'));$('studio-run').disabled=true;
+  $('studio-run').replaceChildren(new Option('未关联仿真运行',''));$('studio-run').disabled=true;
   $('studio-identity').textContent='网页模式';$('studio-identity').className='demo-badge';
   const repository=document.createElement('a');repository.href=REPO;repository.textContent='GitHub ↗';repository.target='_blank';repository.rel='noopener';repository.className='demo-link';$('studio-toolbar').append(repository);
   const fav=document.createElement('link');fav.rel='icon';fav.type='image/svg+xml';fav.href=new URL('../branding/circuitgit-small.svg',import.meta.url);document.head.append(fav);
@@ -127,22 +122,74 @@ export async function mountStudio({ui:providedUI}={}) {
   };
   host.onboardingSync=createOnboardingSync({bridge:host.onboarding,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms});
   const simulationShell=document.createElement('section');simulationShell.className='ic-sim-panel';simulationShell.setAttribute('aria-label','仿真配置与任务');
-  const simulationHeading=document.createElement('h2');simulationHeading.textContent='仿真';
   const simulationNav=document.createElement('nav');simulationNav.className='ic-sim-nav';simulationNav.setAttribute('aria-label','仿真工作流');
-  const environmentTab=document.createElement('button'),runsTab=document.createElement('button'),referenceTab=document.createElement('button');
-  environmentTab.type=runsTab.type=referenceTab.type='button';
+  const environmentTab=document.createElement('button'),runsTab=document.createElement('button');
+  environmentTab.type=runsTab.type='button';
   environmentTab.textContent='环境与配置';environmentTab.dataset.field='page-environment';
   runsTab.textContent='运行与波形';runsTab.dataset.field='page-runs';
-  referenceTab.textContent='RC 参考';referenceTab.dataset.field='page-reference';
-  simulationNav.append(environmentTab,runsTab,referenceTab);
-  const environmentPage=document.createElement('div'),runsPage=document.createElement('div'),referencePage=document.createElement('div');
-  environmentPage.className=runsPage.className=referencePage.className='ic-sim-page';
-  environmentPage.dataset.page='environment';runsPage.dataset.page='runs';referencePage.dataset.page='reference';
-  const environmentTitle=document.createElement('h3');environmentTitle.textContent='远端 SSH 服务器 & PDK 仿真';
-  const libraryInfo=document.createElement('div'),environmentRoot=document.createElement('section');environmentPage.append(environmentTitle,environmentRoot,libraryInfo);
-  simulationShell.append(simulationHeading,simulationNav,environmentPage,runsPage,referencePage);ui.slots.simulation.element.replaceChildren(simulationShell);
+  simulationNav.append(environmentTab,runsTab);
+  simulationNav.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';
+  const environmentPage=document.createElement('div'),runsPage=document.createElement('div');
+  environmentPage.className=runsPage.className='ic-sim-page';
+  environmentPage.dataset.page='environment';runsPage.dataset.page='runs';
+  const circuitSummary=document.createElement('section');circuitSummary.className='ic-sim-circuit-bar';
+  const environmentRoot=document.createElement('section');
+  environmentPage.append(circuitSummary,environmentRoot);
+  simulationShell.append(simulationNav,environmentPage,runsPage);ui.slots.simulation.element.replaceChildren(simulationShell);
   const simulationStyle=document.createElement('link');simulationStyle.rel='stylesheet';simulationStyle.href=new URL('../../../modules/simulation/style.css',import.meta.url);document.head.append(simulationStyle);
   let simulationPage='environment',environmentMount=null,unregisterEnvironment=null;
+  function renderCircuitSummary(){
+    circuitSummary.replaceChildren();
+    const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
+    const head=el('div',undefined,'ic-sim-circuit-head');
+    const titleWrap=el('div',undefined,'ic-sim-circuit-title');
+    const actions=el('div',undefined,'ic-sim-circuit-actions');
+    if(importedProject){
+      titleWrap.append(
+        el('strong',importedProject.fileName),
+        el('span',importedProject.origin==='ssh'?`SSH · ${importedProject.sshTarget}`:'本地导入','ic-sim-status active'),
+      );
+      const meta=importedProject.origin==='ssh'
+        ? `${importedProject.remotePath||importedProject.fileName}${importedProject.supportCount?` · 含 ${importedProject.supportCount} 个依赖`:''}`
+        : `${importedProject.name}${importedProject.supportCount?` · 含 ${importedProject.supportCount} 个依赖`:''}`;
+      const reimp=el('button','更换网表','ic-sim-quiet');reimp.type='button';
+      reimp.onclick=()=>projectImporter?.open(importedProject.origin==='ssh'?'ssh':'local');
+      actions.append(reimp);
+      head.append(titleWrap,actions);
+      circuitSummary.append(head,el('p',meta,'ic-sim-note'));
+    }else if(activeLibrary){
+      const libLabel=formatLibraryName(activeLibrary.library);
+      titleWrap.append(
+        el('strong',activeLibrary.cell.name),
+        el('span',libLabel,'ic-sim-status active'),
+      );
+      const vaCount=activeLibrary.cell.views?.flatMap(v=>v.files||[]).filter(isVerilogAFile).length||0;
+      const meta=[
+        `${activeLibrary.bundle.paths.length} 个电路文件`,
+        vaCount?`含 Verilog-A 模型`:'',
+        activeLibrary.cell.requires_external_models?'需匹配远端 PDK 模型':'',
+      ].filter(Boolean).join(' · ');
+      const browse=el('button','切换项目','ic-sim-quiet');browse.type='button';
+      browse.onclick=()=>libraryManager?.show();
+      const imp=el('button','导入网表','ic-sim-quiet');imp.type='button';
+      imp.onclick=()=>projectImporter?.open('local');
+      actions.append(browse,imp);
+      head.append(titleWrap,actions);
+      circuitSummary.append(head,el('p',meta,'ic-sim-note'));
+    }else{
+      titleWrap.append(
+        el('strong','当前画布 · RC 入门示例'),
+        el('span','未导入工程','ic-sim-status'),
+      );
+      const openAdc=el('button','打开 1G 12-bit ADC','ic-sim-quiet');openAdc.type='button';
+      openAdc.onclick=()=>void host.openProjectCanvas({libraryId:'pipetisar-real',cellId:'TB_PIPE_RS9_N06'});
+      const imp=el('button','导入网表…','ic-sim-quiet');imp.type='button';
+      imp.onclick=()=>projectImporter?.open('local');
+      actions.append(openAdc,imp);
+      head.append(titleWrap,actions);
+      circuitSummary.append(head,el('p','可导入本地 / SSH 任意 Spectre 或 SPICE 网表，或打开电路库项目后配置远端仿真。','ic-sim-note'));
+    }
+  }
   function renderRunsTab(){
     const envSession=environmentMount?.controller?.state?.session||null,envJob=envSession?.job||null;
     runsTab.textContent=envJob?'运行与波形 · 1':'运行与波形';
@@ -174,7 +221,7 @@ export async function mountStudio({ui:providedUI}={}) {
       bar.append(refreshBtn,detailBtn,aiBtn);card.append(bar);runsPage.append(card);
     }else{
       const empty=el('section',undefined,'ic-sim-card');
-      empty.append(el('h3','尚无远端仿真运行记录'),el('p',host.onboarding.getState().connected?'在「环境与配置」中选择 SSH 服务器并提交仿真后，运行进度、波形与原理图探针会显示在这里。':'连接本机连接器即可通过你的 SSH 配置在远端 EDA 服务器上运行 Spectre 仿真，并在本网页直接点图查看波形。','ic-sim-note'));
+      empty.append(el('h3','尚无远端仿真运行记录'),el('p',host.onboarding.getState().connected?'在「环境与配置」中导入网表、探测 SSH 服务器并提交仿真后，运行进度、结果报告与原理图点选波形会显示在这里。':'连接本机连接器即可通过你的 SSH 配置在远端 EDA 服务器上运行 Spectre 仿真，并在本网页直接点图查看波形。','ic-sim-note'));
       const bar=el('div',undefined,'ic-sim-toolbar');
       if(!host.onboarding.getState().connected){
         const connBtn=el('button','连接本机 SSH 服务器…','ic-sim-primary');connBtn.type='button';
@@ -187,12 +234,10 @@ export async function mountStudio({ui:providedUI}={}) {
     }
   }
   function renderSimulationPage(){
-    const showRef=referenceActive();
-    if(!showRef&&simulationPage==='reference')simulationPage='environment';
-    referenceTab.hidden=!showRef;referenceTab.disabled=!showRef;
-    simulationNav.style.gridTemplateColumns=`repeat(${showRef?3:2},minmax(0,1fr))`;
-    environmentPage.hidden=simulationPage!=='environment';runsPage.hidden=simulationPage!=='runs';referencePage.hidden=simulationPage!=='reference';
-    for(const [tab,id] of [[environmentTab,'environment'],[runsTab,'runs'],[referenceTab,'reference']]){tab.classList.toggle('is-active',simulationPage===id);tab.setAttribute('aria-pressed',String(simulationPage===id));}
+    if(simulationPage!=='environment'&&simulationPage!=='runs')simulationPage='environment';
+    environmentPage.hidden=simulationPage!=='environment';runsPage.hidden=simulationPage!=='runs';
+    for(const [tab,id] of [[environmentTab,'environment'],[runsTab,'runs']]){tab.classList.toggle('is-active',simulationPage===id);tab.setAttribute('aria-pressed',String(simulationPage===id));}
+    renderCircuitSummary();
     renderRunsTab();
   }
   const environmentLoader=whenVisible(ui.slots.simulation,async()=>{
@@ -212,8 +257,7 @@ export async function mountStudio({ui:providedUI}={}) {
     simulationPage='environment';renderSimulationPage();ui.slots.simulation.setVisible(true);return environmentLoader.ensure();
   }
   function showRuns(){simulationPage='runs';renderSimulationPage();ui.slots.simulation.setVisible(true);void environmentLoader.ensure().then(renderRunsTab).catch(()=>{});}
-  function showReferenceConfiguration(){if(!referenceActive())return;simulationPage='reference';renderSimulationPage();ui.slots.simulation.setVisible(true);}
-  environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));runsTab.onclick=showRuns;referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
+  environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));runsTab.onclick=showRuns;renderSimulationPage();
   window.addEventListener('pagehide',()=>{offOnboardingSync?.();offOnboardingState?.();verilogaJump?.destroy();verilogaPanel?.destroy();projectImporter?.destroy();welcomeGuide?.destroy();workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
@@ -251,11 +295,10 @@ export async function mountStudio({ui:providedUI}={}) {
   register({id:'plot.exit',menu:'plot',label:'退出探针 (Esc)',run:()=>setMode('none')});
   register({id:'window.reset',menu:'window',label:'恢复默认布局',run:()=>ui.resetLayout()});
   register({id:'git.history',menu:'git',label:'电路版本管理',run:async()=>{ui.slots.versions.setVisible(true);const versions=await versionLoader.ensure();await versions.activate();}});
-  register({id:'project.source',menu:'project',label:'查看 / 下载示例网表',run:()=>showSource()});
-  register({id:'simulation.export',menu:'simulation',label:'导出仿真配置 JSON',enabled:()=>referenceActive(),run:()=>exportConfiguration()});
+  register({id:'project.source',menu:'project',label:'查看 / 下载当前网表',run:()=>showSource()});
   register({id:'simulation.local',menu:'simulation',label:'如何连接本地仿真',run:()=>showGuide()});
   register({id:'simulation.environment',menu:'simulation',label:'连接服务器与匹配 PDK',run:showEnvironment});
-  register({id:'simulation.reference',menu:'simulation',label:'RC 解析参考配置',enabled:referenceActive,run:showReferenceConfiguration});
+  register({id:'simulation.runs',menu:'simulation',label:'运行记录与波形',run:showRuns});
   register({id:'window.help.demo',menu:'help',label:'CircuitGit 演示与本地使用',run:()=>showGuide()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&mode!=='none'){setMode('none');ui.notify('已退出探针。');}});
   window.addEventListener('viewer-selection',()=>{
@@ -278,27 +321,7 @@ export async function mountStudio({ui:providedUI}={}) {
     context.selection={kind:mode==='current'?'terminal':'net',name:object.name,terminalName:mode==='current'?'1':null,
       scope:'(top)',viewerSourcePath:PATH,nativeEntryId:'rc-demo',occurrencePath:[]};emit();plotController.onSelection(contextAdapter.getContext());
   });
-  section(referencePage,`<small>RC LOW-PASS · TRANSIENT</small><h2>仿真配置</h2>
-    <p>修改参数可更新解析参考曲线，或导出配置交给本地 Spectre 工作流。</p>
-    <div class="demo-fields"><label>电阻 R (Ω)<input id="demo-r" type="number" min="1" max="1000000" value="1000"></label><label>电容 C (pF)<input id="demo-c" type="number" min="0.01" max="1000" step="0.1" value="1"></label><label>终止时间 (ns)<input id="demo-stop" type="number" min="2" max="50" value="12"></label></div>
-    <div class="demo-actions"><button id="demo-update" class="primary">更新参考曲线</button><button id="demo-export">导出配置</button></div>
-    <h3>保存与查看的信号</h3><span class="demo-signal">V(in) · V(out)</span><span class="demo-signal">I(R0:1) · 流入 R0 端口 1</span>
-    <h3>当前数据</h3><p id="demo-basis">R = 1 kΩ · C = 1 pF · τ = 1 ns</p><p>波形由 RC 方程在浏览器计算，未提交仿真任务。</p><button id="demo-guide">连接仿真环境 →</button>`);
-  function readParameters(){const r=Number($('demo-r').value),c=Number($('demo-c').value),stop=Number($('demo-stop').value);
-    if(!Number.isFinite(r)||r<1||r>1e6||!Number.isFinite(c)||c<.01||c>1000||!Number.isFinite(stop)||stop<2||stop>50)throw Error('参数范围：R 1–1000000 Ω，C 0.01–1000 pF，时间 2–50 ns。');
-    return {resistance:r,capacitance:c*1e-12,stop:stop*1e-9};}
-  function configuration(p){return {description:'CircuitGit RC transient configuration',parameters:{},analysis:{stop:p.stop,maxstep:50e-12},save:{mode:'replace',signals:['in','out','R0:1']},postprocess:{start_s:0,end_s:p.stop,step_s:5e-12,max_display_points:4000,signals:[{name:'in',unit:'V'},{name:'out',unit:'V'},{name:'R0:1',unit:'A'}]}};}
-  function textFor(p){return baseText.replace('r=1k','r='+p.resistance).replace('c=1p','c='+p.capacitance).replace('stop=12n','stop='+p.stop).replace('"1 kOhm"',JSON.stringify(p.resistance+' Ohm')).replace('"1 pF"',JSON.stringify(Number((p.capacitance*1e12).toPrecision(6))+' pF'));}
-  function exportConfiguration(){if(!referenceActive())throw Error('请从 Library Manager 查看该单元的 simulation 文件；RC 配置不适用于此视图。');const p=readParameters();download('TRAN.json',JSON.stringify(configuration(p),null,2)+'\n','application/json');download('circuit.scs',textFor(p));ui.notify('已导出 TRAN.json 与 circuit.scs；未启动仿真。');}
-  async function rebuild(){if(!referenceActive())return;const p=readParameters();$('demo-update').disabled=true;
-    try{parameters=p;source=textFor(p);hash=await sha256(source);points=null;signals.forEach(s=>s.domain=[0,p.stop]);
-      context={...context,run:null,selection:null,file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{...context.geometry,manifestSha256:hash}};emit();
-      await openSource(referenceSource(source),false);fit();context.run={runId:RUN};emit();
-      $('demo-basis').textContent=`R = ${p.resistance} Ω · C = ${Number((p.capacitance*1e12).toPrecision(6))} pF · τ = ${Number((p.resistance*p.capacitance*1e9).toPrecision(5))} ns`;
-      ui.notify('参考曲线已更新；在波形列表中重新选择要查看的信号。');
-    }finally{$('demo-update').disabled=false;}}
-  $('demo-update').onclick=()=>rebuild().catch(e=>ui.notify(e.message,{kind:'error'}));$('demo-export').onclick=()=>{try{exportConfiguration();}catch(e){ui.notify(e.message,{kind:'error'});}};$('demo-guide').onclick=()=>void showEnvironment().catch(panelError);
-  function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=activeLibrary?activeLibrary.bundle.text:importedProject?importedProject.text:source;dialog(activeLibrary?activeLibrary.cell.name+' · '+activeLibrary.view.label:importedProject?importedProject.label:'RC 示例网表 · 含固定 RNL 布局',area);}
+  function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=activeLibrary?activeLibrary.bundle.text:importedProject?importedProject.text:source;dialog(activeLibrary?activeLibrary.cell.name+' · '+formatViewLabel(activeLibrary.view):importedProject?importedProject.label:'当前网表源码',area);}
   function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p><strong>CircuitGit 网页工作台</strong>提供完整的原理图（RNL）、电路库、波形探针、远端 SSH 仿真（SpiceOwl）、AI 助手（Codex）与 Git 版本管理交互。</p><p><strong>免安装功能</strong>：直接浏览电路库、查看与编辑原理图、点选参考波形并体验游标测量。</p><p><strong>本机 SSH / AI / Git 连接</strong>：点击顶栏「连接本机 (SSH / AI)」即可通过 <code>circuitgit://</code> 协议一键唤起本机连接器；首次使用仅需下载项目并双击一次启动器（Windows: <code>Start CircuitGit.bat</code>，macOS: <code>Start CircuitGit.command</code>），之后所有日常操作均在本网页内完成。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">本机连接器与后台自启说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
   let libraryManager=null,verilogaPanel=null,verilogaJump=null;
@@ -391,16 +414,8 @@ export async function mountStudio({ui:providedUI}={}) {
     const empty=document.createElement('section');empty.className='cg-library-empty-wave';
     const heading=document.createElement('strong'),note=document.createElement('p');heading.textContent='此视图尚未关联仿真波形';note.textContent='已清除 RC 解析参考。公开原理图与运行结果分别管理，加载电路不会启动仿真。';empty.append(heading,note);root.append(empty);
   }
-  function libraryInformation(value){
-    const box=document.createElement('details');box.className='ic-sim-detail';const summary=document.createElement('summary');summary.textContent='当前电路';box.append(summary);
-    const title=document.createElement('h2');title.textContent=value.cell.name;const name=document.createElement('p');name.textContent=formatLibraryName(value.library)+' / '+formatViewLabel(value.view);
-    const evidence=document.createElement('p');evidence.textContent=(value.origin==='working'?'本机原理图快照':'公开原理图预览')+' · '+value.bundle.paths.length+' 个已列出的文件。未关联运行，也未执行仿真。';
-    const dependency=document.createElement('p');dependency.textContent=value.cell.requires_external_models?'重放可能需要外部模型。请查看单元说明和已有配置。':'重放要求以单元说明和已有配置为准。';
-    const ai=document.createElement('p');ai.textContent='在 AI 面板选择项目会自动同步画布顶层原理图，也可点击「同步当前项目」让 AI 协作当前项目。';
-    const browse=document.createElement('button');browse.type='button';browse.textContent='查看库视图与说明';browse.onclick=()=>libraryManager.show();
-    const environment=document.createElement('button');environment.type='button';environment.textContent='连接仿真环境';environment.onclick=()=>void showEnvironment().catch(panelError);
-    const back=document.createElement('button');back.type='button';back.textContent='回到 RC 参考';back.onclick=()=>void openReference().catch(e=>ui.notify(e.message,{kind:'error'}));
-    box.append(title,name,evidence,dependency,ai,environment,document.createTextNode(' '),browse,document.createTextNode(' '),back);libraryInfo.replaceChildren(box);simulationPage='environment';renderSimulationPage();
+  function libraryInformation(){
+    simulationPage='environment';renderSimulationPage();
   }
   async function importNetlistProject(payload){
     if(switching)return false;
@@ -469,15 +484,6 @@ export async function mountStudio({ui:providedUI}={}) {
       fit();ui.slots.schematic?.setVisible(true);
       const depNote=supportCount?`（含 ${supportCount} 个依赖文件）`:'';
       $('studio-native-note').textContent=`${displayLabel}${depNote} · ${errors.length?errors.length+' 项 RNL 诊断':'可直接与 AI 协作或配置远端 SSH 仿真'}`;
-      const infoBox=document.createElement('details');infoBox.className='ic-sim-detail';infoBox.open=true;
-      const sum=document.createElement('summary');sum.textContent='当前已导入项目';infoBox.append(sum);
-      const h2=document.createElement('h2');h2.textContent=payload.fileName;
-      const meta=document.createElement('p');meta.textContent=payload.origin==='ssh'
-        ? `来源：SSH 服务器 ${payload.sshTarget}:${payload.remotePath||payload.fileName}${depNote}`
-        : `来源：本地导入 · ${payload.projectName||payload.fileName}${depNote}`;
-      const reimp=document.createElement('button');reimp.type='button';reimp.textContent='导入其他本地 / SSH 网表…';
-      reimp.onclick=()=>projectImporter?.open(payload.origin==='ssh'?'ssh':'local');
-      infoBox.append(h2,meta,reimp);libraryInfo.replaceChildren(infoBox);
       simulationPage='environment';renderSimulationPage();
       welcomeGuide?.setStep?.(3);
       if(host.onboarding.getState().connected){
@@ -549,8 +555,8 @@ export async function mountStudio({ui:providedUI}={}) {
       const opened=await openSource(referenceSource(source),false,undefined,false,null,null,true);
       if(!opened||!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
       activeLibrary=null;importedProject=null;context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,loading:false,loadState:'ready',file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{bundleCommit:null,manifestSha256:hash,sourceMatch:true,state:'ready'}};
-      $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-run').replaceChildren(new Option('解析参考 · 可连 SSH 跑 Spectre','reference'));
-      libraryInfo.replaceChildren();$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';switching=false;simulationPage='reference';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);syncAvailableVerilogA();verilogaJump?.clear();return true;
+      $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
+      $('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';switching=false;simulationPage='environment';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);syncAvailableVerilogA();verilogaJump?.clear();return true;
     }catch(error){context={...context,run:null,selection:null,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='RC 参考加载失败 · 无关联波形';throw error;}
     finally{switching=false;ui.setNativeState({loading:false,hidden:false});}
   }
@@ -631,7 +637,7 @@ export async function mountStudio({ui:providedUI}={}) {
     if(activeLibrary&&doc.path===activeLibrary.bundle?.source?.path)return;
     if(importedProject&&doc.path===context.file?.path)return;
     const openedDoc=doc,snapshot=host.getOnboardingSource();hotController?.abort();loadedWatch?.();loadedWatch=null;activeLibrary=null;
-    ++onboardingWaveEpoch;stopReference();libraryInfo.replaceChildren();
+    ++onboardingWaveEpoch;stopReference();renderCircuitSummary();
     context={project:{id:'imported-netlist',sourceCommit:null},run:null,selection:null,loading:false,loadState:'ready',
       file:{path:openedDoc.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};
     $('studio-project').replaceChildren(new Option('已导入网表','imported-netlist'));$('studio-entry').replaceChildren(new Option(openedDoc.name||openedDoc.path,openedDoc.path));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
