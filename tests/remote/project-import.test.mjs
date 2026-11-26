@@ -67,6 +67,10 @@ test('formatSshImportError clearly explains legacy local connector upgrade path'
   const msg=formatSshImportError(Object.assign(Error('Unknown node write route'),{status:400}));
   assert.match(msg,/版本较旧/);
   assert.match(msg,/本地网表/);
+  const preflight=formatSshImportError(Object.assign(Error('无法读取节点。'),{data:{code:'node_unreachable'}}));
+  assert.match(preflight,/版本较旧/);
+  const legacyPost=formatSshImportError(Object.assign(Error('发送结果尚不确定；请重新连接并核对原会话，不要重复发送。'),{data:{code:'transport_unknown'}}));
+  assert.match(legacyPost,/版本较旧/);
   const auth=formatSshImportError(Error('Permission denied (publickey).'));
   assert.match(auth,/SSH 免密登录/);
 });

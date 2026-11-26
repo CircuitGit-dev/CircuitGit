@@ -137,7 +137,7 @@ export function createNodeClient({url,accessCode,fetchImpl=fetch,timeout=45000,o
       return value.data;
     } catch(error) {
       if(error.status||error.code==='response_size_limit')throw error;
-      const write=method==='POST'&&path!=='/library/read';
+      const write=method==='POST'&&!['/library/read','/simulation/onboarding/ssh-browse','/simulation/onboarding/ssh-import'].includes(path);
       const message=closed?'节点已断开；没有重发操作。':write?(library?'操作结果尚未确认；请检查原请求记录，不要重新提交。':'发送结果尚不确定；请重新连接并核对原会话，不要重复发送。'):'无法读取节点。请检查地址、HTTPS、访问码及浏览器的本地网络权限。';
       const e=Error(message);e.data={code:write?'transport_unknown':'node_unreachable'};throw e;
     } finally {clearTimeout(timer);pending.delete(controller);}

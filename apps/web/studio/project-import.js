@@ -165,8 +165,14 @@ export function buildImportedRnlSource({entryPath,fileName,text,supportFiles={},
 
 export function formatSshImportError(error){
   const raw=String(error?.message||error||'SSH 导入失败');
-  if(/Unknown (?:node write route|finite onboarding operation|bounded onboarding operation)/i.test(raw)||error?.status===404){
-    return '当前运行的本机连接器版本较旧，尚未包含「SSH 服务器浏览网表」接口。请重启或更新到最新版连接器，或先使用左侧「本地网表 / 文件夹」导入。';
+  if(
+    /Unknown (?:node write route|preflight route|finite onboarding operation|bounded onboarding operation)/i.test(raw)||
+    error?.status===404||
+    error?.data?.code==='node_unreachable'||
+    error?.data?.code==='transport_unknown'||
+    /无法读取节点|发送结果尚不确定/.test(raw)
+  ){
+    return '当前本机后台运行的连接器版本较旧（尚不支持 ssh-browse 远端浏览接口），或请求被本地预检拦截。请更新并重启本机连接器后重新连接，或先使用左侧「本地网表 / 文件夹」导入。';
   }
   if(/Permission denied|publickey|BatchMode|Authentication failed/i.test(raw)){
     return 'SSH 免密登录未通过：'+raw+'。请确认本机已配置 SSH 密钥且能在终端执行 ssh <主机> 免密登录。';
@@ -237,8 +243,18 @@ export function createProjectImporter({
     }
   }
 
+  function hasSshImportCapability(){
+    return onboarding?.getState?.()?.capabilities?.simulation_onboarding_ssh_import===true;
+  }
+
   async function browseSsh(targetPath){
     if(!onboarding||!getConnected()||sshBusy)return;
+    if(!hasSshImportCapability()){
+      sshLegacyConnector=true;
+      sshError='当前本机后台运行的连接器版本较旧，尚未包含「从 SSH 服务器浏览网表」接口。请更新并重启本机连接器后重新连接，或先使用左侧「本地网表 / 文件夹」导入。';
+      render();
+      return;
+    }
     const host=sshTarget.trim();
     if(!host){sshError='请先选择或输入 SSH 主机别名（如 ~/.ssh/config 中的 Host）。';render();return;}
     sshBusy=true;sshError='';sshLegacyConnector=false;sshSelectedFile='';
@@ -491,6 +507,23 @@ export function createProjectImporter({
 
     const desc=el('p','cg-import-desc','选择你本机 ~/.ssh/config 中已免密配置的 EDA 服务器，浏览目录并选择要协作的网表文件（自动附带同目录下的相对 include 依赖，外部 PDK 模型库保持在远端仿真时再匹配）。');
     body.append(desc);
+
+    const legacyNow=!hasSshImportCapability();
+    if(legacyNow&&!sshError){
+      const warnBox=el('div','cg-import-error-box');
+      warnBox.append(el('p','cg-import-error','检测到你电脑后台运行的是旧版连接器，尚未包含「SSH 远端浏览网表」接口。请更新并重启本机连接器后再点击浏览，或先使用「本地网表 / 文件夹」导入。'));
+      const row=el('div','cg-welcome-actions');
+      if(typeof onOpenHub==='function'){
+        const upd=el('button','cg-welcome-btn','查看更新 / 重启连接器说明');
+        upd.type='button';upd.onclick=()=>{dialog?.close();onOpenHub();};
+        row.append(upd);
+      }
+      const alt=el('button','cg-welcome-btn','先使用「本地网表 / 文件夹」导入 →');
+      alt.type='button';alt.onclick=()=>{activeTab='local';render();};
+      row.append(alt);
+      warnBox.append(row);
+      body.append(warnBox);
+    }
 
     const hostRow=el('div','cg-import-ssh-row');
     if(sshAliases.length){

@@ -46,6 +46,7 @@ class GatewayOnboarding:
     def __init__(self,gateway):
         self.gateway=gateway
         self.enabled=False
+        self.ssh_import_enabled=False
         self.connection_id=None
 
     def refresh(self):
@@ -60,9 +61,11 @@ class GatewayOnboarding:
                 and capabilities.get('simulation_onboarding_api_version')=='1'
                 and capabilities.get('simulation_onboarding_native_entry') is True
                 and isinstance(identity,str) and re.fullmatch(r'[a-f0-9]{32}',identity) is not None)
+            ssh_import=enabled and capabilities.get('simulation_onboarding_ssh_import') is True
         except (Failure,OSError,ValueError,TypeError,AttributeError):
-            enabled=False;identity=None
+            enabled=False;ssh_import=False;identity=None
         self.enabled=enabled
+        self.ssh_import_enabled=ssh_import
         self.connection_id=identity if enabled else None
 
     def _request(self,operation,args,*,write,origin):
@@ -200,6 +203,7 @@ class Node:
                                  'simulation_onboarding': onboarding_enabled,
                                  'simulation_onboarding_api_version': '1' if onboarding_enabled else None,
                                  'simulation_onboarding_native_entry': onboarding_enabled,
+                                 'simulation_onboarding_ssh_import': onboarding_enabled and getattr(self.onboarding, 'ssh_import_enabled', True),
                                  'local_login': self.login is not None and self.public_origin.startswith('http://127.0.0.1:') and not self.prefix},
                 'automatic_model_start': False,
                 'library_activity': self.library.activity() if self.library else {'running_actions': 0}}
