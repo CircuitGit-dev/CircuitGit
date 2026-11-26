@@ -10,6 +10,7 @@ import {
   clearSessionGrant,
 } from '../../apps/web/remote/pair.js';
 import {buildInstallCommand,sanitizeInstallDir} from '../../apps/web/studio/workspace-hub.js';
+import {FEATURED_PROJECTS,readWelcomeDismissed,saveWelcomeDismissed} from '../../apps/web/studio/welcome-guide.js';
 import {visibleCatalogProjects,projectCatalogEntries} from '../../apps/web/remote/panel.js';
 
 function fixture(blocked=false){
@@ -108,4 +109,16 @@ test('projectCatalogEntries collapses multi-cell libraries into unified project 
   ]);
   assert.deepEqual(entries.map(e=>e.id),['library:pipetisar-real/TB_PIPE_RS9_N06','library:basics/rc-smoke','library:basics/cmos-inverter']);
   assert.match(entries[0].name,/整项目 · 3 模块 · 顶层 TB_PIPE_RS9_N06/);
+});
+
+test('welcome guide featured projects and dismiss preference work without throwing',()=>{
+  assert.ok(FEATURED_PROJECTS.some(p=>p.libraryId==='pipetisar-real'&&p.cellId==='TB_PIPE_RS9_N06'));
+  assert.ok(FEATURED_PROJECTS.some(p=>p.libraryId==='pipetisar-research'&&p.cellId==='TB_PIPE_CA4_RS9_N06'));
+  const map=new Map();
+  const storage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};
+  assert.equal(readWelcomeDismissed(storage),false);
+  assert.equal(saveWelcomeDismissed(true,storage),true);
+  assert.equal(readWelcomeDismissed(storage),true);
+  assert.equal(saveWelcomeDismissed(false,storage),true);
+  assert.equal(readWelcomeDismissed(storage),false);
 });

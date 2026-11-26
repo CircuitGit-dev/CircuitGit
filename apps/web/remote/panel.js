@@ -109,9 +109,15 @@ export function mountRemoteNode(host) {
     <div class="cg-node-project"><select aria-label="选择协作项目"><option value="">选择项目</option></select><button type="button" data-action="open-project">打开对话</button><button type="button" data-action="use-canvas">同步当前项目</button></div>
     <p class="cg-context-label">选择项目后自动切换画布到项目顶层原理图，AI 可协作查看与编辑项目内所有层级模块。</p>
   </div>
+  <div class="cg-ai-project-bar" hidden>
+    <span class="cg-ai-project-label">当前项目</span>
+    <select class="cg-ai-project-select" aria-label="切换当前协作项目"></select>
+    <button type="button" data-action="browse-projects" title="打开项目与电路库浏览层级">全部项目…</button>
+  </div>
   <p class="cg-node-status" role="status" aria-live="polite"></p><div class="cg-node-chat"></div>`;
   parent.element.replaceChildren(root);
-  const $=s=>root.querySelector(s),welcome=$('.cg-node-welcome'),form=$('form'),connected=$('.cg-node-connected'),status=$('.cg-node-status'),chat=$('.cg-node-chat'),projects=$('select');
+  const $=s=>root.querySelector(s),welcome=$('.cg-node-welcome'),form=$('form'),connected=$('.cg-node-connected'),status=$('.cg-node-status'),chat=$('.cg-node-chat'),projects=$('.cg-node-project select');
+  const projectBar=$('.cg-ai-project-bar'),projectBarSelect=$('.cg-ai-project-select'),browseProjectsButton=$('[data-action=browse-projects]');
   const localButton=$('[data-action=local]'),openButton=$('[data-action=open-project]'),canvasButton=$('[data-action=use-canvas]'),loginButton=$('[data-action=login]');
   const initialSettings=doc.createElement('div'),initialToggle=doc.createElement('button'),initialHint=doc.createElement('span'),settingsHome=doc.createElement('div'),connectionSettings=doc.createElement('details'),connectionSummary=doc.createElement('summary');
   initialSettings.className='cg-node-initial-settings';initialToggle.type='button';initialToggle.textContent='⚙';initialToggle.setAttribute('aria-label','AI连接设置');initialToggle.setAttribute('aria-expanded','false');initialHint.textContent='在设置中连接工作台助手（Codex + 远端仿真 + 本地库）';initialSettings.append(initialToggle,initialHint);
@@ -128,7 +134,15 @@ export function mountRemoteNode(host) {
   const contextAdapter={getContext:()=>context&&structuredClone(context),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
     async readSelection(){throw Error('示例画布未绑定到本机工程，请让 AI 读取当前工程源码。');}};
   function message(text,error=false){status.textContent=text;status.dataset.error=String(error);}
-  function setBusy(value){busy=value;localButton.disabled=value;form.querySelector('button').disabled=value;openButton.disabled=value||!accountReady;canvasButton.disabled=value||!accountReady;projects.disabled=value;}
+  function syncProjectBar(){
+    if(!projectBar||!projectBarSelect)return;
+    projectBarSelect.replaceChildren(...[...projects.options].map(o=>new Option(o.textContent,o.value)));
+    projectBarSelect.value=projects.value;
+    projectBarSelect.disabled=busy||!accountReady||!client;
+    browseProjectsButton.hidden=typeof host.openLibraryManager!=='function';
+    projectBar.hidden=!client||!ai;
+  }
+  function setBusy(value){busy=value;localButton.disabled=value;form.querySelector('button').disabled=value;openButton.disabled=value||!accountReady;canvasButton.disabled=value||!accountReady;projects.disabled=value;syncProjectBar();}
   function checkedContext(value,id,path){
     const reject=()=>{const error=Error('未返回有效的已保存电路身份；未发送 AI 请求，请刷新连接设置。');error.data={code:'invalid_input'};throw error;};
     const file=value?.file,project=value?.project;
@@ -162,7 +176,7 @@ export function mountRemoteNode(host) {
     }
     return !p||p.id==='rc-demo'?'library:basics/rc-smoke':null;
   }
-  function drop(){for(const draft of ai?.takePendingDrafts?.()||[])pendingDrafts.enqueue(draft);++epoch;const prev=client,owned=ownsClient;host.libraryBridge?.unbind();if(prev){if(!host.onboarding?.unbindClient(prev)&&!owned)host.onboarding?.disconnect?.();}nodeConnectionId=null;onboardingChoice=null;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;if(owned)prev?.close();client=null;ownsClient=true;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);pendingDrafts.render();emitConn();}
+  function drop(){for(const draft of ai?.takePendingDrafts?.()||[])pendingDrafts.enqueue(draft);++epoch;const prev=client,owned=ownsClient;host.libraryBridge?.unbind();if(prev){if(!host.onboarding?.unbindClient(prev)&&!owned)host.onboarding?.disconnect?.();}nodeConnectionId=null;onboardingChoice=null;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;if(owned)prev?.close();client=null;ownsClient=true;ai?.destroy();ai=null;projectBar.hidden=true;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);pendingDrafts.render();emitConn();}
   async function refreshOnboardingChoice(){
     if(choiceTask)return choiceTask;
     const generation=epoch;
@@ -346,14 +360,16 @@ export function mountRemoteNode(host) {
       const selectedLabel=projects.selectedOptions?.[0]?.textContent||id;
       $('.cg-context-label').textContent=next.onboarding?'AI 与仿真面板共用网表：'+next.file.path:`当前协作项目：${selectedLabel} · ${next.project.sourceCommit.slice(0,8)}`+(next.library?' · 画布已同步到项目顶层原理图，AI 可读写项目内全部模块。':' · 使用已配置的节点工程。');
       projects.disabled=false;openButton.textContent='切换 / 刷新项目';projects.title='新回合使用这里选定的项目';
-      $('.cg-node-project').hidden=false;settingsHome.hidden=true;connectionSettings.open=false;message('');
+      $('.cg-node-project').hidden=false;settingsHome.hidden=true;connectionSettings.open=false;message('');syncProjectBar();
       if(next.library&&typeof host.openProjectCanvas==='function'){
         void Promise.resolve(host.openProjectCanvas({projectId:id,libraryId:next.library.library_id,cellId:next.library.cell_id})).catch(err=>host.notify?.('原理图切换提示：'+(err?.message||err),{kind:'warning'}));
       }
-    }catch(error){if(generation===epoch&&!destroyed){if(context)projects.value=context.project.id;message(error.message,true);}}
-    finally{if(generation===epoch&&!destroyed){setBusy(false);openButton.disabled=!accountReady;}}
+    }catch(error){if(generation===epoch&&!destroyed){if(context)projects.value=context.project.id;syncProjectBar();message(error.message,true);}}
+    finally{if(generation===epoch&&!destroyed){setBusy(false);openButton.disabled=!accountReady;syncProjectBar();}}
   };
   projects.addEventListener('change',()=>{if(client&&accountReady&&!busy&&projects.value)void openButton.onclick();});
+  projectBarSelect.addEventListener('change',()=>{if(client&&accountReady&&!busy&&projectBarSelect.value){projects.value=projectBarSelect.value;void openButton.onclick();}});
+  browseProjectsButton.onclick=()=>{host.openLibraryManager?.();};
   canvasButton.onclick=async()=>{
     if(busy||destroyed||!client||!accountReady)return;
     const generation=epoch;let id=canvasProject();

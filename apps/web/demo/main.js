@@ -1,6 +1,7 @@
 import {createAgentAssistance} from '../ai/assistance.js';
 import {createLayout} from '../studio/layout.js';
 import {mountWorkspaceHub} from '../studio/workspace-hub.js';
+import {mountWelcomeGuide} from '../studio/welcome-guide.js';
 import {whenVisible} from '../studio/lazy-slot.js';
 import {mountWorkflowLink} from '../studio/workflow-link.js';
 import {openSource,showBuilt,adoptSource,isLoading} from '../vendor/rnl-viewer/open.js';
@@ -86,19 +87,19 @@ export async function mountStudio({ui:providedUI}={}) {
   const workflowLink=mountWorkflowLink(host);
   window.addEventListener('pagehide',()=>workflowLink.destroy(),{once:true});
   host.libraryBridge=createLibraryBridge();
-  let pairedFromOnboarding=null,remoteAI=null,workspaceHub=null;
+  let pairedFromOnboarding=null,remoteAI=null,workspaceHub=null,welcomeGuide=null;
   host.onboarding=createOnboardingBridge({
     win:window,
     onPaired:({client,info,local})=>{
       pairedFromOnboarding={client,info,local};
       if(info?.capabilities?.library_workflow===true)host.libraryBridge.bind(client,{supported:local});
       if(remoteAI)void remoteAI.adoptClient(client,info,{local});
-      workspaceHub?.update();
+      workspaceHub?.update();welcomeGuide?.update();
     },
     onDisconnected:()=>{
       pairedFromOnboarding=null;
       host.libraryBridge.unbind();
-      workspaceHub?.update();
+      workspaceHub?.update();welcomeGuide?.update();
     },
   });
   host.getOnboardingSource=()=>snapshotOnboardingSource(doc,{hasBuffer,fileText});
@@ -201,7 +202,7 @@ export async function mountStudio({ui:providedUI}={}) {
   function showRuns(){simulationPage='runs';renderSimulationPage();ui.slots.simulation.setVisible(true);void environmentLoader.ensure().then(renderRunsTab).catch(()=>{});}
   function showReferenceConfiguration(){if(!referenceActive())return;simulationPage='reference';renderSimulationPage();ui.slots.simulation.setVisible(true);}
   environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));runsTab.onclick=showRuns;referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
-  window.addEventListener('pagehide',()=>{offOnboardingSync?.();offOnboardingState?.();workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
+  window.addEventListener('pagehide',()=>{offOnboardingSync?.();offOnboardingState?.();welcomeGuide?.destroy();workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
     if(waveformMount||!referenceActive()||onboardingWaves)return;
@@ -289,6 +290,7 @@ export async function mountStudio({ui:providedUI}={}) {
   function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p><strong>CircuitGit 网页工作台</strong>提供完整的原理图（RNL）、电路库、波形探针、远端 SSH 仿真（SpiceOwl）、AI 助手（Codex）与 Git 版本管理交互。</p><p><strong>免安装功能</strong>：直接浏览电路库、查看与编辑原理图、点选参考波形并体验游标测量。</p><p><strong>本机 SSH / AI / Git 连接</strong>：点击顶栏「连接本机 (SSH / AI)」即可通过 <code>circuitgit://</code> 协议一键唤起本机连接器；首次使用仅需下载项目并双击一次启动器（Windows: <code>Start CircuitGit.bat</code>，macOS: <code>Start CircuitGit.command</code>），之后所有日常操作均在本网页内完成。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">本机连接器与后台自启说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
   const libraryManager=mountLibraryManager({toolbar:$('studio-toolbar'),libraryPane:$('pane-files'),onOpen:openLibrary,onReference:openReference,onSelection:value=>{versionSelection=value;emit();},notify:ui.notify});
+  host.openLibraryManager=()=>libraryManager.show();
   host.openProjectCanvas=async({libraryId,cellId}={})=>{
     if(!libraryId)return false;
     if(libraryId==='basics'&&cellId==='rc-smoke'){
@@ -444,27 +446,47 @@ export async function mountStudio({ui:providedUI}={}) {
     handle.subscribeConnection(()=>{
       const connected=host.onboarding.getState().connected||host.libraryBridge.getState().connected||Boolean(handle.getConnectionState().connected);
       $('studio-identity').textContent=connected?'本机已连接':'网页模式';
-      workspaceHub?.update();
+      workspaceHub?.update();welcomeGuide?.update();
     });
     if(pairedFromOnboarding)void handle.adoptClient(pairedFromOnboarding.client,pairedFromOnboarding.info,{local:pairedFromOnboarding.local});
-    workspaceHub?.update();
+    workspaceHub?.update();welcomeGuide?.update();
     return handle;
   },{onError:panelError});agentAssistance.setLoader(()=>aiLoader.ensure());
+  const readHubStatus=()=>{
+    const ob=host.onboarding.getState(),aiState=remoteAI?.getConnectionState?.()||{};
+    const lib=host.libraryBridge.getState();
+    return {ai:Boolean(aiState.connected),simulation:Boolean(ob.connected),library:Boolean(lib.connected),connecting:Boolean(ob.connecting||aiState.connecting),detail:ob.endpoint?'连接器地址：'+ob.endpoint:''};
+  };
+  const subscribeHub=fn=>{const off1=host.onboarding.subscribe(fn),off2=host.libraryBridge.subscribe(fn),off3=contextAdapter.subscribe(fn);return()=>{off1?.();off2?.();off3?.();};};
+  const connectDirect=()=>remoteAI
+    ? remoteAI.connectLocal()
+    : host.onboarding.connect().then(()=>{void aiLoader.ensure();}).catch(e=>{
+        const msg=String(e?.message||e||'');
+        if(/未检测到本机连接助手/.test(msg))workspaceHub?.open({feature:'连接本机 Agent 与远端 SSH 仿真'});
+        ui.notify(msg,{kind:'error'});
+      });
   workspaceHub=mountWorkspaceHub({
     toolbar:$('studio-toolbar'),
     mode:'demo',
-    getStatus:()=>{
-      const ob=host.onboarding.getState(),aiState=remoteAI?.getConnectionState?.()||{};
-      const lib=host.libraryBridge.getState();
-      return {ai:Boolean(aiState.connected),simulation:Boolean(ob.connected),library:Boolean(lib.connected),connecting:Boolean(ob.connecting||aiState.connecting),detail:ob.endpoint?'连接器地址：'+ob.endpoint:''};
-    },
-    subscribe:fn=>{const off1=host.onboarding.subscribe(fn),off2=host.libraryBridge.subscribe(fn);return()=>{off1?.();off2?.();};},
-    onConnect:()=>remoteAI
-      ? remoteAI.connectLocal()
-      : host.onboarding.connect().then(()=>{void aiLoader.ensure();}).catch(e=>ui.notify(e.message,{kind:'error'})),
+    getStatus:readHubStatus,
+    subscribe:subscribeHub,
+    onConnect:connectDirect,
     onDisconnect:()=>{remoteAI?.disconnect?.();host.onboarding.disconnect();},
     onOpenAI:()=>{ui.slots.ai.setVisible(true);void aiLoader.ensure();},
     onOpenSimulation:()=>{void showEnvironment().catch(panelError);},
+  });
+  welcomeGuide=mountWelcomeGuide({
+    toolbar:$('studio-toolbar'),
+    anchor:document.getElementById('studio-dockview')||document.getElementById('studio-workspace')||$('studio-toolbar').nextElementSibling,
+    getStatus:readHubStatus,
+    subscribe:subscribeHub,
+    getCurrentProject:()=>activeLibrary?{libraryId:activeLibrary.library.id,cellId:activeLibrary.cell.id,label:activeLibrary.library.name}:{libraryId:'basics',cellId:'rc-smoke',label:'RC · 入门电路'},
+    onConnect:connectDirect,
+    onOpenProject:item=>host.openProjectCanvas(item),
+    onBrowseProjects:()=>libraryManager.show(),
+    onOpenAI:()=>{ui.slots.ai.setVisible(true);void aiLoader.ensure();},
+    onOpenSimulation:()=>{void showEnvironment().catch(panelError);},
+    onOpenHub:()=>workspaceHub?.open(),
   });
   host.requireLocalConnector=feature=>workspaceHub?.requireConnector(feature);
   const versionLoader=whenVisible(ui.slots.versions,async()=>{const {mountLibraryVersions}=await import('../library/versions.js');libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});return libraryVersions;},{onError:panelError});

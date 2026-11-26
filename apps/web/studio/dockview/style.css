@@ -1,7 +1,11 @@
 /* Host chrome only. Circuit geometry and trace drawing are unchanged. */
 body.ic-studio.ic-dockview{display:grid;grid-template-rows:28px 40px minmax(0,1fr) 24px;background:#eef1f5;color:#273344;--panel:#fff;--bg:#f7f9fc;--fg:#273344;--muted:#718096;--line:#dce3ec;--accent:#426dc4;overflow:hidden;}
+body.ic-studio.ic-dockview.has-welcome-guide{grid-template-rows:28px 40px auto minmax(0,1fr) 24px;}
 body.ic-dockview #menubar{grid-row:1;min-height:28px;flex-wrap:nowrap;border:0;background:#f7f9fc;}
 body.ic-dockview #studio-toolbar{grid-row:2;min-height:40px;height:40px;padding:0 12px;gap:10px;box-sizing:border-box;background:#fff;}
+body.ic-dockview.has-welcome-guide #cg-welcome-guide{grid-row:3;}
+body.ic-dockview.has-welcome-guide #studio-dockview{grid-row:4;}
+body.ic-dockview.has-welcome-guide>.statusbar{grid-row:5;}
 body.ic-dockview .studio-toolbar label{font-size:11px;gap:4px;}
 body.ic-dockview .studio-toolbar select{border:0;background:#f2f5f9;padding:4px 6px;max-width:220px;border-radius:4px;}
 body.ic-dockview #studio-identity,.ic-dockview #studio-simulation-toggle,.ic-dockview #studio-ai-toggle{display:none;}
