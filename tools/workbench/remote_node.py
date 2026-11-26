@@ -31,7 +31,7 @@ LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/rev
 SIMULATION_ROUTE = '/api/simulation/execute'
 ONBOARDING_PREFIX = '/api/simulation/onboarding/'
 ONBOARDING_READS = {'ssh-hosts','session','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','source','agent-tb/review','pdk-scopes'}
-ONBOARDING_WRITES = {'netlist','ssh-browse','ssh-import','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis','select-pdk-scope'}
+ONBOARDING_WRITES = {'netlist','ssh-browse','ssh-import','ssh-setup-request','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis','select-pdk-scope'}
 
 def onboarding_entry_origin(headers):
     # This header is provenance only. The bearer/pairing guards run first.
@@ -165,6 +165,7 @@ class Node:
         self.pairing = Pairing()
         self.login = None
         self.development = None
+        self.ssh_setup = None
         self.library = None
         self.simulation = None
         self.onboarding = None
@@ -204,6 +205,7 @@ class Node:
                                  'simulation_onboarding_api_version': '1' if onboarding_enabled else None,
                                  'simulation_onboarding_native_entry': onboarding_enabled,
                                  'simulation_onboarding_ssh_import': onboarding_enabled and getattr(self.onboarding, 'ssh_import_enabled', True),
+                                 'local_ssh_setup': self.ssh_setup is not None and self.public_origin.startswith('http://127.0.0.1:') and not self.prefix,
                                  'local_login': self.login is not None and self.public_origin.startswith('http://127.0.0.1:') and not self.prefix},
                 'automatic_model_start': False,
                 'library_activity': self.library.activity() if self.library else {'running_actions': 0}}
@@ -250,6 +252,12 @@ class Handler(BaseHTTPRequestHandler):
             raise PermissionError('Local developer settings are not enabled on this connector')
         return self.node.development
 
+    def ssh_setup_guard(self):
+        self.local_guard()
+        if self.node.ssh_setup is None:
+            raise PermissionError('Local SSH setup wizard is not enabled on this connector')
+        return self.node.ssh_setup
+
     def login_guard(self):
         self.local_guard()
         if (not self.node.login or not self.node.pairing.accepts(
@@ -287,6 +295,15 @@ class Handler(BaseHTTPRequestHandler):
         nonce = secrets.token_urlsafe(24)
         self.send_page(settings.form(query['request'][0], nonce), nonce)
 
+    def ssh_setup_page(self):
+        wizard = self.ssh_setup_guard()
+        path, query = self.route()
+        if path != '/ssh/setup' or set(query) != {'request'}:
+            raise ValueError('An explicit local SSH setup request is required')
+        nonce = secrets.token_urlsafe(24)
+        html_doc, csp = wizard.form(query['request'][0], nonce)
+        self.send_page(html_doc, nonce, csp=csp)
+
     def library_guard(self):
         self.local_guard()
         if self.node.library is None: raise PermissionError('This connector has no circuit repository')
@@ -299,8 +316,8 @@ class Handler(BaseHTTPRequestHandler):
         nonce = secrets.token_urlsafe(24)
         self.send_page(workflow.form(query['ticket'][0], nonce), nonce)
 
-    def send_page(self, html, nonce):
-        raw = html.encode()
+    def send_page(self, html, nonce, *, csp=None):
+        raw = html.encode() if isinstance(html, str) else html
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.send_header('Content-Length', str(len(raw)))
@@ -308,7 +325,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('X-Frame-Options', 'DENY')
         self.send_header('Referrer-Policy', 'no-referrer')
         self.send_header('X-Content-Type-Options', 'nosniff')
-        self.send_header('Content-Security-Policy', "default-src 'none'; script-src 'nonce-" + nonce + "'; style-src 'nonce-" + nonce + "'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+        self.send_header('Content-Security-Policy', csp or ("default-src 'none'; script-src 'nonce-" + nonce + "'; style-src 'nonce-" + nonce + "'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"))
         self.send_header('Connection', 'close'); self.close_connection = True
         self.end_headers(); self.wfile.write(raw)
 
@@ -390,6 +407,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.connect_page(); return
             if urlsplit(self.path).path == '/development/settings':
                 self.development_page(); return
+            if urlsplit(self.path).path == '/ssh/setup':
+                self.ssh_setup_page(); return
             if urlsplit(self.path).path == '/library/review':
                 self.library_page(); return
             if urlsplit(self.path).path == (self.node.prefix + '/health'):
@@ -446,6 +465,11 @@ class Handler(BaseHTTPRequestHandler):
                 settings = self.developer_guard()
                 data = settings.confirm(self.body(8192))
                 self.send(200, {'ok': True, 'data': data}); return
+            if self.path == '/ssh/setup/action':
+                self.local_guard(True)
+                wizard = self.ssh_setup_guard()
+                data = wizard.action(self.body(65536))
+                self.send(200, data); return
             if self.path == '/connect/confirm':
                 self.local_guard(True)
                 body = self.body(4096)
@@ -458,8 +482,14 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith(ONBOARDING_PREFIX) and path[len(ONBOARDING_PREFIX):] in ONBOARDING_WRITES:
                 token,browser_origin=self.browser_identity()
                 if not self.node.pairing.accepts(token,browser_origin):raise PermissionError('Onboarding requires the confirmed local browser connection')
-                if self.node.onboarding is None:raise PermissionError('Onboarding is unavailable on this connection')
                 if qs:raise ValueError('Onboarding writes have no query fields')
+                if path == ONBOARDING_PREFIX + 'ssh-setup-request':
+                    wizard = self.ssh_setup_guard()
+                    if self.body(4096):
+                        raise ValueError('SSH setup requests do not accept configuration overrides')
+                    data = wizard.request(token, browser_origin)
+                    self.send(200, {'ok': True, 'data': data}); return
+                if self.node.onboarding is None:raise PermissionError('Onboarding is unavailable on this connection')
                 entry_origin=onboarding_entry_origin(self.headers)
                 data=self.node.onboarding_result(self.node.onboarding.write(path[len(ONBOARDING_PREFIX):],self.body(2*1024*1024),origin=entry_origin))
                 self.send(200,{'ok':True,'data':data});return

@@ -21,6 +21,7 @@ from icwb.service import Service
 from remote_node import Server, Handler, Node, GatewayOnboarding, node_config, node_identity
 from browser_login import LocalLogin
 from browser_development import LocalDevelopment
+from browser_ssh_setup import LocalSshSetup
 from browser_library import LocalLibrary
 from library_workflow import LibraryWorkflow
 
@@ -187,6 +188,9 @@ def main():
             if config.get('simulation_direct', {}).get('enabled') and callable(getattr(routes.service, 'execute_simulation', None)):
                 node.simulation = routes.service.execute_simulation
             node.development = LocalDevelopment(state / 'owner-settings', routes, node.pairing, node.url, workspace_hint=ROOT)
+            ssh_cfg_path = (cfg or {}).get('onboarding', {}).get('ssh_config') if isinstance(cfg, dict) else None
+            ssh_dir = Path(ssh_cfg_path).expanduser().parent if isinstance(ssh_cfg_path, str) and ssh_cfg_path else Path.home() / '.ssh'
+            node.ssh_setup = LocalSshSetup(ssh_dir, node.pairing, node.url)
             # A Git checkout is required for branch/history operations. ZIP users
             # retain chat and the isolated RC runtime without a fabricated origin.
             if config.get('library_workspace'):

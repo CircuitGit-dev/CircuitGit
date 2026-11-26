@@ -246,6 +246,33 @@ export function createProjectImporter({
   function hasSshImportCapability(){
     return onboarding?.getState?.()?.capabilities?.simulation_onboarding_ssh_import===true;
   }
+  function hasSshSetupCapability(){
+    return onboarding?.getState?.()?.capabilities?.local_ssh_setup===true;
+  }
+  async function launchSshSetupWizard(){
+    if(!onboarding||!getConnected())return;
+    if(!hasSshSetupCapability()){
+      sshLegacyConnector=true;
+      sshError='当前本机后台运行的连接器版本较旧，尚未包含「图形化 SSH 与跳板机配置向导」。请更新并重启本机连接器后重试。';
+      render();
+      return;
+    }
+    sshError='';
+    try{
+      const res=await onboarding.openSshSetup({
+        onUpdated:({alias})=>{
+          if(alias)sshTarget=alias;
+          void loadAliases({autoBrowse:false});
+        },
+      });
+      if(res?.alias)sshTarget=res.alias;
+      await loadAliases({autoBrowse:Boolean(res?.updated&&sshTarget)});
+    }catch(error){
+      sshError=formatSshImportError(error);
+      notify(sshError,{kind:'error'});
+      if(!destroyed&&dialog?.open)render();
+    }
+  }
 
   async function browseSsh(targetPath){
     if(!onboarding||!getConnected()||sshBusy)return;
@@ -546,7 +573,11 @@ export function createProjectImporter({
     const refreshBtn=el('button','cg-welcome-btn',sshAliasesLoading?'读取中…':'刷新主机');
     refreshBtn.type='button';refreshBtn.disabled=sshAliasesLoading||sshBusy;
     refreshBtn.onclick=()=>void loadAliases();
-    hostRow.append(hostInput,browseBtn,refreshBtn);
+    const setupBtn=el('button','cg-welcome-btn','+ 添加 / 配置 SSH 与跳板机');
+    setupBtn.type='button';setupBtn.disabled=sshBusy;
+    setupBtn.title='打开本机安全向导，图形化配置目标服务器、跳板机与免密密钥（密码仅留在本机）';
+    setupBtn.onclick=()=>void launchSshSetupWizard();
+    hostRow.append(hostInput,browseBtn,refreshBtn,setupBtn);
     body.append(hostRow);
 
     const pathRow=el('div','cg-import-path-row');

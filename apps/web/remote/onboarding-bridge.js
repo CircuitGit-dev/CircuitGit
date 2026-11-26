@@ -186,7 +186,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     const observedScopeWrite=scopeWrites.get(scopeWriteKey);
     const scopeWasUnknown=observedScopeWrite?.status==='unknown';
     if(typeof input!=='object'||Array.isArray(input))throw failure('环境操作参数无效。','invalid_input');
-    if(!['inspectNetlist','listSshAliases','browseRemoteNetlists','importRemoteNetlist'].includes(name)&&!intakes.has(input.intake_id))throw failure('此网表不属于当前连接中已导入或恢复的会话。','intake_scope_mismatch');
+    if(!['inspectNetlist','listSshAliases','browseRemoteNetlists','importRemoteNetlist','requestSshSetup'].includes(name)&&!intakes.has(input.intake_id))throw failure('此网表不属于当前连接中已导入或恢复的会话。','intake_scope_mismatch');
     if(onboardingRecovery(originalIntake)&&operation.method==='POST')throw failure(recoveryMessage(originalIntake),'recovery_required');
     if(observedScopeWrite&&operation.method==='POST')throw failure('PDK 保存正在进行或结果未知；请先读取原会话核对，未重复发送。','scope_reconciliation_required');
     let path=PREFIX+operation.path,options={method:operation.method,timeout:onboardingRequestTimeout(name,input,sessions.get(input.intake_id))};
@@ -223,6 +223,9 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       }
       if(name==='importRemoteNetlist'){
         requireValue(result?.schema==='ic.onboarding.ssh-import.v1'&&typeof result.file_name==='string'&&typeof result.text==='string','SSH 网表导入响应格式无效。','invalid_ssh_import');
+      }
+      if(name==='requestSshSetup'){
+        requireValue(typeof result?.url==='string'&&result.url.length>0,'本机 SSH 配置向导地址无效。','invalid_ssh_setup_url');
       }
       if(name==='inspectNetlist'){
         if(result?.schema!=='ic.onboarding.session.v1'||result.connection_id!==storeIdentity||!opaque(result.intake_id)||!Number.isInteger(result.revision)||result.revision<0)throw failure('助手返回的网表会话身份无效。','invalid_session_identity');
@@ -326,7 +329,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       }
       if(generation!==epoch||scope!==connectionId)throw failure(operation.method==='POST'?'连接已变化；请用原身份核对结果，未重发。':'连接已变化；旧响应已丢弃。',operation.method==='POST'?'transport_unknown':'connection_changed');
       if(name==='analyzeExperiment'&&problem.data?.code==='analysis_scope_mismatch')throw problem;
-      if(operation.method==='POST'&&!['browseRemoteNetlists','importRemoteNetlist'].includes(name)&&(!problem.status||problem.code==='response_size_limit'||problem.data?.code==='response_size_limit')&&!['replay_forbidden','connection_changed'].includes(problem.data?.code)){
+      if(operation.method==='POST'&&!['browseRemoteNetlists','importRemoteNetlist','requestSshSetup'].includes(name)&&(!problem.status||problem.code==='response_size_limit'||problem.data?.code==='response_size_limit')&&!['replay_forbidden','connection_changed'].includes(problem.data?.code)){
         const unknown=failure('操作结果尚未确认；请在原连接中核对原会话或提交回执，不要重新发送。','transport_unknown');unknown.cause=problem;throw unknown;
       }
       throw problem;
@@ -348,6 +351,49 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       '人工审阅仅能打开此计划的本机确认页面。','invalid_review_url');
     const popup=win.open('about:blank','_blank');requireValue(popup,'请允许弹窗后重新打开人工审阅页面。','popup_blocked');
     popup.opener=null;popup.location.replace(url.href);return {opened:true,intake_id,review_id,plan_id};
+  }
+  /** Open the loopback-only SpiceOwl SSH & jump-host setup window; credentials stay strictly local. */
+  async function openSshSetup({onUpdated=null}={}){
+    requireValue(transport&&connectionId&&endpoint,'请先连接本机连接器后再配置 SSH 服务器。','onboarding_disconnected');
+    requireValue(capabilities?.local_ssh_setup===true,'当前本机连接器版本较旧，尚未包含图形化 SSH 与跳板机配置向导；请更新并重启本机连接器。','unsupported_ssh_setup');
+    const popup=win.open('about:blank','_blank','width=860,height=780,noopener=no');
+    requireValue(popup,'请允许浏览器弹出本机 SSH 配置窗口后重试。','popup_blocked');
+    const generation=epoch,base=new URL(endpoint);
+    let updated=false,lastAlias='';
+    try{
+      const receipt=await request('requestSshSetup',{});
+      if(generation!==epoch||!transport){popup.close();throw failure('连接已变化；已取消打开配置窗口。','connection_changed');}
+      let url;try{url=new URL(receipt.url);}catch{throw failure('本机 SSH 配置地址无效。','invalid_ssh_setup_url');}
+      requireValue(url.origin===base.origin&&url.protocol==='http:'&&url.hostname==='127.0.0.1'&&!url.username&&!url.password&&!url.hash&&
+        url.pathname==='/ssh/setup'&&url.searchParams.getAll('request').length===1&&Boolean(url.searchParams.get('request'))&&
+        [...url.searchParams.keys()].every(key=>key==='request'),
+        '本机 SSH 配置地址与当前连接器不匹配。','invalid_ssh_setup_url');
+      popup.location.replace(url.href);
+      return await new Promise(resolve=>{
+        const onMessage=ev=>{
+          if(ev.origin!==base.origin||ev.source!==popup)return;
+          const type=ev.data?.type;
+          if(type==='spiceowl.ssh.updated'||type==='circuitgit.ssh.updated'){
+            updated=true;
+            const chosen=typeof ev.data?.selected_alias==='string'&&ev.data.selected_alias.trim()?ev.data.selected_alias.trim():typeof ev.data?.alias==='string'&&ev.data.alias.trim()?ev.data.alias.trim():'';
+            if(chosen)lastAlias=chosen;
+            try{onUpdated?.({alias:lastAlias});}catch{}
+          }
+        };
+        win.addEventListener?.('message',onMessage);
+        const deadline=Date.now()+1800000;
+        const timer=setInterval(()=>{
+          if(popup.closed||generation!==epoch||Date.now()>deadline){
+            clearInterval(timer);
+            win.removeEventListener?.('message',onMessage);
+            resolve({updated,alias:lastAlias});
+          }
+        },400);
+      });
+    }catch(err){
+      try{popup.close();}catch{}
+      throw err;
+    }
   }
   function waveformApi({intake_id,job}={}){
     requireValue(transport&&connectionId,'请先连接此实验原来的仿真环境。','onboarding_disconnected');
@@ -433,6 +479,6 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     });
   }
   const methods=Object.fromEntries(Object.keys(ONBOARDING_OPERATIONS).map(name=>[name,args=>request(name,args)]));
-  return Object.freeze({...methods,openAgentTestbenchReview,waveformApi,getState,connect,bindClient,unbindClient,adoptIntake,disconnect,pendingStore,
+  return Object.freeze({...methods,openAgentTestbenchReview,openSshSetup,waveformApi,getState,connect,bindClient,unbindClient,adoptIntake,disconnect,pendingStore,
     getSessionState:()=>clone(sessions.get(selectedIntakeId)||null),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}});
 }

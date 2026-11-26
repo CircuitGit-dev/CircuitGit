@@ -41,7 +41,7 @@ test('revoked node authorization notifies the host once without replaying',async
   await assert.rejects(client.request('/node/info'),/断开/);
   assert.equal(rejected,1);assert.equal(calls,1);
 });
-test('onboarding permits only the eighteen browser routes, exact verbs and bounded query identity',async()=>{
+test('onboarding permits only the nineteen browser routes, exact verbs and bounded query identity',async()=>{
   const calls=[],client=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async(url,options)=>{calls.push({url,options});return new Response(JSON.stringify({ok:true,data:{observed:true}}));}});
   for(const row of Object.values(ONBOARDING_OPERATIONS)){
     const scope={intake_id:'intake_'+'a'.repeat(32),probe_id:'probe_'+'b'.repeat(32),library_id:'c'.repeat(64)};
@@ -50,9 +50,9 @@ test('onboarding permits only the eighteen browser routes, exact verbs and bound
     assert.equal(isOnboardingRequest(path,row.method),true);await client.request(path,{method:row.method,...(row.method==='POST'?{body}:{})});
     assert.equal(isOnboardingRequest(path,row.method==='GET'?'POST':'GET'),false);
   }
-  assert.equal(calls.length,18);
+  assert.equal(calls.length,19);
   for(const path of ['/simulation/onboarding/admin','/simulation/onboarding/agent-tb/human-run','/simulation/onboarding/agent-tb/review/confirm','/simulation/onboarding/session','/simulation/onboarding/session?intake_id=a&intake_id=b','/simulation/onboarding/session?intake_id=a&path=secret','/simulation/onboarding/../onboarding/ssh-hosts','/simulation/onboarding/ssh-hosts#fragment'])await assert.rejects(client.request(path),/运行节点/);
-  assert.equal(calls.length,18);
+  assert.equal(calls.length,19);
 });
 test('all onboarding envelopes enforce the simulation 2 MiB bound and retain structured rejection',async()=>{
   const large=createNodeClient({url:'http://127.0.0.1:18885',accessCode:code,fetchImpl:async()=>new Response(' '.repeat(2*1024*1024+1))});
@@ -78,7 +78,7 @@ test('finite onboarding budgets follow explicit host batches instead of changing
   assert.equal(onboardingRequestTimeout('runPrepared',{}, {execution_scope:{candidate_host_ids:hosts.slice(0,1)}}),110000);
   assert.equal(onboardingRequestTimeout('runPrepared'),320000,'unknown cached scope uses the finite eight-host maximum');
   assert.equal(onboardingRequestTimeout('inspectExperiment'),45000,'collection itself runs in the backend background');
-  for(const name of ['inspectNetlist','listSshAliases','getSession','readSubmission'])assert.equal(onboardingRequestTimeout(name),20000);
+  for(const name of ['inspectNetlist','listSshAliases','requestSshSetup','getSession','readSubmission'])assert.equal(onboardingRequestTimeout(name),20000);
   for(const name of ['browseRemoteNetlists','importRemoteNetlist'])assert.equal(onboardingRequestTimeout(name),35000);
   assert.throws(()=>onboardingRequestTimeout('arbitraryOperation'),/Unknown/);
 });

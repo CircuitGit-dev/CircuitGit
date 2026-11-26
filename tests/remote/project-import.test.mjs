@@ -105,3 +105,43 @@ test('onboarding bridge allows browseRemoteNetlists and importRemoteNetlist befo
   assert.equal(imported.file_name,'tb.scs');
   assert.equal(calls.at(-1).options.timeout,35000);
 });
+
+test('openSshSetup requires local_ssh_setup capability, validates loopback URL, and receives postMessage updates',async()=>{
+  const storageMap=new Map(),storage={getItem:k=>storageMap.get(k)||null,setItem:(k,v)=>storageMap.set(k,v)};
+  const listeners=new Set();
+  const openedUrls=[];
+  const popup={closed:false,close(){this.closed=true;},location:{replace(u){openedUrls.push(u);}}};
+  const win={
+    location:{origin:'https://circuitgit.invalid'},
+    open:()=>popup,
+    addEventListener:(ev,fn)=>{if(ev==='message')listeners.add(fn);},
+    removeEventListener:(ev,fn)=>{if(ev==='message')listeners.delete(fn);},
+  };
+  const info={schema:'circuitgit.remote-node.v1',node_id:'n1',connection_id:'store-1',single_owner:true,auth:'bearer',capabilities:{chat:false,simulation_onboarding:true,simulation_onboarding_api_version:'1',local_ssh_setup:true}};
+  const transport={
+    base:'http://127.0.0.1:18885',
+    close(){},
+    request:async(path)=>{
+      if(path==='/node/info')return info;
+      if(path==='/simulation/onboarding/ssh-setup-request')return {url:'http://127.0.0.1:18885/ssh/setup?request=req123'};
+      throw Error('unexpected '+path);
+    },
+  };
+  const bridge=createOnboardingBridge({
+    win,
+    pair:({base})=>({result:Promise.resolve({url:base,accessCode:'x'.repeat(43)}),cancel(){}}),
+    clientFactory:()=>transport,
+    pendingStore:createOnboardingPendingStore({storage}),
+    selectionStore:createOnboardingSelectionStore({storage}),
+  });
+  await bridge.connect({port:18885});
+  const seen=[];
+  const task=bridge.openSshSetup({onUpdated:u=>seen.push(u.alias)});
+  await new Promise(r=>setTimeout(r,20));
+  assert.deepEqual(openedUrls,['http://127.0.0.1:18885/ssh/setup?request=req123']);
+  for(const fn of listeners)fn({origin:'http://127.0.0.1:18885',source:popup,data:{type:'spiceowl.ssh.updated',alias:'lab-eda'}});
+  popup.closed=true;
+  const result=await task;
+  assert.deepEqual(result,{updated:true,alias:'lab-eda'});
+  assert.deepEqual(seen,['lab-eda']);
+});

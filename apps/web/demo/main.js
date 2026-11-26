@@ -187,7 +187,7 @@ export async function mountStudio({ui:providedUI}={}) {
   const environmentLoader=whenVisible(ui.slots.simulation,async()=>{
     environmentRoot.textContent='正在打开环境配置…';
     try{const {mountEnvironmentWizard}=await import('../../../modules/simulation/environment/panel.js');
-      environmentMount=mountEnvironmentWizard(environmentRoot,{requestAgentAssistance:host.requestAgentAssistance,adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,onRequireConnector:feature=>workspaceHub?.requireConnector(feature),notify:ui.notify,onRun:job=>{renderRunsTab();ui.notify('远端仿真已提交：'+(job.job_id||job.run_id||'')+'；可在「运行与波形」跟踪进度。');}});
+      environmentMount=mountEnvironmentWizard(environmentRoot,{requestAgentAssistance:host.requestAgentAssistance,adapter:host.onboarding,pendingStore:host.onboarding.pendingStore,getSource:host.getOnboardingSource,openWaveforms:host.openOnboardingWaveforms,onRequireConnector:feature=>workspaceHub?.requireConnector(feature),onOpenSshSetup:()=>host.onboarding.openSshSetup(),notify:ui.notify,onRun:job=>{renderRunsTab();ui.notify('远端仿真已提交：'+(job.job_id||job.run_id||'')+'；可在「运行与波形」跟踪进度。');}});
       unregisterEnvironment=host.onboardingSync.register(environmentMount.controller);renderRunsTab();return environmentMount;
     }catch(error){environmentRoot.textContent='环境配置加载失败：'+error.message;throw error;}
   },{onError:error=>ui.notify(error.message,{kind:'error'})});

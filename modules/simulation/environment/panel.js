@@ -12,7 +12,7 @@ const labels={idle:'待设置',loading:'处理中',complete:'已读取',error:'�
 const intentRows=[['supply_v','供电 / V'],['frequency_hz','输入频率 / Hz'],['temperature_c','运行温度 / °C'],['nominal_temperature_c','模型标称温度 / °C'],['input_port','输入端口'],['output_port','输出端口'],['vdd_port','供电端口'],['vss_port','参考地端口'],['cycles','仿真周期数'],['load_f','输出负载 / F'],['rise_s','输入上升时间 / s'],['fall_s','输入下降时间 / s'],['points_per_period','每周期采样点数']];
 const format=value=>value===null||value===undefined?'未知':typeof value==='object'?JSON.stringify(value):String(value);
 
-export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getSource=null,onRun=null,openWaveforms=null,canOpenWaveforms=()=>true,requestAgentAssistance=null,onRequireConnector=null,notify=()=>{}}={}){
+export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getSource=null,onRun=null,openWaveforms=null,canOpenWaveforms=()=>true,requestAgentAssistance=null,onRequireConnector=null,onOpenSshSetup=null,notify=()=>{}}={}){
   const doc=root.ownerDocument,sheet=doc.createElement('link');sheet.rel='stylesheet';sheet.href=new URL('./style.css',import.meta.url).href;doc.head.append(sheet);
   let controller=null,disposed=false,pasted='',sourceName='',port='',error=null,importMode='agent-tb',supportFiles={},pdkBatch={binding:'',ids:[]};const opened=new Set(),collapsedSteps=new Set(),libraryChoiceIds=new Map(),radioGroup='environment-pdk-'+crypto.randomUUID();
   const el=(tag,text,className)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
@@ -163,6 +163,15 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     if(requirements?.issues?.length)evidence(detail(source,'source-issues','网表核对项'),requirements.issues);
 
     const host=card(root,2,'服务器',step2Done?`已探测 ${s.probe.result?.probes?.length||0} 台`:'探测后自动匹配',{done:step2Done,active:currentStep===2,summaryText:s.targets.length?'主机范围：'+s.targets.join('、'):''}),aliases=detail(host,'ssh-aliases','选择本机 SSH 配置');aliases.append(button('读取本机别名',()=>controller.loadAliases(),locked||!connected));
+    if(typeof onOpenSshSetup==='function'){
+      const setupSshBtn=button('+ 添加 / 配置 SSH 与跳板机…',async()=>{
+        const res=await onOpenSshSetup();
+        await controller.loadAliases().catch(()=>{});
+        if(res?.alias&&!controller.state.targets.includes(res.alias))controller.setTargets([...controller.state.targets,res.alias]);
+      },locked||!connected);
+      setupSshBtn.dataset.environmentOpenSshSetup='';
+      aliases.append(setupSshBtn);
+    }
     assistance(host,'environment','请 Agent 检查环境与 PDK');
     const savedPrefs=loadRemoteSimPrefs();
     if(savedPrefs&&!s.targets.length){
