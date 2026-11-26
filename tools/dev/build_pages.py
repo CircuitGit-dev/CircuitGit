@@ -2,6 +2,7 @@
 """Build the static GitHub Pages demo from explicit web/module asset roots."""
 import json
 from pathlib import Path
+import re
 import subprocess
 from build import build
 from build_library import publish as publish_library
@@ -9,20 +10,56 @@ from build_library_history import publish as publish_library_history
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / 'site'
+APP_ASSET_DIRS = ('studio', 'demo', 'remote', 'library', 'ai', 'modules')
+MODULE_IMPORT_RE = re.compile(
+    r"""((?:from\s+|import\s*\(|new\s+URL\(\s*)(['"]))(\.\.?/[^'"?\n]+\.(?:js|css))(\2)"""
+)
+
+
+def stamp_pages_cache_buster(output, rev):
+    """Append ?v=<rev> to app-owned JS/CSS specifiers in generated site/ so Pages updates immediately."""
+    def replace_specifier(match):
+        prefix, quote, spec, end_quote = match.groups()
+        if '/vendor/' in spec or spec.startswith('./vendor/'):
+            return match.group(0)
+        return f'{prefix}{spec}?v={rev}{end_quote}'
+
+    for folder in APP_ASSET_DIRS:
+        root_dir = output / folder
+        if not root_dir.is_dir():
+            continue
+        for js_file in root_dir.rglob('*.js'):
+            text = js_file.read_text(encoding='utf-8')
+            updated = MODULE_IMPORT_RE.sub(replace_specifier, text)
+            if updated != text:
+                js_file.write_text(updated, encoding='utf-8')
+
+    studio_html = output / 'studio/index.html'
+    if studio_html.is_file():
+        html = studio_html.read_text(encoding='utf-8')
+        html = re.sub(
+            r'((?:href|src)=")(\.\./\.\./studio/[^"?]+\.(?:js|css))(")',
+            rf'\1\2?v={rev}\3',
+            html,
+        )
+        studio_html.write_text(html, encoding='utf-8')
+
 
 def main():
     result = build('web', OUTPUT)
+    rev = subprocess.check_output(['git', 'rev-parse', '--short=8', 'HEAD'], cwd=ROOT, text=True).strip()
+    stamp_pages_cache_buster(OUTPUT, rev)
     (OUTPUT / '.nojekyll').write_text('')
-    (OUTPUT / 'index.html').write_text('''<!doctype html><html lang="en"><head>
+    (OUTPUT / 'index.html').write_text(f'''<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="CircuitGit: AI-native circuit design, versioned on GitHub. Interactive schematic and waveform workbench.">
 <title>CircuitGit · Interactive workbench</title><link rel="icon" href="branding/circuitgit-small.svg">
-<script src="pages-redirect.js" defer></script></head><body>
+<script src="pages-redirect.js?v={rev}" defer></script></head><body>
 <h1>CircuitGit</h1><p>AI-native circuit design, versioned on GitHub.</p>
-<a href="studio/index.html?layout=dockview&amp;demo=1">Open interactive demo</a>
+<a href="studio/index.html?layout=dockview&amp;demo=1&amp;v={rev}">Open interactive demo</a>
 <a href="workflow/index.html">Explore the real-circuit workflow and capability boundaries</a>
 </body></html>''')
-    (OUTPUT / 'pages-redirect.js').write_text("location.replace(new URL('studio/index.html?layout=dockview&demo=1',location.href));\n")
+    (OUTPUT / 'pages-redirect.js').write_text(f"location.replace(new URL('studio/index.html?layout=dockview&demo=1&v={rev}',location.href));\n")
     commits=[]
     output=subprocess.check_output(['git','log','-8','--format=%H%x09%s'],cwd=ROOT,text=True)
     for line in output.splitlines():
