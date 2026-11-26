@@ -1,6 +1,6 @@
 import {stylesheet} from './styles.js';
 
-const TITLES={simulation:'仿真',ai:'AI',versions:'版本管理',waveforms:'波形'};
+const TITLES={simulation:'仿真',ai:'AI',versions:'版本管理',waveforms:'波形',veriloga:'Verilog-A'};
 const node=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;if(text)e.textContent=text;return e;};
 let pending;
 
@@ -69,6 +69,9 @@ function mountLegacy(ui){
   const dialog=node('dialog','studio-versions-dialog');dialog.id='studio-versions-dialog';dialog.setAttribute('aria-label','版本管理');
   const head=node('header',''),close=node('button','','关闭');close.type='button';head.append(node('strong','','版本管理'),close);dialog.append(head,ui.slots.versions.element);document.body.append(dialog);
   const slot=ui.slots.versions;slot.setVisible=value=>{if(value&&!dialog.open)dialog.showModal();else if(!value&&dialog.open)dialog.close();slot.visibilityChanged(value);};slot.toggle=()=>slot.setVisible(!slot.isVisible());close.onclick=()=>slot.setVisible(false);dialog.addEventListener('close',()=>slot.visibilityChanged(false));
+  const vaDialog=node('dialog','studio-versions-dialog studio-veriloga-dialog');vaDialog.id='studio-veriloga-dialog';vaDialog.setAttribute('aria-label','Verilog-A');
+  const vaHead=node('header',''),vaClose=node('button','','关闭');vaClose.type='button';vaHead.append(node('strong','','Verilog-A'),vaClose);vaDialog.append(vaHead,ui.slots.veriloga.element);document.body.append(vaDialog);
+  const vaSlot=ui.slots.veriloga;vaSlot.setVisible=value=>{if(value&&!vaDialog.open)vaDialog.showModal();else if(!value&&vaDialog.open)vaDialog.close();vaSlot.visibilityChanged(value);};vaSlot.toggle=()=>vaSlot.setVisible(!vaSlot.isVisible());vaClose.onclick=()=>vaSlot.setVisible(false);vaDialog.addEventListener('close',()=>vaSlot.visibilityChanged(false));
   delete ui.slots.waveforms;
   return ui;
 }

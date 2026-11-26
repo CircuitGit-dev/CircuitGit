@@ -12,7 +12,7 @@ import {enterRoot} from '../vendor/rnl-viewer/subcircuits.js';
 import {registerStudioCommand,command} from '../vendor/rnl-viewer/commands.js';
 import {setSidebarWidth,setPane} from '../vendor/rnl-viewer/panels.js';
 import {clearSelection} from '../vendor/rnl-viewer/selection.js';
-import {clearDrawing,fit} from '../vendor/rnl-viewer/drawing.js';
+import {clearDrawing,fit,view} from '../vendor/rnl-viewer/drawing.js';
 import {clearSource} from '../vendor/rnl-viewer/text.js';
 import {renderHierarchy} from '../vendor/rnl-viewer/hierarchy.js';
 import {createLayout} from './layout.js';
@@ -24,6 +24,8 @@ import {createOnboardingSync} from '../remote/onboarding-sync.js';
 import {createLibraryBridge} from '../remote/library-bridge.js';
 import {mountLibraryManager} from '../library/panel.js';
 import {createLibraryClient} from '../library/model.js';
+import {isVerilogAFile,verilogaModuleBasename,indexLibraryVerilogAFiles,resolveVerilogAModel} from '../library/veriloga.js';
+import {mountVerilogAPanel,attachSchematicVerilogAJump} from './veriloga-viewer.js';
 import {hasBuffer,fileText} from '../vendor/rnl-viewer/edits.js';
 
 const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
@@ -97,7 +99,7 @@ export async function mountStudio({ui:providedUI}={}){
       $('studio-project').replaceChildren(...project.projects.map(p=>new Option(p.name||projectId(p),projectId(p))));$('studio-project').value=projectId(state.active);
       refreshContext();
       void Promise.allSettled([
-        api.files(projectId(state.active)).then(tree=>{if(generation===epoch)state.files=Array.isArray(tree)?tree:tree.files||tree.entries||[];}),
+        api.files(projectId(state.active)).then(tree=>{if(generation===epoch){state.files=Array.isArray(tree)?tree:tree.files||tree.entries||[];syncStudioVerilogA();}}),
         refreshRuns(),
       ]).then(results=>{if(generation===epoch)for(const result of results)if(result.status==='rejected')notify('项目附加数据读取失败：'+result.reason.message,{kind:'warning'});});
       const source=state.active.source_path||state.active.canonical_source;await loadCanonical(source,generation);if(generation!==epoch)return;
@@ -351,6 +353,61 @@ export async function mountStudio({ui:providedUI}={}){
       }else void mount().catch(onError);
     }));
   }
+  let verilogaPanel=null,verilogaJump=null;
+  function projectVerilogAModels(){
+    const out=[],seen=new Set();
+    for(const item of state.files||[]){
+      const p=typeof item==='string'?item:item?.path;
+      if(!isVerilogAFile(p))continue;
+      const name=verilogaModuleBasename(p);
+      const key=name.toLowerCase();
+      if(key&&!seen.has(key)){seen.add(key);out.push({sourceType:'project',moduleName:name,path:p,origin:state.active?.name||'当前工程'});}
+    }
+    return out;
+  }
+  function syncStudioVerilogA(){
+    if(!verilogaPanel)return;
+    const proj=projectVerilogAModels();
+    if(proj.length){verilogaPanel.setAvailableModels(proj);return;}
+    const libs=libraryManager?.getLibraries?.()||[];
+    verilogaPanel.setAvailableModels(libs.length?indexLibraryVerilogAFiles(libs,activeLibrarySelection?.library?.id||null).list:[]);
+  }
+  if(ui.slots.veriloga){
+    verilogaPanel=mountVerilogAPanel({
+      slot:ui.slots.veriloga,
+      loadLibraryFile:async(path,entry)=>{
+        if(entry?.sourceType==='project'){
+          const file=await api.file(path);
+          return file.content??file.text??'';
+        }
+        const client=libraryManager?.getClient?.()||createLibraryClient({baseURL:new URL('/api/library/files/',location.origin)});
+        const bundle=await client.loadView({id:'veriloga',kind:'veriloga',label:'Verilog-A',entry:path,files:[path]});
+        return bundle.text;
+      },
+      notify,
+    });
+    verilogaJump=attachSchematicVerilogAJump({
+      getDoc:()=>doc,
+      getCurrent:()=>current,
+      getSelected:()=>selected,
+      getView:()=>view,
+      isProbeActive:()=>plotMode!=='none',
+      resolveMaster:masterName=>{
+        const key=String(masterName||'').trim().toLowerCase();
+        const proj=projectVerilogAModels();
+        const projHit=proj.find(item=>item.moduleName.toLowerCase()===key);
+        if(projHit)return {...projHit,siblings:proj};
+        return resolveVerilogAModel({
+          masterName,
+          doc,
+          libraries:libraryManager?.getLibraries?.()||[],
+          activeLibraryId:activeLibrarySelection?.library?.id||null,
+        });
+      },
+      openModel:(model,opts)=>verilogaPanel.openModel(model,opts),
+    });
+    register({id:'window.veriloga',menu:'window',label:'Verilog-A 行为模型代码',run:()=>{ui.slots.veriloga.setVisible(true);syncStudioVerilogA();}});
+  }
   function enableLiveLibrary(){
     if(libraryManager)return;
     libraryBridge.bind(api,{supported:true});
@@ -360,6 +417,17 @@ export async function mountStudio({ui:providedUI}={}){
       libraryPane:$('pane-files'),
       client,
       onSelection:value=>{activeLibrarySelection=value;emitLibrarySelection();},
+      onOpenVerilogA:async value=>{
+        syncStudioVerilogA();
+        return verilogaPanel.openModel({
+          path:value.path,
+          text:value.text,
+          moduleName:value.view?.moduleName||null,
+          libraryId:value.view?.sourceLibraryId||value.library?.id||null,
+          origin:value.library?.name||'',
+          siblings:value.siblings,
+        },{reveal:true});
+      },
       onOpen:async value=>{
         activeLibrarySelection=value;emitLibrarySelection();
         if(value.cell.project_id&&state.project?.projects?.some(p=>projectId(p)===value.cell.project_id)){
@@ -372,6 +440,7 @@ export async function mountStudio({ui:providedUI}={}){
           if(level>=0)await enterRoot(level,{here:true,newWindow:false});
         }
         fit();ui.slots.schematic?.setVisible(true);
+        syncStudioVerilogA();verilogaJump?.clear();
         $('studio-native-note').textContent=`${value.library.name} / ${value.cell.name} / ${value.view.label} · 本地电路库`;
         return true;
       },
@@ -381,6 +450,7 @@ export async function mountStudio({ui:providedUI}={}){
       },
       notify,
     });
+    void libraryManager.ensureLoaded().then(syncStudioVerilogA).catch(()=>{});
     register({id:'project.library',menu:'project',label:'电路库 (Library Manager)…',run:()=>libraryManager.show()});
   }
   setSidebarWidth(300);setPane('hierarchy');

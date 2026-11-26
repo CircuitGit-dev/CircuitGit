@@ -2,7 +2,7 @@ import {createDockview,themeLight} from '../../vendor/dockview/dockview.js';
 import {remainingLayout,homeRelations,boundedFloat} from './homes.js';
 import {stylesheet} from '../styles.js';
 
-const TITLES={schematic:'原理图',simulation:'仿真',waveforms:'波形',ai:'AI',versions:'版本管理'};
+const TITLES={schematic:'原理图',simulation:'仿真',waveforms:'波形',ai:'AI',versions:'版本管理',veriloga:'Verilog-A'};
 const KEY='ic-studio.dockview.v1';
 
 /** The application owns component lifetime; Dockview owns only their placement. */
@@ -91,7 +91,18 @@ export async function mountDockview(ui){
     for(const id of memberIds)homes.delete(id);
     resize();save();
   }
-  const open=id=>{let panel=api.getPanel(id);if(!panel)panel=api.addPanel({id,component:id,title:TITLES[id],renderer:'always',...(id==='versions'&&api.getPanel('simulation')?{position:{referencePanel:'simulation',direction:'within'}}:{})});panel.api.setActive();visibility(id,true);return panel;};
+  const open=id=>{
+    let panel=api.getPanel(id);
+    if(!panel){
+      const position=(id==='versions'||id==='veriloga')&&api.getPanel('simulation')
+        ? {position:{referencePanel:'simulation',direction:'within'}}
+        : id==='veriloga'&&api.getPanel('schematic')
+          ? {position:{referencePanel:'schematic',direction:'right'}}
+          : {};
+      panel=api.addPanel({id,component:id,title:TITLES[id],renderer:'always',...position});
+    }
+    panel.api.setActive();visibility(id,true);return panel;
+  };
   function resetLayout(){restoring=true;homes.clear();dragHomes.clear();try{api.clear();const s=open('schematic');api.addPanel({id:'simulation',component:'simulation',title:TITLES.simulation,renderer:'always',position:{referencePanel:s,direction:'right'},initialWidth:340,minimumWidth:260});const w=api.addPanel({id:'waveforms',component:'waveforms',title:TITLES.waveforms,renderer:'always',position:{referencePanel:s,direction:'below'},initialHeight:300});api.addPanel({id:'ai',component:'ai',title:TITLES.ai,renderer:'always',position:{referencePanel:'simulation',direction:'below'},initialHeight:300,minimumWidth:260});api.layout(area.clientWidth,area.clientHeight);api.getPanel('simulation').api.setSize({width:Math.min(360,area.clientWidth*.28)});api.getPanel('waveforms').api.setSize({height:Math.round(area.clientHeight*.40)});api.getPanel('ai').api.setSize({height:Math.round(area.clientHeight*.40)});s.api.setActive();}finally{restoring=false;}save();resize();}
   function storedLayout(){return {schema:KEY,layout:api.toJSON(),homes:Object.fromEntries(homes),floatPositions:Object.fromEntries(floatPositions)};}
   function save(){if(restoring||saveFailed)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(storedLayout()));}catch{saveFailed=true;ui.notify('布局无法保存；当前排列仍保留。',{kind:'warning'});}},180);}

@@ -11,7 +11,7 @@ import {dirtyPaths,unappliedPaths,resetBuffers,hasBuffer,fileText} from '../vend
 import {shell} from '../vendor/rnl-viewer/shell.js';
 import {sourceOpened} from '../vendor/rnl-viewer/pool.js';
 import {previewing} from '../vendor/rnl-viewer/solve.js';
-import {fit} from '../vendor/rnl-viewer/drawing.js';
+import {fit,view} from '../vendor/rnl-viewer/drawing.js';
 import {setSidebarWidth,setPane,setSidebar} from '../vendor/rnl-viewer/panels.js';
 import {registerStudioCommand} from '../vendor/rnl-viewer/commands.js';
 import {setBackground} from '../vendor/rnl-viewer/background.js';
@@ -19,6 +19,8 @@ import {sha256} from '../core.js';
 import {reference,referenceWindow} from './reference.js';
 import {mountLibraryManager} from '../library/panel.js';
 import {createLibraryClient,formatViewLabel} from '../library/model.js';
+import {isVerilogAFile,indexLibraryVerilogAFiles,indexSnapshotVerilogAFiles,resolveVerilogAModel} from '../library/veriloga.js';
+import {mountVerilogAPanel,attachSchematicVerilogAJump} from '../studio/veriloga-viewer.js';
 import {createLibraryBridge} from '../remote/library-bridge.js';
 import {loadSessionGrant} from '../remote/pair.js';
 import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
@@ -203,7 +205,7 @@ export async function mountStudio({ui:providedUI}={}) {
   function showRuns(){simulationPage='runs';renderSimulationPage();ui.slots.simulation.setVisible(true);void environmentLoader.ensure().then(renderRunsTab).catch(()=>{});}
   function showReferenceConfiguration(){if(!referenceActive())return;simulationPage='reference';renderSimulationPage();ui.slots.simulation.setVisible(true);}
   environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));runsTab.onclick=showRuns;referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
-  window.addEventListener('pagehide',()=>{offOnboardingSync?.();offOnboardingState?.();projectImporter?.destroy();welcomeGuide?.destroy();workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
+  window.addEventListener('pagehide',()=>{offOnboardingSync?.();offOnboardingState?.();verilogaJump?.destroy();verilogaPanel?.destroy();projectImporter?.destroy();welcomeGuide?.destroy();workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
     if(waveformMount||!referenceActive()||onboardingWaves)return;
@@ -290,7 +292,74 @@ export async function mountStudio({ui:providedUI}={}) {
   function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=activeLibrary?activeLibrary.bundle.text:importedProject?importedProject.text:source;dialog(activeLibrary?activeLibrary.cell.name+' · '+activeLibrary.view.label:importedProject?importedProject.label:'RC 示例网表 · 含固定 RNL 布局',area);}
   function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p><strong>CircuitGit 网页工作台</strong>提供完整的原理图（RNL）、电路库、波形探针、远端 SSH 仿真（SpiceOwl）、AI 助手（Codex）与 Git 版本管理交互。</p><p><strong>免安装功能</strong>：直接浏览电路库、查看与编辑原理图、点选参考波形并体验游标测量。</p><p><strong>本机 SSH / AI / Git 连接</strong>：点击顶栏「连接本机 (SSH / AI)」即可通过 <code>circuitgit://</code> 协议一键唤起本机连接器；首次使用仅需下载项目并双击一次启动器（Windows: <code>Start CircuitGit.bat</code>，macOS: <code>Start CircuitGit.command</code>），之后所有日常操作均在本网页内完成。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">本机连接器与后台自启说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
-  const libraryManager=mountLibraryManager({toolbar:$('studio-toolbar'),libraryPane:$('pane-files'),onOpen:openLibrary,onReference:openReference,onSelection:value=>{versionSelection=value;emit();},notify:ui.notify});
+  let libraryManager=null,verilogaPanel=null,verilogaJump=null;
+  verilogaPanel=mountVerilogAPanel({
+    slot:ui.slots.veriloga,
+    loadLibraryFile:async path=>{
+      const client=libraryManager?.getClient?.()||createLibraryClient();
+      const bundle=await client.loadView({id:'veriloga',kind:'veriloga',label:'Verilog-A',entry:path,files:[path]});
+      return bundle.text;
+    },
+    notify:ui.notify,
+  });
+  function syncAvailableVerilogA(){
+    if(importedProject){
+      const snap=Object.create(null);
+      if(importedProject.rnlSnapshot)Object.assign(snap,importedProject.rnlSnapshot);
+      if(importedProject.supportFiles){
+        for(const [k,v] of Object.entries(importedProject.supportFiles)){
+          if(!Object.hasOwn(snap,k)&&!Object.hasOwn(snap,'/'+k))snap[k]=v;
+        }
+      }
+      if(importedProject.fileName&&isVerilogAFile(importedProject.fileName)&&typeof importedProject.text==='string'){
+        snap[importedProject.fileName]=importedProject.text;
+      }
+      const idx=indexSnapshotVerilogAFiles(snap,{origin:importedProject.origin==='ssh'?`SSH · ${importedProject.sshTarget||''}`:'本地导入'});
+      verilogaPanel.setAvailableModels(idx.list);
+      return;
+    }
+    const libs=libraryManager?.getLibraries?.()||[];
+    if(!libs.length){verilogaPanel.setAvailableModels([]);return;}
+    const preferred=activeLibrary?.library?.id||null;
+    const idx=indexLibraryVerilogAFiles(libs,preferred);
+    const scoped=preferred?idx.list.filter(item=>item.libraryId===preferred):idx.list;
+    verilogaPanel.setAvailableModels(scoped.length?scoped:idx.list);
+  }
+  libraryManager=mountLibraryManager({
+    toolbar:$('studio-toolbar'),
+    libraryPane:$('pane-files'),
+    onOpen:openLibrary,
+    onOpenVerilogA:async value=>{
+      syncAvailableVerilogA();
+      return verilogaPanel.openModel({
+        path:value.path,
+        text:value.text,
+        moduleName:value.view?.moduleName||null,
+        libraryId:value.view?.sourceLibraryId||value.library?.id||null,
+        origin:value.library?.name||'',
+        siblings:value.siblings,
+      },{reveal:true});
+    },
+    onReference:openReference,
+    onSelection:value=>{versionSelection=value;emit();},
+    notify:ui.notify,
+  });
+  verilogaJump=attachSchematicVerilogAJump({
+    getDoc:()=>doc,
+    getCurrent:()=>current,
+    getSelected:()=>selected,
+    getView:()=>view,
+    isProbeActive:()=>mode!=='none',
+    resolveMaster:masterName=>resolveVerilogAModel({
+      masterName,
+      importedProject,
+      doc,
+      libraries:libraryManager.getLibraries(),
+      activeLibraryId:activeLibrary?.library?.id||null,
+    }),
+    openModel:(model,opts)=>verilogaPanel.openModel(model,opts),
+  });
+  register({id:'window.veriloga',menu:'window',label:'Verilog-A 行为模型代码',run:()=>{ui.slots.veriloga.setVisible(true);void libraryManager.ensureLoaded().then(syncAvailableVerilogA).catch(()=>{});syncAvailableVerilogA();}});
   host.openLibraryManager=()=>libraryManager.show();
   host.openProjectCanvas=async({libraryId,cellId}={})=>{
     if(!libraryId)return false;
@@ -337,6 +406,31 @@ export async function mountStudio({ui:providedUI}={}) {
       ? `SSH · ${payload.sshTarget} / ${payload.fileName}`
       : `本地 · ${payload.projectName||payload.fileName}`;
     const projectBadge=payload.origin==='ssh'?`SSH · ${payload.sshTarget}`:`本地 · ${payload.projectName||payload.fileName}`;
+    if(isVerilogAFile(payload.fileName)){
+      importedProject={
+        origin:payload.origin||'local',
+        name:payload.projectName||payload.fileName,
+        fileName:payload.fileName,
+        label:displayLabel,
+        sshTarget:payload.sshTarget||null,
+        remotePath:payload.remotePath||null,
+        supportCount,
+        supportFiles,
+        rnlSnapshot:rnlSource.snapshot,
+        text:payload.text,
+      };
+      syncAvailableVerilogA();
+      await verilogaPanel.openModel({
+        path:payload.remotePath||payload.entryPath||payload.fileName,
+        text:payload.text,
+        origin:payload.origin==='ssh'?`SSH · ${payload.sshTarget||''}`:'本地导入',
+      },{reveal:true});
+      switching=false;
+      welcomeGuide?.setStep?.(3);
+      welcomeGuide?.update();
+      ui.notify(`已在 Verilog-A 代码面板打开「${payload.fileName}」。`);
+      return true;
+    }
     $('studio-project').replaceChildren(new Option(projectBadge,'imported-netlist'));
     $('studio-entry').replaceChildren(new Option(payload.fileName,rnlSource.path));
     $('studio-run').replaceChildren(new Option('未关联仿真运行',''));
@@ -356,8 +450,12 @@ export async function mountStudio({ui:providedUI}={}) {
         sshTarget:payload.sshTarget||null,
         remotePath:payload.remotePath||null,
         supportCount,
+        supportFiles,
+        rnlSnapshot:rnlSource.snapshot,
         text:payload.text,
       };
+      syncAvailableVerilogA();
+      verilogaJump?.clear();
       context={...context,loading:false,loadState:errors.length?'error':'ready',file:{...context.file,currentTextSha256:textHash}};emit();
       fit();ui.slots.schematic?.setVisible(true);
       const depNote=supportCount?`（含 ${supportCount} 个依赖文件）`:'';
@@ -421,6 +519,8 @@ export async function mountStudio({ui:providedUI}={}) {
       context={...context,loading:false,loadState:errors.length?'error':'ready',file:{...context.file,currentTextSha256:await sha256(value.bundle.text)}};emit();
       fit();ui.slots.schematic?.setVisible(true);
       if(value.view?.virtualSymbol){setSidebar(true);setPane('symbol');}
+      syncAvailableVerilogA();verilogaJump?.clear();
+      if(!libraryManager.getLibraries().length)void libraryManager.ensureLoaded().then(syncAvailableVerilogA).catch(()=>{});
       $('studio-native-note').textContent=[value.library.name,value.cell.name,viewLabel].join(' / ')+(value.origin==='working'?' · 本机快照 · ':' · 公开文件 · ')+(errors.length?errors.length+' 项 RNL 诊断':'未关联仿真');
       if(errors.length)ui.notify('原理图已打开，存在 '+errors.length+' 项 RNL 诊断；请查看 Problems。',{kind:'warning'});
       watchLoadedLibrary();
@@ -441,7 +541,7 @@ export async function mountStudio({ui:providedUI}={}) {
       if(!opened||!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
       activeLibrary=null;importedProject=null;context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,loading:false,loadState:'ready',file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{bundleCommit:null,manifestSha256:hash,sourceMatch:true,state:'ready'}};
       $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-run').replaceChildren(new Option('解析参考 · 可连 SSH 跑 Spectre','reference'));
-      libraryInfo.replaceChildren();$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';switching=false;simulationPage='reference';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);return true;
+      libraryInfo.replaceChildren();$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';switching=false;simulationPage='reference';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);syncAvailableVerilogA();verilogaJump?.clear();return true;
     }catch(error){context={...context,run:null,selection:null,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='RC 参考加载失败 · 无关联波形';throw error;}
     finally{switching=false;ui.setNativeState({loading:false,hidden:false});}
   }

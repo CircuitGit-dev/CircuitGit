@@ -1,6 +1,8 @@
 // Public, indexed text files only. No backend project registration or runtime actions.
-const VIEW_IDS=new Set(['schematic','symbol','netlist','simulation','docs']);
-const VIEW_KINDS=new Set(['rnl','spectre','json','markdown']);
+import {isVerilogAFile,verilogaModuleBasename,indexLibraryVerilogAFiles} from './veriloga.js';
+
+const VIEW_IDS=new Set(['schematic','symbol','veriloga','netlist','simulation','docs']);
+const VIEW_KINDS=new Set(['rnl','veriloga','spectre','json','markdown']);
 const CELL_KINDS=new Set(['circuit','testbench','primitive']);
 const text=(value,label)=>{if(typeof value!=='string'||!value.trim())throw Error(label+' 必须是非空文本。');return value;};
 const object=(value,label)=>{if(!value||Array.isArray(value)||typeof value!=='object')throw Error(label+' 格式无效。');return value;};
@@ -49,7 +51,15 @@ export function filterLibraries(libraries,query=''){
   const q=query.trim().toLocaleLowerCase(),matches=(...parts)=>!q||parts.filter(Boolean).join(' ').toLocaleLowerCase().includes(q);
   return libraries.map(library=>{
     const all=matches(library.id,library.name,library.description);
-    const cells=library.cells.map(cell=>({...cell,views:cell.views.filter(view=>all||matches(cell.id,cell.name,cell.description)||matches(view.id,view.label,view.kind))})).filter(cell=>cell.views.length||all||matches(cell.id,cell.name,cell.description));
+    const cells=library.cells.map(cell=>{
+      const visibleViews=displayViewsForCell(cell,{library,libraries});
+      const hasDisplayMatch=visibleViews.some(v=>matches(v.id,v.label,formatViewLabel(v),v.kind,v.moduleName));
+      const matchedViews=cell.views.filter(view=>all||matches(cell.id,cell.name,cell.description)||matches(view.id,view.label,formatViewLabel(view),view.kind));
+      return {...cell,views:matchedViews.length||!hasDisplayMatch?matchedViews:cell.views};
+    }).filter(cell=>{
+      const visibleViews=displayViewsForCell(cell,{library,libraries});
+      return cell.views.length||all||matches(cell.id,cell.name,cell.description)||visibleViews.some(v=>matches(v.id,v.label,formatViewLabel(v),v.kind,v.moduleName));
+    });
     return {...library,cells};
   }).filter(library=>library.cells.length||matches(library.id,library.name,library.description));
 }
@@ -122,6 +132,10 @@ export function formatViewLabel(view){
   const id=view.id,raw=String(view.label||'');
   if(id==='schematic')return '原理图 (schematic)';
   if(id==='symbol')return view.virtualSymbol?'符号 (symbol · 内嵌于 RNL)':'符号 (symbol)';
+  if(id==='veriloga'){
+    const count=Array.isArray(view.files)?view.files.length:0;
+    return count>1?`Verilog-A 行为模型 (veriloga · ${count} 个模块)`:'Verilog-A 行为模型 (veriloga)';
+  }
   if(id==='netlist')return '网表 (netlist)';
   if(id==='simulation')return /incomplete|models/i.test(raw)?'仿真配置 (simulation · 历史输入/需外部 PDK)':'仿真配置 (simulation)';
   if(id==='docs')return '说明与依赖文档 (docs)';
@@ -130,19 +144,68 @@ export function formatViewLabel(view){
 
 /**
  * Expose embedded RNL `@DEFINE-SYMBOL` definitions as a `symbol` view entry for circuit cells
- * that do not already declare a standalone `symbol` view, keeping testbenches schematic-first.
+ * that do not already declare a standalone `symbol` view, and surface Verilog-A (`.va`/`.vams`)
+ * behavioral models as a `veriloga` view without mutating archived library manifests.
  */
-export function displayViewsForCell(cell){
+export function displayViewsForCell(cell,{library=null,libraries=null}={}){
   const raw=Array.isArray(cell?.views)?cell.views:[];
   const hasSymbol=raw.some(v=>v.id==='symbol');
+  const hasVerilogA=raw.some(v=>v.id==='veriloga');
   const schematic=raw.find(v=>v.id==='schematic'&&v.kind==='rnl');
+  let virtualVa=null;
+  if(!hasVerilogA&&cell){
+    const catalog=Array.isArray(libraries)&&libraries.length?libraries:(library?[library]:[]);
+    if(catalog.length){
+      const vaIndex=indexLibraryVerilogAFiles(catalog,library?.id||null);
+      const direct=vaIndex.byKey.get(String(cell.id||'').toLowerCase())||vaIndex.byKey.get(String(cell.name||'').toLowerCase());
+      if(direct){
+        virtualVa={
+          id:'veriloga',
+          label:'Verilog-A behavioral model',
+          kind:'veriloga',
+          entry:direct.path,
+          files:[direct.path],
+          moduleName:direct.moduleName,
+          sourceLibraryId:direct.libraryId,
+          virtualVerilogA:true,
+        };
+      }
+    }
+    if(!virtualVa){
+      const seen=new Set(),vaPaths=[];
+      for(const v of raw){
+        for(const f of v?.files||[]){
+          if(!isVerilogAFile(f))continue;
+          const key=verilogaModuleBasename(f).toLowerCase();
+          if(key&&!seen.has(key)){seen.add(key);vaPaths.push(f);}
+        }
+      }
+      if(vaPaths.length){
+        virtualVa={
+          id:'veriloga',
+          label:'Verilog-A models',
+          kind:'veriloga',
+          entry:vaPaths[0],
+          files:vaPaths,
+          moduleName:vaPaths.length===1?verilogaModuleBasename(vaPaths[0]):null,
+          virtualVerilogA:true,
+        };
+      }
+    }
+  }
   const out=[];
+  let vaInserted=false;
   for(const view of raw){
     out.push(view);
     if(view===schematic&&!hasSymbol&&cell?.kind==='circuit'){
       out.push({...schematic,id:'symbol',label:'Embedded symbol',virtualSymbol:true,backingViewId:schematic.id});
     }
+    if(virtualVa&&!vaInserted&&(view===schematic||view.id==='symbol')){
+      out.push(virtualVa);
+      vaInserted=true;
+    }
   }
+  if(virtualVa&&!vaInserted)out.unshift(virtualVa);
   return out;
 }
 async function pooled(items,task,concurrency=4){
