@@ -108,6 +108,26 @@ class HelperTests(unittest.TestCase):
                 self.assertEqual(connect_browser.library_runtime_configuration({**cfg,'github_repo':'other/repo'},root,root/'.local/helper')['projects'],cfg['projects'])
                 self.assertNotIn('source_repository',connect_browser.library_runtime_configuration({**cfg,'seed_repo':str(root/'other')},root,root/'.local/helper'))
 
+    def test_library_runtime_configuration_skips_projects_missing_from_existing_workspace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve()/'repository';root.mkdir()
+            (root/'.git').mkdir();(root/'config').mkdir()
+            (root/'config/workbench.projects.json').write_text(json.dumps([
+                {'id':'rc','name':'RC','source_path':'projects/rc/circuit.scs'},
+                {'id':'present','name':'Present','source_path':'lib/a/c1/c1.scs'},
+                {'id':'missing','name':'Missing','source_path':'lib/a/c2/c2.scs'},
+            ]))
+            runtime_root=root/'.local/helper/engineering'
+            present_file=runtime_root/'workspace/lib/a/c1/c1.scs'
+            present_file.parent.mkdir(parents=True)
+            present_file.write_text('// present\n')
+            cfg={'github_repo':'fixture/repo','seed_repo':str(root),'runtime_root':str(runtime_root),
+                 'site_file':'owner-site','projects':[{'id':'rc','name':'custom','source_path':'projects/rc/circuit.scs'}]}
+            result=subprocess.CompletedProcess([],0,'https://github.com/fixture/repo.git\n','')
+            with patch.object(connect_browser.subprocess,'run',return_value=result):
+                value=connect_browser.library_runtime_configuration(cfg,root,root/'.local/helper')
+            self.assertEqual([p['id'] for p in value['projects']],['rc','present'])
+
     def test_downloaded_zip_initializes_private_example_without_modifying_the_app(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory).resolve()/'downloaded app';root.mkdir()

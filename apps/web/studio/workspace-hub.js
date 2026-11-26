@@ -164,8 +164,8 @@ export function mountWorkspaceHub({
       } else if (connectorState === 'missing') {
         const guide = el('div', 'cg-hub-install-guide');
         guide.append(
-          el('strong', '', '一键安装本机连接器（仅需一次，免手动解压压缩包）'),
-          el('p', '', '浏览器无法直接发起内网 SSH 或读取本机 Codex 登录态。选择安装路径并复制下方命令到' + (isWindows ? ' PowerShell ' : ' 终端 ') + '运行一次，脚本会自动下载、装好环境、注册 circuitgit:// 并在后台启动（绕过 macOS / Windows 压缩包安全拦截）。'),
+          el('strong', '', '首次使用：一键安装本机连接器（仅需一次）'),
+          el('p', '', '浏览器无法直接发起内网 SSH 或读取本机 Codex，两者共用同一个本机连接器。如果本机已运行连接器（例如 Codex 已可连接），直接点下方「立即授权并连接」即可；若这台电脑尚未安装，选择安装路径并复制命令到' + (isWindows ? ' PowerShell ' : ' 终端 ') + '运行一次即可自动装好并在后台启动。'),
         );
         const dirRow = el('label', 'cg-hub-install-field');
         dirRow.append(el('span', '', '安装路径'));
@@ -240,23 +240,23 @@ export function mountWorkspaceHub({
     const actions = el('div', 'cg-hub-actions');
     if (mode === 'demo') {
       if (!anyConnected && typeof onConnect === 'function') {
+        const directAuth = el('button', connectorState === 'missing' ? '' : 'cg-hub-primary', s.connecting ? '正在授权…' : '立即授权并连接');
+        directAuth.type = 'button';
+        directAuth.disabled = Boolean(s.connecting);
+        directAuth.onclick = () => {
+          requiredFeature = '';
+          dialog.close();
+          void onConnect();
+        };
         if (connectorState === 'ready') {
-          const primary = el('button', 'cg-hub-primary', s.connecting ? '正在授权…' : '立即授权并连接');
-          primary.type = 'button';
-          primary.disabled = Boolean(s.connecting);
-          primary.onclick = () => {
-            requiredFeature = '';
-            dialog.close();
-            void onConnect();
-          };
-          actions.append(primary);
+          actions.append(directAuth);
         } else {
-          const wakeBtn = el('button', 'cg-hub-primary',
-            connectorState === 'waking' ? '正在唤起本机连接器…' : connectorState === 'missing' ? '我已启动，重新连接' : '一键唤起并连接本机');
+          const wakeBtn = el('button', connectorState === 'missing' ? 'cg-hub-primary' : '',
+            connectorState === 'waking' ? '正在唤起本机连接器…' : connectorState === 'missing' ? '我已启动，重新检测' : '通过 circuitgit:// 唤起');
           wakeBtn.type = 'button';
           wakeBtn.disabled = Boolean(s.connecting || connectorState === 'waking');
           wakeBtn.onclick = () => { void attemptWakeup(); };
-          actions.append(wakeBtn);
+          actions.append(directAuth, wakeBtn);
         }
       }
       if (anyConnected && typeof onDisconnect === 'function') {

@@ -41,8 +41,11 @@ test('blocked popup, cancellation, timeout and denial never yield a credential',
   const denied=fixture(),c=pairLocal({win:denied.win});denied.send('circuitgit.local.ready');denied.send('circuitgit.local.result',{allowed:false});await assert.rejects(c.result,/取消/);
 });
 
-test('probeLocalConnector and wakeLocalConnector handle ready, wakeup, and missing states',async()=>{
-  assert.equal(await probeLocalConnector({fetcher:async()=>({ok:true,json:async()=>({ok:true,data:{ready:true}})})}),true);
+test('probeLocalConnector and wakeLocalConnector handle ready, legacy 403/400, wakeup, and missing states',async()=>{
+  assert.equal(await probeLocalConnector({fetcher:async()=>({ok:true,status:200,json:async()=>({ok:true,data:{ready:true}})})}),true);
+  assert.equal(await probeLocalConnector({fetcher:async()=>({ok:false,status:403,json:async()=>({ok:false,error:{code:'forbidden',message:'Invalid node access code'}})})}),true);
+  assert.equal(await probeLocalConnector({fetcher:async()=>({ok:false,status:400,json:async()=>({ok:false,error:{code:'invalid_request',message:'Unknown node read route'}})})}),true);
+  assert.equal(await probeLocalConnector({fetcher:async()=>({ok:false,status:500,json:async()=>({ok:false})})}),false);
   assert.equal(await probeLocalConnector({fetcher:async()=>{throw Error('refused');}}),false);
 
   let probes=0,iframeSrc='';

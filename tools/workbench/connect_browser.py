@@ -50,7 +50,15 @@ def library_runtime_configuration(cfg, root, state):
     value.setdefault('source_repository', str(root))
     installed = json.loads((root / 'config/workbench.projects.json').read_text())
     projects = list(cfg.get('projects', [])); seen = {p['id'] for p in projects}
-    projects.extend(p for p in installed if p['id'] not in seen)
+    workspace_dir = Path(cfg['runtime_root']).expanduser().resolve() / 'workspace' if cfg.get('runtime_root') else None
+    has_existing_workspace = workspace_dir is not None and workspace_dir.is_dir()
+    for p in installed:
+        if p['id'] in seen:
+            continue
+        source_path = p.get('source_path')
+        if has_existing_workspace and isinstance(source_path, str) and not (workspace_dir / source_path).is_file():
+            continue
+        projects.append(p)
     value['projects'] = projects
     return value
 

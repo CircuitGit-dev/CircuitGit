@@ -10,9 +10,15 @@ export async function probeLocalConnector({base=LOCAL_CONNECTOR,timeout=1200,fet
   const timer=controller?setTimeout(()=>controller.abort(),timeout):null;
   try{
     const res=await fetcher(base+'/health',{method:'GET',mode:'cors',cache:'no-store',credentials:'omit',signal:controller?.signal});
-    if(!res?.ok)return false;
-    const payload=await res.json().catch(()=>null);
-    return Boolean(payload?.ok===true&&payload?.data?.ready===true);
+    const payload=await res?.json?.().catch(()=>null);
+    if(res?.ok)return Boolean(payload?.ok===true&&payload?.data?.ready===true);
+    // Older local CircuitGit connectors predate /health and answer with a CORS-allowed
+    // JSON 403/400 from the loopback node; that still confirms the connector is running.
+    if((res?.status===403&&payload?.ok===false&&payload?.error?.code==='forbidden')
+      ||(res?.status===400&&payload?.ok===false&&payload?.error?.code==='invalid_request')){
+      return true;
+    }
+    return false;
   }catch{return false;}
   finally{if(timer!==null)clearTimeout(timer);}
 }

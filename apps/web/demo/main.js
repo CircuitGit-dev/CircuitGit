@@ -447,7 +447,9 @@ export async function mountStudio({ui:providedUI}={}) {
       return {ai:Boolean(aiState.connected),simulation:Boolean(ob.connected),library:Boolean(lib.connected),connecting:Boolean(ob.connecting||aiState.connecting),detail:ob.endpoint?'连接器地址：'+ob.endpoint:''};
     },
     subscribe:fn=>{const off1=host.onboarding.subscribe(fn),off2=host.libraryBridge.subscribe(fn);return()=>{off1?.();off2?.();};},
-    onConnect:async()=>{const handle=await aiLoader.ensure();await handle?.connectLocal?.();},
+    onConnect:()=>remoteAI
+      ? remoteAI.connectLocal()
+      : host.onboarding.connect().then(()=>{void aiLoader.ensure();}).catch(e=>ui.notify(e.message,{kind:'error'})),
     onDisconnect:()=>{remoteAI?.disconnect?.();host.onboarding.disconnect();},
     onOpenAI:()=>{ui.slots.ai.setVisible(true);void aiLoader.ensure();},
     onOpenSimulation:()=>{void showEnvironment().catch(panelError);},

@@ -106,9 +106,22 @@ export function mountEnvironmentWizard(root,{adapter=null,pendingStore=null,getS
     if(!connected&&controller.has('connect')){
       const portRow=el('div',undefined,'ic-env-conn-controls');
       if(typeof onRequireConnector==='function'){
-        const smartBtn=button(s.connection.connecting?'连接中…':'一键唤起并连接本机',()=>onRequireConnector('远端 SSH 服务器仿真与 PDK 匹配'),!!s.busy||s.connection.connecting);
-        smartBtn.classList.add('ic-sim-primary');
-        portRow.append(smartBtn);
+        // Invoke controller.connect() synchronously inside the click gesture so the
+        // local authorization popup opens in one click just like Codex.
+        const connectDirect=async()=>{
+          try{
+            return await controller.connect();
+          }catch(reason){
+            const msg=String(reason?.message||reason||'');
+            if(/未检测到本机连接助手/.test(msg))onRequireConnector('远端 SSH 服务器仿真与 PDK 匹配');
+            throw reason;
+          }
+        };
+        const directBtn=button(s.connection.connecting?'连接中…':'授权连接本机（SSH / AI）',connectDirect,!!s.busy||s.connection.connecting);
+        directBtn.classList.add('ic-sim-primary');
+        const setupBtn=button('未启动？唤起或安装连接器',()=>onRequireConnector('远端 SSH 服务器仿真与 PDK 匹配'),!!s.busy||s.connection.connecting);
+        setupBtn.classList.add('ic-sim-quiet');
+        portRow.append(directBtn,setupBtn);
         const manualDetails=detail(connection,'manual-port','自定义本机端口');
         field(manualDetails,'本机端口（可选）','connection-port',port,value=>{port=value;},{placeholder:'8767',disabled:!!s.busy});
         manualDetails.append(button(s.connection.connecting?'连接中…':'连接本机环境服务',()=>{const number=port.trim()?Number(port):undefined;if(number!==undefined&&(!Number.isInteger(number)||number<1||number>65535))throw Error('端口应为 1–65535 的整数。');return controller.connect(number===undefined?{}:{port:number});},!!s.busy||s.connection.connecting));

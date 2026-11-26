@@ -1,6 +1,6 @@
 // Onboarding owns a transport and receipt scope independently of any AI session.
 import {createNodeClient,ONBOARDING_OPERATIONS,onboardingRequestTimeout,pdkScopeQuery} from './client.js';
-import {pairLocal,LOCAL_CONNECTOR} from './pair.js';
+import {pairLocal,LOCAL_CONNECTOR,saveSessionGrant} from './pair.js';
 import {validatePreDispatchRejection} from '../../../modules/simulation/environment/submission.js';
 import {checkAnalysisResult} from '../../../modules/simulation/environment/analysis.js';
 import {onboardingRecovery,recoveryMessage} from '../../../modules/simulation/environment/recovery.js';
@@ -119,6 +119,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
         candidate=clientFactory({url:receipt.url,accessCode:receipt.accessCode,onUnauthorized:()=>{if(generation===epoch)disconnect();}});
         info=await candidate.request('/node/info');resolvedEndpoint=candidate.base;
         if(info?.schema!=='circuitgit.remote-node.v1'||info.single_owner!==true||info.auth!=='bearer')throw failure('未返回兼容的本机助手身份。','unsupported_onboarding');
+        if(receipt.url===LOCAL_CONNECTOR)saveSessionGrant({url:receipt.url,accessCode:receipt.accessCode},win?.sessionStorage);
       }
       if(generation!==epoch)throw failure('连接已变化；旧响应已丢弃。','connection_changed');
       if(info?.capabilities?.simulation_onboarding!==true||info.capabilities.simulation_onboarding_api_version!=='1')throw failure('此助手尚未提供独立仿真环境配置接口。','unsupported_onboarding');
