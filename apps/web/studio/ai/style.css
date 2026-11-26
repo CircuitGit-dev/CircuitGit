@@ -183,7 +183,18 @@
   border-color: #e0b8b2;
   padding-inline: 9px;
 }
-.ic-ai-studio .ic-ai-form .ic-ai-stop { padding-inline: 9px; }
+.ic-ai-studio .ic-ai-form .ic-ai-stop {
+  color: #9b372c;
+  background: #fff5f3;
+  border-color: #e0b8b2;
+  font-weight: 600;
+  padding-inline: 10px;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-stop:hover:not(:disabled) {
+  background: #ffe8e4;
+  border-color: #cf8f86;
+  color: #7e251c;
+}
 .ic-ai-dialog {
   box-sizing: border-box;
   width: min(820px, 94vw);

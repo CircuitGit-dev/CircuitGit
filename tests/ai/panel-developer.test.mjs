@@ -74,6 +74,8 @@ test('native approvals require exact server capability and method, never a field
   assert.match(cards[2].textContent,/python3 -B tests\/check.py/);assert.match(cards[2].textContent,/执行目录：\/fixture\/application/);assert.match(cards[2].textContent,/Run isolated tests/);
   assert.equal(f.calls.filter(c=>c.path==='/approval').length,0);await yes(cards[0]).click();await yes(cards[1]).click();assert.equal(f.calls.filter(c=>c.path==='/approval').length,0);
   await yes(cards[2]).click();assert.deepEqual(f.calls.find(c=>c.path==='/approval').body,{session_id:'developer-fixture',approval_id:'command',decision:'approve'});
+  assert.equal(f.document.body.querySelectorAll('[data-approval-id="command"]').length,0,'resolved approval card must disappear immediately');
+  assert.equal(f.root.querySelector('.ic-ai-stop').hidden,false,'stop button stays visible while turn is active');
 });
 
 test('file approval shows only the exactly matched native file item and marks missing diffs honestly',async t=>{

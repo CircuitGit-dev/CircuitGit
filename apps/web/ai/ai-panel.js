@@ -117,7 +117,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     if(width!==inputWidth){inputWidth=width;resizeInput();}
   }):null;
   inputObserver?.observe(input);
-  let imageComposer=null,posting=false,uncertain=null,reconciling=false,resuming=false,recoveryRevision=0;
+  let imageComposer=null,posting=false,interrupting=false,uncertain=null,reconciling=false,resuming=false,recoveryRevision=0;
   let recovery={can_resume:false,reason:'unknown',expected_turn_id:null};
   const reconcileButton=make('button','ic-ai-image-reconcile','核对发送结果');reconcileButton.type='button';reconcileButton.hidden=true;form.append(reconcileButton);
   const resumeButton=make('button','ic-ai-resume','恢复输入 / 更换模型');resumeButton.type='button';resumeButton.hidden=true;
@@ -274,9 +274,15 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     if(!message.node)message.node=add('AI','','','assistant');renderAnswer(message.node,message.text);
   }
   function getState(){return Object.freeze({phase,connected,contextStale:root.dataset.stale==='true',pendingApprovalCount:[...approvalStates.values()].filter(s=>['pending','resolving'].includes(s)).length,suspendedApprovalCount:[...approvalStates.values()].filter(s=>s==='suspended').length});}
+  function removeApprovalCard(id){
+    for(const card of [...pending.children])if(card.dataset.approvalId===id)card.remove();
+    invalidApprovals.delete(id);
+  }
   function syncApprovals(){
-    for(const card of pending.children){
-      const id=card.dataset.approvalId,s=approvalStates.get(id),blocked=s!=='pending'||invalidApprovals.has(id)||root.dataset.stale==='true';
+    for(const card of [...pending.children]){
+      const id=card.dataset.approvalId,s=approvalStates.get(id);
+      if(s==='resolved'){card.remove();continue;}
+      const blocked=s!=='pending'||invalidApprovals.has(id)||root.dataset.stale==='true';
       card.querySelector('[data-decision=approve]').disabled=blocked||approvalAllowed.get(id)!==true;
       card.querySelector('[data-decision=deny]').disabled=blocked;
     }
@@ -291,9 +297,13 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
       pendingButton.hidden=count===0;
       const invalid=[...approvalStates].some(([id,s])=>s!=='resolved'&&invalidApprovals.has(id));
       pendingButton.textContent=(state.contextStale||invalid?'审批已失效':state.pendingApprovalCount?'待批准':'审批已暂停')+(count>1?` (${count})`:'');
-      stop.hidden=!['starting','running'].includes(phase);
+      stop.hidden=!(posting||['starting','running'].includes(phase)||state.pendingApprovalCount>0);
+      stop.disabled=interrupting;
       approvalNote.hidden=!(state.contextStale||invalid||state.suspendedApprovalCount);
       approvalNote.textContent=state.contextStale||invalid?'上下文已变化；此请求不能批准，请重新读取并审阅。':'操作已暂停，请查看执行详情。';
+      if(approvals?.element.open&&count===0)approvals.element.close();
+    }else{
+      stop.disabled=interrupting||!(posting||['starting','running'].includes(phase)||getState().pendingApprovalCount>0);
     }
     const composeLocked=posting||Boolean(uncertain)||reconciling||resuming;
     input.readOnly=composeLocked;imageComposer?.lock(composeLocked);
@@ -359,7 +369,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     async function decide(decision){
       if(approvalStates.get(a.approval_id)!=='pending'||invalidApprovals.has(a.approval_id)||root.dataset.stale==='true'||(decision==='approve'&&approvalAllowed.get(a.approval_id)!==true))return;
       yes.disabled=no.disabled=true;approvalStates.set(a.approval_id,'resolving');changed();
-      try{await post('/approval',{approval_id:a.approval_id,decision});approvalStates.set(a.approval_id,'resolved');changed();card.dataset.resolved=decision;card.append(make('p','',decision==='approve'?'人工决定已发送；查看实际回执。':'已拒绝并中断依赖操作。'));}
+      try{await post('/approval',{approval_id:a.approval_id,decision});approvalStates.set(a.approval_id,'resolved');removeApprovalCard(a.approval_id);changed();}
       catch(e){approvalStates.set(a.approval_id,'suspended');showError(e);card.append(make('p','','审批投递失败，操作暂停。'));}}
     yes.onclick=()=>decide('approve');no.onclick=()=>decide('deny');card.append(yes,no);pending.append(card);changed();
   }
@@ -386,7 +396,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     }
     else if(e.method==='tool/result'){add('实际工具结果 · '+p.tool,p.result);progressStep('tool:'+p.call_id,'工具返回 '+p.tool,p.result,true);if(onToolResult)void Promise.resolve().then(()=>onToolResult(p)).catch(error=>add('仿真界面同步',error.message,'error'));}
     else if(e.method==='approval/required'){approval(p);progressLabel('等待批准');progressStep('approval:'+p.approval_id,'等待人工批准',{kind:p.kind,operation:p.request?.operation});}
-    else if(e.method==='approval/resolved'){approvalStates.set(p.approval_id,'resolved');add('审批回执',p);progressStep('approval:'+p.approval_id,p.decision==='approve'?'已批准':'已拒绝',p,true);progressLabel('等待响应');}
+    else if(e.method==='approval/resolved'){approvalStates.set(p.approval_id,'resolved');removeApprovalCard(p.approval_id);add('审批回执',p);progressStep('approval:'+p.approval_id,p.decision==='approve'?'已批准':'已拒绝',p,true);progressLabel('等待响应');}
     else if(e.method==='session/ready'){phase='running';status.textContent=`Codex · ${p.model} · ${p.approvalsReviewer}`;add('会话连接',p);}
     else if(e.method==='session/error'){showError(p.error||{message:p.message||'AI 请求失败'});}
     else if(e.method==='error'){
@@ -428,7 +438,16 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
   function openDetails(){if(clean){execution.open();}else inspectConnection();}
   async function inspectConnection(){try{const d=await post('/doctor');add('真实连接检查',d.codex);status.textContent='app-server 可读；尚未证明模型回合可用';}catch(e){showError(e);}};
   inspect.onclick=inspectConnection;
-  stop.onclick=async()=>{try{await post('/interrupt');}catch(e){showError(e);}};
+  stop.onclick=async()=>{
+    if(interrupting)return;
+    interrupting=true;changed();
+    try{
+      await post('/interrupt');
+      if(destroyed)return;
+      progressFinish('已暂停');phase='suspended';suspendPending();status.textContent='已暂停 · 不重放';
+    }catch(e){if(!destroyed)showError(e);}
+    finally{interrupting=false;if(!destroyed)changed();}
+  };
   resumeButton.onclick=async()=>{
     if(resumeButton.disabled||resuming||!recovery.can_resume)return;
     const expected=recovery.expected_turn_id;resuming=true;++recoveryRevision;changed();

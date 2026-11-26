@@ -114,7 +114,14 @@ try{
     await host.locator('.ic-ai-pending-button').waitFor();await host.locator('.ic-ai-pending-button').click();const dialog=page.getByRole('dialog',{name:'审批请求'}),cards=dialog.locator('.ic-ai-approval');await cards.nth(2).waitFor();
     assert.match(await cards.nth(0).innerText(),/python3 -B tests\/check.py/);assert.match(await cards.nth(0).innerText(),/执行目录：\/fixture\/application\/source/);assert.match(await cards.nth(1).innerText(),/apps\/web\/example.js/);assert.match(await cards.nth(1).innerText(),/fixed/);
     assert.equal(await cards.nth(2).getByRole('button',{name:'批准这次操作'}).isDisabled(),true);assert.equal(calls.filter(c=>c.path==='/approval').length,0);await shot('settings-native-approval.png');
-    await cards.nth(0).getByRole('button',{name:'批准这次操作'}).click();await cards.nth(1).getByRole('button',{name:'批准这次操作'}).click();await cards.nth(2).getByRole('button',{name:'拒绝',exact:true}).click();assert.deepEqual(calls.filter(c=>c.path==='/approval').map(c=>c.body.decision),['approve','approve','deny']);await dialog.getByRole('button',{name:'关闭',exact:true}).click();
+    await dialog.locator('[data-approval-id="command"]').getByRole('button',{name:'批准这次操作'}).click();
+    assert.equal(await dialog.locator('[data-approval-id="command"]').count(),0);
+    await dialog.locator('[data-approval-id="file"]').getByRole('button',{name:'批准这次操作'}).click();
+    assert.equal(await dialog.locator('[data-approval-id="file"]').count(),0);
+    await dialog.locator('[data-approval-id="unsupported"]').getByRole('button',{name:'拒绝',exact:true}).click();
+    assert.equal(await cards.count(),0);
+    assert.equal(await dialog.isVisible(),false);
+    assert.deepEqual(calls.filter(c=>c.path==='/approval').map(c=>c.body.decision),['approve','approve','deny']);
     report.checks.push('native command/cwd/reason and exact-item file patch are reviewable; only server-enabled known requests can be approved by explicit clicks');
   }
   if(fullDeveloper){await host.locator('.ic-ai-progress > summary').click();assert.match(await host.locator('.ic-ai-progress').innerText(),/本回合权限：开发者 · 完全访问/);assert.equal(await host.locator('.ic-ai-pending-button').isVisible(),false);assert.equal(calls.filter(c=>c.path==='/approval').length,0);report.checks.push('the full-access receipt is displayed without inventing approvals or transmitting browser-selected access');}
