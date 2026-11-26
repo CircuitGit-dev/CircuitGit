@@ -2,6 +2,7 @@ import {createAgentAssistance} from '../ai/assistance.js';
 import {createLayout} from '../studio/layout.js';
 import {mountWorkspaceHub} from '../studio/workspace-hub.js';
 import {mountWelcomeGuide} from '../studio/welcome-guide.js';
+import {buildImportedRnlSource,createProjectImporter} from '../studio/project-import.js';
 import {whenVisible} from '../studio/lazy-slot.js';
 import {mountWorkflowLink} from '../studio/workflow-link.js';
 import {openSource,showBuilt,adoptSource,isLoading} from '../vendor/rnl-viewer/open.js';
@@ -64,7 +65,7 @@ export async function mountStudio({ui:providedUI}={}) {
   const fav=document.createElement('link');fav.rel='icon';fav.type='image/svg+xml';fav.href=new URL('../branding/circuitgit-small.svg',import.meta.url);document.head.append(fav);
   const baseText=await fetch(new URL('./rc.scs',import.meta.url)).then(r=>{if(!r.ok)throw Error('RC example unavailable');return r.text();});
   let source=baseText,hash=await sha256(source),points=null,plotController=null,mode='none';
-  let activeLibrary=null,versionSelection=null,libraryVersions=null,switching=false,waveformMount=null,referenceObserver=null,onboardingWaves=false,onboardingWaveEpoch=0;
+  let activeLibrary=null,importedProject=null,versionSelection=null,libraryVersions=null,switching=false,waveformMount=null,referenceObserver=null,onboardingWaves=false,onboardingWaveEpoch=0;
   let loadedWatch=null,hotTask=null,hotController=null,hotQueued=false,hotDeferred=false,hotNotice='';
   let parameters={resistance:1000,capacitance:1e-12,stop:12e-9};
   const listeners=new Set();
@@ -87,7 +88,7 @@ export async function mountStudio({ui:providedUI}={}) {
   const workflowLink=mountWorkflowLink(host);
   window.addEventListener('pagehide',()=>workflowLink.destroy(),{once:true});
   host.libraryBridge=createLibraryBridge();
-  let pairedFromOnboarding=null,remoteAI=null,workspaceHub=null,welcomeGuide=null;
+  let pairedFromOnboarding=null,remoteAI=null,workspaceHub=null,welcomeGuide=null,projectImporter=null;
   host.onboarding=createOnboardingBridge({
     win:window,
     onPaired:({client,info,local})=>{
@@ -202,7 +203,7 @@ export async function mountStudio({ui:providedUI}={}) {
   function showRuns(){simulationPage='runs';renderSimulationPage();ui.slots.simulation.setVisible(true);void environmentLoader.ensure().then(renderRunsTab).catch(()=>{});}
   function showReferenceConfiguration(){if(!referenceActive())return;simulationPage='reference';renderSimulationPage();ui.slots.simulation.setVisible(true);}
   environmentTab.onclick=()=>void showEnvironment().catch(error=>ui.notify(error.message,{kind:'error'}));runsTab.onclick=showRuns;referenceTab.onclick=showReferenceConfiguration;renderSimulationPage();
-  window.addEventListener('pagehide',()=>{offOnboardingSync?.();offOnboardingState?.();welcomeGuide?.destroy();workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
+  window.addEventListener('pagehide',()=>{offOnboardingSync?.();offOnboardingState?.();projectImporter?.destroy();welcomeGuide?.destroy();workspaceHub?.destroy();agentAssistance.destroy();aiLoader.dispose();environmentLoader.dispose();unregisterEnvironment?.();environmentMount?.destroy();host.onboardingSync.destroy();host.onboarding.disconnect();},{once:true});
   let waveModule=null,waveMountTask=null;
   async function mountReferenceWaves(){
     if(waveformMount||!referenceActive()||onboardingWaves)return;
@@ -286,7 +287,7 @@ export async function mountStudio({ui:providedUI}={}) {
       ui.notify('参考曲线已更新；在波形列表中重新选择要查看的信号。');
     }finally{$('demo-update').disabled=false;}}
   $('demo-update').onclick=()=>rebuild().catch(e=>ui.notify(e.message,{kind:'error'}));$('demo-export').onclick=()=>{try{exportConfiguration();}catch(e){ui.notify(e.message,{kind:'error'});}};$('demo-guide').onclick=()=>void showEnvironment().catch(panelError);
-  function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=activeLibrary?activeLibrary.bundle.text:source;dialog(activeLibrary?activeLibrary.cell.name+' · '+activeLibrary.view.label:'RC 示例网表 · 含固定 RNL 布局',area);}
+  function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=activeLibrary?activeLibrary.bundle.text:importedProject?importedProject.text:source;dialog(activeLibrary?activeLibrary.cell.name+' · '+activeLibrary.view.label:importedProject?importedProject.label:'RC 示例网表 · 含固定 RNL 布局',area);}
   function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p><strong>CircuitGit 网页工作台</strong>提供完整的原理图（RNL）、电路库、波形探针、远端 SSH 仿真（SpiceOwl）、AI 助手（Codex）与 Git 版本管理交互。</p><p><strong>免安装功能</strong>：直接浏览电路库、查看与编辑原理图、点选参考波形并体验游标测量。</p><p><strong>本机 SSH / AI / Git 连接</strong>：点击顶栏「连接本机 (SSH / AI)」即可通过 <code>circuitgit://</code> 协议一键唤起本机连接器；首次使用仅需下载项目并双击一次启动器（Windows: <code>Start CircuitGit.bat</code>，macOS: <code>Start CircuitGit.command</code>），之后所有日常操作均在本网页内完成。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">本机连接器与后台自启说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
   const libraryManager=mountLibraryManager({toolbar:$('studio-toolbar'),libraryPane:$('pane-files'),onOpen:openLibrary,onReference:openReference,onSelection:value=>{versionSelection=value;emit();},notify:ui.notify});
@@ -301,6 +302,8 @@ export async function mountStudio({ui:providedUI}={}) {
     return libraryManager.openProjectTop(libraryId,cellId||null);
   };
   for(const id of ['studio-project','studio-entry']){const label=$(id)?.closest('label');if(label){label.classList.add('demo-library-trigger');label.title='点击浏览并切换公开电路库';label.addEventListener('click',()=>libraryManager.show());}}
+  register({id:'project.import.local',menu:'project',label:'导入本地网表 / 文件夹…',run:()=>projectImporter?.openLocal()});
+  register({id:'project.import.ssh',menu:'project',label:'从 SSH 服务器导入网表…',run:()=>projectImporter?.openSsh()});
   register({id:'project.library',menu:'project',label:'Library Manager…',run:()=>libraryManager.show()});
   register({id:'project.reference',menu:'project',label:'返回 RC 解析参考',run:openReference});
   function stopReference(){
@@ -321,11 +324,90 @@ export async function mountStudio({ui:providedUI}={}) {
     const back=document.createElement('button');back.type='button';back.textContent='回到 RC 参考';back.onclick=()=>void openReference().catch(e=>ui.notify(e.message,{kind:'error'}));
     box.append(title,name,evidence,dependency,ai,environment,document.createTextNode(' '),browse,document.createTextNode(' '),back);libraryInfo.replaceChildren(box);simulationPage='environment';renderSimulationPage();
   }
+  async function importNetlistProject(payload){
+    if(switching)return false;
+    if(!await confirmLeave('导入你的电路项目'))return false;
+    hotController?.abort();loadedWatch?.();loadedWatch=null;
+    ++onboardingWaveEpoch;switching=true;activeLibrary=null;
+    stopReference();
+    const rnlSource=buildImportedRnlSource(payload);
+    const supportFiles=payload.supportFiles||{};
+    const supportCount=Object.keys(supportFiles).length;
+    const displayLabel=payload.origin==='ssh'
+      ? `SSH · ${payload.sshTarget} / ${payload.fileName}`
+      : `本地 · ${payload.projectName||payload.fileName}`;
+    const projectBadge=payload.origin==='ssh'?`SSH · ${payload.sshTarget}`:`本地 · ${payload.projectName||payload.fileName}`;
+    $('studio-project').replaceChildren(new Option(projectBadge,'imported-netlist'));
+    $('studio-entry').replaceChildren(new Option(payload.fileName,rnlSource.path));
+    $('studio-run').replaceChildren(new Option('未关联仿真运行',''));
+    context={project:{id:'imported-netlist',name:payload.projectName||payload.fileName,sourceCommit:null},run:null,selection:null,loading:true,loadState:'loading',
+      file:{path:rnlSource.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};emit();
+    ui.setNativeState({loading:true,hidden:false});$('studio-native-note').textContent='正在加载导入的网表…';
+    try{
+      const opened=await openSource(rnlSource,false,undefined,false,null,null,true);
+      if(!opened||!doc||doc.failed)throw Error('导入的网表未能完成 RNL 解析；请检查 Problems 诊断。');
+      const errors=doc.diagnostics.filter(d=>d.severity==='error');
+      const textHash=await sha256(payload.text);
+      importedProject={
+        origin:payload.origin||'local',
+        name:payload.projectName||payload.fileName,
+        fileName:payload.fileName,
+        label:displayLabel,
+        sshTarget:payload.sshTarget||null,
+        remotePath:payload.remotePath||null,
+        supportCount,
+        text:payload.text,
+      };
+      context={...context,loading:false,loadState:errors.length?'error':'ready',file:{...context.file,currentTextSha256:textHash}};emit();
+      fit();ui.slots.schematic?.setVisible(true);
+      const depNote=supportCount?`（含 ${supportCount} 个依赖文件）`:'';
+      $('studio-native-note').textContent=`${displayLabel}${depNote} · ${errors.length?errors.length+' 项 RNL 诊断':'可直接与 AI 协作或配置远端 SSH 仿真'}`;
+      const infoBox=document.createElement('details');infoBox.className='ic-sim-detail';infoBox.open=true;
+      const sum=document.createElement('summary');sum.textContent='当前已导入项目';infoBox.append(sum);
+      const h2=document.createElement('h2');h2.textContent=payload.fileName;
+      const meta=document.createElement('p');meta.textContent=payload.origin==='ssh'
+        ? `来源：SSH 服务器 ${payload.sshTarget}:${payload.remotePath||payload.fileName}${depNote}`
+        : `来源：本地导入 · ${payload.projectName||payload.fileName}${depNote}`;
+      const reimp=document.createElement('button');reimp.type='button';reimp.textContent='导入其他本地 / SSH 网表…';
+      reimp.onclick=()=>projectImporter?.open(payload.origin==='ssh'?'ssh':'local');
+      infoBox.append(h2,meta,reimp);libraryInfo.replaceChildren(infoBox);
+      simulationPage='environment';renderSimulationPage();
+      welcomeGuide?.setStep?.(3);
+      if(host.onboarding.getState().connected){
+        try{
+          const netArgs=supportCount
+            ? {file_name:payload.fileName,text:payload.text,mode:'agent-tb',support_files:supportFiles}
+            : {file_name:payload.fileName,text:payload.text,mode:'agent-tb'};
+          try{await host.onboarding.inspectNetlist(netArgs);}
+          catch(firstErr){
+            if(supportCount)throw firstErr;
+            await host.onboarding.inspectNetlist({file_name:payload.fileName,text:payload.text});
+          }
+          await host.onboardingSync.refresh().catch(()=>{});
+          const aiSynced=await remoteAI?.syncOnboardingProject?.().catch(()=>false);
+          ui.notify(`已导入「${payload.fileName}」${depNote}，已同步到${aiSynced?' AI 对话与':''}远端仿真会话。`);
+        }catch(syncErr){
+          ui.notify(`原理图已打开「${payload.fileName}」，同步仿真会话提示：${syncErr?.message||syncErr}`,{kind:'warning'});
+        }
+      }else{
+        ui.notify(`已在画布打开「${payload.fileName}」${depNote}；连接本机后即可与 Agent 协作并运行远端 SSH 仿真。`);
+      }
+      if(errors.length)ui.notify('原理图存在 '+errors.length+' 项 RNL 诊断；请查看左侧「问题」。',{kind:'warning'});
+      welcomeGuide?.update();
+      return true;
+    }catch(error){
+      context={...context,loading:false,loadState:'error'};emit();
+      $('studio-native-note').textContent='导入网表加载失败 · '+payload.fileName;
+      throw error;
+    }finally{
+      switching=false;ui.setNativeState({loading:false,hidden:false});
+    }
+  }
   async function openLibrary(value){
     if(switching)return false;
     if(!await confirmLeave('打开公开库视图'))return false;
     hotController?.abort();loadedWatch?.();loadedWatch=null;
-    ++onboardingWaveEpoch;switching=true;activeLibrary=value;versionSelection=value;stopReference();libraryInformation(value);
+    ++onboardingWaveEpoch;switching=true;activeLibrary=value;importedProject=null;versionSelection=value;stopReference();libraryInformation(value);
     $('studio-project').replaceChildren(new Option(value.library.name,value.library.id));$('studio-entry').replaceChildren(new Option(value.cell.name+' / '+value.view.label,value.view.entry));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
     context={project:{id:(value.origin==='working'?'local-library:':'public-library:')+value.library.id+':'+value.cell.id,sourceCommit:value.origin==='working'?value.base_commit:null,libraryId:value.library.id,cellId:value.cell.id},run:null,selection:null,loading:true,loadState:'loading',file:{path:value.bundle.source.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};emit();
     ui.setNativeState({loading:true,hidden:false});$('studio-native-note').textContent='读取公开库视图…';
@@ -353,7 +435,7 @@ export async function mountStudio({ui:providedUI}={}) {
     try{
       const opened=await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false,undefined,false,null,null,true);
       if(!opened||!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
-      activeLibrary=null;context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,loading:false,loadState:'ready',file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{bundleCommit:null,manifestSha256:hash,sourceMatch:true,state:'ready'}};
+      activeLibrary=null;importedProject=null;context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,loading:false,loadState:'ready',file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{bundleCommit:null,manifestSha256:hash,sourceMatch:true,state:'ready'}};
       $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-run').replaceChildren(new Option('解析参考 · 可连 SSH 跑 Spectre','reference'));
       libraryInfo.replaceChildren();$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';switching=false;simulationPage='reference';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);return true;
     }catch(error){context={...context,run:null,selection:null,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='RC 参考加载失败 · 无关联波形';throw error;}
@@ -475,14 +557,27 @@ export async function mountStudio({ui:providedUI}={}) {
     onOpenAI:()=>{ui.slots.ai.setVisible(true);void aiLoader.ensure();},
     onOpenSimulation:()=>{void showEnvironment().catch(panelError);},
   });
+  projectImporter=createProjectImporter({
+    doc:document,
+    onboarding:host.onboarding,
+    getConnected:()=>Boolean(host.onboarding.getState().connected),
+    subscribe:subscribeHub,
+    onConnect:connectDirect,
+    onOpenHub:()=>workspaceHub?.open({feature:'从 SSH 服务器浏览并导入网表'}),
+    onImport:importNetlistProject,
+    notify:ui.notify,
+  });
+  host.openProjectImport=(tab='local')=>projectImporter.open(tab);
   welcomeGuide=mountWelcomeGuide({
     toolbar:$('studio-toolbar'),
     anchor:document.getElementById('studio-dockview')||document.getElementById('studio-workspace')||$('studio-toolbar').nextElementSibling,
     getStatus:readHubStatus,
     subscribe:subscribeHub,
-    getCurrentProject:()=>activeLibrary?{libraryId:activeLibrary.library.id,cellId:activeLibrary.cell.id,label:activeLibrary.library.name}:{libraryId:'basics',cellId:'rc-smoke',label:'RC · 入门电路'},
+    getCurrentProject:()=>importedProject?{origin:importedProject.origin,name:importedProject.name,label:importedProject.label}:activeLibrary?{libraryId:activeLibrary.library.id,cellId:activeLibrary.cell.id,label:activeLibrary.library.name}:{libraryId:'basics',cellId:'rc-smoke',label:'RC · 入门电路'},
     onConnect:connectDirect,
     onOpenProject:item=>host.openProjectCanvas(item),
+    onImportLocal:()=>projectImporter.openLocal(),
+    onImportSsh:()=>projectImporter.openSsh(),
     onBrowseProjects:()=>libraryManager.show(),
     onOpenAI:()=>{ui.slots.ai.setVisible(true);void aiLoader.ensure();},
     onOpenSimulation:()=>{void showEnvironment().catch(panelError);},

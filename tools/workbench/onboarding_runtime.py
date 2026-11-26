@@ -20,7 +20,7 @@ from workspace import Conflict
 
 PREFIX = '/api/simulation/onboarding'
 READS = {'ssh-hosts','session','source','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','agent-tb/draft','agent-tb/review','pdk-scopes'}
-WRITES = {'netlist','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis','select-pdk-scope'}
+WRITES = {'netlist','ssh-browse','ssh-import','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis','select-pdk-scope'}
 SCHEMA = 'ic.onboarding.session.v1'
 IN_PROGRESS={'probe','discover-pdk','veriloga-headers','prepare','agent-tb/draft','agent-tb/prepare','submitting','select-pdk-scope'}
 
@@ -298,12 +298,13 @@ class OnboardingRuntime:
         if origin not in ('interactive_client','native_agent','test_harness'):
             raise PermissionError('Unsupported onboarding entry point')
         if not isinstance(args,dict):raise ValueError('Onboarding arguments must be an object')
-        methods={'netlist':self._netlist,'probe':self._probe,'discover-pdk':self._discover,'veriloga-headers':self._veriloga_headers,
+        methods={'netlist':self._netlist,'ssh-browse':self._ssh_browse,'ssh-import':self._ssh_import,
+                 'probe':self._probe,'discover-pdk':self._discover,'veriloga-headers':self._veriloga_headers,
                  'select-pdk-scope':self._select_pdk_scope,
                  'prepare':self._prepare,'run':self._run,'inspect':self._inspect,
                  'agent-tb/draft':self._agent_draft,'agent-tb/prepare':self._agent_prepare,'analysis':self._analysis}
         if operation not in methods:raise ValueError('Unknown finite onboarding operation')
-        if operation=='netlist':return methods[operation](args,origin)
+        if operation in ('netlist','ssh-browse','ssh-import'):return methods[operation](args,origin)
         with locked(self._folder(args.get('intake_id'))/'operation.lock'):
             self._require_operable(self._load(args['intake_id']))
             try:return methods[operation](args,origin)
@@ -371,6 +372,23 @@ class OnboardingRuntime:
                 for name,raw in support.items()})
         atomic(folder/'session.json',state)
         return public_session(state)
+
+    def _ssh_browse(self,args,origin):
+        if not {'ssh_target'}<=set(args) or set(args)-{'ssh_target','path'}:
+            raise ValueError('Provide an explicit ssh_target and optional remote path')
+        from onboarding_ssh_import import browse_remote_netlists
+        return browse_remote_netlists(args['ssh_target'],self.config.get('ssh_config'),args.get('path'))
+
+    def _ssh_import(self,args,origin):
+        if not {'ssh_target','path'}<=set(args) or set(args)-{'ssh_target','path','include_dependencies'}:
+            raise ValueError('Provide an explicit ssh_target and remote netlist path')
+        from onboarding_ssh_import import fetch_remote_netlist
+        return fetch_remote_netlist(
+            args['ssh_target'],
+            self.config.get('ssh_config'),
+            args['path'],
+            include_dependencies=args.get('include_dependencies',True),
+        )
 
     def _probe(self,args,origin):
         if set(args)-{'intake_id','revision','ssh_targets','overrides'} or not {'intake_id','revision','ssh_targets'}<=set(args):

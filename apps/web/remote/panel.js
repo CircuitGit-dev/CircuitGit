@@ -112,12 +112,13 @@ export function mountRemoteNode(host) {
   <div class="cg-ai-project-bar" hidden>
     <span class="cg-ai-project-label">当前项目</span>
     <select class="cg-ai-project-select" aria-label="切换当前协作项目"></select>
-    <button type="button" data-action="browse-projects" title="打开项目与电路库浏览层级">全部项目…</button>
+    <button type="button" data-action="import-project" title="导入本地网表 / 文件夹或从 SSH 服务器导入">+ 导入</button>
+    <button type="button" data-action="browse-projects" title="打开项目与电路库浏览层级">内置库…</button>
   </div>
   <p class="cg-node-status" role="status" aria-live="polite"></p><div class="cg-node-chat"></div>`;
   parent.element.replaceChildren(root);
   const $=s=>root.querySelector(s),welcome=$('.cg-node-welcome'),form=$('form'),connected=$('.cg-node-connected'),status=$('.cg-node-status'),chat=$('.cg-node-chat'),projects=$('.cg-node-project select');
-  const projectBar=$('.cg-ai-project-bar'),projectBarSelect=$('.cg-ai-project-select'),browseProjectsButton=$('[data-action=browse-projects]');
+  const projectBar=$('.cg-ai-project-bar'),projectBarSelect=$('.cg-ai-project-select'),browseProjectsButton=$('[data-action=browse-projects]'),importProjectButton=$('[data-action=import-project]');
   const localButton=$('[data-action=local]'),openButton=$('[data-action=open-project]'),canvasButton=$('[data-action=use-canvas]'),loginButton=$('[data-action=login]');
   const initialSettings=doc.createElement('div'),initialToggle=doc.createElement('button'),initialHint=doc.createElement('span'),settingsHome=doc.createElement('div'),connectionSettings=doc.createElement('details'),connectionSummary=doc.createElement('summary');
   initialSettings.className='cg-node-initial-settings';initialToggle.type='button';initialToggle.textContent='⚙';initialToggle.setAttribute('aria-label','AI连接设置');initialToggle.setAttribute('aria-expanded','false');initialHint.textContent='在设置中连接工作台助手（Codex + 远端仿真 + 本地库）';initialSettings.append(initialToggle,initialHint);
@@ -139,6 +140,7 @@ export function mountRemoteNode(host) {
     projectBarSelect.replaceChildren(...[...projects.options].map(o=>new Option(o.textContent,o.value)));
     projectBarSelect.value=projects.value;
     projectBarSelect.disabled=busy||!accountReady||!client;
+    if(importProjectButton)importProjectButton.hidden=typeof host.openProjectImport!=='function';
     browseProjectsButton.hidden=typeof host.openLibraryManager!=='function';
     projectBar.hidden=!client||!ai;
   }
@@ -190,6 +192,7 @@ export function mountRemoteNode(host) {
         projects.add(new Option('当前网表 · '+selected.file.path,selected.project.id));
         if(!previous||previous.startsWith('onboarding:'))projects.value=selected.project.id;
       }
+      syncProjectBar();
     })();
     try{return await choiceTask;}finally{choiceTask=null;}
   }
@@ -369,6 +372,7 @@ export function mountRemoteNode(host) {
   };
   projects.addEventListener('change',()=>{if(client&&accountReady&&!busy&&projects.value)void openButton.onclick();});
   projectBarSelect.addEventListener('change',()=>{if(client&&accountReady&&!busy&&projectBarSelect.value){projects.value=projectBarSelect.value;void openButton.onclick();}});
+  if(importProjectButton)importProjectButton.onclick=()=>{host.openProjectImport?.('local');};
   browseProjectsButton.onclick=()=>{host.openLibraryManager?.();};
   canvasButton.onclick=async()=>{
     if(busy||destroyed||!client||!accountReady)return;
@@ -437,7 +441,18 @@ export function mountRemoteNode(host) {
     await openButton.onclick();
     return context?.project?.id === targetId;
   }
+  async function syncOnboardingProject() {
+    if (destroyed || !client || !accountReady || busy) return false;
+    if (inflightTurns || ['starting', 'running'].includes(ai?.getState()?.phase)) return false;
+    await refreshOnboardingChoice();
+    const targetId = onboardingChoice?.project?.id;
+    if (!targetId) return false;
+    if (context?.project?.id === targetId && ai) return true;
+    projects.value = targetId;
+    await openButton.onclick();
+    return context?.project?.id === targetId;
+  }
   const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 Codex',run:()=>{parent.setVisible(true);if(!context){showConnectionSettings();(connected.hidden?localButton:openButton).focus();}else ai?.show();}});
   const offAssistance=host.agentAssistance?.registerReceiver(queueDraft);
-  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],adoptClient,tryResumeSession,syncProjectFromCanvas,connectLocal:()=>{parent.setVisible(true);showConnectionSettings();return localButton.onclick();},disconnect,getConnectionState:()=>({connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai}),subscribeConnection(fn){connListeners.add(fn);return()=>connListeners.delete(fn);},destroy(){if(destroyed)return;destroyed=true;connListeners.clear();offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
+  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],adoptClient,tryResumeSession,syncProjectFromCanvas,syncOnboardingProject,connectLocal:()=>{parent.setVisible(true);showConnectionSettings();return localButton.onclick();},disconnect,getConnectionState:()=>({connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai}),subscribeConnection(fn){connListeners.add(fn);return()=>connListeners.delete(fn);},destroy(){if(destroyed)return;destroyed=true;connListeners.clear();offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
 }

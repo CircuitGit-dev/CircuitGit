@@ -2,6 +2,7 @@
 import {readSimulationJson} from '../../../modules/simulation/http.js';
 export const ONBOARDING_OPERATIONS=Object.freeze({
   inspectNetlist:{path:'/netlist',method:'POST'},listSshAliases:{path:'/ssh-hosts',method:'GET'},
+  browseRemoteNetlists:{path:'/ssh-browse',method:'POST'},importRemoteNetlist:{path:'/ssh-import',method:'POST'},
   getSession:{path:'/session',method:'GET',query:['intake_id']},probeHost:{path:'/probe',method:'POST'},
   probeVerilogaHeaders:{path:'/veriloga-headers',method:'POST'},
   getPdkScopes:{path:'/pdk-scopes',method:'GET',query:['intake_id','probe_id','library_id'],optionalQuery:['entry_id','offset','limit']},
@@ -19,7 +20,7 @@ const ONBOARDING_PREFIX='/simulation/onboarding';
 // 240s remote / 270s transport / 300s gateway, with 10s browser margin. Prepare includes four local
 // Git calls capped at 20s and a 60s audit. Run reserves after two host checks
 // (30s doctor + 30s version/10s resources) and one 30s selected-host preflight.
-const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,getSession:20000,getPdkScopes:20000,selectPdkScope:20000,
+const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,browseRemoteNetlists:35000,importRemoteNetlist:35000,getSession:20000,getPdkScopes:20000,selectPdkScope:20000,
   probeVerilogaHeaders:70000,probeHost:290000,discoverPdk:310000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000,
   saveAgentTestbench:20000,getAgentTestbench:20000,prepareAgentTestbench:150000,analyzeExperiment:120000});
 const boundedHostCount=rows=>Array.isArray(rows)&&rows.length>=1&&rows.length<=8?rows.length:8;

@@ -65,6 +65,8 @@ export function mountWelcomeGuide({
   getCurrentProject=()=>null,
   onConnect=null,
   onOpenProject=null,
+  onImportLocal=null,
+  onImportSsh=null,
   onBrowseProjects=null,
   onOpenAI=null,
   onOpenSimulation=null,
@@ -98,6 +100,7 @@ export function mountWelcomeGuide({
   function currentProjectLabel(){
     const p=getCurrentProject?.();
     if(!p)return 'RC · 入门电路';
+    if(p.origin==='local'||p.origin==='ssh')return p.label||p.name||'已导入项目';
     const known=FEATURED_PROJECTS.find(item=>item.libraryId===p.libraryId&&(!item.cellId||item.cellId===p.cellId));
     if(known)return known.name;
     return p.label||p.libraryName||p.libraryId||'RC · 入门电路';
@@ -180,9 +183,10 @@ export function mountWelcomeGuide({
     const stepsNav=el('div','cg-welcome-steps');
     stepsNav.setAttribute('role','tablist');
     stepsNav.setAttribute('aria-label','新手引导步骤');
+    const isUserProject=Boolean(curProj?.origin==='local'||curProj?.origin==='ssh');
     const stepItems=[
       [1,'1. 连接 Agent 与 SSH',connected],
-      [2,'2. 选择协作项目',Boolean(curProj?.libraryId&&curProj.libraryId!=='basics')],
+      [2,'2. 导入或选择项目',isUserProject||Boolean(curProj?.libraryId&&curProj.libraryId!=='basics')],
       [3,'3. 开始工作台',false],
     ];
     for(const [num,label,done] of stepItems){
@@ -238,13 +242,35 @@ export function mountWelcomeGuide({
     }else if(step===2){
       const copy=el('div','cg-welcome-copy');
       copy.append(
-        el('strong','','第 2 步：选择你要协作的电路项目'),
-        el('p','','选择一个完整项目后，画布会自动打开它的顶层原理图（双击可下钻任意子模块），Agent 也会同步绑定到整个项目。'),
+        el('strong','','第 2 步：导入你自己的电路项目，或先用示例体验'),
+        el('p','','支持直接导入本地网表 / 文件夹，或从已连接的 SSH 服务器浏览拉取网表；导入后画布自动渲染原理图，Agent 与远端仿真也会自动绑定到你的项目。'),
       );
+
+      const userRow=el('div','cg-welcome-import-row');
+      if(typeof onImportLocal==='function'){
+        const localCard=el('button','cg-welcome-import-card'+(curProj?.origin==='local'?' is-selected':''));
+        localCard.type='button';
+        const h=el('span','cg-welcome-project-head');
+        h.append(el('strong','','📂 导入本地网表 / 文件夹'),el('span','cg-welcome-import-badge','你的本地项目'));
+        localCard.append(h,el('small','',curProj?.origin==='local'?`已加载：${curProj.label}（点击可重新导入）`:'选择电脑上的 .scs / .sp / .cir 文件或整个目录（自动保留 include 依赖）'));
+        localCard.onclick=()=>{if(inDialog&&expandedDialog?.open)expandedDialog.close();onImportLocal();};
+        userRow.append(localCard);
+      }
+      if(typeof onImportSsh==='function'){
+        const sshCard=el('button','cg-welcome-import-card'+(curProj?.origin==='ssh'?' is-selected':''));
+        sshCard.type='button';
+        const h=el('span','cg-welcome-project-head');
+        h.append(el('strong','','🖥 从 SSH 服务器导入网表'),el('span','cg-welcome-import-badge',connected?'已连本机 · 可浏览':'需连接本机'));
+        sshCard.append(h,el('small','',curProj?.origin==='ssh'?`已加载：${curProj.label}（点击可切换其他远端网表）`:'浏览 ~/.ssh/config 中 EDA 服务器目录，一键拉取网表并预填仿真主机'));
+        sshCard.onclick=()=>{if(inDialog&&expandedDialog?.open)expandedDialog.close();onImportSsh();};
+        userRow.append(sshCard);
+      }
+
+      const demoLabel=el('div','cg-welcome-subhead','内置示例项目（快速体验）');
       const cards=el('div','cg-welcome-projects');
       for(const item of FEATURED_PROJECTS){
         const key=item.libraryId+'/'+item.cellId;
-        const active=curProj?.libraryId===item.libraryId&&(!curProj.cellId||curProj.cellId===item.cellId);
+        const active=!isUserProject&&curProj?.libraryId===item.libraryId&&(!curProj.cellId||curProj.cellId===item.cellId);
         const card=el('button','cg-welcome-project'+(active?' is-selected':''));
         card.type='button';
         card.disabled=Boolean(openingProjectId);
@@ -258,12 +284,12 @@ export function mountWelcomeGuide({
       const actions=el('div','cg-welcome-actions');
       const prev=el('button','cg-welcome-btn','← 上一步');
       prev.type='button';prev.onclick=()=>{step=1;renderAll();};
-      const browse=el('button','cg-welcome-btn','浏览全部项目与模块…');
+      const browse=el('button','cg-welcome-btn','浏览内置电路库…');
       browse.type='button';browse.onclick=()=>{if(inDialog&&expandedDialog?.open)expandedDialog.close();onBrowseProjects?.();};
       const next=el('button','cg-welcome-primary','下一步：进入工作台 →');
       next.type='button';next.onclick=()=>{step=3;renderAll();};
       actions.append(prev,browse,next);
-      body.append(copy,cards,actions);
+      body.append(copy,userRow,demoLabel,cards,actions);
     }else{
       const copy=el('div','cg-welcome-copy');
       copy.append(
@@ -330,6 +356,7 @@ export function mountWelcomeGuide({
 
   return {
     open(initialStep=1){openDialog(initialStep);},
+    setStep(nextStep){if(destroyed)return;step=nextStep;renderAll();},
     showStrip(){if(destroyed)return;dismissed=false;syncBodyClass();renderAll();},
     dismiss,
     update:renderAll,
