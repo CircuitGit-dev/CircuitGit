@@ -26,6 +26,7 @@ import {mountLibraryManager} from '../library/panel.js';
 import {createLibraryClient} from '../library/model.js';
 import {isVerilogAFile,verilogaModuleBasename,indexLibraryVerilogAFiles,resolveVerilogAModel} from '../library/veriloga.js';
 import {mountVerilogAPanel,attachSchematicVerilogAJump} from './veriloga-viewer.js';
+import {mountSchematicSidebar} from './sidebar.js';
 import {hasBuffer,fileText} from '../vendor/rnl-viewer/edits.js';
 
 const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
@@ -408,6 +409,18 @@ export async function mountStudio({ui:providedUI}={}){
     });
     register({id:'window.veriloga',menu:'window',label:'Verilog-A 行为模型代码',run:()=>{ui.slots.veriloga.setVisible(true);syncStudioVerilogA();}});
   }
+  const schematicSidebar=mountSchematicSidebar({
+    getProjectState:()=>({activeLibrary:activeLibrarySelection,importedProject:null,isReference:false}),
+    onOpenLibraryManager:()=>libraryManager?.show(),
+    onOpenCell:({library,cell})=>{if(libraryManager&&library?.id&&cell?.id)void libraryManager.openProjectTop(library.id,cell.id);},
+    onOpenVerilogA:(model,opts)=>verilogaPanel?.openModel(model,opts),
+    resolveVerilogA:masterName=>resolveVerilogAModel({
+      masterName,
+      doc,
+      libraries:libraryManager?.getLibraries?.()||[],
+      activeLibraryId:activeLibrarySelection?.library?.id||null,
+    }),
+  });
   function enableLiveLibrary(){
     if(libraryManager)return;
     libraryBridge.bind(api,{supported:true});
@@ -440,21 +453,21 @@ export async function mountStudio({ui:providedUI}={}){
           if(level>=0)await enterRoot(level,{here:true,newWindow:false});
         }
         fit();ui.slots.schematic?.setVisible(true);
-        syncStudioVerilogA();verilogaJump?.clear();
+        syncStudioVerilogA();verilogaJump?.clear();schematicSidebar?.refresh();
         $('studio-native-note').textContent=`${value.library.name} / ${value.cell.name} / ${value.view.label} · 本地电路库`;
         return true;
       },
       onReference:async()=>{
-        activeLibrarySelection=null;emitLibrarySelection();
+        activeLibrarySelection=null;emitLibrarySelection();schematicSidebar?.refresh();
         if(state.project?.projects?.length)await loadProject(projectId(state.project.projects[0]));
       },
       notify,
     });
-    void libraryManager.ensureLoaded().then(syncStudioVerilogA).catch(()=>{});
+    void libraryManager.ensureLoaded().then(()=>{syncStudioVerilogA();schematicSidebar?.refresh();}).catch(()=>{});
     register({id:'project.library',menu:'project',label:'电路库 (Library Manager)…',run:()=>libraryManager.show()});
   }
-  setSidebarWidth(300);setPane('hierarchy');
+  setPane('files');
   controls();addonsReady=mountAddons();void addonsReady.catch(error=>notify(error.message,{kind:'warning'}));
-  try{const health=await healthReady;healthCaps=health?.capabilities||null;workspaceHub.update();if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';if(healthCaps?.library_workflow)enableLiveLibrary();await loadProject();workspaceHub.update();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();workspaceHub.update();notify(error.message,{kind:'error'});}
+  try{const health=await healthReady;healthCaps=health?.capabilities||null;workspaceHub.update();if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';if(healthCaps?.library_workflow)enableLiveLibrary();await loadProject();schematicSidebar?.refresh();workspaceHub.update();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();schematicSidebar?.refresh();workspaceHub.update();notify(error.message,{kind:'error'});}
   return host;
 }

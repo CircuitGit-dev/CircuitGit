@@ -30,14 +30,19 @@ body.ic-dockview .studio-view-menu button{text-align:left;border:0;padding:7px 1
 body.ic-dockview .studio-view-menu button:hover{background:#eef3fb;}
 body.ic-dockview .studio-dock-empty{height:100%;display:flex;gap:16px;align-items:center;justify-content:center;flex-direction:column;color:#718096;}
 body.ic-dockview .studio-dock-empty button{border:1px solid #dce3ec;padding:7px 12px;border-radius:4px;cursor:pointer;background:#fff;}
-body.ic-dockview #app{height:100%;width:100%;grid-template-columns:minmax(140px,200px) 3px minmax(0,1fr);min-height:0;}
+body.ic-dockview #app{height:100%;width:100%;grid-template-columns:clamp(210px,var(--sidebar-w,280px),max(230px,calc(100% - 220px))) 6px minmax(0,1fr);min-height:0;}
 body.ic-dockview #app.sidebar-hidden{grid-template-columns:0 0 minmax(0,1fr);}
 body.ic-dockview #app .drawing{grid-column:3;grid-row:1;visibility:visible;min-height:0;}
 body.ic-dockview #app .sidebar{grid-column:1;grid-row:1;min-width:0;overflow:hidden;border:0;}
-body.ic-dockview #app .vsplit{grid-column:2;}
+body.ic-dockview #app .vsplit{grid-column:2;position:relative;z-index:4;cursor:col-resize;background:#edf2ef;border-left:1px solid #d7e2dc;border-right:1px solid #d7e2dc;touch-action:none;transition:background-color .12s ease;}
+body.ic-dockview #app .vsplit::after{content:'';position:absolute;top:50%;left:50%;width:2px;height:28px;transform:translate(-50%,-50%);border-radius:2px;background:#9cb4a8;opacity:.75;transition:background-color .12s ease,height .12s ease;}
+body.ic-dockview #app .vsplit:hover,body.ic-dockview #app .vsplit.active{background:#d8eee2;border-color:#8ec4aa;opacity:1;}
+body.ic-dockview #app .vsplit:hover::after,body.ic-dockview #app .vsplit.active::after{background:#177753;height:44px;opacity:1;}
+body.ic-dockview .side-head{min-height:32px;padding:0 5px;gap:4px;background:#f5f9f7;border-bottom:1px solid #dce6e0;}
+body.ic-dockview .side-head .view-tabs{flex-wrap:nowrap;overflow:hidden;gap:2px;align-items:center;}
 body.ic-dockview .side-head .view-tabs .tab-key{display:none;}
-body.ic-dockview .view-tabs{gap:1px;}
-body.ic-dockview .view-tabs button{padding:4px;font-size:10px;}
+body.ic-dockview .view-tabs button{padding:5px 8px;font-size:11.5px;border-radius:4px 4px 0 0;color:#4f665c;}
+body.ic-dockview .view-tabs button[aria-selected="true"]{color:#14583d;background:#fff;border-color:#d4e2db;}
 body.ic-dockview .level-bar{min-height:28px;font-size:11px;}
 body.ic-dockview .studio-provenance{min-height:22px;padding:2px 8px;font-size:10px;background:#fff;}
 body.ic-dockview #studio-source-button,body.ic-dockview #studio-sidebar-toggle{font-size:10px;padding:2px 6px;}
@@ -70,7 +75,7 @@ body.ic-dockview .wf-status{font-size:10px;margin:0;min-height:0;}
 body.ic-dockview .studio-wave-details{font-size:10px;flex:none;max-height:135px;overflow:auto;border-top:1px solid #e8edf4;}
 body.ic-dockview .studio-wave-details summary{cursor:pointer;padding:4px;color:#718096;}
 body.ic-dockview .wf-cursors{max-height:100px;}
-@media(max-width:900px){body.ic-dockview .studio-entry-label{display:none;}.ic-dockview #app{grid-template-columns:0 0 minmax(0,1fr);}.ic-dockview #sidebar{visibility:hidden;}.ic-dockview .wf-body{grid-template-columns:110px minmax(0,1fr);}}
+@media(max-width:900px){body.ic-dockview .studio-entry-label{display:none;}.ic-dockview .wf-body{grid-template-columns:110px minmax(0,1fr);}}
 
 body.ic-dockview .wf-panel button,body.ic-dockview .wf-panel input,body.ic-dockview .wf-panel select{color:#34445b;background:#fff;border-color:#cbd7e5;}
 body.ic-dockview .wf-panel button:hover:not(:disabled){background:#edf3fb;}

@@ -12,7 +12,7 @@ import {shell} from '../vendor/rnl-viewer/shell.js';
 import {sourceOpened} from '../vendor/rnl-viewer/pool.js';
 import {previewing} from '../vendor/rnl-viewer/solve.js';
 import {fit,view} from '../vendor/rnl-viewer/drawing.js';
-import {setSidebarWidth,setPane,setSidebar} from '../vendor/rnl-viewer/panels.js';
+import {setPane,setSidebar} from '../vendor/rnl-viewer/panels.js';
 import {registerStudioCommand} from '../vendor/rnl-viewer/commands.js';
 import {setBackground} from '../vendor/rnl-viewer/background.js';
 import {sha256} from '../core.js';
@@ -21,6 +21,7 @@ import {mountLibraryManager} from '../library/panel.js';
 import {createLibraryClient,formatLibraryName,formatViewLabel} from '../library/model.js';
 import {isVerilogAFile,indexLibraryVerilogAFiles,indexSnapshotVerilogAFiles,resolveVerilogAModel} from '../library/veriloga.js';
 import {mountVerilogAPanel,attachSchematicVerilogAJump} from '../studio/veriloga-viewer.js';
+import {mountSchematicSidebar} from '../studio/sidebar.js';
 import {createLibraryBridge} from '../remote/library-bridge.js';
 import {loadSessionGrant} from '../remote/pair.js';
 import {createOnboardingBridge,snapshotOnboardingSource} from '../remote/onboarding-bridge.js';
@@ -324,7 +325,7 @@ export async function mountStudio({ui:providedUI}={}) {
   function showSource(){const area=document.createElement('textarea');area.readOnly=true;area.value=activeLibrary?activeLibrary.bundle.text:importedProject?importedProject.text:source;dialog(activeLibrary?activeLibrary.cell.name+' · '+formatViewLabel(activeLibrary.view):importedProject?importedProject.label:'当前网表源码',area);}
   function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p><strong>CircuitGit 网页工作台</strong>提供完整的原理图（RNL）、电路库、波形探针、远端 SSH 仿真（SpiceOwl）、AI 助手（Codex）与 Git 版本管理交互。</p><p><strong>免安装功能</strong>：直接浏览电路库、查看与编辑原理图、点选参考波形并体验游标测量。</p><p><strong>本机 SSH / AI / Git 连接</strong>：点击顶栏「连接本机 (SSH / AI)」即可通过 <code>circuitgit://</code> 协议一键唤起本机连接器；首次使用仅需下载项目并双击一次启动器（Windows: <code>Start CircuitGit.bat</code>，macOS: <code>Start CircuitGit.command</code>），之后所有日常操作均在本网页内完成。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">本机连接器与后台自启说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
-  let libraryManager=null,verilogaPanel=null,verilogaJump=null;
+  let libraryManager=null,verilogaPanel=null,verilogaJump=null,schematicSidebar=null;
   verilogaPanel=mountVerilogAPanel({
     slot:ui.slots.veriloga,
     loadLibraryFile:async path=>{
@@ -390,6 +391,23 @@ export async function mountStudio({ui:providedUI}={}) {
       activeLibraryId:activeLibrary?.library?.id||null,
     }),
     openModel:(model,opts)=>verilogaPanel.openModel(model,opts),
+  });
+  schematicSidebar=mountSchematicSidebar({
+    getProjectState:()=>({activeLibrary,importedProject,isReference:referenceActive()}),
+    onOpenLibraryManager:()=>libraryManager.show(),
+    onOpenImport:()=>projectImporter?.openLocal(),
+    onOpenCell:({library,cell})=>{
+      if(library?.id&&cell?.id)void libraryManager.openProjectTop(library.id,cell.id);
+    },
+    onOpenQuickProject:()=>{void host.openProjectCanvas({libraryId:'pipetisar-real'});},
+    onOpenVerilogA:(model,opts)=>verilogaPanel.openModel(model,opts),
+    resolveVerilogA:masterName=>resolveVerilogAModel({
+      masterName,
+      importedProject,
+      doc,
+      libraries:libraryManager.getLibraries(),
+      activeLibraryId:activeLibrary?.library?.id||null,
+    }),
   });
   register({id:'window.veriloga',menu:'window',label:'Verilog-A 行为模型代码',run:()=>{ui.slots.veriloga.setVisible(true);void libraryManager.ensureLoaded().then(syncAvailableVerilogA).catch(()=>{});syncAvailableVerilogA();}});
   host.openLibraryManager=()=>libraryManager.show();
@@ -480,6 +498,7 @@ export async function mountStudio({ui:providedUI}={}) {
       };
       syncAvailableVerilogA();
       verilogaJump?.clear();
+      schematicSidebar?.refresh();
       context={...context,loading:false,loadState:errors.length?'error':'ready',file:{...context.file,currentTextSha256:textHash}};emit();
       fit();ui.slots.schematic?.setVisible(true);
       const depNote=supportCount?`（含 ${supportCount} 个依赖文件）`:'';
@@ -534,7 +553,7 @@ export async function mountStudio({ui:providedUI}={}) {
       context={...context,loading:false,loadState:errors.length?'error':'ready',file:{...context.file,currentTextSha256:await sha256(value.bundle.text)}};emit();
       fit();ui.slots.schematic?.setVisible(true);
       if(value.view?.virtualSymbol){setSidebar(true);setPane('symbol');}
-      syncAvailableVerilogA();verilogaJump?.clear();
+      syncAvailableVerilogA();verilogaJump?.clear();schematicSidebar?.refresh();
       if(!libraryManager.getLibraries().length)void libraryManager.ensureLoaded().then(syncAvailableVerilogA).catch(()=>{});
       $('studio-native-note').textContent=[formatLibraryName(value.library),value.cell.name,viewLabel].join(' / ')+(value.origin==='working'?' · 本机快照 · ':' · 公开文件 · ')+(errors.length?errors.length+' 项 RNL 诊断':'未关联仿真');
       if(errors.length)ui.notify('原理图已打开，存在 '+errors.length+' 项 RNL 诊断；请查看 Problems。',{kind:'warning'});
@@ -556,7 +575,7 @@ export async function mountStudio({ui:providedUI}={}) {
       if(!opened||!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
       activeLibrary=null;importedProject=null;context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,loading:false,loadState:'ready',file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{bundleCommit:null,manifestSha256:hash,sourceMatch:true,state:'ready'}};
       $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
-      $('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';switching=false;simulationPage='environment';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);syncAvailableVerilogA();verilogaJump?.clear();return true;
+      $('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';switching=false;simulationPage='environment';renderSimulationPage();emit();if(ui.slots.waveforms.isVisible())await mountReferenceWaves();showReferenceTraces();fit();ui.slots.schematic?.setVisible(true);syncAvailableVerilogA();verilogaJump?.clear();schematicSidebar?.refresh();return true;
     }catch(error){context={...context,run:null,selection:null,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='RC 参考加载失败 · 无关联波形';throw error;}
     finally{switching=false;ui.setNativeState({loading:false,hidden:false});}
   }
@@ -621,7 +640,7 @@ export async function mountStudio({ui:providedUI}={}) {
         activeLibrary={...value,bundle,origin:'working',base_commit:after.base_commit};
         if(versionSelection?.library.id===value.library.id&&versionSelection?.cell.id===value.cell.id&&versionSelection?.view.id===value.view.id)versionSelection=activeLibrary;
         context={...context,project:{...context.project,id:'local-library:'+value.library.id+':'+value.cell.id,sourceCommit:after.base_commit},run:null,selection:null,loading:false,loadState:'ready',file:{...context.file,currentTextSha256:textHash,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:true,state:'snapshot'}};
-        libraryInformation(activeLibrary);emit();hotNotice='';$('studio-native-note').textContent=value.library.name+' / '+value.cell.name+' · 已同步本机原理图 · 未关联仿真';
+        libraryInformation(activeLibrary);emit();schematicSidebar?.refresh();hotNotice='';$('studio-native-note').textContent=value.library.name+' / '+value.cell.name+' · 已同步本机原理图 · 未关联仿真';
         await sourceOpened(bundle.source,candidate,false);return true;
       }catch(error){if(!controller.signal.aborted){sourceSyncNote('源码已变化，画布保留最后可读版本：'+(error.message||String(error)));}return false;}
       finally{if(candidate)shell.discardBuild?.(candidate);hotController=null;}
@@ -637,7 +656,7 @@ export async function mountStudio({ui:providedUI}={}) {
     if(activeLibrary&&doc.path===activeLibrary.bundle?.source?.path)return;
     if(importedProject&&doc.path===context.file?.path)return;
     const openedDoc=doc,snapshot=host.getOnboardingSource();hotController?.abort();loadedWatch?.();loadedWatch=null;activeLibrary=null;
-    ++onboardingWaveEpoch;stopReference();renderCircuitSummary();
+    ++onboardingWaveEpoch;stopReference();renderCircuitSummary();schematicSidebar?.refresh();
     context={project:{id:'imported-netlist',sourceCommit:null},run:null,selection:null,loading:false,loadState:'ready',
       file:{path:openedDoc.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};
     $('studio-project').replaceChildren(new Option('已导入网表','imported-netlist'));$('studio-entry').replaceChildren(new Option(openedDoc.name||openedDoc.path,openedDoc.path));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
@@ -708,10 +727,10 @@ export async function mountStudio({ui:providedUI}={}) {
   });
   host.requireLocalConnector=feature=>workspaceHub?.requireConnector(feature);
   const versionLoader=whenVisible(ui.slots.versions,async()=>{const {mountLibraryVersions}=await import('../library/versions.js');libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});return libraryVersions;},{onError:panelError});
-  setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});
+  setPane('files');setBackground('light',{persist:false});
   await openSource(referenceSource(source),false);
   if(!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
-  fit();ui.setNativeState({loading:false,hidden:false});$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';
+  fit();schematicSidebar?.refresh();ui.setNativeState({loading:false,hidden:false});$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';
   document.body.dataset.studioState='ready';
   if(loadSessionGrant(window.sessionStorage)){void aiLoader.ensure().then(handle=>handle?.tryResumeSession?.()).catch(()=>{});}
   ui.notify('欢迎使用 CircuitGit。打开电路库选择电路，或点击顶栏「连接本机」接入远端 SSH 仿真与 AI。');
