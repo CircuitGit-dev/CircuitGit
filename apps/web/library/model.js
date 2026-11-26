@@ -255,7 +255,7 @@ export function createLibraryClient({baseURL=new URL('../library-files/',import.
     await pooled(paths,async path=>{const file=await read(path,{signal});bytes+=file.bytes;if(bytes>maxViewBytes)throw Error('视图文件集合超出读取大小限制。');snapshot['/'+path]=file.text;});
     if(view.kind==='rnl')for(const [logical,canonical] of Object.entries(aliases))snapshot['/'+logical]=snapshot['/'+canonical];
     if(signal?.aborted)throw new DOMException('已取消','AbortError');
-    const path='/'+view.entry,source={name:view.entry,path,readonly:true,snapshot,files:new Map(Object.entries(snapshot).map(([path,text])=>[path,()=>new Blob([text],{type:'text/plain'})])),
+    const path='/'+view.entry,source={name:view.entry,path,readonly:true,aliases,snapshot,files:new Map(Object.entries(snapshot).map(([path,text])=>[path,()=>new Blob([text],{type:'text/plain'})])),
       open:async()=>({path,text:snapshot[path]}),read:async requested=>{if(!Object.hasOwn(snapshot,requested))throw Error('依赖不在已发布文件清单中：'+requested);return snapshot[requested];}};
     return {source,text:snapshot[path],paths:[...paths],bytes};
   }

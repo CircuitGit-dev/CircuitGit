@@ -22,6 +22,11 @@ import {
   extractModelsFromDocument,
   extractPdkModelsFromSession,
 } from '../../apps/web/studio/schematic-editor/catalog.js';
+import {
+  patchSourceSnapshot,
+  resolveCanonicalFilePath,
+  resolveDocFilePath,
+} from '../../apps/web/studio/schematic-editor/source-patch.js';
 
 const RC_TEXT=readFileSync(new URL('../../apps/web/demo/rc.scs',import.meta.url),'utf8');
 const BOOTSTRAP_TEXT=readFileSync(new URL('../../lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/RS9_L5_9bit_Bootstrap.scs',import.meta.url),'utf8');
@@ -308,4 +313,102 @@ test('all generated RNL mutations compile cleanly with zero errors in real RNL W
   compile('update props',text);
   text=deleteInstance(text,{scopeName:'(top)',instanceName:'R1'}).text;
   compile('delete R1',text);
+});
+
+test('multi-file library projects resolve relative doc paths and aliases so edits place on canvas and target canonical files',async()=>{
+  const catalog=JSON.parse(readFileSync(new URL('../../lib/catalog.json',import.meta.url),'utf8'));
+  const libEntry=catalog.libraries.find(l=>l.id==='pipetisar-real');
+  const lib=JSON.parse(readFileSync(new URL('../../'+libEntry.manifest,import.meta.url),'utf8'));
+  const cell=lib.cells.find(c=>c.id==='TB_PIPE_RS9_N06');
+  const view=cell.views.find(v=>v.id==='schematic');
+
+  const snapshot=Object.create(null);
+  for(const f of view.files)snapshot['/'+f]=readFileSync(new URL('../../'+f,import.meta.url),'utf8');
+  for(const [logical,canonical] of Object.entries(view.aliases||{}))snapshot['/'+logical]=snapshot['/'+canonical];
+
+  const entryPath='/'+view.entry;
+  const baseSource={
+    name:view.entry,
+    path:entryPath,
+    readonly:true,
+    aliases:view.aliases,
+    snapshot,
+    open:async()=>({path:entryPath,text:snapshot[entryPath]}),
+    read:async requested=>snapshot[requested]??null,
+  };
+
+  const wasm=readFileSync(new URL('../../apps/web/vendor/rnl-viewer/core/rnl_runtime_wasm.wasm',import.meta.url));
+  const core=await loadCore(wasm);
+  const doc1=core.build({entry:entryPath,files:snapshot,dialect:'spectre'});
+  assert.equal(doc1.files[0].path,'TB_PIPE_RS9_N06.scs');
+  assert.equal(resolveDocFilePath(doc1,doc1.files[0]),entryPath);
+
+  // 1. Place capacitor C1 onto top-level TB_PIPE_RS9_N06
+  const cap=BUILTIN_DEVICES.find(d=>d.id==='capacitor');
+  const addedTop=addInstance(doc1.files[0].text,{
+    scopeName:'(top)',
+    prefix:cap.prefix,
+    model:cap.model,
+    ports:cap.ports,
+    params:cap.params,
+    x:104,
+    y:-24,
+    orient:'R0',
+    symbolId:cap.symbolId,
+    symbolDef:cap.symbolDef,
+  });
+  const patchedTop=patchSourceSnapshot(baseSource,{
+    doc:doc1,
+    fileIndex:0,
+    targetPath:resolveDocFilePath(doc1,doc1.files[0]),
+    rawPath:doc1.files[0].path,
+    nextText:addedTop.text,
+  });
+  assert.equal(patchedTop.nextSource.text,undefined);
+  assert.equal((await patchedTop.nextSource.open()).text,addedTop.text);
+  assert.equal(patchedTop.canonicalPath,entryPath);
+
+  const doc2=core.build({entry:entryPath,files:patchedTop.nextSource.snapshot,dialect:'spectre'});
+  assert.equal(doc2.failed,null);
+  assert.equal(doc2.files[0].text,addedTop.text);
+  assert.ok(doc2.objects.some(o=>o.name==='C1'));
+  assert.ok(doc2.levels[0].svg.includes('C1'));
+
+  // 2. Edit an aliased descended subcircuit (RS9_L5_9bit_Bootstrap) inside TB_PIPE_RS9_N06
+  const bsLevelIdx=doc2.levels.findIndex(l=>l.title==='RS9_L5_9bit_Bootstrap');
+  assert.ok(bsLevelIdx>0);
+  const bsFileIdx=doc2.levels[bsLevelIdx].lines[0];
+  const bsFile=doc2.files[bsFileIdx];
+  const bsResolved=resolveDocFilePath(doc2,bsFile);
+  const bsCanonical=resolveCanonicalFilePath(bsResolved,view.aliases);
+  assert.equal(bsCanonical,'/lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/RS9_L5_9bit_Bootstrap.scs');
+
+  const res=BUILTIN_DEVICES.find(d=>d.id==='resistor');
+  const addedSub=addInstance(bsFile.text,{
+    scopeName:'RS9_L5_9bit_Bootstrap',
+    prefix:res.prefix,
+    model:res.model,
+    ports:res.ports,
+    params:res.params,
+    x:10,
+    y:10,
+    orient:'R0',
+    symbolId:res.symbolId,
+    symbolDef:res.symbolDef,
+  });
+  const patchedSub=patchSourceSnapshot(patchedTop.nextSource,{
+    doc:doc2,
+    fileIndex:bsFileIdx,
+    targetPath:bsResolved,
+    rawPath:bsFile.path,
+    nextText:addedSub.text,
+  });
+  assert.equal(patchedSub.canonicalPath,bsCanonical);
+  assert.equal(patchedSub.nextSource.snapshot[bsResolved],addedSub.text);
+  assert.equal(patchedSub.nextSource.snapshot[bsCanonical],addedSub.text);
+
+  const doc3=core.build({entry:entryPath,files:patchedSub.nextSource.snapshot,dialect:'spectre'});
+  assert.equal(doc3.failed,null);
+  const bsLevel3=doc3.levels.find(l=>l.title==='RS9_L5_9bit_Bootstrap');
+  assert.ok(bsLevel3.svg.includes(addedSub.instanceName));
 });

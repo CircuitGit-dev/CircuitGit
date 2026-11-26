@@ -26,6 +26,7 @@ import {
 } from './rnl-codec.js';
 import {buildCustomDeviceSpec,buildInstanceCatalog} from './catalog.js';
 import {openSavePrDialog} from './pr-dialog.js';
+import {patchSourceSnapshot,resolveCanonicalFilePath,resolveDocFilePath} from './source-patch.js';
 
 const SVG_NS='http://www.w3.org/2000/svg';
 
@@ -106,6 +107,11 @@ export function mountSchematicEditor({
   canvas.append(overlaySvg,modePill);
 
   // --- Helpers ---
+  function activeAliases(){
+    const ctx=getProjectContext()||{};
+    return currentSource()?.aliases||ctx.activeLibrary?.view?.aliases||null;
+  }
+
   function activeFileInfo(){
     if(!doc||!doc.levels?.length)return null;
     const lv=doc.levels[current]||doc.levels[0];
@@ -113,26 +119,28 @@ export function mountSchematicEditor({
     const file=doc.files?.[fileIndex]||doc.files?.[0];
     if(!file||typeof file.text!=='string')return null;
     const scopeName=current===0&&lv.kind==='file'?'(top)':(lv.title||'(top)');
-    const filePath=file.path||'/circuit.scs';
-    if(!baselines.has(filePath))baselines.set(filePath,file.text);
-    return {lv,fileIndex,file,filePath,text:file.text,scopeName,scale:lv.scale||1};
+    const rawFilePath=file.path||'/circuit.scs';
+    const filePath=resolveDocFilePath(doc,file);
+    const canonicalPath=resolveCanonicalFilePath(filePath,activeAliases());
+    if(!baselines.has(canonicalPath))baselines.set(canonicalPath,file.text);
+    return {lv,fileIndex,file,rawFilePath,filePath,canonicalPath,text:file.text,scopeName,scale:lv.scale||1};
   }
 
-  function isFileDirty(filePath=activeFileInfo()?.filePath){
-    if(!filePath)return false;
+  function isFileDirty(fileKey=activeFileInfo()?.canonicalPath){
+    if(!fileKey)return false;
     const info=activeFileInfo();
-    if(!info||info.filePath!==filePath)return false;
-    return baselines.has(filePath)&&baselines.get(filePath)!==info.text;
+    if(!info||info.canonicalPath!==fileKey)return false;
+    return baselines.has(fileKey)&&baselines.get(fileKey)!==info.text;
   }
 
   function anyDirty(){
     const info=activeFileInfo();
-    return Boolean(info&&isFileDirty(info.filePath));
+    return Boolean(info&&isFileDirty(info.canonicalPath));
   }
 
   function resolveGitTarget(info){
     const ctx=getProjectContext()||{};
-    const relPath=String(info.filePath||'').replace(/^\/+/,'');
+    const relPath=String(info.canonicalPath||info.filePath||'').replace(/^\/+/,'');
     const libs=getLibraries()||[];
     for(const lib of libs){
       for(const cell of lib.cells||[]){
@@ -266,44 +274,6 @@ export function mountSchematicEditor({
     return pts;
   }
 
-  function cloneSourceWithFile(baseSource,targetPath,nextText){
-    const snap=Object.create(null);
-    if(baseSource?.snapshot){
-      for(const [k,v] of Object.entries(baseSource.snapshot))snap[k]=v;
-    }
-    if(doc?.files){
-      for(const f of doc.files){
-        if(f?.path&&typeof f.text==='string'&&!Object.hasOwn(snap,f.path))snap[f.path]=f.text;
-      }
-    }
-    snap[targetPath]=nextText;
-    const altNoSlash=targetPath.replace(/^\/+/,'');
-    if(Object.hasOwn(snap,altNoSlash))snap[altNoSlash]=nextText;
-    const filesMap=new Map();
-    if(baseSource?.files instanceof Map){
-      for(const [k,v] of baseSource.files.entries())filesMap.set(k,v);
-    }
-    for(const [k,v] of Object.entries(snap)){
-      filesMap.set(k,()=>new Blob([v],{type:'text/plain'}));
-    }
-    const entryPath=baseSource?.path||doc?.path||targetPath;
-    const entryText=snap[entryPath]??nextText;
-    return {
-      ...baseSource,
-      name:baseSource?.name||doc?.name||'circuit.scs',
-      path:entryPath,
-      text:entryText,
-      snapshot:snap,
-      files:filesMap,
-      open:async()=>({path:entryPath,text:snap[entryPath]??entryText}),
-      read:async requested=>{
-        if(Object.hasOwn(snap,requested))return snap[requested];
-        if(typeof baseSource?.read==='function')return baseSource.read(requested);
-        return null;
-      },
-    };
-  }
-
   async function applyTextChange(nextText,summary,{recordUndo=true}={}){
     const info=activeFileInfo();
     if(!info||rebuilding||isLoading())return false;
@@ -315,24 +285,37 @@ export function mountSchematicEditor({
     rebuilding=true;
     let candidate=null;
     try{
-      const nextSource=cloneSourceWithFile(baseSource,info.filePath,nextText);
+      const patched=patchSourceSnapshot(baseSource,{
+        doc,
+        fileIndex:info.fileIndex,
+        targetPath:info.filePath,
+        rawPath:info.rawFilePath,
+        nextText,
+        aliases:activeAliases(),
+      });
+      const nextSource=patched.nextSource;
       candidate=await shell.build(nextSource);
       const fatal=candidate?.diagnostics?.filter(d=>d.severity==='error'||d.severity==='fatal')||[];
       if(!candidate||candidate.failed){
         throw Error(fatal[0]?.message||'修改后的 RNL/网表未能通过解析，已自动回退。');
       }
+      const rebuiltFile=candidate.files?.find(f=>resolveDocFilePath(candidate,f)===info.filePath)||candidate.files?.[info.fileIndex];
+      if(!rebuiltFile||rebuiltFile.text!==nextText){
+        throw Error('修改未能写入编译后的原理图文件，已自动回退。');
+      }
+      const key=info.canonicalPath;
       if(recordUndo){
-        const stack=undoStacks.get(info.filePath)||[];
+        const stack=undoStacks.get(key)||[];
         stack.push(prevText);
         if(stack.length>60)stack.shift();
-        undoStacks.set(info.filePath,stack);
-        redoStacks.set(info.filePath,[]);
+        undoStacks.set(key,stack);
+        redoStacks.set(key,[]);
       }
       if(summary){
-        const list=summariesByFile.get(info.filePath)||[];
+        const list=summariesByFile.get(key)||[];
         list.push(summary);
         if(list.length>30)list.shift();
-        summariesByFile.set(info.filePath,list);
+        summariesByFile.set(key,list);
       }
       resetBuffers(candidate);
       showBuilt(candidate,true);
@@ -340,10 +323,10 @@ export function mountSchematicEditor({
       document.title='CircuitGit';
       cachedPinsKey='';
       onDocumentUpdated({
-        filePath:info.filePath,
+        filePath:info.canonicalPath,
         text:nextText,
-        baselineText:baselines.get(info.filePath)??prevText,
-        dirty:baselines.get(info.filePath)!==nextText,
+        baselineText:baselines.get(key)??prevText,
+        dirty:baselines.get(key)!==nextText,
         source:nextSource,
         summary,
       });
@@ -496,22 +479,24 @@ export function mountSchematicEditor({
   async function handleUndo(){
     const info=activeFileInfo();
     if(!info)return;
-    const stack=undoStacks.get(info.filePath);
+    const key=info.canonicalPath;
+    const stack=undoStacks.get(key);
     if(!stack?.length)return;
     const prev=stack.pop();
-    const redo=redoStacks.get(info.filePath)||[];
-    redo.push(info.text);redoStacks.set(info.filePath,redo);
+    const redo=redoStacks.get(key)||[];
+    redo.push(info.text);redoStacks.set(key,redo);
     await applyTextChange(prev,'撤销上一步修改',{recordUndo:false});
   }
 
   async function handleRedo(){
     const info=activeFileInfo();
     if(!info)return;
-    const redo=redoStacks.get(info.filePath);
+    const key=info.canonicalPath;
+    const redo=redoStacks.get(key);
     if(!redo?.length)return;
     const next=redo.pop();
-    const undo=undoStacks.get(info.filePath)||[];
-    undo.push(info.text);undoStacks.set(info.filePath,undo);
+    const undo=undoStacks.get(key)||[];
+    undo.push(info.text);undoStacks.set(key,undo);
     await applyTextChange(next,'重做修改',{recordUndo:false});
   }
 
@@ -832,12 +817,12 @@ export function mountSchematicEditor({
     const dialog=el('dialog',undefined,'cg-ed-dialog cg-ed-source-dialog');
     dialog.setAttribute('aria-label','编辑电路源码');
     const head=el('header',undefined,'cg-ed-dialog-head');
-    head.append(el('strong',`编辑源码 · ${info.filePath.split('/').pop()||info.filePath}`));
+    head.append(el('strong',`编辑源码 · ${info.canonicalPath.split('/').pop()||info.canonicalPath}`));
     const closeBtn=el('button','×','cg-ed-close');closeBtn.type='button';closeBtn.onclick=()=>dialog.close();
     head.append(closeBtn);
 
     const body=el('div',undefined,'cg-ed-dialog-body');
-    body.append(el('p',`当前文件：${info.filePath} · 应用到画布后按 Ctrl+S 或点「提交 PR」即可推送 Pull Request。`,'cg-ed-muted'));
+    body.append(el('p',`当前文件：${info.canonicalPath} · 应用到画布后按 Ctrl+S 或点「提交 PR」即可推送 Pull Request。`,'cg-ed-muted'));
     const area=document.createElement('textarea');
     area.className='cg-ed-source-area';area.spellcheck=false;area.value=info.text;
     body.append(area);
@@ -859,16 +844,17 @@ export function mountSchematicEditor({
   function openSavePr(){
     const info=activeFileInfo();
     if(!info)return;
+    const key=info.canonicalPath;
     const target=resolveGitTarget(info);
     openSavePrDialog({
       target,
-      baselineText:baselines.get(info.filePath)??info.text,
+      baselineText:baselines.get(key)??info.text,
       currentText:info.text,
-      editSummaries:summariesByFile.get(info.filePath)||[],
+      editSummaries:summariesByFile.get(key)||[],
       bridge,
       onRequireConnector,
       onSaved:({text})=>{
-        baselines.set(info.filePath,text);
+        baselines.set(key,text);
         refreshUI();
       },
       notify,
@@ -981,12 +967,12 @@ export function mountSchematicEditor({
 
     if(ctrl&&k==='z'&&!e.shiftKey){
       const info=activeFileInfo();
-      if(info&&undoStacks.get(info.filePath)?.length){e.preventDefault();e.stopImmediatePropagation();void handleUndo();}
+      if(info&&undoStacks.get(info.canonicalPath)?.length){e.preventDefault();e.stopImmediatePropagation();void handleUndo();}
       return;
     }
     if((ctrl&&k==='y')||(ctrl&&e.shiftKey&&k==='z')){
       const info=activeFileInfo();
-      if(info&&redoStacks.get(info.filePath)?.length){e.preventDefault();e.stopImmediatePropagation();void handleRedo();}
+      if(info&&redoStacks.get(info.canonicalPath)?.length){e.preventDefault();e.stopImmediatePropagation();void handleRedo();}
       return;
     }
     if(ctrl&&k==='s'){
@@ -1028,7 +1014,7 @@ export function mountSchematicEditor({
   function refreshUI(){
     if(disposed)return;
     const info=activeFileInfo();
-    const dirty=Boolean(info&&isFileDirty(info.filePath));
+    const dirty=Boolean(info&&isFileDirty(info.canonicalPath));
     prButton.disabled=!info||rebuilding;
     prButton.classList.toggle('is-dirty',dirty);
     prButton.textContent=dirty?'提交 PR ●':'提交 PR';
