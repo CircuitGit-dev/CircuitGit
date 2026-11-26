@@ -125,6 +125,39 @@ export function selectImportEntry({filesByPath,entryPath,projectName=''}){
   };
 }
 
+export const SPICEOWL_ENTRY_SCHEMA='spiceowl.circuitgit-entry.v1';
+
+/** Build a shared CircuitGit -> SpiceOwl entry payload so SpiceOwl reuses CircuitGit's active project directly. */
+export function buildSpiceOwlEntryPayload({
+  projectId='',projectName='',libraryId='',libraryName='',cellId='',cellName='',
+  viewId='netlist',entryPath='',fileName='',netlistText='',supportFiles={},
+  simulator='spectre',sourceCommit=null,sshTarget='',remotePath='',remoteDir='',
+  returnUrl=typeof window!=='undefined'?window.location.href:'',
+}={}){
+  const cleanFile=fileName||String(entryPath||'').split('/').pop()||'circuitgit_entry.scs';
+  return {
+    schema:SPICEOWL_ENTRY_SCHEMA,
+    source:'circuitgit',
+    ...(projectId?{project_id:projectId}:{}),
+    ...(projectName?{project_name:projectName}:{}),
+    ...(libraryId?{library_id:libraryId}:{}),
+    ...(libraryName?{library_name:libraryName}:{}),
+    ...(cellId?{cell_id:cellId}:{}),
+    ...(cellName?{cell_name:cellName}:{}),
+    ...(viewId?{view_id:viewId}:{}),
+    ...(entryPath?{entry_path:entryPath}:{}),
+    file_name:cleanFile,
+    netlist_text:String(netlistText||''),
+    support_files:supportFiles&&typeof supportFiles==='object'?{...supportFiles}:{},
+    simulator:simulator==='ngspice'?'ngspice':'spectre',
+    ...(sourceCommit?{source_commit:sourceCommit}:{}),
+    ...(sshTarget?{ssh_target:sshTarget}:{}),
+    ...(remotePath?{remote_path:remotePath}:{}),
+    ...(remoteDir?{remote_dir:remoteDir}:{}),
+    ...(returnUrl&&/^https?:\/\//i.test(returnUrl)?{return_url:returnUrl}:{}),
+  };
+}
+
 /** Build an RNL virtual source object compatible with openSource() and snapshotOnboardingSource(). */
 export function buildImportedRnlSource({entryPath,fileName,text,supportFiles={},rnlSnapshot=null}){
   const cleanEntry=normalizeRelativePath(entryPath||fileName||'imported.scs')||'imported.scs';

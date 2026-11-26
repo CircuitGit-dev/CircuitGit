@@ -398,7 +398,19 @@ def _run_remote(ssh_target, ssh_config, payload, *, runner=None, timeout=SSH_TIM
 
 
 def browse_remote_netlists(ssh_target, ssh_config, path=None, *, runner=None):
-    """List directories and supported circuit files on an explicit SSH server."""
+    """List directories and supported circuit files on an explicit SSH server.
+
+    Delegates to the shared ``spiceowl.onboarding.ssh_import`` implementation when
+    available so CircuitGit and SpiceOwl maintain one single SSH browse contract
+    (``ic.onboarding.ssh-browse.v1``), falling back seamlessly to the local copy
+    when running with an older SpiceOwl package.
+    """
+    if runner is None:
+        try:
+            from spiceowl.onboarding.ssh_import import browse_remote_netlists as _shared_browse
+            return _shared_browse(ssh_target, ssh_config, path)
+        except ImportError:
+            pass
     target = validate_ssh_target(ssh_target)
     clean_path = validate_remote_path(path, allow_empty=True, require_circuit_ext=False)
     payload = {
@@ -426,7 +438,17 @@ def browse_remote_netlists(ssh_target, ssh_config, path=None, *, runner=None):
 
 
 def fetch_remote_netlist(ssh_target, ssh_config, path, *, include_dependencies=True, runner=None):
-    """Fetch a remote netlist file (and optional relative include dependencies) over SSH."""
+    """Fetch a remote netlist file (and optional relative include dependencies) over SSH.
+
+    Delegates to the shared ``spiceowl.onboarding.ssh_import`` implementation when
+    available (``ic.onboarding.ssh-import.v1``).
+    """
+    if runner is None:
+        try:
+            from spiceowl.onboarding.ssh_import import fetch_remote_netlist as _shared_fetch
+            return _shared_fetch(ssh_target, ssh_config, path, include_dependencies=include_dependencies)
+        except ImportError:
+            pass
     target = validate_ssh_target(ssh_target)
     clean_path = validate_remote_path(path, allow_empty=False, require_circuit_ext=True)
     if not isinstance(include_dependencies, bool):
