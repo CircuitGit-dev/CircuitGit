@@ -132,6 +132,7 @@ export function buildSpiceOwlEntryPayload({
   projectId='',projectName='',libraryId='',libraryName='',cellId='',cellName='',
   viewId='netlist',entryPath='',fileName='',netlistText='',supportFiles={},
   simulator='spectre',sourceCommit=null,sshTarget='',remotePath='',remoteDir='',
+  maestroConfig=null,
   returnUrl=typeof window!=='undefined'?window.location.href:'',
 }={}){
   const cleanFile=fileName||String(entryPath||'').split('/').pop()||'circuitgit_entry.scs';
@@ -154,6 +155,7 @@ export function buildSpiceOwlEntryPayload({
     ...(sshTarget?{ssh_target:sshTarget}:{}),
     ...(remotePath?{remote_path:remotePath}:{}),
     ...(remoteDir?{remote_dir:remoteDir}:{}),
+    ...(maestroConfig&&typeof maestroConfig==='object'?{maestro_config:maestroConfig}:{}),
     ...(returnUrl&&/^https?:\/\//i.test(returnUrl)?{return_url:returnUrl}:{}),
   };
 }
@@ -247,8 +249,8 @@ export function createProjectImporter({
   // SSH state
   let sshAliases=[],sshAliasesLoaded=false,sshAliasesLoading=false;
   let sshTarget=loadRemoteSimPrefs()?.targets?.[0]||'';
-  let sshPath='~',sshCwd='',sshParent=null,sshEntries=[],sshTruncated=false,sshSelectedFile='';
-  let sshIncludeDeps=true,sshBusy=false,sshError='',sshLegacyConnector=false;
+  let sshPath='~',sshCwd='',sshParent=null,sshEntries=[],sshCdsLibs=[],sshVirtuosoCtx=null,sshTruncated=false,sshSelectedFile='';
+  let sshIncludeDeps=true,sshIncludeMaestro=true,sshMaestroView='',sshBusy=false,sshBusyMsg='',sshError='',sshLegacyConnector=false;
 
   const offSub=subscribe(()=>{
     if(destroyed||!dialog?.open)return;
@@ -317,7 +319,7 @@ export function createProjectImporter({
     }
     const host=sshTarget.trim();
     if(!host){sshError='请先选择或输入 SSH 主机别名（如 ~/.ssh/config 中的 Host）。';render();return;}
-    sshBusy=true;sshError='';sshLegacyConnector=false;sshSelectedFile='';
+    sshBusy=true;sshBusyMsg='正在通过 SSH 读取远端目录与 Virtuoso 视图…';sshError='';sshLegacyConnector=false;sshSelectedFile='';
     render();
     try{
       const nextPath=(targetPath??sshPath??'').trim();
@@ -326,6 +328,14 @@ export function createProjectImporter({
       sshPath=sshCwd||nextPath||'~';
       sshParent=res.parent||null;
       sshEntries=Array.isArray(res.entries)?res.entries:[];
+      sshCdsLibs=Array.isArray(res.cds_libraries)?res.cds_libraries:[];
+      sshVirtuosoCtx=(res.virtuoso_context&&typeof res.virtuoso_context==='object')?res.virtuoso_context:null;
+      const mviews=sshVirtuosoCtx?.maestro_views||[];
+      if(mviews.length){
+        if(!mviews.some(m=>m.name===sshMaestroView))sshMaestroView=mviews[0].name;
+      }else{
+        sshMaestroView='';
+      }
       sshTruncated=Boolean(res.truncated);
       const prefs=loadRemoteSimPrefs();
       saveRemoteSimPrefs({
@@ -338,7 +348,65 @@ export function createProjectImporter({
       sshError=msg;
       sshLegacyConnector=/版本较旧/.test(msg);
     }finally{
-      sshBusy=false;
+      sshBusy=false;sshBusyMsg='';
+      if(!destroyed&&dialog?.open)render();
+    }
+  }
+
+  async function exportSchematicFromSsh(schPath){
+    if(!onboarding||!getConnected()||sshBusy)return;
+    const host=sshTarget.trim();
+    const target=String(schPath||sshVirtuosoCtx?.schematic_dir||sshCwd||'').trim();
+    if(!host||!target){sshError='请先进入或选择一个 Virtuoso schematic 视图目录。';render();return;}
+    sshBusy=true;
+    sshBusyMsg=sshIncludeMaestro
+      ?'正在远端调用 Cadence si 从 schematic 导出网表并解析 Maestro 仿真配置（约 5–15 秒）…'
+      :'正在远端调用 Cadence si 从 schematic 导出纯原理图 Spectre 网表（约 5–15 秒）…';
+    sshError='';sshLegacyConnector=false;
+    render();
+    try{
+      const res=await onboarding.exportRemoteSchematic({
+        ssh_target:host,
+        path:target,
+        include_maestro:Boolean(sshIncludeMaestro),
+        ...(sshMaestroView?{maestro_view:sshMaestroView}:{}),
+        ...(sshVirtuosoCtx?.cds_lib?{cds_lib:sshVirtuosoCtx.cds_lib}:{}),
+      });
+      const prefs=loadRemoteSimPrefs();
+      saveRemoteSimPrefs({
+        targets:[host,...(prefs?.targets||[]).filter(t=>t!==host)],
+        search_paths:prefs?.search_paths||'',
+        cds_lib_hint:res.cds_lib||prefs?.cds_lib_hint||'',
+      });
+      const projectName=res.lib_name||res.cell_name||res.file_name.replace(/\.[^.]+$/,'')||res.file_name;
+      if(dialog?.open)dialog.close();
+      await onImport?.({
+        origin:'ssh',
+        fromSchematic:true,
+        sshTarget:host,
+        libName:res.lib_name||'',
+        cellName:res.cell_name||'',
+        viewName:res.view_name||'schematic',
+        remotePath:res.remote_path||target,
+        remoteDir:res.remote_dir||'',
+        cdsLib:res.cds_lib||'',
+        projectName,
+        entryPath:res.file_name,
+        fileName:res.file_name,
+        text:res.text,
+        supportFiles:res.support_files||{},
+        maestroApplied:Boolean(res.maestro_applied),
+        maestroConfig:res.maestro_config||null,
+        detectedMaestro:res.detected_maestro||[],
+        skipped:[],
+      });
+    }catch(error){
+      const msg=formatSshImportError(error);
+      sshError=msg;
+      sshLegacyConnector=/版本较旧/.test(msg);
+      notify(msg,{kind:'error'});
+    }finally{
+      sshBusy=false;sshBusyMsg='';
       if(!destroyed&&dialog?.open)render();
     }
   }
@@ -628,6 +696,10 @@ export function createProjectImporter({
     pathRow.append(upBtn,pathInput,goBtn);
     body.append(pathRow);
 
+    if(sshBusy&&sshBusyMsg){
+      body.append(el('p','cg-import-hint',`⏳ ${sshBusyMsg}`));
+    }
+
     if(sshError){
       const errBox=el('div','cg-import-error-box');
       errBox.append(el('p','cg-import-error',sshError));
@@ -640,25 +712,96 @@ export function createProjectImporter({
       body.append(errBox);
     }
 
+    if(sshVirtuosoCtx){
+      const vcard=el('div','cg-import-virtuoso-card');
+      const vhead=el('div','cg-import-virtuoso-head');
+      const vinfo=el('div');
+      vinfo.append(
+        el('strong','',`📐 检测到 Virtuoso 原理图：${sshVirtuosoCtx.lib_name} / ${sshVirtuosoCtx.cell_name} (${sshVirtuosoCtx.view_name})`),
+        el('small','cg-import-hint','直接调用远端 Cadence si 在隔离临时目录只读导出完整层次 Spectre 网表（不改动原设计）。'),
+      );
+      const expBtn=el('button','cg-welcome-primary',sshBusy?'导出中…':'⚡ 从 Schematic 导出并导入');
+      expBtn.type='button';expBtn.disabled=sshBusy;
+      expBtn.onclick=()=>void exportSchematicFromSsh(sshVirtuosoCtx.schematic_dir);
+      vhead.append(vinfo,expBtn);
+      vcard.append(vhead);
+
+      const mviews=sshVirtuosoCtx.maestro_views||[];
+      const activeMv=mviews.find(m=>m.name===sshMaestroView)||mviews[0]||null;
+      if(activeMv){
+        const mbox=el('div','cg-import-maestro-box');
+        const mrow=el('div','cg-import-maestro-row');
+        const mlabel=el('label','cg-welcome-check');
+        const mchk=el('input');mchk.type='checkbox';mchk.checked=sshIncludeMaestro;mchk.disabled=sshBusy;
+        mchk.onchange=()=>{sshIncludeMaestro=mchk.checked;};
+        mlabel.append(mchk,doc.createTextNode(`同时导入 ${activeMv.name} 自带的仿真配置（分析 / 模型库 / 变量 / 选项 / 工艺角）`));
+        mrow.append(mlabel);
+        if(mviews.length>1){
+          const msel=el('select','cg-import-alias-select');
+          for(const mv of mviews)msel.append(new Option(`${mv.name} (${mv.kind})`,mv.name));
+          msel.value=activeMv.name;msel.disabled=sshBusy;
+          msel.onchange=()=>{sshMaestroView=msel.value;render();};
+          mrow.append(msel);
+        }
+        mbox.append(mrow);
+        const ms=activeMv.summary||{};
+        const pills=el('div','cg-import-maestro-pills');
+        const anLabels=(ms.analyses||[]).map(a=>a.stop?`${a.type}(${a.stop})`:a.type);
+        if(anLabels.length)pills.append(el('span','cg-import-tag is-sch',`分析: ${anLabels.join(', ')}`));
+        if(ms.model_files_count)pills.append(el('span','cg-import-tag',`模型库 ×${ms.model_files_count}`));
+        if(ms.variables_count)pills.append(el('span','cg-import-tag',`变量 ×${ms.variables_count}`));
+        const enCorners=(ms.corners||[]).filter(c=>c.enabled).map(c=>c.name);
+        if(enCorners.length)pills.append(el('span','cg-import-tag is-maestro',`工艺角: ${enCorners.join('/')}`));
+        if(ms.outputs_count)pills.append(el('span','cg-import-tag',`输出 ×${ms.outputs_count}`));
+        if(pills.childNodes.length)mbox.append(pills);
+        vcard.append(mbox);
+      }else{
+        vcard.append(el('small','cg-import-hint','未在同单元下检测到 maestro / adexl / spectre_state 视图，将导出纯原理图网表。'));
+      }
+      body.append(vcard);
+    }
+
+    if(sshCdsLibs.length){
+      const cbar=el('div','cg-import-cds-bar');
+      cbar.append(el('span','','📚 检测到 cds.lib 电路库（点击直达）：'));
+      const pills=el('div','cg-import-cds-pills');
+      for(const lib of sshCdsLibs){
+        const b=el('button','cg-import-cds-pill',lib.name);
+        b.type='button';b.title=lib.path;b.disabled=sshBusy;
+        b.onclick=()=>void browseSsh(lib.path);
+        pills.append(b);
+      }
+      cbar.append(pills);
+      body.append(cbar);
+    }
+
     const list=el('div','cg-import-file-list');
     list.setAttribute('role','listbox');
     list.setAttribute('aria-label','远端目录与网表文件');
     if(sshBusy&&!sshEntries.length){
-      list.append(el('p','cg-import-empty','正在通过 SSH 读取远端目录…'));
+      list.append(el('p','cg-import-empty',sshBusyMsg||'正在通过 SSH 读取远端目录…'));
     }else if(!sshCwd&&!sshEntries.length){
-      list.append(el('p','cg-import-empty','选择上方 SSH 主机并点击「浏览目录」，即可浏览服务器上的文件夹与网表文件（.scs / .sp / .spice / .cir / .va / .rnl）。'));
+      list.append(el('p','cg-import-empty','选择上方 SSH 主机并点击「浏览目录」，即可浏览服务器上的文件夹、cds.lib、Virtuoso schematic 与网表文件（.scs / .sp / .spice / .cir / .va / .rnl）。'));
     }else if(!sshEntries.length){
-      list.append(el('p','cg-import-empty',`目录 ${sshCwd} 下没有子目录或支持的网表文件（.scs / .sp / .cir / .va / .rnl）。可点击「↑ 上级」或直接输入其他路径。`));
+      list.append(el('p','cg-import-empty',sshVirtuosoCtx?'当前为 Virtuoso 原理图视图目录（包含 OpenAccess sch.oa），点击上方「⚡ 从 Schematic 导出并导入」即可生成并载入 Spectre 网表。':`目录 ${sshCwd} 下没有子目录或支持的网表文件（.scs / .sp / .cir / .va / .rnl）。可点击「↑ 上级」或直接输入其他路径。`));
     }else{
       for(const entry of sshEntries){
+        const isSchCell=entry.virtuoso_kind==='cell'||entry.virtuoso_kind==='schematic_view';
+        const isMaestroDir=entry.virtuoso_kind==='maestro_view';
         const row=el('div','cg-import-file-row'+(entry.kind==='dir'?' is-dir':' is-file')+(sshSelectedFile===entry.path?' is-selected':''));
         const mainBtn=el('button','cg-import-file-main');
         mainBtn.type='button';
         mainBtn.append(
-          el('span','cg-import-file-icon',entry.kind==='dir'?'📁':'📄'),
+          el('span','cg-import-file-icon',isSchCell?'📐':isMaestroDir?'⚙️':(entry.kind==='dir'?'📁':'📄')),
           el('span','cg-import-file-name',entry.kind==='dir'?entry.name+'/':entry.name),
-          el('span','cg-import-file-meta',entry.kind==='dir'?'目录':formatByteSize(entry.size)),
         );
+        if(entry.virtuoso_kind==='cell')mainBtn.append(el('span','cg-import-tag is-sch','schematic'));
+        if(entry.virtuoso_kind==='schematic_view')mainBtn.append(el('span','cg-import-tag is-sch','OA schematic'));
+        if(Array.isArray(entry.maestro_views)){
+          for(const mv of entry.maestro_views)mainBtn.append(el('span','cg-import-tag is-maestro',`+ ${mv}`));
+        }
+        if(isMaestroDir)mainBtn.append(el('span','cg-import-tag is-maestro','仿真配置'));
+        mainBtn.append(el('span','cg-import-file-meta',entry.kind==='dir'?(isSchCell?'原理图':isMaestroDir?'ADE/Maestro':'目录'):formatByteSize(entry.size)));
         if(entry.kind==='dir'){
           mainBtn.onclick=()=>void browseSsh(entry.path);
         }else{
@@ -666,6 +809,12 @@ export function createProjectImporter({
           mainBtn.ondblclick=()=>void importFromSsh(entry.path);
         }
         row.append(mainBtn);
+        if(isSchCell){
+          const expRowBtn=el('button','cg-import-row-action','导出网表');
+          expRowBtn.type='button';expRowBtn.disabled=sshBusy;
+          expRowBtn.onclick=()=>void exportSchematicFromSsh(entry.schematic_path||entry.path);
+          row.append(expRowBtn);
+        }
         if(entry.kind==='file'){
           const impBtn=el('button','cg-import-row-action','导入');
           impBtn.type='button';impBtn.disabled=sshBusy;

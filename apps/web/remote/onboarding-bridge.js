@@ -186,7 +186,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
     const observedScopeWrite=scopeWrites.get(scopeWriteKey);
     const scopeWasUnknown=observedScopeWrite?.status==='unknown';
     if(typeof input!=='object'||Array.isArray(input))throw failure('环境操作参数无效。','invalid_input');
-    if(!['inspectNetlist','listSshAliases','browseRemoteNetlists','importRemoteNetlist','requestSshSetup'].includes(name)&&!intakes.has(input.intake_id))throw failure('此网表不属于当前连接中已导入或恢复的会话。','intake_scope_mismatch');
+    if(!['inspectNetlist','listSshAliases','browseRemoteNetlists','importRemoteNetlist','exportRemoteSchematic','requestSshSetup'].includes(name)&&!intakes.has(input.intake_id))throw failure('此网表不属于当前连接中已导入或恢复的会话。','intake_scope_mismatch');
     if(onboardingRecovery(originalIntake)&&operation.method==='POST')throw failure(recoveryMessage(originalIntake),'recovery_required');
     if(observedScopeWrite&&operation.method==='POST')throw failure('PDK 保存正在进行或结果未知；请先读取原会话核对，未重复发送。','scope_reconciliation_required');
     let path=PREFIX+operation.path,options={method:operation.method,timeout:onboardingRequestTimeout(name,input,sessions.get(input.intake_id))};
@@ -223,6 +223,9 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       }
       if(name==='importRemoteNetlist'){
         requireValue(result?.schema==='ic.onboarding.ssh-import.v1'&&typeof result.file_name==='string'&&typeof result.text==='string','SSH 网表导入响应格式无效。','invalid_ssh_import');
+      }
+      if(name==='exportRemoteSchematic'){
+        requireValue(result?.schema==='ic.onboarding.ssh-schematic-export.v1'&&typeof result.file_name==='string'&&typeof result.text==='string','远端 Virtuoso schematic 网表导出响应格式无效。','invalid_ssh_schematic_export');
       }
       if(name==='requestSshSetup'){
         requireValue(typeof result?.url==='string'&&result.url.length>0,'本机 SSH 配置向导地址无效。','invalid_ssh_setup_url');
@@ -329,7 +332,7 @@ export function createOnboardingBridge({gateway=null,win=globalThis.window,pair=
       }
       if(generation!==epoch||scope!==connectionId)throw failure(operation.method==='POST'?'连接已变化；请用原身份核对结果，未重发。':'连接已变化；旧响应已丢弃。',operation.method==='POST'?'transport_unknown':'connection_changed');
       if(name==='analyzeExperiment'&&problem.data?.code==='analysis_scope_mismatch')throw problem;
-      if(operation.method==='POST'&&!['browseRemoteNetlists','importRemoteNetlist','requestSshSetup'].includes(name)&&(!problem.status||problem.code==='response_size_limit'||problem.data?.code==='response_size_limit')&&!['replay_forbidden','connection_changed'].includes(problem.data?.code)){
+      if(operation.method==='POST'&&!['browseRemoteNetlists','importRemoteNetlist','exportRemoteSchematic','requestSshSetup'].includes(name)&&(!problem.status||problem.code==='response_size_limit'||problem.data?.code==='response_size_limit')&&!['replay_forbidden','connection_changed'].includes(problem.data?.code)){
         const unknown=failure('操作结果尚未确认；请在原连接中核对原会话或提交回执，不要重新发送。','transport_unknown');unknown.cause=problem;throw unknown;
       }
       throw problem;

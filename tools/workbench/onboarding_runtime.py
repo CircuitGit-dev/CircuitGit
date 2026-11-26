@@ -20,7 +20,7 @@ from workspace import Conflict
 
 PREFIX = '/api/simulation/onboarding'
 READS = {'ssh-hosts','session','source','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','agent-tb/draft','agent-tb/review','pdk-scopes'}
-WRITES = {'netlist','ssh-browse','ssh-import','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis','select-pdk-scope'}
+WRITES = {'netlist','ssh-browse','ssh-import','ssh-export-schematic','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis','select-pdk-scope'}
 SCHEMA = 'ic.onboarding.session.v1'
 IN_PROGRESS={'probe','discover-pdk','veriloga-headers','prepare','agent-tb/draft','agent-tb/prepare','submitting','select-pdk-scope'}
 
@@ -299,12 +299,13 @@ class OnboardingRuntime:
             raise PermissionError('Unsupported onboarding entry point')
         if not isinstance(args,dict):raise ValueError('Onboarding arguments must be an object')
         methods={'netlist':self._netlist,'ssh-browse':self._ssh_browse,'ssh-import':self._ssh_import,
+                 'ssh-export-schematic':self._ssh_export_schematic,
                  'probe':self._probe,'discover-pdk':self._discover,'veriloga-headers':self._veriloga_headers,
                  'select-pdk-scope':self._select_pdk_scope,
                  'prepare':self._prepare,'run':self._run,'inspect':self._inspect,
                  'agent-tb/draft':self._agent_draft,'agent-tb/prepare':self._agent_prepare,'analysis':self._analysis}
         if operation not in methods:raise ValueError('Unknown finite onboarding operation')
-        if operation in ('netlist','ssh-browse','ssh-import'):return methods[operation](args,origin)
+        if operation in ('netlist','ssh-browse','ssh-import','ssh-export-schematic'):return methods[operation](args,origin)
         with locked(self._folder(args.get('intake_id'))/'operation.lock'):
             self._require_operable(self._load(args['intake_id']))
             try:return methods[operation](args,origin)
@@ -388,6 +389,21 @@ class OnboardingRuntime:
             self.config.get('ssh_config'),
             args['path'],
             include_dependencies=args.get('include_dependencies',True),
+        )
+
+    def _ssh_export_schematic(self,args,origin):
+        allowed={'ssh_target','path','include_maestro','maestro_view','maestro_test','cds_lib'}
+        if not {'ssh_target','path'}<=set(args) or set(args)-allowed:
+            raise ValueError('Provide an explicit ssh_target and remote Virtuoso schematic path')
+        from onboarding_ssh_import import export_remote_schematic
+        return export_remote_schematic(
+            args['ssh_target'],
+            self.config.get('ssh_config'),
+            args['path'],
+            include_maestro=args.get('include_maestro',True),
+            maestro_view=args.get('maestro_view'),
+            maestro_test=args.get('maestro_test'),
+            cds_lib=args.get('cds_lib'),
         )
 
     def _probe(self,args,origin):

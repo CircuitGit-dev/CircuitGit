@@ -15,6 +15,7 @@ from platform_compat import find_ssh_binary
 
 BROWSE_SCHEMA = 'ic.onboarding.ssh-browse.v1'
 IMPORT_SCHEMA = 'ic.onboarding.ssh-import.v1'
+SCHEMATIC_EXPORT_SCHEMA = 'ic.onboarding.ssh-schematic-export.v1'
 
 MAX_BROWSE_ENTRIES = 200
 MAX_FILE_BYTES = 1024 * 1024
@@ -484,3 +485,35 @@ def fetch_remote_netlist(ssh_target, ssh_config, path, *, include_dependencies=T
         'support_files': {str(k): str(v) for k, v in support.items()},
         'skipped': list(data.get('skipped') or [])[:32],
     }
+
+
+def export_remote_schematic(
+    ssh_target,
+    ssh_config,
+    path,
+    *,
+    include_maestro=True,
+    maestro_view=None,
+    maestro_test=None,
+    cds_lib=None,
+    runner=None,
+):
+    """Export a Spectre netlist directly from a remote Virtuoso OA schematic view (with optional Maestro config).
+
+    Reuses ``spiceowl.onboarding.ssh_import.export_remote_schematic`` so CircuitGit
+    and SpiceOwl share one verified headless Cadence ``si`` + Maestro parser.
+    """
+    try:
+        from spiceowl.onboarding.ssh_import import export_remote_schematic as _shared_export
+    except ImportError as exc:
+        raise ValueError('当前本机 SpiceOwl 版本较旧，尚不支持从远端 Virtuoso schematic 导出网表；请更新本地连接器后重试。') from exc
+    return _shared_export(
+        ssh_target,
+        ssh_config,
+        path,
+        include_maestro=include_maestro,
+        maestro_view=maestro_view,
+        maestro_test=maestro_test,
+        cds_lib=cds_lib,
+        runner=runner,
+    )

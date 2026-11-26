@@ -3,6 +3,7 @@ import {readSimulationJson} from '../../../modules/simulation/http.js';
 export const ONBOARDING_OPERATIONS=Object.freeze({
   inspectNetlist:{path:'/netlist',method:'POST'},listSshAliases:{path:'/ssh-hosts',method:'GET'},
   browseRemoteNetlists:{path:'/ssh-browse',method:'POST'},importRemoteNetlist:{path:'/ssh-import',method:'POST'},
+  exportRemoteSchematic:{path:'/ssh-export-schematic',method:'POST'},
   requestSshSetup:{path:'/ssh-setup-request',method:'POST'},
   getSession:{path:'/session',method:'GET',query:['intake_id']},probeHost:{path:'/probe',method:'POST'},
   probeVerilogaHeaders:{path:'/veriloga-headers',method:'POST'},
@@ -21,7 +22,7 @@ const ONBOARDING_PREFIX='/simulation/onboarding';
 // 240s remote / 270s transport / 300s gateway, with 10s browser margin. Prepare includes four local
 // Git calls capped at 20s and a 60s audit. Run reserves after two host checks
 // (30s doctor + 30s version/10s resources) and one 30s selected-host preflight.
-const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,browseRemoteNetlists:35000,importRemoteNetlist:35000,requestSshSetup:20000,getSession:20000,getPdkScopes:20000,selectPdkScope:20000,
+const ONBOARDING_TIMEOUT_LIMITS=Object.freeze({inspectNetlist:20000,listSshAliases:20000,browseRemoteNetlists:35000,importRemoteNetlist:35000,exportRemoteSchematic:95000,requestSshSetup:20000,getSession:20000,getPdkScopes:20000,selectPdkScope:20000,
   probeVerilogaHeaders:70000,probeHost:290000,discoverPdk:310000,prepareExperiment:150000,runPrepared:320000,readSubmission:20000,inspectExperiment:45000,
   saveAgentTestbench:20000,getAgentTestbench:20000,prepareAgentTestbench:150000,analyzeExperiment:120000});
 const boundedHostCount=rows=>Array.isArray(rows)&&rows.length>=1&&rows.length<=8?rows.length:8;
@@ -138,7 +139,7 @@ export function createNodeClient({url,accessCode,fetchImpl=fetch,timeout=45000,o
       return value.data;
     } catch(error) {
       if(error.status||error.code==='response_size_limit')throw error;
-      const write=method==='POST'&&!['/library/read','/simulation/onboarding/ssh-browse','/simulation/onboarding/ssh-import','/simulation/onboarding/ssh-setup-request'].includes(path);
+      const write=method==='POST'&&!['/library/read','/simulation/onboarding/ssh-browse','/simulation/onboarding/ssh-import','/simulation/onboarding/ssh-export-schematic','/simulation/onboarding/ssh-setup-request'].includes(path);
       const message=closed?'节点已断开；没有重发操作。':write?(library?'操作结果尚未确认；请检查原请求记录，不要重新提交。':'发送结果尚不确定；请重新连接并核对原会话，不要重复发送。'):'无法读取节点。请检查地址、HTTPS、访问码及浏览器的本地网络权限。';
       const e=Error(message);e.data={code:write?'transport_unknown':'node_unreachable'};throw e;
     } finally {clearTimeout(timer);pending.delete(controller);}
