@@ -1,8 +1,16 @@
-"""Publish bounded, cell-scoped Git metadata; never application release history or old source text."""
+"""Publish bounded, cell-scoped circuit/netlist Git metadata; never docs-only noise or old source text."""
 import json
 import os
 from pathlib import Path
 import subprocess
+
+CIRCUIT_SOURCE_SUFFIXES = (
+    '.scs', '.rnl', '.sp', '.spice', '.cir', '.cdl', '.ckt', '.net', '.inc', '.va', '.vams',
+)
+
+
+def is_circuit_source(path):
+    return path.lower().endswith(CIRCUIT_SOURCE_SUFFIXES)
 
 
 def generate(root):
@@ -18,20 +26,28 @@ def generate(root):
         manifest=json.loads((root/library['manifest']).read_text())
         for cell in manifest['cells']:
             prefix=cell['directory']+'/'
-            paths={cell['readme'], *[p for v in cell['views'] for p in v['files']]}
+            raw_paths={p for v in cell['views'] for p in v['files']}
             project=cell.get('project_id');legacy='projects/'+project+'/' if project else None
-            paths=sorted(p for p in paths if p.startswith(prefix) or legacy and p.startswith(legacy))
-            paths.append(cell['directory']+'/ci.json')
-            raw=git('log','-31','--format=%H%x00%s%x00%aI%x1e',head,'--',*paths)
+            # Only record commits that actually modified schematic/netlist/RNL/Verilog-A sources.
+            paths=sorted(
+                p for p in raw_paths
+                if is_circuit_source(p) and (p.startswith(prefix) or (legacy and p.startswith(legacy)))
+            )
             commits=[]
-            for record in raw.decode().split('\x1e'):
-                record=record.strip('\n')
-                if not record:continue
-                sha,subject,date=record.split('\0',2)
-                # Filenames are only those that changed within this exact scope;
-                # no global app history, author emails or historical blobs.
-                changed=git('diff-tree','--root','--no-commit-id','--name-only','-r',sha,'--',*paths).decode().splitlines()
-                commits.append({'sha':sha,'subject':subject,'date':date,'files':changed})
+            if paths:
+                raw=git('log','-31','--format=%H%x00%s%x00%aI%x1e',head,'--',*paths)
+                for record in raw.decode().split('\x1e'):
+                    record=record.strip('\n')
+                    if not record:continue
+                    sha,subject,date=record.split('\0',2)
+                    # Filenames are only circuit sources that changed within this exact scope;
+                    # no README/metadata noise, global app history, author emails or historical blobs.
+                    changed=[
+                        p for p in git('diff-tree','--root','--no-commit-id','--name-only','-r',sha,'--',*paths).decode().splitlines()
+                        if is_circuit_source(p)
+                    ]
+                    if not changed:continue
+                    commits.append({'sha':sha,'subject':subject,'date':date,'files':changed})
             rows.append({'library_id':library['id'],'cell_id':cell['id'],'directory':cell['directory'],
                          'source_commit':head,'commits':commits[:30],
                          'has_more':len(commits)>30,'history_complete':not shallow and len(commits)<=30})

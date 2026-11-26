@@ -1,4 +1,11 @@
 import {createLibraryClient,repositoryPath} from './model.js';
+import {
+  filterCircuitCommits,
+  isCircuitSourcePath,
+  parseCircuitDiff,
+  selectDiffSections,
+  shortFileName,
+} from './history-diff.js';
 
 const short=value=>typeof value==='string'?value.slice(0,8):'—';
 const node=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
@@ -36,6 +43,7 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
   const root=node('section',undefined,'cg-cell-versions');root.setAttribute('aria-label','电路版本管理');element.replaceChildren(root);
   let scope=null,generation=0,fileGeneration=0,disposed=false,abort=null,loading=false,busy=false,tab='files',description=null,current=null,history=[],checkpoints=[],ci=null,published=null,detail=null,editor=null,error='',message='',unknown=null;
   let activated=!deferLoad,activating=false,reviewLink=null,branchInfo=null;
+  let diffMode=null,diffExpanded=false,showNonCircuitHistory=false;
   const drafts=new Map(),pending=createPendingStore(pendingStorage);let unwatch=null,lastFingerprint=null;let title='',body='',lastPR=null,lastPRBranch='',remotePR=null;
   let newBranch='',switchTarget='',newCellId='',cloneCellId='',newLibId='',newLibName='',relatedCellsText='';
   const connected=()=>bridge?.getState?.()?.connected===true;
@@ -77,18 +85,149 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
     area.oninput=()=>{editor.text=area.value;editor.dirty=editor.text!==editor.original;drafts.set(draftKey(editor.path),{...editor});save.disabled=!editable||busy||!editor.dirty;hint.textContent=`本机文件 · ${short(editor.sha256)}${editor.dirty?' · 未保存草稿':''}`;liveDiff.textContent=textDiff(editor.original,editor.text);};
     const editorGrid=node('div',undefined,'cg-cv-editor-grid');editorGrid.append(area,liveDiff);root.append(hint,editorGrid,row(save,button(editor.dirty?'丢弃草稿并重新读取':'重新读取',()=>openFile(editor.path,{discard:true}),busy)));
     const retained=drafts.get(draftKey(editor.path));if(retained&&retained.sha256!==editor.sha256){const box=node('details');box.append(node('summary','查看保留的旧草稿'),pre(retained.text,'保留的旧草稿'));root.append(box);}
-    if(current?.diff){root.append(node('strong','工作区差异'),pre(current.diff,'工作区差异'));}renderCheckpoints(5);
+    if(current?.diff){root.append(node('strong','工作区差异'),renderStructuredDiff(current.diff,{label:'工作区差异',fallbackPath:editor?.path||scope.entry}));}renderCheckpoints(5);
+  }
+  function renderStructuredDiff(rawDiff,{label='版本差异',fallbackPath=''}={}){
+    const parsed=parseCircuitDiff(rawDiff,{fallbackPath});
+    const activeMode=diffMode||(parsed.hasRnlChanges?'rnl':'circuit');
+    const wrap=node('section',undefined,'cg-cv-diff-view');
+    wrap.setAttribute('aria-label',label);
+
+    if(parsed.summary.length){
+      const sumBox=node('div',undefined,'cg-cv-diff-summary');
+      for(const line of parsed.summary)sumBox.append(node('p',line));
+      wrap.append(sumBox);
+    }
+
+    const bar=node('div',undefined,'cg-cv-diff-modes');
+    const modes=[
+      ['rnl',`仅 RNL 变动 (${parsed.rnlAdded+parsed.rnlRemoved})`,!parsed.hasRnlChanges],
+      ['circuit',`网表与 RNL (${parsed.circuitAdded+parsed.circuitRemoved})`,!parsed.hasCircuitChanges],
+    ];
+    for(const [id,text,disabled] of modes){
+      const b=button(text,()=>{diffMode=id;diffExpanded=false;render();},disabled);
+      b.setAttribute('aria-pressed',String(activeMode===id));
+      bar.append(b);
+    }
+    if(parsed.nonCircuitFiles.length){
+      bar.append(node('span',`已忽略 ${parsed.nonCircuitFiles.length} 个文档/配置文件`,'cg-cv-diff-ignored'));
+    }
+    wrap.append(bar);
+
+    const sections=selectDiffSections(parsed,activeMode);
+    if(!sections.length){
+      wrap.append(note(activeMode==='rnl'
+        ?'此次提交未修改 RNL 原理图布局行，可切换到「网表与 RNL」查看器件/参数改动。'
+        :'此次提交没有原理图或网表改动。'));
+      return wrap;
+    }
+
+    const MAX_PREVIEW_LINES=100;
+    let shownLines=0,hiddenLines=0;
+    for(const file of sections){
+      const card=node('div',undefined,'cg-cv-diff-file');
+      const head=node('div',undefined,'cg-cv-diff-file-head');
+      head.append(
+        node('strong',file.name,'cg-cv-diff-file-name'),
+        node('span',file.kind,'cg-cv-diff-tag'),
+        node('span',`+${file.added} / -${file.removed}`,'cg-cv-diff-stat'),
+      );
+      head.title=file.path;
+      card.append(head);
+
+      const code=node('div',undefined,'cg-cv-diff-lines');
+      let fileRendered=0;
+      for(const hunk of file.hunks){
+        if(!diffExpanded&&shownLines>=MAX_PREVIEW_LINES){
+          hiddenLines+=hunk.lines.length;
+          continue;
+        }
+        code.append(node('div',hunk.header,'cg-cv-diff-hunk'));
+        for(const line of hunk.lines){
+          if(!diffExpanded&&shownLines>=MAX_PREVIEW_LINES){
+            hiddenLines++;
+            continue;
+          }
+          shownLines++;
+          fileRendered++;
+          const rowEl=node('div',undefined,'cg-cv-diff-line is-'+line.type+(line.category==='rnl'?' is-rnl':''));
+          rowEl.append(node('span',line.sign,'cg-cv-diff-sign'),node('span',line.text,'cg-cv-diff-text'));
+          code.append(rowEl);
+        }
+      }
+      if(fileRendered>0){
+        card.append(code);
+        wrap.append(card);
+      }
+    }
+    if(hiddenLines>0&&!diffExpanded){
+      wrap.append(button(`展开剩余 ${hiddenLines} 行改动`,()=>{diffExpanded=true;render();}));
+    }
+    return wrap;
   }
   function renderHistory(){
-    if(detail){root.append(button('‹ 返回历史',()=>{detail=null;render();}),node('strong',detail.commit?.subject||detail.summary||'文件保存点'));if(detail.diff!==undefined)root.append(pre(detail.diff,'版本差异'));else root.append(note('公开历史未打包差异；连接本机节点后可查看该提交的完整差异。'));
-      if(detail.files?.length)root.append(note(detail.files.map(item=>typeof item==='string'?item:item.path).join('\n')));
-      if(detail.commit?.sha)root.append(note('恢复目标：'+(editor?.path||scope.entry)),button('恢复选中文件',()=>restore({commit:detail.commit.sha}),busy||!allowed('restore')));
+    if(detail){
+      const titleBar=node('div',undefined,'cg-cv-detail-head');
+      titleBar.append(
+        button('‹ 返回历史',()=>{detail=null;diffMode=null;diffExpanded=false;render();}),
+        node('strong',detail.commit?.subject||detail.summary||'电路修改记录'),
+      );
+      root.append(titleBar);
+      const circuitFiles=(detail.files||[])
+        .map(item=>typeof item==='string'?item:item.path)
+        .filter(isCircuitSourcePath);
+      if(detail.diff!==undefined){
+        root.append(renderStructuredDiff(detail.diff,{label:'版本差异',fallbackPath:circuitFiles[0]||scope.entry}));
+      }else{
+        root.append(note('当前为静态网页只读模式，未打包历史 diff；连接本机节点后可在此查看 RNL 与网表差异。'));
+        if(detail.commit?.sha&&/^[0-9a-f]{40}$/i.test(detail.commit.sha)){
+          const gh=node('a','在 GitHub 查看本次提交 ↗','cg-cv-ext-link');
+          gh.href=`https://github.com/CircuitGit-dev/CircuitGit/commit/${detail.commit.sha}`;
+          gh.target='_blank';gh.rel='noopener';
+          root.append(gh);
+        }
+      }
+      if(circuitFiles.length){
+        root.append(note('涉及电路文件：'+circuitFiles.map(shortFileName).join('、')));
+      }
+      if(detail.commit?.sha){
+        root.append(note('恢复目标：'+shortFileName(editor?.path||scope.entry)),button('恢复选中文件',()=>restore({commit:detail.commit.sha}),busy||!allowed('restore')));
+      }
       return;
     }
-    const list=node('div',undefined,'cg-cv-list');for(const commit of history){const item=button('',()=>showCommit(commit));item.append(node('strong',commit.subject||'无提交说明'),node('span',`${short(commit.sha)} · ${commit.timestamp||commit.date||''}`));list.append(item);}root.append(list);
-    if(!history.length)root.append(note(published?'此单元尚无已发布提交记录。':'尚无当前单元的历史记录。'));
+    const filtered=filterCircuitCommits(history,{includeNonCircuit:showNonCircuitHistory});
+    const list=node('div',undefined,'cg-cv-list');
+    for(const commit of filtered.visible){
+      const item=button('',()=>showCommit(commit));
+      item.append(node('strong',commit.subject||'无提交说明'));
+      const fileSummary=commit.circuitFiles?.length
+        ? commit.circuitFiles.slice(0,2).map(shortFileName).join('、')+(commit.circuitFiles.length>2?` 等 ${commit.circuitFiles.length} 个文件`:'')
+        : commit.nonCircuitOnly?'仅文档/配置':'';
+      const meta=[short(commit.sha),commit.timestamp||commit.date||'',fileSummary].filter(Boolean).join(' · ');
+      item.append(node('span',meta));
+      list.append(item);
+    }
+    root.append(list);
+    if(!filtered.visible.length){
+      root.append(note('当前单元暂无原理图或网表修改记录；修改网表并提交后会显示在这里。'));
+    }
+    if(filtered.hiddenCount>0&&!showNonCircuitHistory){
+      const foot=node('div',undefined,'cg-cv-history-filter');
+      foot.append(
+        node('span',`已自动隐藏 ${filtered.hiddenCount} 条非网表（文档/配置）记录`,'cg-cv-note'),
+        button('查看全部',()=>{showNonCircuitHistory=true;render();}),
+      );
+      root.append(foot);
+    }else if(showNonCircuitHistory){
+      const foot=node('div',undefined,'cg-cv-history-filter');
+      foot.append(
+        node('span','当前包含非网表文档/配置提交','cg-cv-note'),
+        button('仅看原理图/网表',()=>{showNonCircuitHistory=false;render();}),
+      );
+      root.append(foot);
+    }
     renderCheckpoints();
-    root.append(note(connected()?'只展示当前单元范围内的电路数据。':'这里展示当前发布时的单元历史；连接节点可读取最新工作区和差异。'));
+    root.append(note(connected()?'仅追踪当前单元的原理图（RNL）与网表修改记录。':'仅展示当前单元的原理图/网表提交历史；连接本机节点可查看完整 RNL 差异与恢复版本。'));
   }
   function renderCheckpoints(limit=30){if(!checkpoints.length)return;const box=node('section',undefined,'cg-cv-checkpoints');box.append(node('strong',`保存点 · ${checkpoints.length}`));for(const checkpoint of checkpoints.slice(0,limit))box.append(row(note(`${checkpoint.path} · ${checkpoint.created_at||''}`),...(checkpoint.restore_versions||['after']).map(version=>button(version==='before'?'恢复保存前':'恢复保存后',()=>restore({checkpoint_id:checkpoint.checkpoint_id,path:checkpoint.path,checkpoint_version:version}),busy||!allowed('restore')||checkpoint.state==='unknown'))));root.append(box);}
   function renderSubmit(){
@@ -172,7 +311,7 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
     finally{if(ticket===generation&&fileTicket===fileGeneration&&!disposed){loading=false;render();}}
   }
   async function showCommit(commit){
-    if(busy||loading)return;const ticket=generation;loading=true;render();
+    if(busy||loading)return;const ticket=generation;diffMode=null;diffExpanded=false;loading=true;render();
     try{const result=connected()?await read('commit_detail',{commit:commit.sha}):{commit,diff:commit.diff,files:commit.files};if(ticket===generation)detail=result;}
     catch(e){if(ticket===generation)error=e.message;}finally{if(ticket===generation){loading=false;render();}}
   }

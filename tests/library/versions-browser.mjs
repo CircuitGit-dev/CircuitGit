@@ -7,7 +7,7 @@ const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(proces
 const output=process.env.EVIDENCE_DIR;const browser=await chromium.launch({headless:true,channel:process.env.BROWSER_CHANNEL||'chrome'});
 try{
  const page=await browser.newPage({viewport:{width:740,height:940}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
- const paths={'/versions.js':'library/versions.js','/versions.css':'library/versions.css','/model.js':'library/model.js','/bridge.js':'remote/library-bridge.js'};
+ const paths={'/versions.js':'library/versions.js','/versions.css':'library/versions.css','/history-diff.js':'library/history-diff.js','/model.js':'library/model.js','/bridge.js':'remote/library-bridge.js'};
  await page.route('http://localhost:43211/**',route=>{const path=new URL(route.request().url()).pathname;if(path==='/')return route.fulfill({contentType:'text/html',body:'<!doctype html><meta charset="utf-8"><main style="width:560px;height:880px"></main>'});const file=paths[path];if(!file)return route.fulfill({status:404,body:''});return route.fulfill({contentType:file.endsWith('.css')?'text/css':'text/javascript',body:readFileSync(resolve('apps/web',file),'utf8')});});
  await page.goto('http://localhost:43211/');
  await page.evaluate(async()=>{

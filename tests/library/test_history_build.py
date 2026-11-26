@@ -23,10 +23,12 @@ class HistoryTests(unittest.TestCase):
             write('lib/one/cell/README.md','Circuit');write('lib/one/cell/source.scs','R0 a b resistor r=1\n')
             git('add','.');git('commit','-m','Import circuit');initial=git('rev-parse','HEAD')
             write('apps/example.js','application only');git('add','.');git('commit','-m','Change website toolbar')
+            write('lib/one/cell/README.md','Updated prose only');git('add','.');git('commit','-m','Docs only update')
             write('lib/one/cell/source.scs','R0 a b resistor r=2\n');git('add','.');git('commit','-m','Change resistor');latest=git('rev-parse','HEAD')
             report=module.generate(root);row=report['cells'][0]
             self.assertEqual([r['sha'] for r in row['commits']],[latest,initial])
             self.assertEqual(row['commits'][0]['files'],['lib/one/cell/source.scs'])
+            self.assertEqual(row['commits'][1]['files'],['lib/one/cell/source.scs'])
             self.assertNotIn('R0 a b',json.dumps(report));self.assertTrue(row['history_complete'])
             output=root/'site';module.publish(root,output)
             self.assertTrue((output/'library-files/lib/history.json').is_file())

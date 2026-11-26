@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {writable,publishedCell,receiptState,receiptReleased,commitDraft,createPublishedHistoryLoader,textDiff,createPendingStore,testbenchExecutionLabel} from '../../apps/web/library/versions.js';
+import {filterCircuitCommits,parseCircuitDiff,selectDiffSections} from '../../apps/web/library/history-diff.js';
 import {createLibraryBridge,cellFingerprint} from '../../apps/web/remote/library-bridge.js';
 const scope={library_id:'test',cell_id:'gain',directory:'lib/test/gain',cell:'Gain'};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -52,4 +53,61 @@ test('bridge allows branches read and repo-level CRUD/branch writes without cell
   assert.equal(res.state,'complete');
  }
  assert.equal(events.length,5);bridge.unbind();
+});
+test('circuit history excludes docs/JSON-only commits by default and prioritizes schematic files',()=>{
+ const commits=[
+  {sha:'1'.repeat(40),subject:'Separate active simulation guidance',files:['lib/a/c/simulation/README.md','lib/a/c/simulation/workflow.md']},
+  {sha:'2'.repeat(40),subject:'Metadata binding only',files:['lib/a/c/simulation/source-bindings.json']},
+  {sha:'3'.repeat(40),subject:'Move resistor and wire in RNL',files:['lib/a/c/simulation/README.md','lib/a/c/schematic/top.scs']},
+ ];
+ const filtered=filterCircuitCommits(commits);
+ assert.equal(filtered.hiddenCount,2);
+ assert.equal(filtered.visible.length,1);
+ assert.equal(filtered.visible[0].sha,'3'.repeat(40));
+ assert.deepEqual(filtered.visible[0].circuitFiles,['lib/a/c/schematic/top.scs']);
+ const all=filterCircuitCommits(commits,{includeNonCircuit:true});
+ assert.equal(all.visible.length,3);
+ assert.equal(all.visible[0].nonCircuitOnly,true);
+});
+test('circuit diff isolates RNL schematic edits and drops README/JSON prose',()=>{
+ const raw=[
+  '--- a/lib/a/c/simulation/README.md',
+  '+++ b/lib/a/c/simulation/README.md',
+  '@@ -1,2 +1,2 @@',
+  '-# Versioned simulation inputs',
+  '+# Historical simulation input candidates',
+  '--- a/lib/a/c/schematic/top.scs',
+  '+++ b/lib/a/c/schematic/top.scs',
+  '@@ -5,6 +5,6 @@',
+  '-R0 (in out) resistor r=1k',
+  '+R0 (in out) resistor r=2k',
+  ' // @RNL {',
+  '-// #"R0" @PLACE(0,4);',
+  '+// #"R0" @PLACE(4,4);',
+  '-// %wi = &"in" @WIRE(mode="straight") {#"V0":1 #"R0":1};',
+  '+// %wi = &"in" @WIRE(mode="straight") {#"V0":1 (2,4) #"R0":1};',
+  ' // }',
+ ].join('\n');
+ const parsed=parseCircuitDiff(raw);
+ assert.equal(parsed.circuitFiles.length,1);
+ assert.equal(parsed.nonCircuitFiles.length,1);
+ assert.equal(parsed.rnlAdded,2);
+ assert.equal(parsed.rnlRemoved,2);
+ assert.equal(parsed.netlistAdded,1);
+ assert.equal(parsed.netlistRemoved,1);
+ assert.equal(parsed.defaultMode,'rnl');
+ assert.ok(parsed.rnlTopics.includes('器件摆放'));
+ assert.ok(parsed.rnlTopics.includes('连线路由'));
+ assert.ok(parsed.netlistEntities.includes('R0'));
+
+ const rnlOnly=selectDiffSections(parsed,'rnl');
+ assert.equal(rnlOnly.length,1);
+ assert.equal(rnlOnly[0].name,'top.scs');
+ assert.equal(rnlOnly[0].hunks[0].lines.length,4);
+ assert.ok(rnlOnly[0].hunks[0].lines.every(line=>line.category==='rnl'&&line.type!=='ctx'));
+
+ const circuitAll=selectDiffSections(parsed,'circuit');
+ assert.equal(circuitAll.length,1);
+ assert.ok(circuitAll[0].hunks[0].lines.some(line=>line.text.includes('r=2k')));
+ assert.ok(!circuitAll.some(file=>file.name==='README.md'));
 });
