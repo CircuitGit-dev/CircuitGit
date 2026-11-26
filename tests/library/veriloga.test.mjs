@@ -212,3 +212,41 @@ test('tokenizeVerilogALine classifies directives, keywords, builtins, operators,
   assert.equal(r4.tokens[0].type,'comment');
   assert.ok(r4.tokens.some(t=>t.type==='keyword'&&t.text==='analog'));
 });
+
+test('TB_PIPE_RS9_N06 full RNL closure preserves all Virtuoso subcircuit symbols and orthogonal PIPE_TOP wiring',async()=>{
+  const {loadCore}=await import('../../apps/web/vendor/rnl-viewer/core/core.js');
+  const core=await loadCore(readFileSync(new URL('../../apps/web/vendor/rnl-viewer/core/rnl_runtime_wasm.wasm',import.meta.url)));
+  const realLib=JSON.parse(readFileSync(new URL('../../lib/pipetisar-real/library.json',import.meta.url),'utf8'));
+  const tb=realLib.cells.find(c=>c.id==='TB_PIPE_RS9_N06');
+  const view=tb.views.find(v=>v.id==='schematic');
+  const files={};
+  for(const p of view.files)files['/'+p]=readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+  for(const [k,v] of Object.entries(view.aliases||{}))files['/'+k]=files['/'+v];
+  const doc=core.build({entry:'/'+view.entry,files,svg:false,primitives:true});
+  assert.equal(doc.failed,null);
+
+  // Every single level across the 1G 12-bit ADC hierarchy must keep its Virtuoso block symbols (zero fallback defaults).
+  for(const lv of doc.levels){
+    const defaults=lv.children.filter(ch=>ch.symbol!=null&&doc.symbols[ch.symbol]?.default);
+    assert.deepEqual(defaults,[],`fallback default symbol in level ${lv.title}`);
+  }
+
+  // PIPE_TOP_F4_RS9_N06 must have zero diagonal broken wires when navigated in-place inside the TB closure.
+  const pipeTop=doc.levels.find(l=>l.title==='PIPE_TOP_F4_RS9_N06');
+  assert.ok(pipeTop);
+  let diagonal=0;
+  for(const p of pipeTop.primitives||[]){
+    if(p.kind!=='path'||!p.owner?.startsWith('wire-'))continue;
+    const pts=p.segments.filter(s=>s.to).map(s=>s.to);
+    for(let i=1;i<pts.length;i++){
+      if(Math.abs(pts[i][0]-pts[i-1][0])>0.1&&Math.abs(pts[i][1]-pts[i-1][1])>0.1)diagonal++;
+    }
+  }
+  assert.equal(diagonal,0,'PIPE_TOP_F4_RS9_N06 should preserve orthogonal Virtuoso wiring');
+
+  // Guard against regression in subcircuits.js: Studio & snapshot sources must stay in currentSource().
+  const subcircuitsSrc=readFileSync(new URL('../../apps/web/vendor/rnl-viewer/subcircuits.js',import.meta.url),'utf8');
+  assert.match(subcircuitsSrc,/function stayInCurrentSource\(/);
+  assert.match(subcircuitsSrc,/ic-studio/);
+  assert.match(subcircuitsSrc,/currentSource\(\)\?\.snapshot/);
+});

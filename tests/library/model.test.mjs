@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createLibraryClient,repositoryPath,validateCatalog,validateLibrary,filterLibraries,classifyLibraryHierarchy,primaryProjectEntry,formatViewLabel,displayViewsForCell} from '../../apps/web/library/model.js';
+import {createLibraryClient,repositoryPath,validateCatalog,validateLibrary,filterLibraries,classifyLibraryHierarchy,primaryProjectEntry,formatLibraryName,formatViewLabel,displayViewsForCell,isArchivedLibrary,visibleLibraries} from '../../apps/web/library/model.js';
 const entry='lib/synthetic/cell/schematic/view.scs',dependency='lib/synthetic/cell/schematic/support/circuit.scs';
 const view={id:'schematic',label:'Synthetic native schematic',kind:'rnl',entry,files:[entry,dependency],level:'@top'};
 const library={schema:'circuitgit.library.v1',id:'synthetic',name:'Synthetic library',description:'Test only',cells:[{id:'cell',name:'Synthetic cell',kind:'circuit',directory:'lib/synthetic/cell',readme:'lib/synthetic/cell/README.md',project_id:null,requires_external_models:false,views:[view,{id:'docs',label:'Readme',kind:'markdown',entry:'lib/synthetic/cell/README.md',files:['lib/synthetic/cell/README.md']}]}]};
@@ -106,4 +106,20 @@ test('formatViewLabel and displayViewsForCell normalize labels and surface embed
   const standaloneViews=displayViewsForCell({kind:'circuit',views:[{id:'symbol',label:'Native symbol',kind:'rnl'}]});
   assert.deepEqual(standaloneViews.map(v=>v.id),['symbol']);
   assert.equal(standaloneViews[0].virtualSymbol,undefined);
+});
+
+test('visibleLibraries hides archived research libraries by default while preserving catalog access and clean display names',()=>{
+  const all=[
+    {id:'pipetisar-real',name:'PIPE–TI–SAR real SAR snapshot',cells:[]},
+    {id:'pipetisar-research',name:'PIPE–TI–SAR research library',cells:[]},
+    {id:'pipesar-original',name:'Original 9-bit SAR library',cells:[]},
+    {id:'basics',name:'基础电路',cells:[]},
+  ];
+  assert.equal(isArchivedLibrary('pipetisar-research'),true);
+  assert.equal(isArchivedLibrary('pipesar-original'),true);
+  assert.equal(isArchivedLibrary('pipetisar-real'),false);
+  assert.deepEqual(visibleLibraries(all).map(l=>l.id),['pipetisar-real','basics']);
+  assert.deepEqual(visibleLibraries(all,{includeArchived:true}).map(l=>l.id),['pipetisar-real','pipetisar-research','pipesar-original','basics']);
+  assert.equal(formatLibraryName(all[0]),'1G 12-bit PIPE–TI–SAR ADC');
+  assert.equal(formatLibraryName(all[3]),'基础示例电路');
 });

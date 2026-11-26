@@ -6,37 +6,16 @@ export const FEATURED_PROJECTS=Object.freeze([
   {
     libraryId:'pipetisar-real',
     cellId:'TB_PIPE_RS9_N06',
-    name:'PIPE–TI–SAR real SAR',
-    badge:'1 GS/s · 22 模块',
-    summary:'完整 1 GS/s 流水线+时间交织 SAR ADC 项目，打开顶层 TB_PIPE_RS9_N06 后可双击下钻全部子模块。',
-  },
-  {
-    libraryId:'pipetisar-research',
-    cellId:'TB_PIPE_CA4_RS9_N06',
-    name:'PIPE–TI–SAR research',
-    badge:'研究库 · 64 模块',
-    summary:'MDAC / Flash / SAR 多架构研究项目，顶层入口 TB_PIPE_CA4_RS9_N06。',
-  },
-  {
-    libraryId:'pipesar-original',
-    cellId:'L3_9bit_SAR_2',
-    name:'Original 9-bit SAR',
-    badge:'9-bit SAR · 10 模块',
-    summary:'9 位 SAR ADC 完整层级电路，顶层入口 L3_9bit_SAR_2。',
-  },
-  {
-    libraryId:'basics',
-    cellId:'cmos-inverter',
-    name:'CMOS 反相器',
-    badge:'入门电路',
-    summary:'两管 CMOS 反相器入门电路，适合快速体验原理图与远端 PDK / SSH 仿真配置。',
+    name:'1G 12-bit PIPE–TI–SAR ADC',
+    badge:'1 GS/s · 12-bit · 22 模块',
+    summary:'完整 1 GS/s 12-bit 流水线 + 时间交织 SAR ADC，打开顶层 TB_PIPE_RS9_N06 后可双击下钻全部 Virtuoso 原生原理图与 Verilog-A 模块。',
   },
   {
     libraryId:'basics',
     cellId:'rc-smoke',
     name:'RC 参考电路',
-    badge:'免连接体验',
-    summary:'浏览器内自带解析波形与探针游标，无需连接本机即可体验。',
+    badge:'免连接波形体验',
+    summary:'浏览器内自带解析波形与探针游标，无需连接本机即可快速体验。',
   },
 ]);
 

@@ -67,6 +67,15 @@ function cutTo(level) {
   return k >= 0 ? path.slice(0, k + 1) : [{ level, via: null }];
 }
 
+/** Multi-file snapshots and CircuitGit Studio keep full include closures in currentSource(). */
+function stayInCurrentSource() {
+  const params = new URLSearchParams(location.search);
+  return params.get("native") === "1"
+    || params.get("studio") === "1"
+    || Boolean(document.body?.classList?.contains("ic-studio"))
+    || Boolean(currentSource()?.snapshot);
+}
+
 /** Open the subcircuit of instance `o`, below the level that has the instance. */
 export function descend(o, options) {
   const level = opens(o);
@@ -74,8 +83,10 @@ export function descend(o, options) {
   const obj = doc.objects[o];
   // the instance is on the level shown, or on one that the path is cut back to or starts at
   const at = doc.levels[current].host === obj.level ? current : doc.levels.findIndex((l) => l.host === obj.level);
+  const keepHere = stayInCurrentSource();
+  const entry = keepHere ? { entry: currentSource() } : {};
   if (!options?.newWindow) window.dispatchEvent(new Event("viewer-navigate"));
-  return navigate({ path: at < 0 ? [{ level, via: null }] : [...cutTo(at), { level, via: obj.name, ...(new URLSearchParams(location.search).get('native')==='1'?{entry:currentSource()}:{}) }], selection: null, reveal: true }, options);
+  return navigate({ path: at < 0 ? [{ level, via: null, ...entry }] : [...cutTo(at), { level, via: obj.name, ...entry }], selection: null, reveal: true }, options);
 }
 
 /** Go back along the path to its level at `depth`. */
@@ -92,7 +103,8 @@ export function ascend(options) {
 
 /** Show a level reached otherwise than through an instance, such as by an object of it in the text. */
 export function goTo(level, selection, options) {
-  return navigate({ path: [{ level, via: null }], selection, selectionUsage: options?.usage }, options);
+  const step = stayInCurrentSource() ? { level, via: null, entry: currentSource() } : { level, via: null };
+  return navigate({ path: [step], selection, selectionUsage: options?.usage }, options);
 }
 
 /** A tree pick is a new visit head, not a descent through its displayed ancestors. */
@@ -116,7 +128,7 @@ export function enterRoot(level, options = {}) {
   // a phone shows the drawing also for the level it shows already
   if (!options.newWindow) window.dispatchEvent(new Event("viewer-navigate"));
   if (same([{ level, via: null }], path) && !options.newWindow) return;
-  const step = (options.here || new URLSearchParams(location.search).get("studio")==="1") ? { level, via: null, entry: currentSource() } : { level, via: null };
+  const step = (options.here || stayInCurrentSource()) ? { level, via: null, entry: currentSource() } : { level, via: null };
   return navigate({ path: [step], reveal: true }, options);
 }
 

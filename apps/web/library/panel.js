@@ -1,4 +1,4 @@
-import {createLibraryClient,filterLibraries,classifyLibraryHierarchy,formatViewLabel,displayViewsForCell} from './model.js';
+import {createLibraryClient,filterLibraries,classifyLibraryHierarchy,formatLibraryName,formatViewLabel,displayViewsForCell,isArchivedLibrary,visibleLibraries} from './model.js';
 import {verilogaModuleBasename} from './veriloga.js';
 
 /** Library browser lives with the existing RNL workspace; only explicit opens load circuit files. */
@@ -9,7 +9,8 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onOpenVerilogA=n
   const dialog=el('dialog',undefined,'cg-library-manager');dialog.setAttribute('aria-label','Library Manager');
   const head=el('header'),title=el('h2','Library Manager'),close=button('关闭',()=>dialog.close());head.append(title,close);
   const tools=el('div',undefined,'cg-library-tools'),search=el('input');search.type='search';search.placeholder='搜索项目、顶层或子模块';search.setAttribute('aria-label','搜索库、单元或视图');
-  const refresh=button('刷新目录',()=>void load()),reference=button('回到 RC 参考',()=>void openReference());tools.append(search,refresh,reference);
+  const archiveLabel=el('label',undefined,'cg-library-archive-toggle'),archiveToggle=document.createElement('input');archiveToggle.type='checkbox';archiveToggle.checked=false;archiveLabel.append(archiveToggle,document.createTextNode('显示历史归档库'));archiveLabel.hidden=true;
+  const refresh=button('刷新目录',()=>void load()),reference=button('回到 RC 参考',()=>void openReference());tools.append(search,archiveLabel,refresh,reference);
   const status=el('p',undefined,'cg-library-status');status.setAttribute('role','status');
   const columns=el('div',undefined,'cg-library-columns');
   function column(label,key){const box=el('label'),name=el('span',label),select=el('select');select.size=10;select.dataset.libraryField=key;select.setAttribute('aria-label',label);box.append(name,select);columns.append(box);return select;}
@@ -59,12 +60,16 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onOpenVerilogA=n
   }
   function selection(){const library=data.find(x=>x.id===libraries.value),cell=library?.cells.find(x=>x.id===cells.value),cellViews=displayViewsForCell(cell,{library,libraries:data}),view=cellViews.find(x=>x.id===views.value);return {library,cell,view};}
   function render(){
-    const filtered=filterLibraries(data,search.value);options(libraries,filtered,selected.library,x=>x.name);const library=filtered.find(x=>x.id===libraries.value);
+    const archivedCount=data.filter(isArchivedLibrary).length;
+    archiveLabel.hidden=archivedCount===0;
+    if(archivedCount>0)archiveLabel.lastChild.textContent=`显示历史研究归档 (${archivedCount})`;
+    const baseLibs=visibleLibraries(data,{includeArchived:archiveToggle.checked||Boolean(search.value.trim())});
+    const filtered=filterLibraries(baseLibs,search.value);options(libraries,filtered,selected.library,formatLibraryName);const library=filtered.find(x=>x.id===libraries.value);
     const hierarchy=populateCells(library,selected.cell);const cell=library?.cells.find(x=>x.id===cells.value);const cellViews=displayViewsForCell(cell,{library,libraries:data});options(views,cellViews,selected.view,formatViewLabel);
     selected={library:libraries.value,cell:cells.value,view:views.value};const exact=selection();
     const canonicalView=exact.view?.backingViewId?exact.cell?.views.find(v=>v.id===exact.view.backingViewId)||exact.view:exact.view;
     const nextKey=JSON.stringify([exact.library?.id,exact.cell?.id,canonicalView?.id]);if(nextKey!==selectionKey){selectionKey=nextKey;onSelection(canonicalView?{library:exact.library,cell:exact.cell,view:canonicalView}:null);}
-    crumb.textContent=exact.cell?[exact.library.name,exact.cell.name,exact.view?formatViewLabel(exact.view):''].filter(Boolean).join(' / '):loaded?'没有匹配的单元':'按项目、顶层与视图浏览';
+    crumb.textContent=exact.cell?[formatLibraryName(exact.library),exact.cell.name,exact.view?formatViewLabel(exact.view):''].filter(Boolean).join(' / '):loaded?'没有匹配的单元':'按项目、顶层与视图浏览';
     summary.textContent=exact.view?.virtualSymbol
       ?'该单元的符号（@DEFINE-SYMBOL）内嵌于 RNL 原理图源码中；打开后会自动展开左侧「符号」面板查看 SVG 符号、引脚坐标与定义代码。'
       :exact.view?.id==='veriloga'
@@ -80,8 +85,9 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onOpenVerilogA=n
     openTop.disabled=busy||loading||!topRnl;
     openTop.textContent=topCell?`打开项目顶层 (${topCell.name})`:'打开项目顶层';
     open.textContent=busy?'正在打开…':exact.view?.id==='veriloga'?'打开 Verilog-A 代码':exact.view?.id==='symbol'?'打开符号视图':exact.view?.kind==='rnl'?'打开原理图':'查看文件';open.disabled=busy||loading||!exact.view;
-    refresh.disabled=reference.disabled=search.disabled=busy||loading;close.disabled=busy;
-    if(!busy&&!loading&&loaded)status.textContent=`${filtered.length} 个项目 · ${filtered.reduce((n,l)=>n+l.cells.length,0)} 个单元`+(errors.length?` · ${errors.length} 个库读取失败：${errors.map(x=>x.name+'：'+x.message).join('；')}`:'');
+    refresh.disabled=reference.disabled=search.disabled=archiveToggle.disabled=busy||loading;close.disabled=busy;
+    const hiddenArchiveNote=archivedCount>0&&!archiveToggle.checked&&!search.value.trim()?`（已隐藏 ${archivedCount} 个历史研究归档库）`:'';
+    if(!busy&&!loading&&loaded)status.textContent=`${filtered.length} 个项目 · ${filtered.reduce((n,l)=>n+l.cells.length,0)} 个单元${hiddenArchiveNote}`+(errors.length?` · ${errors.length} 个库读取失败：${errors.map(x=>x.name+'：'+x.message).join('；')}`:'');
   }
   async function load(){
     if(busy||loading||disposed)return;hidePreview();request?.abort();request=new AbortController();loading=true;status.textContent='读取已发布的库目录…';render();
@@ -130,7 +136,7 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onOpenVerilogA=n
     try{const bundle=await client.loadView(value.view,{signal:request.signal});if(disposed||request.signal.aborted)return false;
       if(closeDialog&&dialog.open)dialog.close();
       const opened=await onOpen({...value,bundle});
-      if(opened!==false){result=true;notify(value.view.virtualSymbol?('已打开 '+value.cell.name+' 的符号视图（左侧「符号」面板可查看 SVG、引脚坐标与定义源码）。'):('已打开项目 '+value.library.name+' · '+value.cell.name+'；可在原理图内双击下钻子模块。'));}
+      if(opened!==false){result=true;notify(value.view.virtualSymbol?('已打开 '+value.cell.name+' 的符号视图（左侧「符号」面板可查看 SVG、引脚坐标与定义源码）。'):('已打开项目 '+formatLibraryName(value.library)+' · '+value.cell.name+'；可在原理图内双击下钻子模块。'));}
     }catch(error){if(!disposed){errorText='打开失败：'+error.message;notify(errorText,{kind:'error'});}}
     finally{busy=false;if(!disposed){render();if(errorText&&closeDialog){status.textContent=errorText;if(!dialog.open)dialog.showModal();}}}
     return result;
@@ -151,6 +157,7 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onOpenVerilogA=n
   async function openReference(){if(busy||loading)return;hidePreview();busy=true;render();dialog.close();try{await onReference();}catch(error){notify(error.message,{kind:'error'});}finally{busy=false;render();}}
   function show(){if(disposed)return;if(!dialog.open)dialog.showModal();search.focus();if(!loaded)void load();}
   search.oninput=()=>{hidePreview();render();};
+  archiveToggle.onchange=()=>{selected={library:null,cell:null,view:null};hidePreview();render();};
   libraries.onchange=()=>{selected={library:libraries.value,cell:null,view:null};hidePreview();render();};
   cells.onchange=()=>{selected.cell=cells.value;selected.view=null;hidePreview();render();};views.onchange=()=>{selected.view=views.value;hidePreview();render();};
   views.ondblclick=()=>void openSelected();views.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();void openSelected();}};

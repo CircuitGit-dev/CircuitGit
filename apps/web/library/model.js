@@ -4,6 +4,29 @@ import {isVerilogAFile,verilogaModuleBasename,indexLibraryVerilogAFiles} from '.
 const VIEW_IDS=new Set(['schematic','symbol','veriloga','netlist','simulation','docs']);
 const VIEW_KINDS=new Set(['rnl','veriloga','spectre','json','markdown']);
 const CELL_KINDS=new Set(['circuit','testbench','primitive']);
+export const ARCHIVED_LIBRARY_IDS=new Set(['pipetisar-research','pipesar-original']);
+
+export function isArchivedLibrary(library){
+  const id=typeof library==='string'?library:library?.id;
+  return Boolean(id&&ARCHIVED_LIBRARY_IDS.has(id));
+}
+
+export function formatLibraryName(library){
+  if(!library)return '';
+  const id=library.id,raw=String(library.name||id||'');
+  if(id==='pipetisar-real')return '1G 12-bit PIPE–TI–SAR ADC';
+  if(id==='basics')return '基础示例电路';
+  if(id==='pipetisar-research')return '历史研究归档 · PIPE–TI–SAR research';
+  if(id==='pipesar-original')return '历史研究归档 · Original 9-bit SAR';
+  return raw;
+}
+
+export function visibleLibraries(libraries,{includeArchived=false}={}){
+  const list=Array.isArray(libraries)?libraries:[];
+  if(includeArchived)return list;
+  const primary=list.filter(lib=>!isArchivedLibrary(lib));
+  return primary.length?primary:list;
+}
 const text=(value,label)=>{if(typeof value!=='string'||!value.trim())throw Error(label+' 必须是非空文本。');return value;};
 const object=(value,label)=>{if(!value||Array.isArray(value)||typeof value!=='object')throw Error(label+' 格式无效。');return value;};
 function unique(items,key,label){const seen=new Set();for(const item of items){const value=text(item[key],label);if(seen.has(value))throw Error(label+' 重复：'+value);seen.add(value);}}

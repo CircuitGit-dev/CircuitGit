@@ -98,22 +98,30 @@ test('visibleCatalogProjects deduplicates runtime entries shadowed by Git librar
   assert.throws(()=>visibleCatalogProjects([{id:'dup'},{id:'dup'}]),/无效/);
 });
 
-test('projectCatalogEntries collapses multi-cell libraries into unified project entries while keeping standalone circuits',()=>{
-  const entries=projectCatalogEntries([
+test('projectCatalogEntries collapses multi-cell libraries into unified project entries while hiding archived research libraries by default',()=>{
+  const raw=[
     {id:'pipetisar-real-TB_PIPE_RS9_N06',name:'PIPETISAR / TB_PIPE_RS9_N06'},
     {id:'library:pipetisar-real/Switch',name:'PIPE–TI–SAR real SAR snapshot / Switch',library_id:'pipetisar-real',cell_id:'Switch',runtime_project_id:null},
     {id:'library:pipetisar-real/PIPE_TOP_F4_RS9_N06',name:'PIPE–TI–SAR real SAR snapshot / PIPE_TOP_F4_RS9_N06',library_id:'pipetisar-real',cell_id:'PIPE_TOP_F4_RS9_N06',runtime_project_id:null},
     {id:'library:pipetisar-real/TB_PIPE_RS9_N06',name:'PIPE–TI–SAR real SAR snapshot / TB_PIPE_RS9_N06',library_id:'pipetisar-real',cell_id:'TB_PIPE_RS9_N06',runtime_project_id:'pipetisar-real-TB_PIPE_RS9_N06'},
+    {id:'library:pipetisar-research/TB_PIPE_CA4_RS9_N06',name:'PIPE–TI–SAR research / TB_PIPE_CA4_RS9_N06',library_id:'pipetisar-research',cell_id:'TB_PIPE_CA4_RS9_N06',runtime_project_id:null},
+    {id:'library:pipetisar-research/Amplifier_Main',name:'PIPE–TI–SAR research / Amplifier_Main',library_id:'pipetisar-research',cell_id:'Amplifier_Main',runtime_project_id:null},
+    {id:'library:pipetisar-research/Buffer_Main',name:'PIPE–TI–SAR research / Buffer_Main',library_id:'pipetisar-research',cell_id:'Buffer_Main',runtime_project_id:null},
     {id:'library:basics/rc-smoke',name:'基础电路 / RC smoke',library_id:'basics',cell_id:'rc-smoke',runtime_project_id:'rc-smoke'},
     {id:'library:basics/cmos-inverter',name:'基础电路 / CMOS 反相器',library_id:'basics',cell_id:'cmos-inverter',runtime_project_id:null},
-  ]);
+  ];
+  const entries=projectCatalogEntries(raw);
   assert.deepEqual(entries.map(e=>e.id),['library:pipetisar-real/TB_PIPE_RS9_N06','library:basics/rc-smoke','library:basics/cmos-inverter']);
-  assert.match(entries[0].name,/整项目 · 3 模块 · 顶层 TB_PIPE_RS9_N06/);
+  assert.match(entries[0].name,/1G 12-bit PIPE–TI–SAR ADC（整项目 · 3 模块 · 顶层 TB_PIPE_RS9_N06）/);
+  const withArchived=projectCatalogEntries(raw,{includeArchived:true});
+  assert.ok(withArchived.some(e=>e.library_id==='pipetisar-research'));
 });
 
-test('welcome guide featured projects and dismiss preference work without throwing',()=>{
+test('welcome guide featured projects stay streamlined around the 1G 12-bit ADC and RC reference',()=>{
+  assert.equal(FEATURED_PROJECTS.length,2);
   assert.ok(FEATURED_PROJECTS.some(p=>p.libraryId==='pipetisar-real'&&p.cellId==='TB_PIPE_RS9_N06'));
-  assert.ok(FEATURED_PROJECTS.some(p=>p.libraryId==='pipetisar-research'&&p.cellId==='TB_PIPE_CA4_RS9_N06'));
+  assert.ok(FEATURED_PROJECTS.some(p=>p.libraryId==='basics'&&p.cellId==='rc-smoke'));
+  assert.ok(!FEATURED_PROJECTS.some(p=>p.libraryId==='pipetisar-research'||p.libraryId==='pipesar-original'));
   const map=new Map();
   const storage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};
   assert.equal(readWelcomeDismissed(storage),false);

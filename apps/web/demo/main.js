@@ -18,7 +18,7 @@ import {setBackground} from '../vendor/rnl-viewer/background.js';
 import {sha256} from '../core.js';
 import {reference,referenceWindow} from './reference.js';
 import {mountLibraryManager} from '../library/panel.js';
-import {createLibraryClient,formatViewLabel} from '../library/model.js';
+import {createLibraryClient,formatLibraryName,formatViewLabel} from '../library/model.js';
 import {isVerilogAFile,indexLibraryVerilogAFiles,indexSnapshotVerilogAFiles,resolveVerilogAModel} from '../library/veriloga.js';
 import {mountVerilogAPanel,attachSchematicVerilogAJump} from '../studio/veriloga-viewer.js';
 import {createLibraryBridge} from '../remote/library-bridge.js';
@@ -384,7 +384,7 @@ export async function mountStudio({ui:providedUI}={}) {
   }
   function libraryInformation(value){
     const box=document.createElement('details');box.className='ic-sim-detail';const summary=document.createElement('summary');summary.textContent='当前电路';box.append(summary);
-    const title=document.createElement('h2');title.textContent=value.cell.name;const name=document.createElement('p');name.textContent=value.library.name+' / '+formatViewLabel(value.view);
+    const title=document.createElement('h2');title.textContent=value.cell.name;const name=document.createElement('p');name.textContent=formatLibraryName(value.library)+' / '+formatViewLabel(value.view);
     const evidence=document.createElement('p');evidence.textContent=(value.origin==='working'?'本机原理图快照':'公开原理图预览')+' · '+value.bundle.paths.length+' 个已列出的文件。未关联运行，也未执行仿真。';
     const dependency=document.createElement('p');dependency.textContent=value.cell.requires_external_models?'重放可能需要外部模型。请查看单元说明和已有配置。':'重放要求以单元说明和已有配置为准。';
     const ai=document.createElement('p');ai.textContent='在 AI 面板选择项目会自动同步画布顶层原理图，也可点击「同步当前项目」让 AI 协作当前项目。';
@@ -507,8 +507,8 @@ export async function mountStudio({ui:providedUI}={}) {
     hotController?.abort();loadedWatch?.();loadedWatch=null;
     const canonicalView=value.view?.backingViewId?(value.cell.views.find(v=>v.id===value.view.backingViewId)||value.view):value.view;
     ++onboardingWaveEpoch;switching=true;activeLibrary={...value,view:canonicalView};importedProject=null;versionSelection={...value,view:canonicalView};stopReference();libraryInformation(value);
-    const viewLabel=formatViewLabel(value.view);
-    $('studio-project').replaceChildren(new Option(value.library.name,value.library.id));$('studio-entry').replaceChildren(new Option(value.cell.name+' / '+viewLabel,value.view.entry));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
+    const viewLabel=formatViewLabel(value.view),libLabel=formatLibraryName(value.library);
+    $('studio-project').replaceChildren(new Option(libLabel,value.library.id));$('studio-entry').replaceChildren(new Option(value.cell.name+' / '+viewLabel,value.view.entry));$('studio-run').replaceChildren(new Option('未关联仿真运行',''));
     context={project:{id:(value.origin==='working'?'local-library:':'public-library:')+value.library.id+':'+value.cell.id,sourceCommit:value.origin==='working'?value.base_commit:null,libraryId:value.library.id,cellId:value.cell.id},run:null,selection:null,loading:true,loadState:'loading',file:{path:value.bundle.source.path,currentTextSha256:null,dirty:false},geometry:{bundleCommit:null,manifestSha256:null,sourceMatch:null,state:'snapshot'}};emit();
     ui.setNativeState({loading:true,hidden:false});$('studio-native-note').textContent='读取公开库视图…';
     try{
@@ -521,7 +521,7 @@ export async function mountStudio({ui:providedUI}={}) {
       if(value.view?.virtualSymbol){setSidebar(true);setPane('symbol');}
       syncAvailableVerilogA();verilogaJump?.clear();
       if(!libraryManager.getLibraries().length)void libraryManager.ensureLoaded().then(syncAvailableVerilogA).catch(()=>{});
-      $('studio-native-note').textContent=[value.library.name,value.cell.name,viewLabel].join(' / ')+(value.origin==='working'?' · 本机快照 · ':' · 公开文件 · ')+(errors.length?errors.length+' 项 RNL 诊断':'未关联仿真');
+      $('studio-native-note').textContent=[formatLibraryName(value.library),value.cell.name,viewLabel].join(' / ')+(value.origin==='working'?' · 本机快照 · ':' · 公开文件 · ')+(errors.length?errors.length+' 项 RNL 诊断':'未关联仿真');
       if(errors.length)ui.notify('原理图已打开，存在 '+errors.length+' 项 RNL 诊断；请查看 Problems。',{kind:'warning'});
       watchLoadedLibrary();
       if(remoteAI?.getConnectionState?.().connected&&value.library?.id){
@@ -617,6 +617,10 @@ export async function mountStudio({ui:providedUI}={}) {
   host.libraryBridge.subscribe(state=>{if(!state.connected)hotController?.abort();});
   window.addEventListener('viewer-navigate',()=>{
     if(switching||!doc||doc.path===PATH)return;
+    // Descending/ascending subcircuits inside the already-open library or imported project
+    // stays in the same document and must not discard library context or overwrite project state.
+    if(activeLibrary&&doc.path===activeLibrary.bundle?.source?.path)return;
+    if(importedProject&&doc.path===context.file?.path)return;
     const openedDoc=doc,snapshot=host.getOnboardingSource();hotController?.abort();loadedWatch?.();loadedWatch=null;activeLibrary=null;
     ++onboardingWaveEpoch;stopReference();libraryInfo.replaceChildren();
     context={project:{id:'imported-netlist',sourceCommit:null},run:null,selection:null,loading:false,loadState:'ready',

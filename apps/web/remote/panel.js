@@ -2,6 +2,7 @@ import {createAssistanceQueue} from '../ai/assistance.js';
 import {createNodeClient} from './client.js';
 import {pairLocal,saveSessionGrant,loadSessionGrant,clearSessionGrant} from './pair.js';
 import {mount as mountAI} from '../studio/ai/index.js';
+import {ARCHIVED_LIBRARY_IDS,formatLibraryName} from '../library/model.js';
 
 const REPO='https://github.com/CircuitGit-dev/CircuitGit';
 const DOCS=REPO+'/blob/main/docs/remote-node.md';
@@ -33,7 +34,7 @@ function libraryEntryScore(item) {
 }
 
 /** Present multi-cell hierarchical circuit libraries as unified Projects rather than flat sub-modules. */
-export function projectCatalogEntries(list) {
+export function projectCatalogEntries(list, { includeArchived = false } = {}) {
   const deduped = visibleCatalogProjects(list);
   const libraryGroups = new Map();
   const order = [];
@@ -50,12 +51,14 @@ export function projectCatalogEntries(list) {
       order.push({ kind: 'standalone', item });
     }
   }
+  const hasPrimary = order.some(slot => slot.kind === 'standalone' || !ARCHIVED_LIBRARY_IDS.has(slot.key));
   const result = [];
   for (const slot of order) {
     if (slot.kind === 'standalone') {
       result.push(slot.item);
       continue;
     }
+    if (!includeArchived && hasPrimary && ARCHIVED_LIBRARY_IDS.has(slot.key)) continue;
     const items = libraryGroups.get(slot.key);
     if (items.length <= 2 || slot.key === 'basics') {
       for (const item of items) result.push(item);
@@ -63,7 +66,8 @@ export function projectCatalogEntries(list) {
     }
     const sorted = [...items].sort((a, b) => libraryEntryScore(b) - libraryEntryScore(a) || a.id.localeCompare(b.id));
     const rep = sorted[0];
-    const libName = String(rep.name || '').includes(' / ') ? String(rep.name).split(' / ')[0] : slot.key;
+    const fallbackName = String(rep.name || '').includes(' / ') ? String(rep.name).split(' / ')[0] : slot.key;
+    const libName = formatLibraryName({ id: slot.key, name: fallbackName });
     result.push({
       ...rep,
       name: `${libName}（整项目 · ${items.length} 模块 · 顶层 ${rep.cell_id}）`,
