@@ -67,6 +67,15 @@ export async function mountStudio({ui:providedUI}={}) {
   const fav=document.createElement('link');fav.rel='icon';fav.type='image/svg+xml';fav.href=new URL('../branding/circuitgit-small.svg',import.meta.url);document.head.append(fav);
   const baseText=await fetch(new URL('./rc.scs',import.meta.url)).then(r=>{if(!r.ok)throw Error('RC example unavailable');return r.text();});
   let source=baseText,hash=await sha256(source),points=null,plotController=null,mode='none';
+  const referenceSource=(text=source)=>({
+    name:'circuitgit-demo.scs',
+    path:PATH,
+    text,
+    temporary:true,
+    open:async()=>({path:PATH,text}),
+    read:async requested=>requested===PATH?text:null,
+    files:new Map([[PATH,()=>new Blob([text],{type:'text/plain'})]]),
+  });
   let activeLibrary=null,importedProject=null,versionSelection=null,libraryVersions=null,switching=false,waveformMount=null,referenceObserver=null,onboardingWaves=false,onboardingWaveEpoch=0;
   let loadedWatch=null,hotTask=null,hotController=null,hotQueued=false,hotDeferred=false,hotNotice='';
   let parameters={resistance:1000,capacitance:1e-12,stop:12e-9};
@@ -284,7 +293,7 @@ export async function mountStudio({ui:providedUI}={}) {
   async function rebuild(){if(!referenceActive())return;const p=readParameters();$('demo-update').disabled=true;
     try{parameters=p;source=textFor(p);hash=await sha256(source);points=null;signals.forEach(s=>s.domain=[0,p.stop]);
       context={...context,run:null,selection:null,file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{...context.geometry,manifestSha256:hash}};emit();
-      await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false);fit();context.run={runId:RUN};emit();
+      await openSource(referenceSource(source),false);fit();context.run={runId:RUN};emit();
       $('demo-basis').textContent=`R = ${p.resistance} Ω · C = ${Number((p.capacitance*1e12).toPrecision(6))} pF · τ = ${Number((p.resistance*p.capacitance*1e9).toPrecision(5))} ns`;
       ui.notify('参考曲线已更新；在波形列表中重新选择要查看的信号。');
     }finally{$('demo-update').disabled=false;}}
@@ -537,7 +546,7 @@ export async function mountStudio({ui:providedUI}={}) {
     hotController?.abort();loadedWatch?.();loadedWatch=null;
     ++onboardingWaveEpoch;switching=true;stopReference();context={...context,run:null,selection:null,loading:true};emit();ui.setNativeState({loading:true,hidden:false});
     try{
-      const opened=await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false,undefined,false,null,null,true);
+      const opened=await openSource(referenceSource(source),false,undefined,false,null,null,true);
       if(!opened||!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
       activeLibrary=null;importedProject=null;context={project:{id:'rc-demo',sourceCommit:null},run:{runId:RUN},selection:null,loading:false,loadState:'ready',file:{path:PATH,currentTextSha256:hash,dirty:false},geometry:{bundleCommit:null,manifestSha256:hash,sourceMatch:true,state:'ready'}};
       $('studio-project').replaceChildren(new Option('RC · 入门电路','rc-demo'));$('studio-entry').replaceChildren(new Option('RNL 原理图','rc'));$('studio-run').replaceChildren(new Option('解析参考 · 可连 SSH 跑 Spectre','reference'));
@@ -694,7 +703,7 @@ export async function mountStudio({ui:providedUI}={}) {
   host.requireLocalConnector=feature=>workspaceHub?.requireConnector(feature);
   const versionLoader=whenVisible(ui.slots.versions,async()=>{const {mountLibraryVersions}=await import('../library/versions.js');libraryVersions=mountLibraryVersions({element:ui.slots.versions.element,getSelection:libraryVersionSelection,subscribeSelection:fn=>contextAdapter.subscribe(fn),bridge:host.libraryBridge,notify:ui.notify,onBrowse:()=>libraryManager.show(),onOpenWorking:openWorkingLibrary,deferLoad:true,onActivate:ensureVersionSelection});return libraryVersions;},{onError:panelError});
   setSidebarWidth(230);setPane('netlist');setBackground('light',{persist:false});
-  await openSource({name:'circuitgit-demo.scs',path:PATH,text:source},false);
+  await openSource(referenceSource(source),false);
   if(!doc||doc.failed||doc.diagnostics.some(d=>d.severity==='error'))throw Error('RC schematic failed to compile');
   fit();ui.setNativeState({loading:false,hidden:false});$('studio-native-note').textContent='内置 RC 入门电路 · RNL 布局 · 连接本机后可跑真实远端 Spectre 仿真';
   document.body.dataset.studioState='ready';
