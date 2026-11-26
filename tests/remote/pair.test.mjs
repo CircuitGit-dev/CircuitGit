@@ -10,7 +10,7 @@ import {
   clearSessionGrant,
 } from '../../apps/web/remote/pair.js';
 import {buildInstallCommand,sanitizeInstallDir} from '../../apps/web/studio/workspace-hub.js';
-import {visibleCatalogProjects} from '../../apps/web/remote/panel.js';
+import {visibleCatalogProjects,projectCatalogEntries} from '../../apps/web/remote/panel.js';
 
 function fixture(blocked=false){
   let listener;const timers=new Map();let timer=0;
@@ -95,4 +95,17 @@ test('visibleCatalogProjects deduplicates runtime entries shadowed by Git librar
   ]);
   assert.deepEqual(rows.map(r=>r.id),['open-cmos-inverter','library:pipetisar-real/TB_PIPE_RS9_N06']);
   assert.throws(()=>visibleCatalogProjects([{id:'dup'},{id:'dup'}]),/无效/);
+});
+
+test('projectCatalogEntries collapses multi-cell libraries into unified project entries while keeping standalone circuits',()=>{
+  const entries=projectCatalogEntries([
+    {id:'pipetisar-real-TB_PIPE_RS9_N06',name:'PIPETISAR / TB_PIPE_RS9_N06'},
+    {id:'library:pipetisar-real/Switch',name:'PIPE–TI–SAR real SAR snapshot / Switch',library_id:'pipetisar-real',cell_id:'Switch',runtime_project_id:null},
+    {id:'library:pipetisar-real/PIPE_TOP_F4_RS9_N06',name:'PIPE–TI–SAR real SAR snapshot / PIPE_TOP_F4_RS9_N06',library_id:'pipetisar-real',cell_id:'PIPE_TOP_F4_RS9_N06',runtime_project_id:null},
+    {id:'library:pipetisar-real/TB_PIPE_RS9_N06',name:'PIPE–TI–SAR real SAR snapshot / TB_PIPE_RS9_N06',library_id:'pipetisar-real',cell_id:'TB_PIPE_RS9_N06',runtime_project_id:'pipetisar-real-TB_PIPE_RS9_N06'},
+    {id:'library:basics/rc-smoke',name:'基础电路 / RC smoke',library_id:'basics',cell_id:'rc-smoke',runtime_project_id:'rc-smoke'},
+    {id:'library:basics/cmos-inverter',name:'基础电路 / CMOS 反相器',library_id:'basics',cell_id:'cmos-inverter',runtime_project_id:null},
+  ]);
+  assert.deepEqual(entries.map(e=>e.id),['library:pipetisar-real/TB_PIPE_RS9_N06','library:basics/rc-smoke','library:basics/cmos-inverter']);
+  assert.match(entries[0].name,/整项目 · 3 模块 · 顶层 TB_PIPE_RS9_N06/);
 });

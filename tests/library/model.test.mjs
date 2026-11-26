@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createLibraryClient,repositoryPath,validateCatalog,validateLibrary,filterLibraries} from '../../apps/web/library/model.js';
+import {createLibraryClient,repositoryPath,validateCatalog,validateLibrary,filterLibraries,classifyLibraryHierarchy,primaryProjectEntry} from '../../apps/web/library/model.js';
 const entry='lib/synthetic/cell/schematic/view.scs',dependency='lib/synthetic/cell/schematic/support/circuit.scs';
 const view={id:'schematic',label:'Synthetic native schematic',kind:'rnl',entry,files:[entry,dependency],level:'@top'};
 const library={schema:'circuitgit.library.v1',id:'synthetic',name:'Synthetic library',description:'Test only',cells:[{id:'cell',name:'Synthetic cell',kind:'circuit',directory:'lib/synthetic/cell',readme:'lib/synthetic/cell/README.md',project_id:null,requires_external_models:false,views:[view,{id:'docs',label:'Readme',kind:'markdown',entry:'lib/synthetic/cell/README.md',files:['lib/synthetic/cell/README.md']}]}]};
@@ -70,4 +70,19 @@ test('invalid alias authority is rejected before any file request',async()=>{
 test('identity aliases are allowed without extra fetches and missing canonical bytes fail closed',async()=>{
   const f=fixture(),bundle=await f.client.loadView({...view,aliases:{[entry]:entry}});assert.equal(bundle.text,f.data.get(entry));assert.equal(f.records.length,2);
   const canonical='lib/packages/synthetic/missing.scs';await assert.rejects(f.client.loadView({...view,files:[entry,canonical],aliases:{[dependency]:canonical}}),/读取失败/);
+});
+test('classifyLibraryHierarchy separates top-level entries from internal submodules using RNL closures',()=>{
+  const lib={
+    id:'adc',name:'ADC Project',
+    cells:[
+      {id:'sub_comp',name:'sub_comp',kind:'circuit',directory:'lib/adc/sub_comp',project_id:null,views:[{id:'schematic',kind:'rnl',entry:'lib/adc/sub_comp/s.scs',files:['lib/adc/sub_comp/s.scs']}]},
+      {id:'dut_top',name:'dut_top',kind:'circuit',directory:'lib/adc/dut_top',project_id:null,views:[{id:'schematic',kind:'rnl',entry:'lib/adc/dut_top/s.scs',files:['lib/adc/dut_top/s.scs','lib/adc/sub_comp/s.scs']}]},
+      {id:'tb_top',name:'tb_top',kind:'testbench',directory:'lib/adc/tb_top',project_id:'adc-tb_top',views:[{id:'schematic',kind:'rnl',entry:'lib/adc/tb_top/s.scs',files:['lib/adc/tb_top/s.scs','lib/adc/dut_top/s.scs','lib/adc/sub_comp/s.scs']}]},
+    ],
+  };
+  const h=classifyLibraryHierarchy(lib);
+  assert.equal(h.primary.id,'tb_top');
+  assert.equal(primaryProjectEntry(lib).id,'tb_top');
+  assert.deepEqual(h.topLevel.map(c=>c.id),['tb_top','dut_top']);
+  assert.deepEqual(h.submodules.map(c=>c.id),['sub_comp']);
 });

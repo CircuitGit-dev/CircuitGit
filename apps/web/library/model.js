@@ -53,6 +53,68 @@ export function filterLibraries(libraries,query=''){
     return {...library,cells};
   }).filter(library=>library.cells.length||matches(library.id,library.name,library.description));
 }
+
+/** Derive real Project -> Top-Level -> Sub-module hierarchy from each cell's RNL closure. */
+export function classifyLibraryHierarchy(library){
+  const cells=Array.isArray(library?.cells)?library.cells:[];
+  const fileCountById=new Map();
+  const referencedBy=new Map(cells.map(c=>[c.id,new Set()]));
+  const dirEntries=cells.map(c=>({id:c.id,prefix:(c.directory||'').replace(/\/+$/,'')+'/'}));
+  for(const cell of cells){
+    const rnlViews=(cell.views||[]).filter(v=>v.kind==='rnl');
+    const paths=new Set();
+    for(const v of rnlViews){
+      for(const f of v.files||[])paths.add(f);
+      for(const k of Object.keys(v.aliases||{}))paths.add(k);
+    }
+    fileCountById.set(cell.id,paths.size);
+    if(!paths.size)continue;
+    for(const target of dirEntries){
+      if(target.id===cell.id||target.prefix==='/')continue;
+      for(const p of paths){
+        if(p.startsWith(target.prefix)){referencedBy.get(target.id).add(cell.id);break;}
+      }
+    }
+  }
+  const byId=new Map(cells.map(c=>[c.id,c]));
+  const maxFiles=Math.max(0,...fileCountById.values());
+  const roots=new Set(cells.filter(c=>referencedBy.get(c.id).size===0).map(c=>c.id));
+  // Promote direct DUT top-levels that are referenced only by root testbenches.
+  const topSet=new Set(roots);
+  for(const cell of cells){
+    if(topSet.has(cell.id)||cell.kind!=='circuit')continue;
+    const parents=[...referencedBy.get(cell.id)];
+    if(parents.length>0&&parents.every(pid=>roots.has(pid)&&byId.get(pid)?.kind==='testbench')){
+      if((fileCountById.get(cell.id)||0)>=8||/TOP/i.test(cell.id))topSet.add(cell.id);
+    }
+  }
+  // In large hierarchical projects, keep small standalone helper/unit cells out of the top-level group.
+  if(maxFiles>=12){
+    const systemThreshold=Math.max(12,Math.floor(maxFiles*0.4));
+    for(const id of [...topSet]){
+      const cell=byId.get(id),files=fileCountById.get(id)||0;
+      if(!cell?.project_id&&files<systemThreshold&&!/TOP/i.test(id))topSet.delete(id);
+    }
+  }
+  const rank=(a,b)=>{
+    const pa=a.project_id?1:0,pb=b.project_id?1:0;
+    if(pa!==pb)return pb-pa;
+    const fa=fileCountById.get(a.id)||0,fb=fileCountById.get(b.id)||0;
+    if(fa!==fb)return fb-fa;
+    const ta=a.kind==='testbench'?1:0,tb=b.kind==='testbench'?1:0;
+    if(ta!==tb)return tb-ta;
+    return String(a.name||a.id).localeCompare(String(b.name||b.id));
+  };
+  const topLevel=cells.filter(c=>topSet.has(c.id)).sort(rank);
+  const testbenches=cells.filter(c=>!topSet.has(c.id)&&c.kind==='testbench').sort(rank);
+  const submodules=cells.filter(c=>!topSet.has(c.id)&&c.kind!=='testbench').sort(rank);
+  const primary=topLevel.find(c=>c.views?.some(v=>v.kind==='rnl'))||topLevel[0]||testbenches[0]||cells[0]||null;
+  return {topLevel,testbenches,submodules,primary,fileCountById};
+}
+
+export function primaryProjectEntry(library){
+  return classifyLibraryHierarchy(library).primary;
+}
 async function pooled(items,task,concurrency=4){
   let index=0;const result=new Array(items.length);
   await Promise.all(Array.from({length:Math.min(items.length,concurrency)},async()=>{while(index<items.length){const i=index++;result[i]=await task(items[i],i);}}));return result;

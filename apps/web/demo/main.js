@@ -289,6 +289,15 @@ export async function mountStudio({ui:providedUI}={}) {
   function showGuide(){const e=document.createElement('div');e.className='demo-section';e.innerHTML=`<p><strong>CircuitGit 网页工作台</strong>提供完整的原理图（RNL）、电路库、波形探针、远端 SSH 仿真（SpiceOwl）、AI 助手（Codex）与 Git 版本管理交互。</p><p><strong>免安装功能</strong>：直接浏览电路库、查看与编辑原理图、点选参考波形并体验游标测量。</p><p><strong>本机 SSH / AI / Git 连接</strong>：点击顶栏「连接本机 (SSH / AI)」即可通过 <code>circuitgit://</code> 协议一键唤起本机连接器；首次使用仅需下载项目并双击一次启动器（Windows: <code>Start CircuitGit.bat</code>，macOS: <code>Start CircuitGit.command</code>），之后所有日常操作均在本网页内完成。</p><p><a href="${REPO}/blob/main/docs/remote-node.md" target="_blank" rel="noopener">本机连接器与后台自启说明 ↗</a></p>`;dialog('CircuitGit 使用说明',e);}
   $('studio-source-button').onclick=showSource;
   const libraryManager=mountLibraryManager({toolbar:$('studio-toolbar'),libraryPane:$('pane-files'),onOpen:openLibrary,onReference:openReference,onSelection:value=>{versionSelection=value;emit();},notify:ui.notify});
+  host.openProjectCanvas=async({libraryId,cellId}={})=>{
+    if(!libraryId)return false;
+    if(libraryId==='basics'&&cellId==='rc-smoke'){
+      if(referenceActive())return true;
+      return openReference();
+    }
+    if(activeLibrary?.library.id===libraryId&&(!cellId||activeLibrary.cell.id===cellId))return true;
+    return libraryManager.openProjectTop(libraryId,cellId||null);
+  };
   for(const id of ['studio-project','studio-entry']){const label=$(id)?.closest('label');if(label){label.classList.add('demo-library-trigger');label.title='点击浏览并切换公开电路库';label.addEventListener('click',()=>libraryManager.show());}}
   register({id:'project.library',menu:'project',label:'Library Manager…',run:()=>libraryManager.show()});
   register({id:'project.reference',menu:'project',label:'返回 RC 解析参考',run:openReference});
@@ -304,7 +313,7 @@ export async function mountStudio({ui:providedUI}={}) {
     const title=document.createElement('h2');title.textContent=value.cell.name;const name=document.createElement('p');name.textContent=value.library.name+' / '+value.view.label;
     const evidence=document.createElement('p');evidence.textContent=(value.origin==='working'?'本机原理图快照':'公开原理图预览')+' · '+value.bundle.paths.length+' 个已列出的文件。未关联运行，也未执行仿真。';
     const dependency=document.createElement('p');dependency.textContent=value.cell.requires_external_models?'重放可能需要外部模型。请查看单元说明和已有配置。':'重放要求以单元说明和已有配置为准。';
-    const ai=document.createElement('p');ai.textContent='AI 使用连接节点返回的工程身份；此公开库选择不会切换 AI 工程。';
+    const ai=document.createElement('p');ai.textContent='在 AI 面板选择项目会自动同步画布顶层原理图，也可点击「同步当前项目」让 AI 协作当前项目。';
     const browse=document.createElement('button');browse.type='button';browse.textContent='查看库视图与说明';browse.onclick=()=>libraryManager.show();
     const environment=document.createElement('button');environment.type='button';environment.textContent='连接仿真环境';environment.onclick=()=>void showEnvironment().catch(panelError);
     const back=document.createElement('button');back.type='button';back.textContent='回到 RC 参考';back.onclick=()=>void openReference().catch(e=>ui.notify(e.message,{kind:'error'}));
@@ -327,6 +336,9 @@ export async function mountStudio({ui:providedUI}={}) {
       fit();ui.slots.schematic?.setVisible(true);$('studio-native-note').textContent=[value.library.name,value.cell.name,value.view.label].join(' / ')+(value.origin==='working'?' · 本机快照 · ':' · 公开文件 · ')+(errors.length?errors.length+' 项 RNL 诊断':'未关联仿真');
       if(errors.length)ui.notify('原理图已打开，存在 '+errors.length+' 项 RNL 诊断；请查看 Problems。',{kind:'warning'});
       watchLoadedLibrary();
+      if(remoteAI?.getConnectionState?.().connected&&value.library?.id){
+        void remoteAI.syncProjectFromCanvas?.(value.library.id).catch(()=>{});
+      }
       return true;
     }catch(error){context={...context,loading:false,loadState:'error'};emit();$('studio-native-note').textContent='库视图加载失败 · '+value.cell.name+' · 未关联仿真';throw error;}
     finally{switching=false;ui.setNativeState({loading:false,hidden:false});}

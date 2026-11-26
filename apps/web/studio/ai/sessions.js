@@ -12,7 +12,8 @@ export function mountSessions(host,{createPanel}={}) {
   const doc=slot.element.ownerDocument,records=new Map();
   const make=(tag,cls,text)=>{const element=doc.createElement(tag);if(cls)element.className=cls;if(text)element.textContent=text;return element;};
   const root=make('section','ic-ai-sessions'),bar=make('div','ic-ai-sessions-bar'),tabs=make('div','ic-ai-session-tabs'),actions=make('div','ic-ai-session-actions');
-  const add=make('button','','新建'),manage=make('button','','管理'),retry=make('button','','重新读取'),message=make('div','ic-ai-sessions-message'),body=make('div','ic-ai-session-panels'),empty=make('p','ic-ai-sessions-empty','暂无对话，点击“新建”开始。');
+  const add=make('button','','新建'),manage=make('button','','管理'),retry=make('button','','重新读取'),message=make('div','ic-ai-sessions-message'),body=make('div','ic-ai-session-panels'),empty=make('div','ic-ai-sessions-empty'),emptyText=make('p','','暂无对话，点击“新建”开始。'),emptyStart=make('button','ic-ai-sessions-start','开始新对话');
+  emptyStart.type='button';emptyStart.onclick=()=>editName('create');empty.append(emptyText,emptyStart);
   root.setAttribute('aria-label','AI 多对话');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','AI 对话');
   for(const button of [add,manage,retry])button.type='button';
   add.setAttribute('aria-label','新建 AI 对话');manage.setAttribute('aria-label','管理 AI 对话');retry.hidden=true;
@@ -62,7 +63,8 @@ export function mountSessions(host,{createPanel}={}) {
     add.disabled=loading||busy||unavailable||records.size>=limit;manage.disabled=busy||unavailable;retry.disabled=loading||busy;
     add.title=unavailable?'当前本机工作台未启用内置 AI 桥接':records.size>=limit?'已达到 '+limit+' 个对话上限':'新建对话；发送消息后才启动 AI';
     root.setAttribute('aria-busy',String(loading||busy));
-    empty.textContent=unavailable?'当前本机工作台未启用内置 AI 桥接；如需 AI 协作，请配置 Codex 桥接或通过 MCP 插件连接。':'暂无对话，点击“新建”开始。';
+    emptyText.textContent=unavailable?'当前本机工作台未启用内置 AI 桥接；如需 AI 协作，请配置 Codex 桥接或通过 MCP 插件连接。':'暂无对话，点击“新建”开始。';
+    emptyStart.hidden=unavailable||loading||busy||records.size>=limit;
     empty.hidden=loading||records.size>0;
     const snapshot={count:records.size,activeSessionId:activeId,loading},signature=JSON.stringify(snapshot);
     if(hostState!==signature){hostState=signature;host.aiSettings?.onSessionsChanged?.(snapshot);}
@@ -193,7 +195,9 @@ export function mountSessions(host,{createPanel}={}) {
       const infos=result.sessions.map(validate);if(new Set(infos.map(info=>info.session_id)).size!==infos.length)throw Error('会话列表包含重复身份。');
       limit=result.max_sessions;
       const ids=new Set(infos.map(info=>info.session_id));for(const id of [...records.keys()])if(!ids.has(id))dropRecord(id);
-      for(const info of infos){const existing=records.get(info.session_id);if(existing){existing.info=info;existing.container.setAttribute('aria-label',info.name);}else mountRecord(info);}
+      const isPausedDefault=info=>info.session_id==='default'&&['suspended','error'].includes(info.state);
+      const orderedInfos=[...infos.filter(info=>!isPausedDefault(info)),...infos.filter(isPausedDefault)];
+      for(const info of orderedInfos){const existing=records.get(info.session_id);if(existing){existing.info=info;existing.container.setAttribute('aria-label',info.name);}else mountRecord(info);}
       if(!activeId)activeId=preferredSessionId();
     }catch(error){
       const text=error?.message||String(error);

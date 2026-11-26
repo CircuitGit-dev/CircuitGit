@@ -20,6 +20,60 @@ export function visibleCatalogProjects(list) {
   return list.filter(p => p.id.startsWith('library:') || !shadowedRuntime.has(p.id));
 }
 
+function libraryEntryScore(item) {
+  const cell = String(item.cell_id || item.id.split('/')[1] || '');
+  let score = 0;
+  if (item.runtime_project_id) score += 100;
+  if (item.can_simulate) score += 40;
+  if (/^TB_PIPE/i.test(cell)) score += 35;
+  else if (/^TB_/i.test(cell)) score += 20;
+  if (/CA4_RS9|RS9_N06/i.test(cell)) score += 15;
+  if (/_TOP_|^L3_/i.test(cell)) score += 12;
+  return score;
+}
+
+/** Present multi-cell hierarchical circuit libraries as unified Projects rather than flat sub-modules. */
+export function projectCatalogEntries(list) {
+  const deduped = visibleCatalogProjects(list);
+  const libraryGroups = new Map();
+  const order = [];
+  for (const item of deduped) {
+    if (item.id.startsWith('library:')) {
+      const [libId, cellId] = item.id.slice(8).split('/');
+      const key = item.library_id || libId;
+      if (!libraryGroups.has(key)) {
+        libraryGroups.set(key, []);
+        order.push({ kind: 'library-group', key });
+      }
+      libraryGroups.get(key).push({ ...item, library_id: key, cell_id: item.cell_id || cellId });
+    } else {
+      order.push({ kind: 'standalone', item });
+    }
+  }
+  const result = [];
+  for (const slot of order) {
+    if (slot.kind === 'standalone') {
+      result.push(slot.item);
+      continue;
+    }
+    const items = libraryGroups.get(slot.key);
+    if (items.length <= 2 || slot.key === 'basics') {
+      for (const item of items) result.push(item);
+      continue;
+    }
+    const sorted = [...items].sort((a, b) => libraryEntryScore(b) - libraryEntryScore(a) || a.id.localeCompare(b.id));
+    const rep = sorted[0];
+    const libName = String(rep.name || '').includes(' / ') ? String(rep.name).split(' / ')[0] : slot.key;
+    result.push({
+      ...rep,
+      name: `${libName}（整项目 · ${items.length} 模块 · 顶层 ${rep.cell_id}）`,
+      project_group: true,
+      module_count: items.length,
+    });
+  }
+  return result;
+}
+
 /** Remote chat owns its context; the public preview never supplies an engineering identity. */
 export function mountRemoteNode(host) {
   const parent=host.slots.ai,doc=parent.element.ownerDocument,win=doc.defaultView;
@@ -52,8 +106,8 @@ export function mountRemoteNode(host) {
   <div class="cg-node-connected" hidden>
     <div class="cg-node-identity"><strong></strong><button type="button" data-action="disconnect">断开</button></div>
     <div class="cg-node-account" hidden><span></span><button type="button" data-action="login" hidden>在官方页面登录 ChatGPT</button><button type="button" data-action="account-refresh">重新检查</button></div>
-    <div class="cg-node-project"><select aria-label="运行节点项目"><option value="">选择工程</option></select><button type="button" data-action="open-project">打开对话</button><button type="button" data-action="use-canvas">使用当前电路</button></div>
-    <p class="cg-context-label">画布是公开电路预览，AI 使用此处选定的节点工程。</p>
+    <div class="cg-node-project"><select aria-label="选择协作项目"><option value="">选择项目</option></select><button type="button" data-action="open-project">打开对话</button><button type="button" data-action="use-canvas">同步当前项目</button></div>
+    <p class="cg-context-label">选择项目后自动切换画布到项目顶层原理图，AI 可协作查看与编辑项目内所有层级模块。</p>
   </div>
   <p class="cg-node-status" role="status" aria-live="polite"></p><div class="cg-node-chat"></div>`;
   parent.element.replaceChildren(root);
@@ -65,7 +119,7 @@ export function mountRemoteNode(host) {
   function showConnectionSettings(){settingsHome.hidden=false;connectionSettings.open=true;initialToggle.setAttribute('aria-expanded','true');}
   initialToggle.onclick=()=>{settingsHome.hidden=!settingsHome.hidden;initialToggle.setAttribute('aria-expanded',String(!settingsHome.hidden));if(!settingsHome.hidden)connectionSettings.open=true;};
   let client=null,ai=null,epoch=0,context=null,busy=false,destroyed=false,pairing=null,loginTimer=null,accountReady=true,ownerWindow=null,ownerTimer=null,ownerResolve=null,inflightTurns=0,ownsClient=true;
-  let nodeConnectionId=null,onboardingChoice=null,choiceTask=null;
+  let nodeConnectionId=null,onboardingChoice=null,choiceTask=null,projectByLibraryId=new Map();
   const connListeners=new Set();
   const emitConn=()=>{const state={connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai};for(const fn of connListeners)try{fn(state);}catch{}};
   const pendingDrafts=createAssistanceQueue({element:root,apply:draft=>ai?.queueDraft(draft)||{status:'queued',message:'请先连接并选择现有对话；请求已保留。'},getAvailability:()=>({available:!!ai,message:!client?'尚未连接；请手动连接 Codex，仿真请求已保留。':!ai?'请选择工程并打开对话；请求已保留，不会自动新建。':'请选择或新建目标对话；请求已保留，尚未发送。'})});root.insertBefore(pendingDrafts.element,chat);
@@ -100,7 +154,12 @@ export function mountRemoteNode(host) {
   function canvasProject(){
     if(onboardingChoice)return onboardingChoice.project.id;
     const p=host.context?.getContext?.()?.project;
-    if(p?.libraryId&&p?.cellId)return 'library:'+p.libraryId+'/'+p.cellId;
+    if(p?.libraryId&&p?.cellId){
+      const exact='library:'+p.libraryId+'/'+p.cellId;
+      if([...projects.options].some(o=>o.value===exact))return exact;
+      if(projectByLibraryId.has(p.libraryId))return projectByLibraryId.get(p.libraryId);
+      return exact;
+    }
     return !p||p.id==='rc-demo'?'library:basics/rc-smoke':null;
   }
   function drop(){for(const draft of ai?.takePendingDrafts?.()||[])pendingDrafts.enqueue(draft);++epoch;const prev=client,owned=ownsClient;host.libraryBridge?.unbind();if(prev){if(!host.onboarding?.unbindClient(prev)&&!owned)host.onboarding?.disconnect?.();}nodeConnectionId=null;onboardingChoice=null;pairing?.cancel();pairing=null;clearTimeout(loginTimer);clearInterval(ownerTimer);ownerTimer=null;ownerWindow?.close();ownerWindow=null;ownerResolve?.();ownerResolve=null;if(owned)prev?.close();client=null;ownsClient=true;ai?.destroy();ai=null;settingsHome.append(connectionSettings);initialSettings.hidden=false;context=null;listeners.clear();chat.replaceChildren();parent.setBadge(null);pendingDrafts.render();emitConn();}
@@ -156,10 +215,14 @@ export function mountRemoteNode(host) {
     }
     host.libraryBridge?.bind(client,{supported:local&&info.capabilities.library_workflow===true});
     const catalog=await client.request('/ai/catalog');if(generation!==epoch||destroyed)return;
-    const visibleProjects=visibleCatalogProjects(catalog.projects);
+    const visibleProjects=projectCatalogEntries(catalog.projects);
     const seen=new Set(visibleProjects.map(p=>p.id));
-    projects.replaceChildren(new Option('选择工程',''));
-    for(const p of visibleProjects){projects.add(new Option(p.name||p.id,p.id));}
+    projectByLibraryId=new Map();
+    projects.replaceChildren(new Option('选择项目',''));
+    for(const p of visibleProjects){
+      if(p.id.startsWith('library:')&&p.library_id&&!projectByLibraryId.has(p.library_id))projectByLibraryId.set(p.library_id,p.id);
+      projects.add(new Option(p.name||p.id,p.id));
+    }
     await refreshOnboardingChoice();if(generation!==epoch||destroyed)return;
     const preferred=canvasProject();
     if(onboardingChoice)projects.value=onboardingChoice.project.id;else if(seen.has(preferred))projects.value=preferred;else if(visibleProjects.length===1)projects.value=visibleProjects[0].id;
@@ -262,10 +325,16 @@ export function mountRemoteNode(host) {
 
   openButton.onclick=async()=>{
     if(!client||!projects.value||busy||!accountReady)return;
-    const generation=epoch,id=projects.value;setBusy(true);openButton.disabled=true;message('正在读取工程源码版本…');
+    const generation=epoch,id=projects.value;setBusy(true);openButton.disabled=true;message('正在切换项目并读取顶层版本…');
     try{
-      if(inflightTurns||['starting','running'].includes(ai?.getState()?.phase))throw Error('当前回合仍在执行，请完成或停止后切换电路。');
-      if(context){const active=await client.request('/ai/sessions');if(generation!==epoch||destroyed)return;if(!Array.isArray(active?.sessions))throw Error('无法确认对话状态，请重新读取后切换电路。');if(active.sessions.some(row=>['running','starting'].includes(row.state)))throw Error('当前回合仍在执行，请完成或停止后切换电路。');}
+      if(inflightTurns||['starting','running'].includes(ai?.getState()?.phase))throw Error('当前回合仍在执行，请完成或停止后切换项目。');
+      const active=await client.request('/ai/sessions');if(generation!==epoch||destroyed)return;
+      if(!Array.isArray(active?.sessions))throw Error('无法确认对话状态，请重新读取后切换项目。');
+      if(context&&active.sessions.some(row=>['running','starting'].includes(row.state)))throw Error('当前回合仍在执行，请完成或停止后切换项目。');
+      if(!ai&&active.sessions.length===0){
+        await client.request('/ai/sessions',{method:'POST',body:{name:'新对话'}});
+        if(generation!==epoch||destroyed)return;
+      }
       const next=id.startsWith('onboarding:')?await host.onboardingSync.contextFor({connectionId:nodeConnectionId,required:true}):await client.request('/ai/context?project_id='+encodeURIComponent(id));if(generation!==epoch||destroyed)return;
       checkedContext(next,id);
       context={...next,revision:(context?.revision||0)+1,mode:'live'};
@@ -274,12 +343,17 @@ export function mountRemoteNode(host) {
       const onSessionsChanged=({count,loading})=>{if(loading)return;initialSettings.hidden=count>0;if(!count){settingsHome.append(connectionSettings);initialHint.textContent='连接设置';settingsHome.hidden=true;initialToggle.setAttribute('aria-expanded','false');}else settingsHome.hidden=true;};
       if(!ai)ai=mountAI({...host,agentAssistance:null,context:contextAdapter,prepareAiContext,aiSettings:{element:connectionSettings,configureDevelopment,onSessionsChanged},slots:{...host.slots,ai:slot},gateway:{request:requestAI}});
       for(const draft of pendingDrafts.take())ai.queueDraft(draft);
-      $('.cg-context-label').textContent=next.onboarding?'AI 与仿真面板共用网表：'+next.file.path:`AI 电路：${id} · ${next.project.sourceCommit.slice(0,8)}`+(next.library?' · 编辑无需 PDK；写入权限由本机配置决定。':' · 使用已配置的节点工程。');
-      projects.disabled=false;openButton.textContent='切换 / 刷新电路';projects.title='新回合使用这里选定的电路';
+      const selectedLabel=projects.selectedOptions?.[0]?.textContent||id;
+      $('.cg-context-label').textContent=next.onboarding?'AI 与仿真面板共用网表：'+next.file.path:`当前协作项目：${selectedLabel} · ${next.project.sourceCommit.slice(0,8)}`+(next.library?' · 画布已同步到项目顶层原理图，AI 可读写项目内全部模块。':' · 使用已配置的节点工程。');
+      projects.disabled=false;openButton.textContent='切换 / 刷新项目';projects.title='新回合使用这里选定的项目';
       $('.cg-node-project').hidden=false;settingsHome.hidden=true;connectionSettings.open=false;message('');
+      if(next.library&&typeof host.openProjectCanvas==='function'){
+        void Promise.resolve(host.openProjectCanvas({projectId:id,libraryId:next.library.library_id,cellId:next.library.cell_id})).catch(err=>host.notify?.('原理图切换提示：'+(err?.message||err),{kind:'warning'}));
+      }
     }catch(error){if(generation===epoch&&!destroyed){if(context)projects.value=context.project.id;message(error.message,true);}}
     finally{if(generation===epoch&&!destroyed){setBusy(false);openButton.disabled=!accountReady;}}
   };
+  projects.addEventListener('change',()=>{if(client&&accountReady&&!busy&&projects.value)void openButton.onclick();});
   canvasButton.onclick=async()=>{
     if(busy||destroyed||!client||!accountReady)return;
     const generation=epoch;let id=canvasProject();
@@ -338,7 +412,16 @@ export function mountRemoteNode(host) {
       await new Promise(resolve=>{ownerResolve=resolve;const deadline=Date.now()+300000;ownerTimer=setInterval(()=>{if(popup.closed||generation!==epoch||Date.now()>deadline){clearInterval(ownerTimer);ownerTimer=null;ownerWindow=null;ownerResolve=null;resolve();}},400);});
     }catch(error){popup.close();ownerWindow=null;throw error;}
   }
+  async function syncProjectFromCanvas(libraryId) {
+    if (destroyed || !client || !accountReady || busy || !libraryId) return false;
+    if (inflightTurns || ['starting', 'running'].includes(ai?.getState()?.phase)) return false;
+    const targetId = projectByLibraryId.get(libraryId);
+    if (!targetId || context?.project?.id === targetId) return false;
+    projects.value = targetId;
+    await openButton.onclick();
+    return context?.project?.id === targetId;
+  }
   const off=host.registerCommand({id:'ai.remote.connect',menu:'window',label:'连接 Codex',run:()=>{parent.setVisible(true);if(!context){showConnectionSettings();(connected.hidden?localButton:openButton).focus();}else ai?.show();}});
   const offAssistance=host.agentAssistance?.registerReceiver(queueDraft);
-  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],adoptClient,tryResumeSession,connectLocal:()=>{parent.setVisible(true);showConnectionSettings();return localButton.onclick();},disconnect,getConnectionState:()=>({connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai}),subscribeConnection(fn){connListeners.add(fn);return()=>connListeners.delete(fn);},destroy(){if(destroyed)return;destroyed=true;connListeners.clear();offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
+  return {queueDraft,takePendingDrafts:()=>[...pendingDrafts.take(),...(ai?.takePendingDrafts?.()||[])],adoptClient,tryResumeSession,syncProjectFromCanvas,connectLocal:()=>{parent.setVisible(true);showConnectionSettings();return localButton.onclick();},disconnect,getConnectionState:()=>({connected:!!client,connecting:busy&&!client,connectionId:nodeConnectionId,hasChat:!!ai}),subscribeConnection(fn){connListeners.add(fn);return()=>connListeners.delete(fn);},destroy(){if(destroyed)return;destroyed=true;connListeners.clear();offAssistance?.();offOnboarding?.();offCanvas?.();drop();pendingDrafts.destroy();off?.();css.remove();root.remove();}};
 }
