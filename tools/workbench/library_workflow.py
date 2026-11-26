@@ -317,13 +317,16 @@ class LibraryWorkflow:
                 raise WorkflowError("invalid_json", "JSON source is invalid") from None
         return raw
 
-    def _diff(self, path, before, after):
+    def _diff_unbounded(self, path, before, after):
         try:
             a = (before or b"").decode("utf-8").splitlines(keepends=True)
             b = (after or b"").decode("utf-8").splitlines(keepends=True)
         except UnicodeError:
             return "Binary file changed: " + path + "\n"
-        value = "".join(difflib.unified_diff(a, b, fromfile="a/" + path, tofile="b/" + path))
+        return "".join(difflib.unified_diff(a, b, fromfile="a/" + path, tofile="b/" + path))
+
+    def _diff(self, path, before, after):
+        value = self._diff_unbounded(path, before, after)
         require(len(value.encode()) <= MAX_DIFF, "Diff exceeds the review limit", "diff_limit", 413)
         return value
 
@@ -451,10 +454,31 @@ class LibraryWorkflow:
         self._reachable(commit, scope["head"])
         metadata = self._commit_metadata(commit, scope["owned"])
         require(metadata["files"], "Commit has no changes for this cell", "unknown_commit", 404)
-        diff = "".join(self._diff(path, self._blob(metadata["parents"][0], path) if metadata["parents"] else None,
-                                  self._blob(commit, path)) for path in metadata["files"])
-        require(len(diff.encode()) <= MAX_DIFF, "Commit diff exceeds review bounds", "diff_limit", 413)
-        return {"base_commit": scope["head"], "commit": metadata, "files": metadata["files"], "diff": diff}
+        parent = metadata["parents"][0] if metadata["parents"] else None
+
+        def priority(path):
+            lower = path.lower()
+            if "/schematic/" in lower and lower.endswith((".scs", ".rnl", ".sp", ".cir")):
+                return (0, path)
+            if lower.endswith((".scs", ".rnl", ".sp", ".spice", ".cir", ".cdl", ".ckt", ".net", ".va", ".vams")):
+                return (1, path)
+            return (2, path)
+
+        ordered = sorted(metadata["files"], key=priority)
+        chunks, omitted, used = [], [], 0
+        for path in ordered:
+            piece = self._diff_unbounded(path, self._blob(parent, path) if parent else None, self._blob(commit, path))
+            size = len(piece.encode("utf-8"))
+            if used + size <= MAX_DIFF:
+                chunks.append(piece)
+                used += size
+            else:
+                omitted.append(path)
+        result = {"base_commit": scope["head"], "commit": metadata, "files": metadata["files"], "diff": "".join(chunks)}
+        if omitted:
+            result["truncated"] = True
+            result["omitted_files"] = omitted
+        return result
 
     def _append(self, path, value):
         self._safe_local(path)

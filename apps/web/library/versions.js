@@ -1,7 +1,9 @@
 import {createLibraryClient,repositoryPath} from './model.js';
 import {
+  circuitFileKind,
   filterCircuitCommits,
   isCircuitSourcePath,
+  isDiffLimitError,
   parseCircuitDiff,
   selectDiffSections,
   shortFileName,
@@ -176,18 +178,45 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
       const circuitFiles=(detail.files||[])
         .map(item=>typeof item==='string'?item:item.path)
         .filter(isCircuitSourcePath);
-      if(detail.diff!==undefined){
+      const repoSlug=/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(description?.repository||'')?description.repository:'CircuitGit-dev/CircuitGit';
+      const commitSha=detail.commit?.sha||'';
+      const githubLink=()=>{
+        if(!/^[0-9a-f]{40}$/i.test(commitSha))return null;
+        const gh=node('a','在 GitHub 查看完整提交差异 ↗','cg-cv-ext-link');
+        gh.href=`https://github.com/${repoSlug}/commit/${commitSha}`;
+        gh.target='_blank';gh.rel='noopener';
+        return gh;
+      };
+      if(detail.diffOversized){
+        const box=node('div',undefined,'cg-cv-diff-summary');
+        box.append(
+          node('p','本次提交包含大批量电路/网表导入文件，总差异超过单次 256 KB 预览上限，已跳过全量文本展开。'),
+          node('p','后续针对原理图（RNL）或单个网表的常规修改提交，会在此直接展示精简的 RNL 红绿差异。'),
+        );
+        root.append(box);
+        if(circuitFiles.length){
+          const fileList=node('div',undefined,'cg-cv-oversized-files');
+          for(const p of circuitFiles.slice(0,24)){
+            const r=node('div',undefined,'cg-cv-oversized-row');
+            r.append(node('span',shortFileName(p),'cg-cv-diff-file-name'),node('span',circuitFileKind(p),'cg-cv-diff-tag'));
+            r.title=p;
+            fileList.append(r);
+          }
+          if(circuitFiles.length>24)fileList.append(note(`其余 ${circuitFiles.length-24} 个网表文件已折叠。`));
+          root.append(fileList);
+        }
+        const gh=githubLink();if(gh)root.append(gh);
+      }else if(detail.diff!==undefined&&detail.diff!==null){
+        if(detail.truncated){
+          root.append(note('本次提交体积较大，已优先展示原理图与核心网表差异（其余大文件已省略）。'));
+        }
         root.append(renderStructuredDiff(detail.diff,{label:'版本差异',fallbackPath:circuitFiles[0]||scope.entry}));
+        if(detail.truncated){const gh=githubLink();if(gh)root.append(gh);}
       }else{
         root.append(note('当前为静态网页只读模式，未打包历史 diff；连接本机节点后可在此查看 RNL 与网表差异。'));
-        if(detail.commit?.sha&&/^[0-9a-f]{40}$/i.test(detail.commit.sha)){
-          const gh=node('a','在 GitHub 查看本次提交 ↗','cg-cv-ext-link');
-          gh.href=`https://github.com/CircuitGit-dev/CircuitGit/commit/${detail.commit.sha}`;
-          gh.target='_blank';gh.rel='noopener';
-          root.append(gh);
-        }
+        const gh=githubLink();if(gh)root.append(gh);
       }
-      if(circuitFiles.length){
+      if(!detail.diffOversized&&circuitFiles.length){
         root.append(note('涉及电路文件：'+circuitFiles.map(shortFileName).join('、')));
       }
       if(detail.commit?.sha){
@@ -311,9 +340,18 @@ export function mountLibraryVersions({element,getSelection,subscribeSelection,br
     finally{if(ticket===generation&&fileTicket===fileGeneration&&!disposed){loading=false;render();}}
   }
   async function showCommit(commit){
-    if(busy||loading)return;const ticket=generation;diffMode=null;diffExpanded=false;loading=true;render();
+    if(busy||loading)return;const ticket=generation;diffMode=null;diffExpanded=false;error='';loading=true;render();
     try{const result=connected()?await read('commit_detail',{commit:commit.sha}):{commit,diff:commit.diff,files:commit.files};if(ticket===generation)detail=result;}
-    catch(e){if(ticket===generation)error=e.message;}finally{if(ticket===generation){loading=false;render();}}
+    catch(e){
+      if(ticket===generation){
+        if(isDiffLimitError(e)){
+          error='';
+          detail={commit,files:commit.files||[],diff:null,diffOversized:true};
+        }else{
+          error=e.message;
+        }
+      }
+    }finally{if(ticket===generation){loading=false;render();}}
   }
   async function restore(target){
     const ticket=generation,path=target.path||editor?.path||scope.entry;const file=await read('read_file',{path});if(ticket!==generation||disposed)return;if(file.path!==path||!file.editable)throw Error('所选文件不可恢复。');

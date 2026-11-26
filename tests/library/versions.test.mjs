@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {writable,publishedCell,receiptState,receiptReleased,commitDraft,createPublishedHistoryLoader,textDiff,createPendingStore,testbenchExecutionLabel} from '../../apps/web/library/versions.js';
-import {filterCircuitCommits,parseCircuitDiff,selectDiffSections} from '../../apps/web/library/history-diff.js';
+import {filterCircuitCommits,isDiffLimitError,parseCircuitDiff,selectDiffSections} from '../../apps/web/library/history-diff.js';
 import {createLibraryBridge,cellFingerprint} from '../../apps/web/remote/library-bridge.js';
 const scope={library_id:'test',cell_id:'gain',directory:'lib/test/gain',cell:'Gain'};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -110,4 +110,10 @@ test('circuit diff isolates RNL schematic edits and drops README/JSON prose',()=
  assert.equal(circuitAll.length,1);
  assert.ok(circuitAll[0].hunks[0].lines.some(line=>line.text.includes('r=2k')));
  assert.ok(!circuitAll.some(file=>file.name==='README.md'));
+});
+test('isDiffLimitError detects 413 diff_limit responses for oversized import commits',()=>{
+ assert.equal(isDiffLimitError({status:413,message:'Commit diff exceeds review bounds'}),true);
+ assert.equal(isDiffLimitError({data:{code:'diff_limit'},message:'too big'}),true);
+ assert.equal(isDiffLimitError(Error('Commit diff exceeds review bounds')),true);
+ assert.equal(isDiffLimitError(Error('Network timeout')),false);
 });

@@ -27,3 +27,6 @@
 .cg-cv-history-filter button{font-size:10.5px;padding:2px 7px}
 .cg-cv-ext-link{display:inline-block;margin:2px 0 6px;color:#177753;font-size:11.5px;text-decoration:none}
 .cg-cv-ext-link:hover{text-decoration:underline}
+.cg-cv-oversized-files{display:grid;gap:4px;margin:8px 0;padding:8px;border:1px solid #d7e3dc;border-radius:6px;background:#fafcfb;max-height:220px;overflow:auto}
+.cg-cv-oversized-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;padding:2px 0;border-bottom:1px solid #edf2ef}
+.cg-cv-oversized-row:last-child{border-bottom:0}

@@ -23,6 +23,12 @@ export function circuitFileKind(path){
   return '网表';
 }
 
+export function isDiffLimitError(error){
+  if(!error)return false;
+  if(error.status===413||error.data?.code==='diff_limit')return true;
+  return /diff_limit|exceeds\s+(?:the\s+)?review\s+(?:bounds|limit)/i.test(String(error.message||error));
+}
+
 export function shortFileName(path){
   if(typeof path!=='string')return '';
   const clean=path.replace(/^[ab]\//,'');
