@@ -15,7 +15,13 @@ import {
   transformPoint,
   updateInstanceProperties,
 } from '../../apps/web/studio/schematic-editor/rnl-codec.js';
-import {BUILTIN_DEVICES,buildInstanceCatalog} from '../../apps/web/studio/schematic-editor/catalog.js';
+import {
+  BUILTIN_DEVICES,
+  buildCustomDeviceSpec,
+  buildInstanceCatalog,
+  extractModelsFromDocument,
+  extractPdkModelsFromSession,
+} from '../../apps/web/studio/schematic-editor/catalog.js';
 
 const RC_TEXT=readFileSync(new URL('../../apps/web/demo/rc.scs',import.meta.url),'utf8');
 const BOOTSTRAP_TEXT=readFileSync(new URL('../../lib/pipetisar-real/RS9_L5_9bit_Bootstrap/schematic/RS9_L5_9bit_Bootstrap.scs',import.meta.url),'utf8');
@@ -169,14 +175,55 @@ test('W key connectWire merges Spectre nets and appends orthogonal @WIRE, and L 
   assert.match(labeled.text,/\(12, 5\) @TEXT\("vout_filt"/);
 });
 
-test('buildInstanceCatalog includes built-ins, PDK MOS, doc subcircuits, library cells, and Verilog-A models',()=>{
+test('buildInstanceCatalog dynamically discovers probed PDK models, active netlist models, subcircuits, and Verilog-A',()=>{
+  const mockPdkSession={
+    selected_candidate_id:'pdk-n6',
+    discovery:{
+      candidates:[
+        {
+          candidate_id:'pdk-n6',
+          label:'TSMC N6 (remote)',
+          model_contracts:[
+            {name:'nch_svt_mac',polarity:'n',ordered_terminal_roles:['d','g','s','b']},
+            {name:'pch_hvt_mac',polarity:'p',ordered_terminal_roles:['d','g','s','b']},
+          ],
+        },
+      ],
+    },
+  };
+  const extractedPdk=extractPdkModelsFromSession(mockPdkSession);
+  assert.equal(extractedPdk.detected,true);
+  assert.equal(extractedPdk.label,'TSMC N6 (remote)');
+  assert.deepEqual(extractedPdk.models.map(m=>m.model),['nch_svt_mac','pch_hvt_mac']);
+
+  const docModels=extractModelsFromDocument({
+    levels:[{title:'(top)'},{title:'RS9_L5_9bit_Bootstrap'}],
+    files:[{path:'/RS9_L5_9bit_Bootstrap.scs',text:BOOTSTRAP_TEXT}],
+  });
+  const docModelNames=docModels.map(m=>m.model);
+  assert.ok(docModelNames.includes('nch_ulvt_mac'));
+  assert.ok(docModelNames.includes('pch_ulvt_mac'));
+  assert.ok(docModelNames.includes('nch_lvt_mac'));
+  assert.ok(docModelNames.includes('cfmom_2t'));
+  assert.equal(docModels.find(m=>m.model==='nch_ulvt_mac').symbolId,'%cg_sym_nmos4');
+  assert.equal(docModels.find(m=>m.model==='pch_ulvt_mac').symbolId,'%cg_sym_pmos4');
+  assert.equal(docModels.find(m=>m.model==='cfmom_2t').symbolId,'%cg_sym_capacitor');
+
   const catalog=buildInstanceCatalog({
-    doc:{levels:[{title:'TOP'},{title:'PIPE_MDAC4_G8_SC',ports:['VINP','VINN','VOUTP','VOUTN']}]},
+    doc:{
+      levels:[{title:'TOP'},{title:'PIPE_MDAC4_G8_SC',ports:['VINP','VINN','VOUTP','VOUTN']}],
+      files:[{path:'/RS9_L5_9bit_Bootstrap.scs',text:BOOTSTRAP_TEXT}],
+    },
     activeLibrary:{library:{cells:[{id:'Switch',name:'Switch',kind:'circuit'},{id:'TB_TOP',name:'TB_TOP',kind:'testbench'}]}},
     verilogaModels:[{moduleName:'PIPE_RailClamp',path:'lib/a/PIPE_RailClamp.va',text:'module PIPE_RailClamp(in, out, vdd, vss);\nendmodule'}],
+    pdkSession:mockPdkSession,
   });
+  assert.equal(catalog.pdkStatus.detected,true);
+  assert.equal(catalog.pdkStatus.pdkModelCount,2);
+  assert.ok(catalog.pdkStatus.docModelCount>=4);
+  assert.ok(catalog.some(i=>i.model==='nch_svt_mac'&&i.category==='已探测 PDK 器件'));
+  assert.ok(catalog.some(i=>i.model==='nch_ulvt_mac'&&i.category==='当前工程 PDK 器件'));
   assert.ok(catalog.some(i=>i.id==='resistor'));
-  assert.ok(catalog.some(i=>i.id==='nch_ulvt_mac'));
   assert.ok(catalog.some(i=>i.id==='gnd'));
   const sub=catalog.find(i=>i.model==='PIPE_MDAC4_G8_SC');
   assert.deepEqual(sub.ports,['VINP','VINN','VOUTP','VOUTN']);
@@ -184,6 +231,19 @@ test('buildInstanceCatalog includes built-ins, PDK MOS, doc subcircuits, library
   assert.deepEqual(va.ports,['in','out','vdd','vss']);
   // Testbenches excluded from instantiable cells
   assert.equal(catalog.some(i=>i.model==='TB_TOP'),false);
+
+  // Without remote PDK session and on RC-only file, report PDK as not detected honestly
+  const rcCatalog=buildInstanceCatalog({doc:{levels:[{title:'(top)'}],files:[{path:'/rc.scs',text:RC_TEXT}]}});
+  assert.equal(rcCatalog.pdkStatus.detected,false);
+  assert.equal(rcCatalog.pdkStatus.pdkModelCount,0);
+  assert.equal(rcCatalog.pdkStatus.docModelCount,0);
+  assert.ok(rcCatalog.some(i=>i.id==='nmos'));
+
+  // Custom PDK device builder
+  const custom=buildCustomDeviceSpec('nfet_01v8',{kind:'nmos',paramsText:'w=1u l=150n nf=2'});
+  assert.equal(custom.model,'nfet_01v8');
+  assert.equal(custom.symbolId,'%cg_sym_nmos4');
+  assert.deepEqual(custom.params,[{name:'w',value:'1u'},{name:'l',value:'150n'},{name:'nf',value:'2'}]);
 });
 
 test('all generated RNL mutations compile cleanly with zero errors in real RNL WASM core',async()=>{
@@ -214,6 +274,20 @@ test('all generated RNL mutations compile cleanly with zero errors in real RNL W
     compile('add '+dev.id,text);
     x+=12;
   }
+  const customPdk=buildCustomDeviceSpec('nch_hvt_mac',{kind:'nmos',paramsText:'l=30n w=500n nf=2'});
+  const customText=addInstance(text,{
+    scopeName:'(top)',
+    prefix:customPdk.prefix,
+    model:customPdk.model,
+    ports:customPdk.ports,
+    params:customPdk.params,
+    x:20,
+    y:10,
+    symbolId:customPdk.symbolId,
+    symbolDef:customPdk.symbolDef,
+  }).text;
+  compile('add custom PDK MOS',customText);
+
   const blockText=addInstance(text,{scopeName:'(top)',prefix:'X',model:'MyBlock',ports:['vinp','vinn','vout','vdd'],x:20,y:16}).text;
   compile('add custom block',blockText);
 

@@ -430,11 +430,15 @@ export async function mountStudio({ui:providedUI}={}){
       const preferred=activeLibrarySelection?.library?.id||null;
       return libs.length?indexLibraryVerilogAFiles(libs,preferred).list:[];
     },
+    getPdkSession:()=>onboarding?.getSessionState?.()||null,
+    onOpenPdkSetup:()=>{ui.slots.simulation.setVisible(true);try{command('simulation.environment');}catch{}},
     isProbeActive:()=>plotMode!=='none',
     bridge:libraryBridge,
     onDocumentUpdated:()=>schematicSidebar?.refresh(),
     notify,
   });
+  register({id:'project.save_pr',menu:'project',label:'提交 Pull Request (Ctrl+S)…',run:()=>schematicEditor?.openSavePr()});
+  register({id:'help.schematic_shortcuts',menu:'help',label:'原理图编辑快捷键…',run:()=>schematicEditor?.showShortcutsHelp()});
   function enableLiveLibrary(){
     if(libraryManager)return;
     libraryBridge.bind(api,{supported:true});

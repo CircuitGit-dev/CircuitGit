@@ -1,6 +1,6 @@
-// Interactive Virtuoso-style schematic editor layered cleanly over the vendored RNL viewer.
-// Supports W (wire + netlist connectivity), I (add instance), M (move), R (rotate),
-// Q (properties), L (net label), Del (delete), Undo/Redo, editable source, Save, and PR creation.
+// Clean, zero-clutter Virtuoso-style schematic editor layered over the vendored RNL viewer.
+// Canvas remains unobstructed: all editing shortcuts (W/I/M/R/Q/L/Del/Ctrl+Z) work silently on
+// the canvas and are documented under Help; a single "提交 PR" button lives in the provenance bar.
 import {current,doc,selected} from '../../vendor/rnl-viewer/state.js';
 import {view} from '../../vendor/rnl-viewer/drawing.js';
 import {hitsAt} from '../../vendor/rnl-viewer/hits.js';
@@ -24,10 +24,23 @@ import {
   transformPoint,
   updateInstanceProperties,
 } from './rnl-codec.js';
-import {buildInstanceCatalog} from './catalog.js';
+import {buildCustomDeviceSpec,buildInstanceCatalog} from './catalog.js';
 import {openSavePrDialog} from './pr-dialog.js';
 
 const SVG_NS='http://www.w3.org/2000/svg';
+
+export const SCHEMATIC_SHORTCUTS=[
+  ['I','调用并放置器件 / PDK 晶体管 / 子电路 / Verilog-A 实例'],
+  ['W','正交连线（自动吸附引脚并同步合并 Spectre 网表网络；Space 切换折线方向）'],
+  ['M','移动选中器件（或进入移动模式后点击目标器件）'],
+  ['R / Shift+R','逆时针旋转选中器件 90° / 水平镜像翻转（放置或移动中同样生效）'],
+  ['Q','编辑选中器件属性（名称、型号、端口网络与 Spectre 参数）'],
+  ['L','重命名网络并添加网络标号（同步更新当前层级所有引脚与导线）'],
+  ['Delete','删除选中器件及其关联 RNL 连线'],
+  ['Ctrl+Z / Ctrl+Y','撤销 / 重做画布修改'],
+  ['Ctrl+S','保存修改并提交 Pull Request'],
+  ['Esc','退出当前连线 / 放置 / 移动模式'],
+];
 
 function svgEl(tag,attrs={}){
   const node=document.createElementNS(SVG_NS,tag);
@@ -44,6 +57,8 @@ export function mountSchematicEditor({
   getProjectContext=()=>({}),
   getLibraries=()=>[],
   getVerilogAModels=()=>[],
+  getPdkSession=()=>null,
+  onOpenPdkSetup=null,
   isProbeActive=()=>false,
   bridge=null,
   onRequireConnector=null,
@@ -51,7 +66,7 @@ export function mountSchematicEditor({
   notify=()=>{},
 }={}){
   const canvas=document.getElementById('canvas');
-  if(!canvas)return {refresh(){},openSourceEditor(){},openSavePr(){},isDirty:()=>false,destroy(){}};
+  if(!canvas)return {refresh(){},resetBaselines(){},openSourceEditor(){},openSavePr(){},openInstancePicker(){},showShortcutsHelp(){},isDirty:()=>false,destroy(){}};
 
   const css=document.createElement('link');
   css.rel='stylesheet';
@@ -69,60 +84,28 @@ export function mountSchematicEditor({
   let cursorScene=null,cursorSnap=null;
   let cachedPinsKey='',cachedWorldPins=[];
 
-  // Per-file baseline, undo/redo history, and edit summaries
-  const baselines=new Map(); // filePath -> originalText
-  const undoStacks=new Map(); // filePath -> string[]
-  const redoStacks=new Map(); // filePath -> string[]
-  const summariesByFile=new Map(); // filePath -> string[]
+  const baselines=new Map();
+  const undoStacks=new Map();
+  const redoStacks=new Map();
+  const summariesByFile=new Map();
 
-  // --- Floating EDA Toolbar + Mode Hint + SVG Interactive Overlay ---
-  const toolbar=el('div',undefined,'cg-ed-bar');
-  toolbar.setAttribute('role','toolbar');
-  toolbar.setAttribute('aria-label','原理图编辑工具栏');
-  toolbar.addEventListener('pointerdown',e=>e.stopPropagation());
-  toolbar.addEventListener('click',e=>e.stopPropagation());
-  toolbar.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
+  // --- Minimal Chrome: ONLY one "提交 PR" button in `.studio-provenance` + transient mode pill ---
+  const provenance=document.getElementById('studio-provenance');
+  const prButton=el('button','提交 PR','cg-ed-prov-pr');
+  prButton.id='studio-pr-button';
+  prButton.type='button';
+  prButton.title='预览 RNL / 网表改动并提交 Pull Request (Ctrl+S)';
+  prButton.addEventListener('click',()=>openSavePr());
+  if(provenance)provenance.append(prButton);
 
   const modePill=el('div',undefined,'cg-ed-mode-pill');
   modePill.hidden=true;
   modePill.addEventListener('pointerdown',e=>e.stopPropagation());
 
   const overlaySvg=svgEl('svg',{class:'cg-ed-overlay','aria-hidden':'true'});
-  canvas.append(overlaySvg,toolbar,modePill);
+  canvas.append(overlaySvg,modePill);
 
-  const buttons={};
-  function makeToolBtn(id,label,shortcut,title,onClick,extraClass=''){
-    const btn=el('button',undefined,'cg-ed-tool'+(extraClass?' '+extraClass:''));
-    btn.type='button';
-    btn.dataset.tool=id;
-    btn.title=title;
-    btn.append(el('span',label,'cg-ed-tool-label'));
-    if(shortcut)btn.append(el('kbd',shortcut,'cg-ed-kbd'));
-    btn.addEventListener('click',onClick);
-    buttons[id]=btn;
-    return btn;
-  }
-
-  const sep=()=>el('span','','cg-ed-sep');
-  toolbar.append(
-    makeToolBtn('select','选择','Esc','选择 / 平移模式 (Esc)',()=>setTool('select')),
-    makeToolBtn('wire','连线','W','交互正交连线并同步网表连接 (W)',()=>startWireMode()),
-    makeToolBtn('place','器件','I','调用并放置器件或子电路实例 (I)',()=>openInstancePicker()),
-    makeToolBtn('move','移动','M','移动选中或点击的器件 (M)',()=>startMoveMode()),
-    makeToolBtn('rotate','旋转','R','逆时针旋转选中器件 90° (R)',()=>void handleRotate('rotate')),
-    makeToolBtn('props','属性','Q','编辑选中器件的型号、引脚与参数 (Q)',()=>openPropertiesDialog()),
-    makeToolBtn('label','标号','L','重命名并标注网络名 (L)',()=>startLabelMode()),
-    makeToolBtn('delete','删除','Del','删除选中器件 (Delete)',()=>void handleDelete()),
-    sep(),
-    makeToolBtn('undo','↶','','撤销 (Ctrl+Z)',()=>void handleUndo()),
-    makeToolBtn('redo','↷','','重做 (Ctrl+Y)',()=>void handleRedo()),
-    sep(),
-    makeToolBtn('source','源码','','打开可编辑网表源码并实时应用到画布',()=>openSourceEditor()),
-    makeToolBtn('save','保存','Ctrl+S','保存修改到本机工作区（网页模式则打开导出/PR 窗口）',()=>void handleQuickSave(),'cg-ed-tool-save'),
-    makeToolBtn('pr','提交 PR','','预览 RNL 差异、提交 Git 并创建 Pull Request',()=>openSavePr(),'cg-ed-tool-pr'),
-  );
-
-  // --- Helpers: Active level, file, scope, coordinate conversion ---
+  // --- Helpers ---
   function activeFileInfo(){
     if(!doc||!doc.levels?.length)return null;
     const lv=doc.levels[current]||doc.levels[0];
@@ -151,7 +134,6 @@ export function mountSchematicEditor({
     const ctx=getProjectContext()||{};
     const relPath=String(info.filePath||'').replace(/^\/+/,'');
     const libs=getLibraries()||[];
-    // 1. Exact file match across loaded libraries (handles descended subcircuit cells!)
     for(const lib of libs){
       for(const cell of lib.cells||[]){
         const dirPrefix=(cell.directory||'').replace(/\/+$/,'')+'/';
@@ -168,7 +150,6 @@ export function mountSchematicEditor({
         }
       }
     }
-    // 2. Fallback to activeLibrary if currently editing its entry
     if(ctx.activeLibrary?.library&&ctx.activeLibrary?.cell){
       return {
         library_id:ctx.activeLibrary.library.id,
@@ -244,7 +225,6 @@ export function mountSchematicEditor({
     if(!info||!sc||!view)return null;
     const snapPx=14;
 
-    // 1. Exact world pins from RNL codec (knows exact instance + terminal + portIndex + net!)
     let bestPin=null,bestDist=snapPx;
     for(const pin of worldPinsForCurrent()){
       const pt=sceneToCanvasPx(pin.x,pin.y);
@@ -254,7 +234,6 @@ export function mountSchematicEditor({
     }
     if(bestPin)return bestPin;
 
-    // 2. Fallback to RNL runtime `hitsAt` for pins/wires (supports std-package symbols too!)
     const hitRes=hitsAt(info.lv,view,px);
     for(const h of hitRes.hits||[]){
       if(h.kind==='wire'&&h.objects?.length){
@@ -287,7 +266,6 @@ export function mountSchematicEditor({
     return pts;
   }
 
-  // --- Live WASM rebuild with preserved level, zoom, and pan ---
   function cloneSourceWithFile(baseSource,targetPath,nextText){
     const snap=Object.create(null);
     if(baseSource?.snapshot){
@@ -381,12 +359,10 @@ export function mountSchematicEditor({
     }
   }
 
-  // --- SVG Overlay rendering for W / I / M / L previews ---
   function renderOverlay(){
     overlaySvg.replaceChildren();
     if(!view||!doc||tool==='select')return;
 
-    // Show subtle snap dots on all pins in wire mode
     if(tool==='wire'){
       for(const pin of worldPinsForCurrent()){
         const pt=sceneToCanvasPx(pin.x,pin.y);
@@ -395,7 +371,6 @@ export function mountSchematicEditor({
       }
     }
 
-    // Active snap ring & tag
     if((tool==='wire'||tool==='label')&&cursorSnap){
       const pt=sceneToCanvasPx(cursorSnap.x,cursorSnap.y);
       if(pt){
@@ -416,7 +391,6 @@ export function mountSchematicEditor({
       }
     }
 
-    // Orthogonal wire preview
     if(tool==='wire'&&wireStart&&cursorSnap){
       const polyPts=orthogonalPoints(wireStart,wireWaypoints,cursorSnap);
       const pxPts=polyPts.map(p=>sceneToCanvasPx(p.x,p.y)).filter(Boolean);
@@ -431,7 +405,6 @@ export function mountSchematicEditor({
       }
     }
 
-    // Ghost box for placing (`I`) or moving (`M`)
     if((tool==='place'&&placingSpec||tool==='move'&&movingInst)&&cursorScene){
       const step=gridStep();
       const sx=snapCoord(cursorScene.x,step),sy=snapCoord(cursorScene.y,step);
@@ -457,7 +430,6 @@ export function mountSchematicEditor({
     }
   }
 
-  // --- Tool switching ---
   function setTool(nextTool){
     tool=nextTool;
     if(nextTool!=='wire'){wireStart=null;wireWaypoints=[];}
@@ -469,20 +441,12 @@ export function mountSchematicEditor({
     renderOverlay();
   }
 
-  function startWireMode(){
-    if(!activeFileInfo())return;
-    setTool('wire');
-  }
+  function startWireMode(){if(activeFileInfo())setTool('wire');}
 
   function startLabelMode(){
-    const info=activeFileInfo();
-    if(!info)return;
-    // If a net is currently selected, open rename immediately; otherwise enter click-wire mode
+    if(!activeFileInfo())return;
     const obj=selected!==null&&selected!==undefined?doc?.objects?.[selected]:null;
-    if(obj?.kind==='net'&&obj.name){
-      openNetLabelDialog({oldNet:obj.name});
-      return;
-    }
+    if(obj?.kind==='net'&&obj.name){openNetLabelDialog({oldNet:obj.name});return;}
     setTool('label');
   }
 
@@ -500,11 +464,9 @@ export function mountSchematicEditor({
       movingBox=sym?.box||[-4,-3,4,3];
       tool='move';
       canvas.classList.add('cg-ed-crosshair');
-      refreshUI();
-      renderOverlay();
+      refreshUI();renderOverlay();
     }else{
-      tool='move';
-      movingInst=null;
+      tool='move';movingInst=null;
       canvas.classList.add('cg-ed-crosshair');
       refreshUI();
       notify('请在画布上点击要移动的器件，或先选中器件再按 M。');
@@ -512,19 +474,10 @@ export function mountSchematicEditor({
   }
 
   async function handleRotate(mode='rotate'){
-    if(tool==='place'&&placingSpec){
-      placingOrient=nextOrientation(placingOrient,mode);
-      renderOverlay();
-      return;
-    }
-    if(tool==='move'&&movingInst){
-      movingOrient=nextOrientation(movingOrient,mode);
-      renderOverlay();
-      return;
-    }
-    const info=activeFileInfo();
-    const obj=selectedInstanceObject();
-    if(!info||!obj){notify('请先在画布中选中一个器件再按 R 旋转。');return;}
+    if(tool==='place'&&placingSpec){placingOrient=nextOrientation(placingOrient,mode);renderOverlay();return;}
+    if(tool==='move'&&movingInst){movingOrient=nextOrientation(movingOrient,mode);renderOverlay();return;}
+    const info=activeFileInfo(),obj=selectedInstanceObject();
+    if(!info||!obj){notify('请先选中一个器件再按 R 旋转。');return;}
     try{
       const res=rotateInstance(info.text,{scopeName:info.scopeName,instanceName:obj.name,mode});
       await applyTextChange(res.text,res.summary);
@@ -532,9 +485,8 @@ export function mountSchematicEditor({
   }
 
   async function handleDelete(){
-    const info=activeFileInfo();
-    const obj=selectedInstanceObject();
-    if(!info||!obj){notify('请先在画布中选中要删除的器件。');return;}
+    const info=activeFileInfo(),obj=selectedInstanceObject();
+    if(!info||!obj)return;
     try{
       const res=deleteInstance(info.text,{scopeName:info.scopeName,instanceName:obj.name});
       await applyTextChange(res.text,res.summary);
@@ -548,9 +500,8 @@ export function mountSchematicEditor({
     if(!stack?.length)return;
     const prev=stack.pop();
     const redo=redoStacks.get(info.filePath)||[];
-    redo.push(info.text);
-    redoStacks.set(info.filePath,redo);
-    await applyTextChange(prev,'撤销上一步原理图修改',{recordUndo:false});
+    redo.push(info.text);redoStacks.set(info.filePath,redo);
+    await applyTextChange(prev,'撤销上一步修改',{recordUndo:false});
   }
 
   async function handleRedo(){
@@ -560,12 +511,44 @@ export function mountSchematicEditor({
     if(!redo?.length)return;
     const next=redo.pop();
     const undo=undoStacks.get(info.filePath)||[];
-    undo.push(info.text);
-    undoStacks.set(info.filePath,undo);
-    await applyTextChange(next,'重做原理图修改',{recordUndo:false});
+    undo.push(info.text);undoStacks.set(info.filePath,undo);
+    await applyTextChange(next,'重做修改',{recordUndo:false});
   }
 
-  // --- Dialogs: `I` Instance Picker, `Q` Properties, `L` Net Label, Editable Source, Save/PR ---
+  // --- Dialogs: Help Shortcuts, `I` Instance Picker (with PDK status + custom model), `Q` Props, `L` Label, Source, PR ---
+  function showShortcutsHelp(){
+    const dialog=el('dialog',undefined,'cg-ed-dialog cg-ed-shortcuts-dialog');
+    dialog.setAttribute('aria-label','原理图编辑快捷键');
+    const head=el('header',undefined,'cg-ed-dialog-head');
+    head.append(el('strong','原理图编辑快捷键（Virtuoso 风格）'));
+    const closeBtn=el('button','×','cg-ed-close');closeBtn.type='button';closeBtn.onclick=()=>dialog.close();
+    head.append(closeBtn);
+
+    const body=el('div',undefined,'cg-ed-dialog-body');
+    body.append(el('p','在原理图画布中直接按键即可编辑（无需切换到额外编辑栏）；修改完成后按 Ctrl+S 或点画布右上角「提交 PR」即可预览 RNL 差异并提交 Pull Request。','cg-ed-muted'));
+    const table=el('table',undefined,'cg-ed-shortcuts-table');
+    const tbody=document.createElement('tbody');
+    for(const [k,desc] of SCHEMATIC_SHORTCUTS){
+      const tr=document.createElement('tr');
+      const td1=document.createElement('td');
+      td1.append(el('kbd',k,'cg-ed-kbd'));
+      const td2=el('td',desc);
+      tr.append(td1,td2);
+      tbody.append(tr);
+    }
+    table.append(tbody);
+    body.append(table);
+
+    const actions=el('footer',undefined,'cg-ed-dialog-actions');
+    const okBtn=el('button','知道了','cg-ed-btn cg-ed-btn-primary');okBtn.type='button';okBtn.onclick=()=>dialog.close();
+    actions.append(okBtn);
+    dialog.append(head,body,actions);
+    dialog.addEventListener('keydown',e=>e.stopPropagation());
+    dialog.addEventListener('close',()=>dialog.remove());
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+
   function openInstancePicker(){
     const info=activeFileInfo();
     if(!info)return;
@@ -574,25 +557,43 @@ export function mountSchematicEditor({
       doc,
       activeLibrary:ctx.activeLibrary||null,
       verilogaModels:getVerilogAModels()||[],
+      pdkSession:getPdkSession?.()||null,
     });
+    const pdkStatus=items.pdkStatus||{detected:false,label:'',pdkModelCount:0,docModelCount:0};
     const categories=['全部',...new Set(items.map(i=>i.category))];
 
     const dialog=el('dialog',undefined,'cg-ed-dialog cg-ed-picker-dialog');
     dialog.setAttribute('aria-label','调用器件 / 实例 (I)');
     let activeCat='全部',searchVal='',chosen=items[0]||null;
     let customName='',customParams=chosen?formatParamsList(chosen.params):'';
+    let customModelName='',customKind='nmos',customModelParams='l=30n w=250n nf=1 multi=1';
 
     const renderPicker=()=>{
       dialog.replaceChildren();
       const head=el('header',undefined,'cg-ed-dialog-head');
-      head.append(el('strong','调用器件 / 子电路实例 (I)'));
+      head.append(el('strong','调用器件 / 实例 (I)'));
       const closeBtn=el('button','×','cg-ed-close');closeBtn.type='button';closeBtn.onclick=()=>dialog.close();
       head.append(closeBtn);
       dialog.append(head);
 
       const body=el('div',undefined,'cg-ed-dialog-body');
+
+      // Honest PDK detection status banner
+      const pdkBar=el('div',undefined,'cg-ed-pdk-banner'+(pdkStatus.detected?' is-detected':''));
+      const pdkText=pdkStatus.detected
+        ? `● 已接入远端 PDK：${pdkStatus.label}${pdkStatus.pdkModelCount?`（已读取 ${pdkStatus.pdkModelCount} 个晶体管/器件模型）`:''}`
+        : `未检测到已绑定的远端 PDK（当前列出通用器件${pdkStatus.docModelCount?`与本工程已使用的 ${pdkStatus.docModelCount} 个 PDK 型号`:''}）。`;
+      pdkBar.append(el('span',pdkText));
+      if(!pdkStatus.detected&&typeof onOpenPdkSetup==='function'){
+        const pdkBtn=el('button','去仿真面板探测 PDK →','cg-ed-btn-mini');
+        pdkBtn.type='button';
+        pdkBtn.onclick=()=>{dialog.close();onOpenPdkSetup();};
+        pdkBar.append(pdkBtn);
+      }
+      body.append(pdkBar);
+
       const search=document.createElement('input');
-      search.type='search';search.className='cg-ed-search';search.placeholder='搜索器件型号、MOS、子电路或 Verilog-A 模块…';
+      search.type='search';search.className='cg-ed-search';search.placeholder='搜索晶体管、PDK 型号、基础器件、子电路或 Verilog-A 模块…';
       search.value=searchVal;
       search.oninput=()=>{searchVal=search.value;renderList();};
 
@@ -630,14 +631,11 @@ export function mountSchematicEditor({
         list.replaceChildren();
         const q=searchVal.trim().toLowerCase();
         const filtered=items.filter(item=>(activeCat==='全部'||item.category===activeCat)&&(!q||`${item.name} ${item.label} ${item.category} ${item.model}`.toLowerCase().includes(q)));
-        if(!filtered.length){list.append(el('p','没有匹配的器件或子电路。','cg-ed-muted'));return;}
+        if(!filtered.length){list.append(el('p','没有匹配的器件；可在下方「输入自定义 PDK 型号」中直接指定任意工艺模型。','cg-ed-muted'));return;}
         for(const item of filtered){
           const rowBtn=el('button',undefined,'cg-ed-picker-item'+(chosen?.id===item.id?' is-active':''));
           rowBtn.type='button';
-          rowBtn.append(
-            el('strong',item.label),
-            el('span',item.category,'cg-ed-cat-tag'),
-          );
+          rowBtn.append(el('strong',item.label),el('span',item.category,'cg-ed-cat-tag'));
           rowBtn.onclick=()=>{
             chosen=item;customName='';customParams=formatParamsList(item.params);
             renderList();renderConfig();
@@ -647,6 +645,33 @@ export function mountSchematicEditor({
         }
       };
 
+      // Custom PDK model drawer for arbitrary foundry transistors/devices
+      const customFold=el('details',undefined,'cg-ed-custom-fold');
+      customFold.append(el('summary','输入自定义 PDK 型号（例如 nch_svt_mac / nfet_01v8 / rppoly）'));
+      const customGrid=el('div',undefined,'cg-ed-custom-grid');
+      const cmModel=document.createElement('input');cmModel.placeholder='PDK 型号名（如 nch_hvt_mac）';cmModel.value=customModelName;cmModel.oninput=()=>{customModelName=cmModel.value;};
+      const cmKind=document.createElement('select');
+      for(const [val,lbl] of [['nmos','NMOS (4T)'],['pmos','PMOS (4T)'],['resistor','电阻 (2T)'],['capacitor','电容 (2T)'],['subckt','子电路框图']]){
+        cmKind.add(new Option(lbl,val));
+      }
+      cmKind.value=customKind;cmKind.onchange=()=>{customKind=cmKind.value;};
+      const cmParams=document.createElement('input');cmParams.placeholder='参数（如 l=30n w=250n nf=1）';cmParams.value=customModelParams;cmParams.oninput=()=>{customModelParams=cmParams.value;};
+      const cmUse=el('button','使用此型号放置','cg-ed-btn-mini');cmUse.type='button';
+      cmUse.onclick=()=>{
+        try{
+          const spec=buildCustomDeviceSpec(customModelName,{kind:customKind,paramsText:customModelParams});
+          placingSpec={...spec,customName:'',customParams:formatParamsList(spec.params)};
+          placingOrient='R0';
+          dialog.close();
+          tool='place';
+          canvas.classList.add('cg-ed-crosshair');
+          refreshUI();renderOverlay();
+          notify(`已选择自定义型号 ${spec.model}：点击画布放置（R 旋转，Esc 取消）。`);
+        }catch(err){notify(err.message,{kind:'error'});}
+      };
+      customGrid.append(cmModel,cmKind,cmParams,cmUse);
+      customFold.append(customGrid);
+
       const confirmPlace=()=>{
         if(!chosen)return;
         placingSpec={...chosen,customName,customParams};
@@ -654,9 +679,8 @@ export function mountSchematicEditor({
         dialog.close();
         tool='place';
         canvas.classList.add('cg-ed-crosshair');
-        refreshUI();
-        renderOverlay();
-        notify(`已选择 ${chosen.label}：移动鼠标到画布目标位置点击放置（按 R 可旋转，Esc 取消）。`);
+        refreshUI();renderOverlay();
+        notify(`已选择 ${chosen.label}：移动鼠标点击画布放置（R 旋转，Esc 取消）。`);
       };
 
       const actions=el('footer',undefined,'cg-ed-dialog-actions');
@@ -664,7 +688,7 @@ export function mountSchematicEditor({
       const placeBtn=el('button','去画布放置 →','cg-ed-btn cg-ed-btn-primary');placeBtn.type='button';placeBtn.onclick=confirmPlace;
       actions.append(cancelBtn,placeBtn);
 
-      body.append(search,tabs,list,configBox);
+      body.append(search,tabs,list,configBox,customFold);
       dialog.append(body,actions);
       renderList();renderConfig();
       requestAnimationFrame(()=>search.focus());
@@ -672,7 +696,7 @@ export function mountSchematicEditor({
 
     dialog.addEventListener('keydown',e=>{
       e.stopPropagation();
-      if(e.key==='Enter'&&e.target.tagName!=='BUTTON'){e.preventDefault();dialog.querySelector('.cg-ed-btn-primary')?.click();}
+      if(e.key==='Enter'&&e.target.tagName!=='BUTTON'&&!e.target.closest('.cg-ed-custom-fold')){e.preventDefault();dialog.querySelector('.cg-ed-btn-primary')?.click();}
     });
     dialog.addEventListener('close',()=>dialog.remove());
     document.body.append(dialog);
@@ -681,12 +705,11 @@ export function mountSchematicEditor({
   }
 
   function openPropertiesDialog(){
-    const info=activeFileInfo();
-    const obj=selectedInstanceObject();
-    if(!info||!obj){notify('请先在画布中点击选中一个器件，再按 Q 编辑属性。');return;}
+    const info=activeFileInfo(),obj=selectedInstanceObject();
+    if(!info||!obj){notify('请先选中一个器件，再按 Q 编辑属性。');return;}
     const parsed=parseEditableScope(info.text,info.scopeName);
     const inst=parsed.instances.find(i=>i.name===obj.name);
-    if(!inst){notify(`未能解析器件 ${obj.name} 的网表语句，可点击「源码」直接编辑。`,{kind:'warning'});return;}
+    if(!inst){notify(`未能解析器件 ${obj.name} 的网表语句，可点击「查看 / 编辑源码…」直接修改。`,{kind:'warning'});return;}
 
     const dialog=el('dialog',undefined,'cg-ed-dialog cg-ed-props-dialog');
     dialog.setAttribute('aria-label',`编辑器件属性 · ${inst.name}`);
@@ -814,7 +837,7 @@ export function mountSchematicEditor({
     head.append(closeBtn);
 
     const body=el('div',undefined,'cg-ed-dialog-body');
-    body.append(el('p',`当前文件：${info.filePath} · 修改后点击「应用到画布」即可实时编译重绘，再点「提交 PR」写回本机并推送。`,'cg-ed-muted'));
+    body.append(el('p',`当前文件：${info.filePath} · 应用到画布后按 Ctrl+S 或点「提交 PR」即可推送 Pull Request。`,'cg-ed-muted'));
     const area=document.createElement('textarea');
     area.className='cg-ed-source-area';area.spellcheck=false;area.value=info.text;
     body.append(area);
@@ -822,53 +845,15 @@ export function mountSchematicEditor({
     const actions=el('footer',undefined,'cg-ed-dialog-actions');
     const cancelBtn=el('button','关闭','cg-ed-btn');cancelBtn.type='button';cancelBtn.onclick=()=>dialog.close();
     const applyBtn=el('button','应用到画布','cg-ed-btn');applyBtn.type='button';
-    applyBtn.onclick=async()=>{
-      const ok=await applyTextChange(area.value,'编辑网表源码');
-      if(ok)dialog.close();
-    };
-    const savePrBtn=el('button','应用并保存 / 提交 PR →','cg-ed-btn cg-ed-btn-primary');savePrBtn.type='button';
-    savePrBtn.onclick=async()=>{
-      const ok=await applyTextChange(area.value,'编辑网表源码');
-      if(ok){dialog.close();openSavePr();}
-    };
-    actions.append(cancelBtn,applyBtn,savePrBtn);
+    applyBtn.onclick=async()=>{const ok=await applyTextChange(area.value,'编辑网表源码');if(ok)dialog.close();};
+    const prBtn=el('button','应用并提交 PR →','cg-ed-btn cg-ed-btn-primary');prBtn.type='button';
+    prBtn.onclick=async()=>{const ok=await applyTextChange(area.value,'编辑网表源码');if(ok){dialog.close();openSavePr();}};
+    actions.append(cancelBtn,applyBtn,prBtn);
     dialog.append(head,body,actions);
     dialog.addEventListener('keydown',e=>e.stopPropagation());
     dialog.addEventListener('close',()=>dialog.remove());
     document.body.append(dialog);
     dialog.showModal();
-  }
-
-  async function handleQuickSave(){
-    const info=activeFileInfo();
-    if(!info)return;
-    const target=resolveGitTarget(info);
-    const connected=bridge?.getState?.()?.connected===true;
-    if(!connected||!target.library_id||!target.cell_id){
-      openSavePr();
-      return;
-    }
-    if(!isFileDirty(info.filePath)){
-      notify('当前画布没有未保存的改动；如需提交或创建 PR 请点击「提交 PR」。');
-      return;
-    }
-    try{
-      const scopeArgs={library_id:target.library_id,cell_id:target.cell_id};
-      const fileInfo=await bridge.request('read_file',{...scopeArgs,path:target.path});
-      if(!fileInfo?.editable)throw Error('当前单元文件在本机不可写。');
-      const res=await bridge.request('execute',{
-        operation:'save',
-        args:{...scopeArgs,path:target.path,content:info.text,base_sha256:fileInfo.sha256},
-        idempotency_key:'ed-qsave-'+crypto.randomUUID(),
-      });
-      const state=res?.receipt?.state||res?.state||'unknown';
-      if(!['complete','completed','succeeded'].includes(state))throw Error(`保存状态未确认：${state}`);
-      baselines.set(info.filePath,info.text);
-      refreshUI();
-      notify(`已保存 ${target.fileName} 到本机工作区；点击「提交 PR」即可推送并创建 Pull Request。`);
-    }catch(err){
-      notify(err?.message||String(err),{kind:'error'});
-    }
   }
 
   function openSavePr(){
@@ -890,7 +875,7 @@ export function mountSchematicEditor({
     });
   }
 
-  // --- Pointer & Keyboard Interactions on Canvas ---
+  // --- Pointer & Keyboard Interactions ---
   const onCanvasPointerMove=e=>{
     if(disposed||tool==='select')return;
     const px=clientToCanvasPx(e.clientX,e.clientY);
@@ -901,7 +886,7 @@ export function mountSchematicEditor({
 
   const onCanvasPointerDown=e=>{
     if(disposed||tool==='select'||e.button!==0)return;
-    if(e.target instanceof Element&&e.target.closest('.cg-ed-bar,.cg-ed-mode-pill'))return;
+    if(e.target instanceof Element&&e.target.closest('.cg-ed-mode-pill'))return;
     e.preventDefault();
     e.stopImmediatePropagation();
 
@@ -930,7 +915,6 @@ export function mountSchematicEditor({
           symbolDef:placingSpec.symbolDef||'',
           virtualKind:placingSpec.virtualKind||null,
         });
-        // Keep placingSpec active so user can place multiple like Virtuoso (Esc to stop)
         placingSpec={...placingSpec,customName:''};
         void applyTextChange(res.text,res.summary);
       }catch(err){notify(err.message,{kind:'error'});}
@@ -939,7 +923,6 @@ export function mountSchematicEditor({
 
     if(tool==='move'){
       if(!movingInst){
-        // Pick instance under cursor
         const hitRes=hitsAt(info.lv,view,px);
         const instHit=(hitRes.hits||[]).find(h=>h.kind==='box'&&h.objects?.length&&doc.objects?.[h.objects[0]]?.kind==='instance');
         const instObj=instHit?doc.objects[instHit.objects[0]]:null;
@@ -974,38 +957,24 @@ export function mountSchematicEditor({
     if(tool==='wire'){
       const snap=snapEndpointAt(e.clientX,e.clientY);
       if(!snap)return;
-      if(!wireStart){
-        wireStart=snap;
-        wireWaypoints=[];
-        renderOverlay();
-        return;
-      }
+      if(!wireStart){wireStart=snap;wireWaypoints=[];renderOverlay();return;}
       const finishWire=async endPt=>{
         const fullPts=orthogonalPoints(wireStart,wireWaypoints,endPt);
-        const midWaypoints=fullPts.slice(1,-1);
         const startCopy=wireStart;
-        wireStart=null;wireWaypoints=[];
-        renderOverlay();
+        wireStart=null;wireWaypoints=[];renderOverlay();
         try{
-          const res=connectWire(info.text,{scopeName:info.scopeName,start:startCopy,end:endPt,waypoints:midWaypoints});
+          const res=connectWire(info.text,{scopeName:info.scopeName,start:startCopy,end:endPt,waypoints:fullPts.slice(1,-1)});
           await applyTextChange(res.text,res.summary);
         }catch(err){notify(err.message,{kind:'error'});}
       };
-
-      if(snap.kind==='pin'||snap.kind==='wire'||e.detail>=2){
-        void finishWire(snap);
-      }else{
-        const fullPts=orthogonalPoints(wireStart,wireWaypoints,snap);
-        wireWaypoints=fullPts.slice(1);
-        renderOverlay();
-      }
+      if(snap.kind==='pin'||snap.kind==='wire'||e.detail>=2)void finishWire(snap);
+      else{wireWaypoints=orthogonalPoints(wireStart,wireWaypoints,snap).slice(1);renderOverlay();}
     }
   };
 
   const onKeyDown=e=>{
     if(disposed||rnlTextEditing||isProbeActive())return;
     if(isEditableFocus(e.target))return;
-    // Only act when schematic canvas is visible
     if(!canvas.offsetParent)return;
     const ctrl=e.ctrlKey||e.metaKey;
     const k=e.key.toLowerCase();
@@ -1021,7 +990,7 @@ export function mountSchematicEditor({
       return;
     }
     if(ctrl&&k==='s'){
-      if(anyDirty()){e.preventDefault();e.stopImmediatePropagation();void handleQuickSave();}
+      if(activeFileInfo()){e.preventDefault();e.stopImmediatePropagation();openSavePr();}
       return;
     }
     if(ctrl||e.altKey)return;
@@ -1032,12 +1001,7 @@ export function mountSchematicEditor({
       else setTool('select');
       return;
     }
-    if(tool==='wire'&&e.key===' '){
-      e.preventDefault();e.stopImmediatePropagation();
-      wireBendHFirst=!wireBendHFirst;
-      renderOverlay();
-      return;
-    }
+    if(tool==='wire'&&e.key===' '){e.preventDefault();e.stopImmediatePropagation();wireBendHFirst=!wireBendHFirst;renderOverlay();return;}
     if(tool==='wire'&&e.key==='Enter'&&wireStart&&cursorSnap){
       e.preventDefault();e.stopImmediatePropagation();
       const info=activeFileInfo();
@@ -1061,45 +1025,25 @@ export function mountSchematicEditor({
     if(e.key==='Delete'&&selectedInstanceObject()){e.preventDefault();e.stopImmediatePropagation();void handleDelete();return;}
   };
 
-  // --- Refresh toolbar & mode pill state ---
   function refreshUI(){
     if(disposed)return;
     const info=activeFileInfo();
-    const hasDoc=Boolean(info);
-    const hasInst=Boolean(selectedInstanceObject());
     const dirty=Boolean(info&&isFileDirty(info.filePath));
-    const canUndo=Boolean(info&&(undoStacks.get(info.filePath)?.length||0)>0);
-    const canRedo=Boolean(info&&(redoStacks.get(info.filePath)?.length||0)>0);
-
-    for(const id of ['select','wire','place','move','label']){
-      buttons[id]?.classList.toggle('is-active',tool===id);
-      if(buttons[id])buttons[id].disabled=!hasDoc||rebuilding;
-    }
-    buttons.rotate.disabled=!hasDoc||rebuilding||(!hasInst&&tool!=='place'&&tool!=='move');
-    buttons.props.disabled=!hasDoc||rebuilding||!hasInst;
-    buttons.delete.disabled=!hasDoc||rebuilding||!hasInst;
-    buttons.undo.disabled=!canUndo||rebuilding;
-    buttons.redo.disabled=!canRedo||rebuilding;
-    buttons.source.disabled=!hasDoc||rebuilding;
-    buttons.save.disabled=!hasDoc||rebuilding;
-    buttons.pr.disabled=!hasDoc||rebuilding;
-
-    buttons.save.classList.toggle('is-dirty',dirty);
-    buttons.save.querySelector('.cg-ed-tool-label').textContent=dirty?'保存 ●':'保存';
-    buttons.pr.classList.toggle('is-highlighted',dirty);
+    prButton.disabled=!info||rebuilding;
+    prButton.classList.toggle('is-dirty',dirty);
+    prButton.textContent=dirty?'提交 PR ●':'提交 PR';
 
     if(tool==='select'){
       modePill.hidden=true;
     }else{
       modePill.hidden=false;
-      const msg=tool==='wire'
-        ? (wireStart?'连线中 (W) · 点击目标引脚/导线完成，点空白处加拐点，Space 切换折线方向，Enter 结束，Esc 取消':'连线模式 (W) · 点击起点引脚或导线开始连线，Esc 退出')
+      modePill.textContent=tool==='wire'
+        ? (wireStart?'连线中 (W) · 点击目标引脚/导线完成，Space 换折向，Enter 结束，Esc 取消':'连线模式 (W) · 点击起点引脚或导线开始，Esc 退出')
         : tool==='place'
-          ? `放置器件 (I)：${placingSpec?.label||''} · 移动鼠标对齐网格，R 旋转，左键点击放置，Esc 结束`
+          ? `放置器件 (I)：${placingSpec?.label||''} · 左键放置，R 旋转，Esc 退出`
           : tool==='move'
-            ? (movingInst?`移动器件 (M)：${movingInst} · 移动鼠标到目标位置，R 旋转，左键落地，Esc 取消`:'移动模式 (M) · 请点击画布上要移动的器件，Esc 退出')
-            : '标号模式 (L) · 点击画布上的导线或引脚为其重命名，Esc 退出';
-      modePill.textContent=msg;
+            ? (movingInst?`移动器件 (M)：${movingInst} · 左键确认位置，R 旋转，Esc 取消`:'移动模式 (M) · 点击要移动的器件，Esc 退出')
+            : '标号模式 (L) · 点击画布导线或引脚重命名，Esc 退出';
     }
   }
 
@@ -1130,6 +1074,7 @@ export function mountSchematicEditor({
     openSourceEditor,
     openSavePr,
     openInstancePicker,
+    showShortcutsHelp,
     isDirty:anyDirty,
     destroy(){
       disposed=true;
@@ -1141,7 +1086,7 @@ export function mountSchematicEditor({
       window.removeEventListener('viewer-navigate',onViewerChange);
       window.removeEventListener('resize',renderOverlay);
       canvas.classList.remove('cg-ed-crosshair');
-      toolbar.remove();
+      prButton.remove();
       modePill.remove();
       overlaySvg.remove();
       css.remove();

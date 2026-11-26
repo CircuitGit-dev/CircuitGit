@@ -423,6 +423,8 @@ export async function mountStudio({ui:providedUI}={}) {
       const preferred=activeLibrary?.library?.id||null;
       return libs.length?indexLibraryVerilogAFiles(libs,preferred).list:[];
     },
+    getPdkSession:()=>environmentMount?.controller?.state?.session||host.onboarding?.getSessionState?.()||null,
+    onOpenPdkSetup:()=>{void showEnvironment().catch(panelError);},
     isProbeActive:()=>mode!=='none',
     bridge:host.libraryBridge,
     onRequireConnector:feature=>workspaceHub?.requireConnector(feature),
@@ -439,8 +441,8 @@ export async function mountStudio({ui:providedUI}={}) {
     },
     notify:ui.notify,
   });
-  register({id:'project.add_instance',menu:'project',label:'调用器件 / 子电路实例 (I)…',run:()=>schematicEditor?.openInstancePicker()});
-  register({id:'project.save_pr',menu:'project',label:'保存修改并提交 Pull Request…',run:()=>schematicEditor?.openSavePr()});
+  register({id:'project.save_pr',menu:'project',label:'提交 Pull Request (Ctrl+S)…',run:()=>schematicEditor?.openSavePr()});
+  register({id:'help.schematic_shortcuts',menu:'help',label:'原理图编辑快捷键…',run:()=>schematicEditor?.showShortcutsHelp()});
   register({id:'window.veriloga',menu:'window',label:'Verilog-A 行为模型代码',run:()=>{ui.slots.veriloga.setVisible(true);void libraryManager.ensureLoaded().then(syncAvailableVerilogA).catch(()=>{});syncAvailableVerilogA();}});
   host.openLibraryManager=()=>libraryManager.show();
   host.openProjectCanvas=async({libraryId,cellId}={})=>{

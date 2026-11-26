@@ -1,4 +1,4 @@
-/* Floating Virtuoso-style schematic editing toolbar, SVG overlay, and Save/PR dialogs */
+/* Unobtrusive Virtuoso-style schematic editing overlay, single PR action, and dialogs */
 #canvas.cg-ed-crosshair{cursor:crosshair!important}
 .cg-ed-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:16;overflow:visible}
 .cg-ed-pin-dot{fill:#ffffffcc;stroke:#177753;stroke-width:1.4}
@@ -10,28 +10,23 @@
 .cg-ed-ghost-box{fill:#1777531c;stroke:#177753;stroke-width:1.6;stroke-dasharray:5 3}
 .cg-ed-ghost-origin{fill:#d97706;stroke:#fff;stroke-width:1.2}
 
-.cg-ed-bar{position:absolute;top:8px;left:8px;right:8px;z-index:20;display:flex;align-items:center;gap:3px;flex-wrap:wrap;width:fit-content;max-width:calc(100% - 16px);padding:4px 6px;border:1px solid #cddcd5;border-radius:7px;background:#fffffff2;backdrop-filter:blur(6px);box-shadow:0 3px 12px #102a201a;font:11.5px/1.25 system-ui,sans-serif;user-select:none}
-.cg-ed-sep{width:1px;height:18px;background:#dce6e0;margin:0 2px;flex:none}
-.cg-ed-tool{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border:1px solid transparent;border-radius:5px;background:transparent;color:#244236;font:inherit;cursor:pointer;white-space:nowrap;transition:background-color .12s ease,border-color .12s ease}
-.cg-ed-tool:hover:not(:disabled){background:#ecf6f0;border-color:#c6ddd1;color:#12553a}
-.cg-ed-tool:disabled{opacity:.4;cursor:default}
-.cg-ed-tool.is-active{background:#177753;border-color:#177753;color:#fff;font-weight:600}
-.cg-ed-tool.is-active .cg-ed-kbd{background:#ffffff24;border-color:#ffffff42;color:#fff}
-.cg-ed-kbd{padding:0 4px;border:1px solid #d5e2db;border-radius:3px;background:#f5faf7;color:#5a7368;font:10px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace}
-.cg-ed-tool-save.is-dirty{background:#fff8eb;border-color:#e5c07b;color:#8a5200;font-weight:600}
-.cg-ed-tool-pr{border-color:#b6d7c6;background:#eef8f2;color:#145c3f;font-weight:600}
-.cg-ed-tool-pr:hover:not(:disabled){background:#ddf1e6;border-color:#84bfa2}
-.cg-ed-tool-pr.is-highlighted{background:#177753;border-color:#177753;color:#fff}
-.cg-ed-tool-pr.is-highlighted:hover:not(:disabled){background:#126042;border-color:#126042}
+/* Single clean PR button inside the existing schematic provenance bar */
+.cg-ed-prov-pr{flex:none;padding:2px 9px!important;border:1px solid #96c7b0!important;border-radius:4px;background:#eef8f2!important;color:#145c3f!important;font:600 10.5px/1.35 system-ui,sans-serif!important;cursor:pointer;white-space:nowrap}
+.cg-ed-prov-pr:hover:not(:disabled){background:#ddf1e6!important;border-color:#68b08d!important}
+.cg-ed-prov-pr.is-dirty{background:#177753!important;border-color:#177753!important;color:#fff!important}
+.cg-ed-prov-pr.is-dirty:hover:not(:disabled){background:#125f42!important;border-color:#125f42!important}
+.cg-ed-prov-pr:disabled{opacity:.45;cursor:default}
 
 .cg-ed-mode-pill{position:absolute;left:10px;bottom:10px;z-index:20;padding:6px 12px;border:1px solid #96c7b0;border-radius:999px;background:#16382beb;color:#f3faf6;font:11.5px/1.35 system-ui,sans-serif;box-shadow:0 4px 14px #102a202e;pointer-events:none;max-width:calc(100% - 20px)}
 .cg-ed-mode-pill[hidden]{display:none!important}
+.cg-ed-kbd{display:inline-block;padding:1px 6px;border:1px solid #cadad2;border-radius:4px;background:#f4f9f6;color:#1c4b37;font:600 11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:nowrap}
 
-/* Shared dialogs: Instance picker (I), Properties (Q), Net Label (L), Source, Save & PR */
+/* Dialogs: Help Shortcuts, Instance Picker (I), Properties (Q), Label (L), Source, Submit PR */
 .cg-ed-dialog{box-sizing:border-box;width:min(680px,94vw);max-height:88vh;padding:0;border:1px solid #c8dad2;border-radius:10px;background:#fff;color:#1e352b;box-shadow:0 18px 54px #11292138;font:12px/1.5 system-ui,sans-serif;overflow:hidden}
 .cg-ed-dialog[open]{display:flex;flex-direction:column}
 .cg-ed-dialog::backdrop{background:#11292154}
 .cg-ed-small-dialog{width:min(420px,92vw)}
+.cg-ed-shortcuts-dialog{width:min(560px,94vw)}
 .cg-ed-source-dialog{width:min(860px,95vw);height:min(700px,88vh)}
 .cg-ed-pr-dialog{width:min(740px,95vw)}
 .cg-ed-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid #e1ebe5;background:#f5faf7;flex:none}
@@ -45,15 +40,27 @@
 .cg-ed-btn:disabled{opacity:.48;cursor:default}
 .cg-ed-btn-primary{background:#177753;border-color:#177753;color:#fff;font-weight:600}
 .cg-ed-btn-primary:hover:not(:disabled){background:#136244;border-color:#136244}
-.cg-ed-btn-mini{padding:3px 8px;border:1px solid #cadad2;border-radius:4px;background:#fff;color:#1f5841;font:11px/1.3 system-ui,sans-serif;cursor:pointer}
+.cg-ed-btn-mini{padding:3px 8px;border:1px solid #cadad2;border-radius:4px;background:#fff;color:#1f5841;font:11px/1.3 system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 .cg-ed-btn-mini:hover{background:#ecf6f0}
+
+.cg-ed-shortcuts-table{width:100%;border-collapse:collapse;font-size:12px}
+.cg-ed-shortcuts-table td{padding:7px 8px;border-bottom:1px solid #e8f0ec;vertical-align:middle}
+.cg-ed-shortcuts-table td:first-child{width:120px}
+.cg-ed-shortcuts-table tr:last-child td{border-bottom:0}
+
+.cg-ed-pdk-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:7px 10px;border:1px solid #e2d4b0;border-radius:6px;background:#fffaf0;color:#624815;font-size:11.5px}
+.cg-ed-pdk-banner.is-detected{border-color:#b5dcc8;background:#eef8f2;color:#155c3f}
+.cg-ed-custom-fold{border:1px solid #dce6e0;border-radius:6px;padding:7px 10px;background:#f8fbf9;font-size:11.5px}
+.cg-ed-custom-fold>summary{cursor:pointer;color:#285b46;font-weight:500}
+.cg-ed-custom-grid{display:grid;grid-template-columns:1.1fr .9fr 1.2fr auto;gap:6px;margin-top:8px;align-items:center}
+.cg-ed-custom-grid input,.cg-ed-custom-grid select{width:100%;box-sizing:border-box;padding:5px 7px;border:1px solid #cadad2;border-radius:4px;background:#fff;color:#1b3329;font:11.5px ui-monospace,SFMono-Regular,Consolas,monospace}
 
 .cg-ed-search{width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #cadad2;border-radius:6px;font:12px system-ui,sans-serif;color:#1e352b}
 .cg-ed-search:focus{outline:2px solid #17775340;border-color:#177753}
 .cg-ed-cat-tabs{display:flex;flex-wrap:wrap;gap:5px}
 .cg-ed-cat-btn{padding:4px 10px;border:1px solid #d2e0d9;border-radius:999px;background:#fff;color:#4a645a;font:11px system-ui,sans-serif;cursor:pointer}
 .cg-ed-cat-btn.is-active{background:#177753;border-color:#177753;color:#fff;font-weight:600}
-.cg-ed-picker-list{display:grid;gap:4px;max-height:240px;overflow:auto;padding:4px;border:1px solid #dce6e0;border-radius:6px;background:#fafcfb}
+.cg-ed-picker-list{display:grid;gap:4px;max-height:220px;overflow:auto;padding:4px;border:1px solid #dce6e0;border-radius:6px;background:#fafcfb}
 .cg-ed-picker-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:6px 10px;border:1px solid transparent;border-radius:5px;background:#fff;color:#1f382e;text-align:left;cursor:pointer;font:12px/1.35 system-ui,sans-serif}
 .cg-ed-picker-item:hover{background:#eef7f2;border-color:#c6ddd1}
 .cg-ed-picker-item.is-active{background:#e3f4eb;border-color:#177753;color:#125238}

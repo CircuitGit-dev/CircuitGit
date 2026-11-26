@@ -1,4 +1,5 @@
-// Save, Commit, and Create/Update Pull Request dialog with structured RNL red/green diff preview.
+// Unified Pull Request submission dialog: automatically saves edits, commits to Git,
+// and creates/updates the GitHub Pull Request with structured RNL red/green diff preview.
 import {parseCircuitDiff,selectDiffSections,shortFileName} from '../../library/history-diff.js';
 
 function createUnifiedDiff(path,beforeText,afterText){
@@ -46,7 +47,7 @@ export function openSavePrDialog({
 }={}){
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   const dialog=el('dialog',undefined,'cg-ed-dialog cg-ed-pr-dialog');
-  dialog.setAttribute('aria-label','保存电路并提交 Pull Request');
+  dialog.setAttribute('aria-label','提交 Pull Request');
 
   const connected=()=>bridge?.getState?.()?.connected===true;
   const hasCellScope=Boolean(target?.library_id&&target?.cell_id&&target?.path);
@@ -70,7 +71,7 @@ export function openSavePrDialog({
   function render(){
     dialog.replaceChildren();
     const head=el('header',undefined,'cg-ed-dialog-head');
-    head.append(el('strong','保存修改 & 提交 Pull Request'));
+    head.append(el('strong','提交 Pull Request'));
     const closeBtn=el('button','×','cg-ed-close');closeBtn.type='button';closeBtn.disabled=busy;closeBtn.onclick=()=>dialog.close();
     head.append(closeBtn);
     dialog.append(head);
@@ -80,7 +81,7 @@ export function openSavePrDialog({
     meta.append(
       el('span',hasCellScope?`${target.library_name||target.library_id} / ${target.cell_name||target.cell_id}`:fileBase,'cg-ed-meta-cell'),
       el('code',relPath,'cg-ed-meta-path'),
-      el('span',dirty?'有未保存画布改动':'当前已同步','cg-ed-pill'+(dirty?' is-dirty':'')),
+      el('span',currentText!==baselineText?'有待提交改动':'已同步','cg-ed-pill'+(currentText!==baselineText?' is-dirty':'')),
     );
     body.append(meta);
 
@@ -98,7 +99,6 @@ export function openSavePrDialog({
       body.append(prBox);
     }
 
-    // Structured RNL + Netlist diff preview
     if(dirty){
       const diffWrap=el('section',undefined,'cg-ed-diff-box');
       if(parsedDiff.summary.length){
@@ -137,24 +137,23 @@ export function openSavePrDialog({
       diffWrap.append(code);
       body.append(diffWrap);
     }else{
-      body.append(el('p','当前画布与最近一次保存一致；如果本机已有已提交修改，仍可直接创建或更新 PR。','cg-ed-muted'));
+      body.append(el('p','当前画布尚无新增改动；如果本机已有未推提交，仍可直接提交 Pull Request。','cg-ed-muted'));
     }
 
-    // Commit / PR form
     const canGit=connected()&&hasCellScope;
     if(canGit){
       const form=el('div',undefined,'cg-ed-form');
-      const l1=el('label');l1.append(el('span','提交 / PR 标题'));
+      const l1=el('label');l1.append(el('span','PR / 提交标题'));
       const inpTitle=document.createElement('input');inpTitle.value=titleVal;inpTitle.maxLength=120;inpTitle.disabled=busy;
       inpTitle.oninput=()=>{titleVal=inpTitle.value;};
       l1.append(inpTitle);
 
-      const l2=el('label');l2.append(el('span','更新说明（会写入 Commit 与 PR 描述）'));
+      const l2=el('label');l2.append(el('span','改动说明'));
       const inpBody=document.createElement('textarea');inpBody.rows=3;inpBody.value=bodyVal;inpBody.disabled=busy;
       inpBody.oninput=()=>{bodyVal=inpBody.value;};
       l2.append(inpBody);
 
-      const l3=el('label');l3.append(el('span','PR 分支名（留空自动生成）'));
+      const l3=el('label');l3.append(el('span','目标分支（留空自动生成）'));
       const inpBranch=document.createElement('input');inpBranch.value=branchVal;inpBranch.placeholder=`codex/library/${target.library_id}/${target.cell_id}`;inpBranch.disabled=busy;
       inpBranch.oninput=()=>{branchVal=inpBranch.value.trim();};
       l3.append(inpBranch);
@@ -164,13 +163,13 @@ export function openSavePrDialog({
     }else{
       const hint=el('div',undefined,'cg-ed-connect-hint');
       hint.append(el('p',!connected()
-        ?'当前为网页预览模式（未连接本机节点）。你可以直接下载修改后的 .scs 文件，或连接本机节点后一键保存并提交 GitHub Pull Request。'
-        :'当前电路来自临时/外部导入网表，尚未归属到可写电路库单元；可直接下载修改后的 .scs 文件。'));
+        ?'当前未连接本机节点，无法直接推送 GitHub PR。可下载修改后的 .scs 文件，或先连接本机节点再提交 PR。'
+        :'当前打开的是临时/示例电路（尚未归属到可写电路库单元），可下载修改后的 .scs 文件，或从 Library Manager 打开项目单元后提交 PR。'));
       body.append(hint);
     }
 
     const actions=el('footer',undefined,'cg-ed-dialog-actions');
-    const dlBtn=el('button','下载 .scs 文件','cg-ed-btn');
+    const dlBtn=el('button','下载 .scs','cg-ed-btn');
     dlBtn.type='button';dlBtn.disabled=busy;
     dlBtn.onclick=()=>{downloadFile(fileBase,currentText);notify(`已下载 ${fileBase}`);};
     actions.append(dlBtn);
@@ -178,61 +177,42 @@ export function openSavePrDialog({
     if(!connected()&&typeof onRequireConnector==='function'){
       const connBtn=el('button','连接本机以提交 PR','cg-ed-btn cg-ed-btn-primary');
       connBtn.type='button';
-      connBtn.onclick=()=>{dialog.close();onRequireConnector('保存电路并提交 Pull Request');};
+      connBtn.onclick=()=>{dialog.close();onRequireConnector('提交 Pull Request');};
       actions.append(connBtn);
     }
 
     if(canGit){
-      const saveOnlyBtn=el('button',busy?'处理中…':'仅保存到本机','cg-ed-btn');
-      saveOnlyBtn.type='button';saveOnlyBtn.disabled=busy||!dirty;
-      saveOnlyBtn.onclick=()=>void runPipeline({doCommit:false,doPr:false});
-
-      const commitBtn=el('button',busy?'处理中…':'保存并 Commit','cg-ed-btn');
-      commitBtn.type='button';commitBtn.disabled=busy||!titleVal.trim();
-      commitBtn.onclick=()=>void runPipeline({doCommit:true,doPr:false});
-
-      const prBtn=el('button',busy?'正在提交 PR…':'保存并提交 Pull Request','cg-ed-btn cg-ed-btn-primary');
+      const prBtn=el('button',busy?'正在提交 PR…':'提交 Pull Request','cg-ed-btn cg-ed-btn-primary');
       prBtn.type='button';prBtn.disabled=busy||!titleVal.trim();
-      prBtn.onclick=()=>void runPipeline({doCommit:true,doPr:true,prAction:'create'});
-
-      actions.append(saveOnlyBtn,commitBtn,prBtn);
+      prBtn.onclick=()=>void submitPullRequest();
+      actions.append(prBtn);
     }
 
     dialog.append(body,actions);
   }
 
-  async function saveToLocal(){
-    const scopeArgs={library_id:target.library_id,cell_id:target.cell_id};
-    const fileInfo=await bridge.request('read_file',{...scopeArgs,path:target.path});
-    if(!fileInfo?.editable)throw Error('当前单元文件在本机节点上不可写，请检查本机仓库状态。');
-    const res=await bridge.request('execute',{
-      operation:'save',
-      args:{...scopeArgs,path:target.path,content:currentText,base_sha256:fileInfo.sha256},
-      idempotency_key:'ed-save-'+crypto.randomUUID(),
-    });
-    const state=res?.receipt?.state||res?.state||'unknown';
-    if(!['complete','completed','succeeded'].includes(state)){
-      throw Error(`保存未确认完成（状态：${state}），请在「版本管理」核对。`);
-    }
-    onSaved?.({text:currentText,path:target.path});
-    return true;
-  }
-
-  async function runPipeline({doCommit,doPr,prAction='create'}){
+  async function submitPullRequest(){
     if(busy)return;
-    busy=true;errorText='';statusText='正在保存电路文件到本机工作区…';render();
+    if(!titleVal.trim()){errorText='请填写 PR / 提交标题。';render();return;}
+    busy=true;errorText='';statusText='正在保存电路并提交到本地 Git…';render();
     const scopeArgs={library_id:target.library_id,cell_id:target.cell_id};
     try{
       if(currentText!==baselineText){
-        await saveToLocal();
+        const fileInfo=await bridge.request('read_file',{...scopeArgs,path:target.path});
+        if(!fileInfo?.editable)throw Error('当前单元文件在本机节点上不可写，请检查本机仓库状态。');
+        const saveRes=await bridge.request('execute',{
+          operation:'save',
+          args:{...scopeArgs,path:target.path,content:currentText,base_sha256:fileInfo.sha256},
+          idempotency_key:'ed-save-'+crypto.randomUUID(),
+        });
+        const sState=saveRes?.receipt?.state||saveRes?.state||'unknown';
+        if(!['complete','completed','succeeded'].includes(sState)){
+          throw Error(`保存未确认完成（状态：${sState}）。`);
+        }
         baselineText=currentText;
+        onSaved?.({text:currentText,path:target.path});
       }
-      if(!doCommit){
-        statusText='已保存到本机工作区并保留保存点。';
-        notify(`已保存 ${fileBase} 到本机工作区。`);
-        return;
-      }
-      statusText='正在读取本机 Git 基线并创建提交…';render();
+
       const cur=await bridge.request('current',scopeArgs);
       let commitSha=cur?.base_commit||savedCommit;
       if(cur?.changes?.length){
@@ -248,30 +228,20 @@ export function openSavePrDialog({
         commitSha=commitRes?.result?.commit||commitRes?.commit||(await bridge.request('current',scopeArgs))?.base_commit;
         savedCommit=commitSha;
       }
-      if(!doPr){
-        statusText=`已保存并提交到本机 Git（${String(commitSha||'').slice(0,8)}）。`;
-        notify(`已提交 ${fileBase} 到本机 Git。`);
-        return;
-      }
-      statusText='正在推送电路分支并创建 GitHub Pull Request…';render();
+
+      statusText='正在推送分支并提交 GitHub Pull Request…';render();
       const prArgs={
         ...scopeArgs,
         commit:commitSha,
         title:titleVal.trim(),
         body:bodyVal.trim(),
-        action:prAction,
+        action:'create',
         ...(branchVal?{branch:branchVal}:{}),
       };
-      let prRes;
-      try{
-        prRes=await bridge.request('execute',{operation:'pr',args:prArgs,idempotency_key:'ed-pr-'+crypto.randomUUID()});
-      }catch(firstErr){
-        // If branch already has an open PR, surface clear guidance
-        throw firstErr;
-      }
+      const prRes=await bridge.request('execute',{operation:'pr',args:prArgs,idempotency_key:'ed-pr-'+crypto.randomUUID()});
       const pState=prRes?.receipt?.state||prRes?.state||'unknown';
       if(!['complete','completed','succeeded'].includes(pState)){
-        throw Error(`PR 请求未确认完成（状态：${pState}），请在「版本管理」检查回执。`);
+        throw Error(`PR 提交未确认完成（状态：${pState}），请在「版本管理」核对回执。`);
       }
       prResult=prRes?.result?.pull_request||prRes?.result||prRes?.pull_request||prRes;
       statusText='Pull Request 已提交成功！';
