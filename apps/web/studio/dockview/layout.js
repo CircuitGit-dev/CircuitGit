@@ -80,7 +80,7 @@ export async function mountDockview(ui){
     }else{
       const relation=home?.relations?.find(r=>api.getPanel(r.id)?.api.location.type==='grid');
       const primary=api.getPanel('schematic'),target=relation?api.getPanel(relation.id).group:(primary?.api.location.type==='grid'?primary.group:api.groups.find(g=>g.api.location.type==='grid'));
-      const position=relation?.position||(memberIds.includes('waveforms')?'bottom':'right');
+      const position=relation?.position||(memberIds.includes('veriloga')?'center':memberIds.includes('waveforms')?'bottom':'right');
       group.api.moveTo(target?{group:target,position,...(relation?.index!==undefined?{index:relation.index}:{})}:{position:'right'});
       const restored=api.getPanel(memberIds[0]);
       if(home?.box&&position!=='center'&&restored){
@@ -93,13 +93,16 @@ export async function mountDockview(ui){
   }
   const open=id=>{
     let panel=api.getPanel(id);
+    const schematic=api.getPanel('schematic');
     if(!panel){
-      const position=(id==='versions'||id==='veriloga')&&api.getPanel('simulation')
-        ? {position:{referencePanel:'simulation',direction:'within'}}
-        : id==='veriloga'&&api.getPanel('schematic')
-          ? {position:{referencePanel:'schematic',direction:'right'}}
+      const position=id==='veriloga'&&schematic
+        ? {position:{referencePanel:schematic,direction:'within'}}
+        : id==='versions'&&api.getPanel('simulation')
+          ? {position:{referencePanel:'simulation',direction:'within'}}
           : {};
       panel=api.addPanel({id,component:id,title:TITLES[id],renderer:'always',...position});
+    }else if(id==='veriloga'&&schematic&&panel.group!==schematic.group&&panel.api.location.type!=='floating'){
+      panel.api.moveTo({group:schematic.group,position:'center'});
     }
     panel.api.setActive();visibility(id,true);return panel;
   };
@@ -127,6 +130,12 @@ export async function mountDockview(ui){
   try{const raw=localStorage.getItem(KEY);if(raw){const stored=JSON.parse(raw);if(stored.schema!==KEY||!stored.layout||Object.keys(stored.layout.panels||{}).some(id=>!TITLES[id]))throw Error('未知布局格式');for(const [id,home] of Object.entries(stored.homes||{}))if(TITLES[id]&&home?.before&&Array.isArray(home.ids)&&Array.isArray(home.relations))homes.set(id,home);for(const [id,position] of Object.entries(stored.floatPositions||{}))if(TITLES[id])floatPositions.set(id,position);restoring=true;api.fromJSON(stored.layout);restoring=false;restored=true;}}
   catch(error){restoring=false;ui.notify('保存的布局不可用，已恢复默认布局：'+error.message,{kind:'warning'});}
   if(!restored)resetLayout();
+  else{
+    const vaPanel=api.getPanel('veriloga'),schematicPanel=api.getPanel('schematic');
+    if(vaPanel&&schematicPanel&&vaPanel.group!==schematicPanel.group&&vaPanel.api.location.type==='grid'){
+      vaPanel.api.moveTo({group:schematicPanel.group,position:'center'});
+    }
+  }
   for(const id of Object.keys(roots))visibility(id,!!api.getPanel(id)?.api.isVisible);
   window.addEventListener('beforeunload',()=>{clearTimeout(saveTimer);try{localStorage.setItem(KEY,JSON.stringify(storedLayout()));}catch{}});
   // Read-only handle for integration checks and controlled Window actions.

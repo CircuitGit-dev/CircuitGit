@@ -69,8 +69,8 @@ export function mountLibraryManager({toolbar,libraryPane,onOpen,onOpenVerilogA=n
       ?'该单元的符号（@DEFINE-SYMBOL）内嵌于 RNL 原理图源码中；打开后会自动展开左侧「符号」面板查看 SVG 符号、引脚坐标与定义代码。'
       :exact.view?.id==='veriloga'
         ?(exact.view.files?.length>1
-          ?`包含本单元引用的 ${exact.view.files.length} 个 Verilog-A (.va) 行为模型；打开后可在右侧「Verilog-A」代码面板与原理图并排阅读。`
-          :`Verilog-A 行为模型源码（${exact.view.entry.split('/').pop()}）；打开后可在右侧「Verilog-A」代码面板查看端口、参数与完整代码。`)
+          ?`包含本单元引用的 ${exact.view.files.length} 个 Verilog-A (.va) 行为模型；打开后会在原理图同组的「Verilog-A」标签页展示源码。`
+          :`Verilog-A 行为模型源码（${exact.view.entry.split('/').pop()}）；打开后会在原理图同组的「Verilog-A」标签页查看端口、参数与完整代码。`)
         :(exact.cell?.description||exact.library?.description||'');
     dependency.textContent=exact.cell?(exact.cell.requires_external_models?'需要外部模型 · 可查看已有原理图；本页不运行仿真。':'本页只浏览已发布文件；是否可重放仿真请查看单元说明。'):'';
     dependency.className=exact.cell?.requires_external_models?'cg-library-dependency':'';
