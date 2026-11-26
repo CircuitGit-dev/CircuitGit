@@ -160,6 +160,43 @@ export function buildSpiceOwlEntryPayload({
   };
 }
 
+function normalizePosixAbsolutePath(raw){
+  if(typeof raw!=='string'||!raw.startsWith('/'))return null;
+  const parts=[];
+  for(const seg of raw.split('/')){
+    if(!seg||seg==='.')continue;
+    if(seg==='..'){if(parts.length)parts.pop();}
+    else parts.push(seg);
+  }
+  return '/'+parts.join('/');
+}
+
+function buildExternalPdkStubs(text){
+  const byPath=new Map();
+  const re=/^\s*(?:\.?include|\.lib)\s+(?:"([^"]+)"|'([^']+)'|([^\s;]+))(.*)$/gim;
+  for(const m of String(text||'').matchAll(re)){
+    const raw=(m[1]||m[2]||m[3]||'').trim();
+    if(!raw.startsWith('/'))continue;
+    const rest=m[4]||'';
+    const secM=/\bsection\s*=\s*([^\s;]+)/i.exec(rest);
+    const sec=secM?secM[1].replace(/^["']|["']$/g,''):'';
+    const keys=new Set([raw]);
+    const norm=normalizePosixAbsolutePath(raw);
+    if(norm)keys.add(norm);
+    for(const k of keys){
+      if(!byPath.has(k))byPath.set(k,new Set());
+      if(sec)byPath.get(k).add(sec);
+    }
+  }
+  const stubs=Object.create(null);
+  for(const [p,secs] of byPath.entries()){
+    const lines=['// External remote PDK include placeholder for browser RNL viewer (resolved on remote EDA server during simulation)'];
+    for(const s of secs)lines.push(`section ${s}\nendsection ${s}`);
+    stubs[p]=lines.join('\n')+'\n';
+  }
+  return stubs;
+}
+
 /** Build an RNL virtual source object compatible with openSource() and snapshotOnboardingSource(). */
 export function buildImportedRnlSource({entryPath,fileName,text,supportFiles={},rnlSnapshot=null}){
   const cleanEntry=normalizeRelativePath(entryPath||fileName||'imported.scs')||'imported.scs';
@@ -181,6 +218,7 @@ export function buildImportedRnlSource({entryPath,fileName,text,supportFiles={},
     const rootKey='/'+cleanRel;
     if(!Object.hasOwn(snapshot,rootKey))snapshot[rootKey]=content;
   }
+  const externalStubs=buildExternalPdkStubs(text);
   return {
     name:cleanEntry,
     path,
@@ -193,6 +231,9 @@ export function buildImportedRnlSource({entryPath,fileName,text,supportFiles={},
       if(Object.hasOwn(snapshot,norm))return snapshot[norm];
       const stripped=norm.replace(/^\/+/,'');
       if(Object.hasOwn(snapshot,'/'+stripped))return snapshot['/'+stripped];
+      if(Object.hasOwn(externalStubs,requested))return externalStubs[requested];
+      const normAbs=normalizePosixAbsolutePath(norm);
+      if(normAbs&&Object.hasOwn(externalStubs,normAbs))return externalStubs[normAbs];
       throw Error('依赖文件未包含在当前导入目录中：'+requested);
     },
   };
@@ -250,7 +291,7 @@ export function createProjectImporter({
   let sshAliases=[],sshAliasesLoaded=false,sshAliasesLoading=false;
   let sshTarget=loadRemoteSimPrefs()?.targets?.[0]||'';
   let sshPath='~',sshCwd='',sshParent=null,sshEntries=[],sshCdsLibs=[],sshVirtuosoCtx=null,sshTruncated=false,sshSelectedFile='';
-  let sshIncludeDeps=true,sshIncludeMaestro=true,sshMaestroView='',sshBusy=false,sshBusyMsg='',sshError='',sshLegacyConnector=false;
+  let sshIncludeDeps=true,sshIncludeMaestro=true,sshPreserveRnl=true,sshMaestroView='',sshBusy=false,sshBusyMsg='',sshError='',sshLegacyConnector=false;
 
   const offSub=subscribe(()=>{
     if(destroyed||!dialog?.open)return;
@@ -359,9 +400,13 @@ export function createProjectImporter({
     const target=String(schPath||sshVirtuosoCtx?.schematic_dir||sshCwd||'').trim();
     if(!host||!target){sshError='请先进入或选择一个 Virtuoso schematic 视图目录。';render();return;}
     sshBusy=true;
-    sshBusyMsg=sshIncludeMaestro
-      ?'正在远端调用 Cadence si 从 schematic 导出网表并解析 Maestro 仿真配置（约 5–15 秒）…'
-      :'正在远端调用 Cadence si 从 schematic 导出纯原理图 Spectre 网表（约 5–15 秒）…';
+    sshBusyMsg=sshPreserveRnl
+      ?(sshIncludeMaestro
+        ?'正在远端调用 Cadence si + SKILL 导出网表、保留 RNL 原理图几何并解析 Maestro 配置（约 6–15 秒）…'
+        :'正在远端调用 Cadence si + SKILL 导出网表并保留原图元件坐标、符号与连线（RNL，约 6–15 秒）…')
+      :(sshIncludeMaestro
+        ?'正在远端调用 Cadence si 从 schematic 导出网表并解析 Maestro 仿真配置（约 5–15 秒）…'
+        :'正在远端调用 Cadence si 从 schematic 导出纯原理图 Spectre 网表（约 5–15 秒）…');
     sshError='';sshLegacyConnector=false;
     render();
     try{
@@ -369,6 +414,7 @@ export function createProjectImporter({
         ssh_target:host,
         path:target,
         include_maestro:Boolean(sshIncludeMaestro),
+        preserve_rnl:Boolean(sshPreserveRnl),
         ...(sshMaestroView?{maestro_view:sshMaestroView}:{}),
         ...(sshVirtuosoCtx?.cds_lib?{cds_lib:sshVirtuosoCtx.cds_lib}:{}),
       });
@@ -398,6 +444,9 @@ export function createProjectImporter({
         maestroApplied:Boolean(res.maestro_applied),
         maestroConfig:res.maestro_config||null,
         detectedMaestro:res.detected_maestro||[],
+        rnlApplied:Boolean(res.rnl_applied),
+        rnlStats:res.rnl_stats||null,
+        oaTool:res.oa_tool||null,
         skipped:[],
       });
     }catch(error){
@@ -718,13 +767,21 @@ export function createProjectImporter({
       const vinfo=el('div');
       vinfo.append(
         el('strong','',`📐 检测到 Virtuoso 原理图：${sshVirtuosoCtx.lib_name} / ${sshVirtuosoCtx.cell_name} (${sshVirtuosoCtx.view_name})`),
-        el('small','cg-import-hint','直接调用远端 Cadence si 在隔离临时目录只读导出完整层次 Spectre 网表（不改动原设计）。'),
+        el('small','cg-import-hint','直接调用远端 Cadence si + 只读 SKILL 在隔离临时目录导出完整层次 Spectre/RNL 网表（不改动原设计）。'),
       );
       const expBtn=el('button','cg-welcome-primary',sshBusy?'导出中…':'⚡ 从 Schematic 导出并导入');
       expBtn.type='button';expBtn.disabled=sshBusy;
       expBtn.onclick=()=>void exportSchematicFromSsh(sshVirtuosoCtx.schematic_dir);
       vhead.append(vinfo,expBtn);
       vcard.append(vhead);
+
+      const rnlBox=el('div','cg-import-maestro-box');
+      const rnlLabel=el('label','cg-welcome-check');
+      const rnlChk=el('input');rnlChk.type='checkbox';rnlChk.checked=sshPreserveRnl;rnlChk.disabled=sshBusy;
+      rnlChk.onchange=()=>{sshPreserveRnl=rnlChk.checked;};
+      rnlLabel.append(rnlChk,doc.createTextNode('自动转为 RNL 保留原图元件坐标、方向、符号、连线与层次关系（通用 SKILL 只读导出，兼容各版本 Virtuoso）'));
+      rnlBox.append(rnlLabel);
+      vcard.append(rnlBox);
 
       const mviews=sshVirtuosoCtx.maestro_views||[];
       const activeMv=mviews.find(m=>m.name===sshMaestroView)||mviews[0]||null;

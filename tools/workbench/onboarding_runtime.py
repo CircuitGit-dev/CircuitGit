@@ -392,7 +392,7 @@ class OnboardingRuntime:
         )
 
     def _ssh_export_schematic(self,args,origin):
-        allowed={'ssh_target','path','include_maestro','maestro_view','maestro_test','cds_lib'}
+        allowed={'ssh_target','path','include_maestro','maestro_view','maestro_test','cds_lib','preserve_rnl'}
         if not {'ssh_target','path'}<=set(args) or set(args)-allowed:
             raise ValueError('Provide an explicit ssh_target and remote Virtuoso schematic path')
         from onboarding_ssh_import import export_remote_schematic
@@ -404,6 +404,7 @@ class OnboardingRuntime:
             maestro_view=args.get('maestro_view'),
             maestro_test=args.get('maestro_test'),
             cds_lib=args.get('cds_lib'),
+            preserve_rnl=args.get('preserve_rnl',True),
         )
 
     def _probe(self,args,origin):

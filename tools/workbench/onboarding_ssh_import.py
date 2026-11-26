@@ -496,12 +496,13 @@ def export_remote_schematic(
     maestro_view=None,
     maestro_test=None,
     cds_lib=None,
+    preserve_rnl=True,
     runner=None,
 ):
-    """Export a Spectre netlist directly from a remote Virtuoso OA schematic view (with optional Maestro config).
+    """Export a Spectre/RNL netlist directly from a remote Virtuoso OA schematic view (with optional Maestro config).
 
     Reuses ``spiceowl.onboarding.ssh_import.export_remote_schematic`` so CircuitGit
-    and SpiceOwl share one verified headless Cadence ``si`` + Maestro parser.
+    and SpiceOwl share one verified headless Cadence ``si`` + SKILL OA->RNL + Maestro parser.
     """
     try:
         from spiceowl.onboarding.ssh_import import export_remote_schematic as _shared_export
@@ -515,5 +516,6 @@ def export_remote_schematic(
         maestro_view=maestro_view,
         maestro_test=maestro_test,
         cds_lib=cds_lib,
+        preserve_rnl=preserve_rnl,
         runner=runner,
     )

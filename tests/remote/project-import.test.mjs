@@ -50,16 +50,23 @@ test('buildImportedRnlSource creates an RNL source compatible with snapshotOnboa
   const source=buildImportedRnlSource({
     entryPath:'TB_SAR_TOP.scs',
     fileName:'TB_SAR_TOP.scs',
-    text:'simulator lang=spectre\ninclude "sub/comp.scs"\n',
+    text:'simulator lang=spectre\ninclude "sub/comp.scs"\ninclude "/opt/pdk/tech/../models/mos.scs" section=tt_mos\n',
     supportFiles:{'sub/comp.scs':'subckt COMP a b\nends COMP\n'},
   });
   assert.equal(source.path,'/TB_SAR_TOP.scs');
   assert.equal(await source.read('/sub/comp.scs'),'subckt COMP a b\nends COMP\n');
   assert.equal(await source.read('sub/comp.scs'),'subckt COMP a b\nends COMP\n');
+  // External absolute PDK includes resolve to harmless section stubs for browser RNL rendering
+  const pdkRaw=await source.read('/opt/pdk/tech/../models/mos.scs');
+  const pdkNorm=await source.read('/opt/pdk/models/mos.scs');
+  assert.match(pdkRaw,/section tt_mos/);
+  assert.match(pdkRaw,/endsection tt_mos/);
+  assert.equal(pdkNorm,pdkRaw);
+  await assert.rejects(()=>source.read('/missing_local.scs'),/依赖文件未包含/);
   const doc={path:source.path,files:[{path:'TB_SAR_TOP.scs',text:source.snapshot['/TB_SAR_TOP.scs']}]};
   assert.deepEqual(snapshotOnboardingSource(doc),{
     file_name:'TB_SAR_TOP.scs',
-    text:'simulator lang=spectre\ninclude "sub/comp.scs"\n',
+    text:'simulator lang=spectre\ninclude "sub/comp.scs"\ninclude "/opt/pdk/tech/../models/mos.scs" section=tt_mos\n',
   });
 });
 
@@ -87,6 +94,7 @@ test('onboarding bridge allows browseRemoteNetlists and importRemoteNetlist befo
       if(path==='/node/info')return info;
       if(path==='/simulation/onboarding/ssh-browse')return {schema:'ic.onboarding.ssh-browse.v1',ssh_target:'eda-box',cwd:'/home/u',parent:'/home',entries:[{name:'tb.scs',path:'/home/u/tb.scs',kind:'file',size:42}],total:1,truncated:false};
       if(path==='/simulation/onboarding/ssh-import')return {schema:'ic.onboarding.ssh-import.v1',ssh_target:'eda-box',remote_path:'/home/u/tb.scs',remote_dir:'/home/u',file_name:'tb.scs',text:'// netlist',support_files:{},skipped:[]};
+      if(path==='/simulation/onboarding/ssh-export-schematic')return {schema:'ic.onboarding.ssh-schematic-export.v1',ssh_target:'eda-box',remote_path:'/home/u/lib/tb/schematic',remote_dir:'/home/u/lib/tb',file_name:'tb.scs',text:'// title\n// @RNL(type="header") { @VERSION("0.3") }\n',support_files:{},rnl_applied:true,rnl_stats:{applied:true,cells:1,placed:2,wires:1,ports:0,labels:0},maestro_applied:false};
       throw Error('unexpected '+path);
     },
   };
@@ -104,6 +112,11 @@ test('onboarding bridge allows browseRemoteNetlists and importRemoteNetlist befo
   const imported=await bridge.importRemoteNetlist({ssh_target:'eda-box',path:'/home/u/tb.scs',include_dependencies:true});
   assert.equal(imported.file_name,'tb.scs');
   assert.equal(calls.at(-1).options.timeout,35000);
+  const exported=await bridge.exportRemoteSchematic({ssh_target:'eda-box',path:'/home/u/lib/tb/schematic',include_maestro:true,preserve_rnl:true});
+  assert.equal(exported.rnl_applied,true);
+  assert.equal(exported.rnl_stats.placed,2);
+  assert.equal(calls.at(-1).options.body.preserve_rnl,true);
+  assert.equal(calls.at(-1).options.timeout,95000);
 });
 
 test('openSshSetup requires local_ssh_setup capability, validates loopback URL, and receives postMessage updates',async()=>{

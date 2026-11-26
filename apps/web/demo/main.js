@@ -151,9 +151,13 @@ export async function mountStudio({ui:providedUI}={}) {
         el('strong',importedProject.fileName),
         el('span',importedProject.origin==='ssh'?`SSH · ${importedProject.sshTarget}`:'本地导入','ic-sim-status active'),
       );
-      const meta=importedProject.origin==='ssh'
-        ? `${importedProject.remotePath||importedProject.fileName}${importedProject.supportCount?` · 含 ${importedProject.supportCount} 个依赖`:''}`
-        : `${importedProject.name}${importedProject.supportCount?` · 含 ${importedProject.supportCount} 个依赖`:''}`;
+      const metaBits=[
+        importedProject.origin==='ssh'?(importedProject.remotePath||importedProject.fileName):importedProject.name,
+        importedProject.rnlApplied&&importedProject.rnlStats?`RNL 原图几何（${importedProject.rnlStats.cells||1} 级 · ${importedProject.rnlStats.placed||0} 器件 · ${importedProject.rnlStats.wires||0} 连线）`:'',
+        importedProject.maestroApplied?'已合并 Maestro 仿真配置':'',
+        importedProject.supportCount?`含 ${importedProject.supportCount} 个依赖`:'',
+      ].filter(Boolean);
+      const meta=metaBits.join(' · ');
       const reimp=el('button','更换网表','ic-sim-quiet');reimp.type='button';
       reimp.onclick=()=>projectImporter?.open(importedProject.origin==='ssh'?'ssh':'local');
       actions.append(reimp);
@@ -526,6 +530,10 @@ export async function mountStudio({ui:providedUI}={}) {
         label:displayLabel,
         sshTarget:payload.sshTarget||null,
         remotePath:payload.remotePath||null,
+        fromSchematic:Boolean(payload.fromSchematic),
+        maestroApplied:Boolean(payload.maestroApplied),
+        rnlApplied:Boolean(payload.rnlApplied),
+        rnlStats:payload.rnlStats||null,
         supportCount,
         supportFiles,
         rnlSnapshot:rnlSource.snapshot,
@@ -538,7 +546,8 @@ export async function mountStudio({ui:providedUI}={}) {
       context={...context,loading:false,loadState:errors.length?'error':'ready',file:{...context.file,currentTextSha256:textHash}};emit();
       fit();ui.slots.schematic?.setVisible(true);
       const depNote=supportCount?`（含 ${supportCount} 个依赖文件）`:'';
-      $('studio-native-note').textContent=`${displayLabel}${depNote} · ${errors.length?errors.length+' 项 RNL 诊断':'可直接与 AI 协作或配置远端 SSH 仿真'}`;
+      const rnlNote=payload.rnlApplied&&payload.rnlStats?` · 已保留 RNL 原图几何（${payload.rnlStats.placed||0} 器件 / ${payload.rnlStats.wires||0} 连线）`:'';
+      $('studio-native-note').textContent=`${displayLabel}${depNote}${rnlNote} · ${errors.length?errors.length+' 项 RNL 诊断':'可直接与 AI 协作或配置远端 SSH 仿真'}`;
       simulationPage='environment';renderSimulationPage();
       welcomeGuide?.setStep?.(3);
       if(host.onboarding.getState().connected){
@@ -553,12 +562,12 @@ export async function mountStudio({ui:providedUI}={}) {
           }
           await host.onboardingSync.refresh().catch(()=>{});
           const aiSynced=await remoteAI?.syncOnboardingProject?.().catch(()=>false);
-          ui.notify(`已导入「${payload.fileName}」${depNote}，已同步到${aiSynced?' AI 对话与':''}远端仿真会话。`);
+          ui.notify(`已导入「${payload.fileName}」${depNote}${rnlNote}，已同步到${aiSynced?' AI 对话与':''}远端仿真会话。`);
         }catch(syncErr){
-          ui.notify(`原理图已打开「${payload.fileName}」，同步仿真会话提示：${syncErr?.message||syncErr}`,{kind:'warning'});
+          ui.notify(`原理图已打开「${payload.fileName}」${rnlNote}，同步仿真会话提示：${syncErr?.message||syncErr}`,{kind:'warning'});
         }
       }else{
-        ui.notify(`已在画布打开「${payload.fileName}」${depNote}；连接本机后即可与 Agent 协作并运行远端 SSH 仿真。`);
+        ui.notify(`已在画布打开「${payload.fileName}」${depNote}${rnlNote}；连接本机后即可与 Agent 协作并运行远端 SSH 仿真。`);
       }
       if(errors.length)ui.notify('原理图存在 '+errors.length+' 项 RNL 诊断；请查看左侧「问题」。',{kind:'warning'});
       welcomeGuide?.update();
