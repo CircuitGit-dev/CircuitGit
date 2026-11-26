@@ -27,6 +27,7 @@ import {createLibraryClient} from '../library/model.js';
 import {isVerilogAFile,verilogaModuleBasename,indexLibraryVerilogAFiles,resolveVerilogAModel} from '../library/veriloga.js';
 import {mountVerilogAPanel,attachSchematicVerilogAJump} from './veriloga-viewer.js';
 import {mountSchematicSidebar} from './sidebar.js';
+import {mountSchematicEditor} from './schematic-editor/controller.js';
 import {hasBuffer,fileText} from '../vendor/rnl-viewer/edits.js';
 
 const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
@@ -421,6 +422,19 @@ export async function mountStudio({ui:providedUI}={}){
       activeLibraryId:activeLibrarySelection?.library?.id||null,
     }),
   });
+  const schematicEditor=mountSchematicEditor({
+    getProjectContext:()=>({activeLibrary:activeLibrarySelection,importedProject:null,isReference:false}),
+    getLibraries:()=>libraryManager?.getLibraries?.()||[],
+    getVerilogAModels:()=>{
+      const libs=libraryManager?.getLibraries?.()||[];
+      const preferred=activeLibrarySelection?.library?.id||null;
+      return libs.length?indexLibraryVerilogAFiles(libs,preferred).list:[];
+    },
+    isProbeActive:()=>plotMode!=='none',
+    bridge:libraryBridge,
+    onDocumentUpdated:()=>schematicSidebar?.refresh(),
+    notify,
+  });
   function enableLiveLibrary(){
     if(libraryManager)return;
     libraryBridge.bind(api,{supported:true});
@@ -453,12 +467,12 @@ export async function mountStudio({ui:providedUI}={}){
           if(level>=0)await enterRoot(level,{here:true,newWindow:false});
         }
         fit();ui.slots.schematic?.setVisible(true);
-        syncStudioVerilogA();verilogaJump?.clear();schematicSidebar?.refresh();
+        syncStudioVerilogA();verilogaJump?.clear();schematicSidebar?.refresh();schematicEditor?.resetBaselines();
         $('studio-native-note').textContent=`${value.library.name} / ${value.cell.name} / ${value.view.label} · 本地电路库`;
         return true;
       },
       onReference:async()=>{
-        activeLibrarySelection=null;emitLibrarySelection();schematicSidebar?.refresh();
+        activeLibrarySelection=null;emitLibrarySelection();schematicSidebar?.refresh();schematicEditor?.resetBaselines();
         if(state.project?.projects?.length)await loadProject(projectId(state.project.projects[0]));
       },
       notify,
@@ -468,6 +482,6 @@ export async function mountStudio({ui:providedUI}={}){
   }
   setPane('files');
   controls();addonsReady=mountAddons();void addonsReady.catch(error=>notify(error.message,{kind:'warning'}));
-  try{const health=await healthReady;healthCaps=health?.capabilities||null;workspaceHub.update();if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';if(healthCaps?.library_workflow)enableLiveLibrary();await loadProject();schematicSidebar?.refresh();workspaceHub.update();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();schematicSidebar?.refresh();workspaceHub.update();notify(error.message,{kind:'error'});}
+  try{const health=await healthReady;healthCaps=health?.capabilities||null;workspaceHub.update();if(health.error)throw health.error;if(health.mode!=='live')throw Error('需要实际私有网关 live 模式');state.mode='live';if(healthCaps?.library_workflow)enableLiveLibrary();await loadProject();schematicSidebar?.refresh();schematicEditor?.resetBaselines();workspaceHub.update();if(state.active)notify('原生图已从固定版本读取。Project/Git 管理 canonical 源；Viewer 网格与导航保持原行为。');}catch(error){state.mode='offline';state.projectLoadState='error';controls();publishNative();schematicSidebar?.refresh();schematicEditor?.resetBaselines();workspaceHub.update();notify(error.message,{kind:'error'});}
   return host;
 }
