@@ -56,7 +56,7 @@ python3 -B tools/dev/run_tests.py --require-node --require-ngspice --json-report
 | `library` | Circuit library CRUD (`create_library`, `create_cell`, `clone_cell`), branch create/switch, multi-cell related PRs, checkpoints, restore, deduplication, history build, and Studio version control |
 | `ai` | Codex runtime discovery (macOS & Windows), session/turn recovery, approvals, private image storage (with and without `dir_fd`), MCP stdio transport (POSIX `select` and Windows threaded reader), and plugin runtime |
 | `frontend` | Node.js 22+ unit tests across demo, remote pairing/client, libraries, waveforms, RNL viewer, Studio dockview/simulation panels, and AI panel |
-| `spiceowl` | Automatically enabled when the repository-pinned `spiceowl` package is installed (also verified in CI on macOS + Windows via `bootstrap_python.py --setup-only`) |
+| `spiceowl` | Automatically enabled when the repository-pinned `spiceowl` package is installed (also verified in CI on macOS, Windows and Linux via `bootstrap_python.py --setup-only`) |
 
 ---
 
@@ -65,7 +65,7 @@ python3 -B tools/dev/run_tests.py --require-node --require-ngspice --json-report
 [`.github/workflows/cross-platform-ci.yml`](../.github/workflows/cross-platform-ci.yml) runs automatically on pushes, pull requests, and manual **Actions → Cross-Platform CI → Run workflow** triggers:
 
 1. **`cross-platform-tests` matrix**: executes on **`macos-latest`**, **`windows-latest`**, and **`ubuntu-latest`** with Python 3.12, Node 22, and `ngspice`, running `tools/dev/run_tests.py` and uploading JSON reports as artifacts.
-2. **`spiceowl-bootstrap-matrix`**: verifies isolated virtual environment creation and pinned `spiceowl` + `adctoolbox==0.9.3` installation on both **`macos-latest`** and **`windows-latest`**, then runs the `spiceowl` integration suite.
+2. **`spiceowl-bootstrap-matrix`**: verifies isolated virtual environment creation and pinned `spiceowl` + `adctoolbox==0.9.3` installation on **`macos-latest`**, **`windows-latest`** and **`ubuntu-latest`**, then runs the `spiceowl` integration suite.
 
 ---
 
