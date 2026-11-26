@@ -244,9 +244,11 @@ test('TB_PIPE_RS9_N06 full RNL closure preserves all Virtuoso subcircuit symbols
   }
   assert.equal(diagonal,0,'PIPE_TOP_F4_RS9_N06 should preserve orthogonal Virtuoso wiring');
 
-  // Guard against regression in subcircuits.js: Studio & snapshot sources must stay in currentSource().
-  const subcircuitsSrc=readFileSync(new URL('../../apps/web/vendor/rnl-viewer/subcircuits.js',import.meta.url),'utf8');
-  assert.match(subcircuitsSrc,/function stayInCurrentSource\(/);
-  assert.match(subcircuitsSrc,/ic-studio/);
-  assert.match(subcircuitsSrc,/currentSource\(\)\?\.snapshot/);
+  // Guard against regression: Studio boot & Pages entry must preserve native=1 & studio=1
+  // so vendored RNL subcircuits.js keeps the full multi-file closure intact on descent/root jumps.
+  const bootSrc=readFileSync(new URL('../../apps/web/studio/boot.js',import.meta.url),'utf8');
+  assert.match(bootSrc,/searchParams\.set\('native','1'\)/);
+  assert.match(bootSrc,/searchParams\.set\('studio','1'\)/);
+  const pagesSrc=readFileSync(new URL('../../tools/dev/build_pages.py',import.meta.url),'utf8');
+  assert.match(pagesSrc,/native=1&studio=1/);
 });

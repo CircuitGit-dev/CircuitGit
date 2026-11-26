@@ -56,10 +56,10 @@ def main():
 <title>CircuitGit · Interactive workbench</title><link rel="icon" href="branding/circuitgit-small.svg">
 <script src="pages-redirect.js?v={rev}" defer></script></head><body>
 <h1>CircuitGit</h1><p>AI-native circuit design, versioned on GitHub.</p>
-<a href="studio/index.html?layout=dockview&amp;demo=1&amp;v={rev}">Open interactive demo</a>
+<a href="studio/index.html?layout=dockview&amp;demo=1&amp;native=1&amp;studio=1&amp;v={rev}">Open interactive demo</a>
 <a href="workflow/index.html">Explore the real-circuit workflow and capability boundaries</a>
 </body></html>''')
-    (OUTPUT / 'pages-redirect.js').write_text(f"location.replace(new URL('studio/index.html?layout=dockview&demo=1&v={rev}',location.href));\n")
+    (OUTPUT / 'pages-redirect.js').write_text(f"location.replace(new URL('studio/index.html?layout=dockview&demo=1&native=1&studio=1&v={rev}',location.href));\n")
     commits=[]
     output=subprocess.check_output(['git','log','-8','--format=%H%x09%s'],cwd=ROOT,text=True)
     for line in output.splitlines():

@@ -2,6 +2,15 @@ import {createLayout,attachSchematicChrome} from './layout.js';
 
 function mark(name){performance.mark('circuitgit:'+name);}
 async function start(){
+  // Keep pinned multi-file RNL closures intact when descending subcircuits (native=1)
+  // or jumping roots from the hierarchy panel (studio=1), without modifying vendored RNL.
+  try{
+    const url=new URL(location.href);
+    let changed=false;
+    if(url.searchParams.get('native')!=='1'){url.searchParams.set('native','1');changed=true;}
+    if(url.searchParams.get('studio')!=='1'){url.searchParams.set('studio','1');changed=true;}
+    if(changed)history.replaceState(history.state,'',url.href);
+  }catch{}
   const ui=await createLayout();
   mark('layout-ready');
   document.body.dataset.workbenchState='layout-ready';
