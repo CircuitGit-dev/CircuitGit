@@ -407,3 +407,37 @@ def read_text_retry(path, *, encoding='utf-8', retries=16):
             if attempt + 1 >= max(1, int(retries)):
                 raise
             time.sleep(min(0.05, 0.005 * (attempt + 1)))
+
+
+def discard_unread_body(handler, limit, timeout=2.0):
+    """Read and discard a request body that a rejecting handler did not read.
+
+    A handler marks a consumed body with `handler.body_read`. Closing while the
+    peer is still sending makes Windows answer the remaining bytes with a
+    connection reset, which can overtake the error response.
+    """
+    if getattr(handler, 'body_read', False) or getattr(handler, 'command', None) != 'POST':
+        return
+    handler.body_read = True
+    lengths = handler.headers.get_all('Content-Length', [])
+    if handler.headers.get('Transfer-Encoding') or len(lengths) != 1:
+        return
+    try:
+        length = int(lengths[0])
+    except ValueError:
+        return
+    if not 0 < length <= limit:
+        return
+    previous = handler.connection.gettimeout()
+    handler.connection.settimeout(timeout)
+    try:
+        remaining = length
+        while remaining > 0:
+            chunk = handler.rfile.read(min(remaining, 65536))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+    except OSError:
+        pass  # A slow or vanished peer keeps its error response.
+    finally:
+        handler.connection.settimeout(previous)

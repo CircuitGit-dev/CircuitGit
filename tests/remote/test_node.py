@@ -3,9 +3,11 @@ import importlib.util
 import json
 import os
 import re
+import socket
 from pathlib import Path
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -131,6 +133,16 @@ class Tests(unittest.TestCase):
         body={'session_id':'one','approval_id':'frozen','decision':'deny'}
         self.assertEqual(self.call('/api/ai/approval', 'POST', body)[0], 200)
         self.assertEqual(self.routes.calls, [('/api/ai/approval',body)])
+    def test_rejected_post_whose_body_arrives_late_is_still_answered(self):
+        # A client can be paused between sending headers and body. Closing
+        # before the body arrives makes Windows reset the connection, which
+        # overtakes the 403 instead of delivering it.
+        port = self.server.server_port;body = b'{"session_id":"default"}'
+        with socket.create_connection(('127.0.0.1', port), timeout=5) as c:
+            c.sendall(('POST /prefix/api/ai/turn HTTP/1.1\r\nHost: 127.0.0.1:%d\r\nOrigin: %s\r\nAuthorization: Bearer wrong\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n' % (port, ORIGIN, len(body))).encode())
+            time.sleep(0.05);c.sendall(body)
+            self.assertTrue(c.recv(1024).startswith(b'HTTP/1.1 403'), 'The rejection must reach a client whose body arrives late')
+        self.assertEqual(self.routes.calls, [])
     def test_context_and_session_identity_reach_the_owner_unchanged(self):
         self.assertEqual(self.call('/api/ai/context?project_id=rc&session_id=one')[0], 200)
         self.assertEqual(self.routes.calls, [('/api/ai/context',{'project_id':['rc'],'session_id':['one']})])

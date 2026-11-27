@@ -15,6 +15,7 @@ from .connection_metadata import discover_runtime
 from .commit_summary import CommitSummaries
 from .development import development_info
 from .library import call as library_call, source_context as library_context
+from ic_gateway.platform_compat import discard_unread_body
 
 WEB = Path(__file__).resolve().parents[1] / 'web'
 
@@ -196,6 +197,7 @@ def serve(service, port):
             self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'self'; object-src 'none'")
             self.end_headers(); self.wfile.write(raw)
         def fail(self, e):
+            discard_unread_body(self, 2 * 1024 * 1024)
             error = e.record() if isinstance(e, Failure) else {'code': 'invalid_input', 'message': str(e)}
             self.close_connection = True
             self.send(403 if error['code'] == 'forbidden' else 409 if error['code'] == 'conflict' else 400, {'ok': False, 'error': error})
@@ -217,6 +219,7 @@ def serve(service, port):
             try:
                 self.guard(True); size = int(self.headers.get('Content-Length', '0'))
                 check(0 < size <= 2 * 1024 * 1024, 'Body size invalid')
+                self.body_read = True
                 body = json.loads(self.rfile.read(size)); check(isinstance(body, dict), 'Object required')
                 self.send(200, {'ok': True, 'data': routes.post(urlsplit(self.path).path, body)})
             except Exception as e: self.fail(e)
