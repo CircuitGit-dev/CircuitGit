@@ -47,6 +47,8 @@ class Fixture:
              'reviewed_for_distribution': True, 'files': [{'source': 'netlist/' + n, 'destination': 'netlist/' + n,
                 'sha256': runner.filehash(seed / 'sim/demo/netlist' / n)} for n in ['input.scs', 'project.scs']]}
         runner.atomic(seed / 'sim/demo/bundle.json', b)
+        # Byte-exact seed and runtime clone, as under core.autocrlf=false; file hashes are compared.
+        (seed / '.gitattributes').write_bytes(b'* -text\n')
         git(seed, 'add', '.'); git(seed, 'commit', '-m', 'SYNTHETIC fixture only')
         site = {'schema': 'ic.sim.site.v1', 'ssh_target': 'synthetic-unused',
                 'remote_runs_root': '/synthetic/ic_on_github_runs', 'cadence_cshrc': '/synthetic/setup',

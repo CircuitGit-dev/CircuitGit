@@ -20,7 +20,7 @@ from ic_gateway.service import check_pdk_scope_response
 from browser_pairing import Pairing, confirmation_html
 from browser_login import LocalLogin
 from library_workflow import WorkflowError
-from platform_compat import is_owner_private_file, lock_file, unlock_file
+from platform_compat import discard_unread_body, is_owner_private_file, lock_file, unlock_file
 
 MAX_BODY = 16 * 1024 * 1024
 GET_ROUTES = {'catalog', 'context', 'history', 'events', 'models', 'sessions',
@@ -272,6 +272,7 @@ class Handler(BaseHTTPRequestHandler):
         if not 0 < length <= limit or self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
             raise ValueError('A bounded JSON body is required')
         self.connection.settimeout(30)
+        self.body_read = True
         body = json.loads(self.rfile.read(length))
         if not isinstance(body, dict):
             raise ValueError('JSON object required')
@@ -358,6 +359,7 @@ class Handler(BaseHTTPRequestHandler):
             pass
 
     def fail(self, error):
+        discard_unread_body(self, MAX_BODY)
         if isinstance(error, WorkflowError):
             status, record = error.status, {'code': error.code, 'message': str(error), 'details': error.details}
         elif isinstance(error, PermissionError):

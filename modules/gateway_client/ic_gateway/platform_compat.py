@@ -122,8 +122,47 @@ def open_nofollow(path, flags, mode=0o600):
 
 
 def detached_popen_kwargs():
-    """Return subprocess.Popen kwargs to launch a detached background child."""
+    """Return subprocess.Popen kwargs to launch a detached background child.
+
+    On Windows the child owns a hidden console. A child started without one
+    gives every console application it launches a console of its own, and Git
+    children then exit intermittently with STATUS_CONTROL_C_EXIT.
+    """
     if IS_WINDOWS:
-        flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) | getattr(subprocess, 'DETACHED_PROCESS', 0)
+        flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) | getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         return {'creationflags': flags}
     return {'start_new_session': True}
+
+
+def discard_unread_body(handler, limit, timeout=2.0):
+    """Read and discard a request body that a rejecting handler did not read.
+
+    A handler marks a consumed body with `handler.body_read`. Closing while the
+    peer is still sending makes Windows answer the remaining bytes with a
+    connection reset, which can overtake the error response.
+    """
+    if getattr(handler, 'body_read', False) or getattr(handler, 'command', None) != 'POST':
+        return
+    handler.body_read = True
+    lengths = handler.headers.get_all('Content-Length', [])
+    if handler.headers.get('Transfer-Encoding') or len(lengths) != 1:
+        return
+    try:
+        length = int(lengths[0])
+    except ValueError:
+        return
+    if not 0 < length <= limit:
+        return
+    previous = handler.connection.gettimeout()
+    handler.connection.settimeout(timeout)
+    try:
+        remaining = length
+        while remaining > 0:
+            chunk = handler.rfile.read(min(remaining, 65536))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+    except OSError:
+        pass  # A slow or vanished peer keeps its error response.
+    finally:
+        handler.connection.settimeout(previous)

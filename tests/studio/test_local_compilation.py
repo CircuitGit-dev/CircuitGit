@@ -31,6 +31,8 @@ class LocalCompilationTests(unittest.TestCase):
                        'files': [{'source': 'circuit.scs', 'destination': 'netlist/input.scs',
                                   'sha256': hashlib.sha256(text.encode()).hexdigest()}]}
         self.put('projects/test/template/bundle.json', json.dumps(self.bundle))
+        # Byte-exact seed and runtime clone, as under core.autocrlf=false; file hashes are compared.
+        self.put('.gitattributes', '* -text\n')
         self.first = self.commit()
         self.cfg = {'github_repo': 'fixture/circuits', 'seed_repo': str(self.root),
                     'source_repository': str(self.root), 'runtime_root': str(Path(self.temp.name)/'runtime'),

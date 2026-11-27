@@ -42,6 +42,8 @@ class ProjectCompilationTests(unittest.TestCase):
                 self.assertFalse(source.is_symlink())
                 target=seed/relative;target.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copy2(source,target)
+            # Byte-exact seed and runtime clone, as under core.autocrlf=false; source hashes are compared.
+            (seed/'.gitattributes').write_bytes(b'* -text\n')
             subprocess.run(['git','init','-b','main',str(seed)],check=True,capture_output=True)
             workspace.git(seed,'add','.')
             workspace.git(seed,'-c','user.name=Project Test','-c','user.email=test@localhost','commit','-m','project fixtures')

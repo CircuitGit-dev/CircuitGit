@@ -15,6 +15,7 @@ from supervision import Supervision, execution_target
 from simulation_runtime import SimulationRuntime
 from spiceowl_readonly import SpiceReadAdapter,SpiceReadError
 from library_workflow import LibraryWorkflow,WorkflowError,relative_path as library_relative_path
+from platform_compat import discard_unread_body
 
 def simulation_backend_info(site):
     """Non-secret summary of the configured simulator backend for health/project views."""
@@ -265,6 +266,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers();self.wfile.write(raw)
     def response(self,data,status=200):self.send(status,{'ok':True,'data':data})
     def error(self,e):
+        discard_unread_body(self,2*1024*1024)
         if isinstance(e,SpiceReadError):
             return self.send(e.status,{'ok':False,'error':{'code':e.code,'message':str(e),'details':{}}})
         if isinstance(e,VersionControlError):
@@ -437,10 +439,11 @@ class Handler(BaseHTTPRequestHandler):
                 length=int(self.headers['Content-Length'])
                 if not 0<length<=8192:raise ValueError('Human review response exceeds its bound')
                 self.app.onboarding._check()
+                self.body_read=True
                 return self.response(self.app.onboarding.reviews.browser_decision(json.loads(self.rfile.read(length))))
             self.guard(True);length=int(self.headers.get('Content-Length','0'))
             if length<0 or length>2*1024*1024:raise ValueError('request body too large')
-            raw_body=self.rfile.read(length);b=json.loads(raw_body);path=urlsplit(self.path).path
+            self.body_read=True;raw_body=self.rfile.read(length);b=json.loads(raw_body);path=urlsplit(self.path).path
             if not isinstance(b,dict):raise ValueError('JSON object required')
             if path.startswith('/api/ai/'):
                 if self.app.ai is None:raise FileNotFoundError('AI adapter is not configured')

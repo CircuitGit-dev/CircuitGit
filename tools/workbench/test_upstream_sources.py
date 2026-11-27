@@ -22,8 +22,8 @@ class UpstreamFixture(unittest.TestCase):
         for name,spec in upstream.UPSTREAMS.items():
             path=self.root/spec['relative_path'];path.mkdir(parents=True)
             self.git(path,'init','-b','main')
-            (path/'README.md').write_text('Synthetic '+name+' source\n')
-            (path/'.gitignore').write_text('ignored-output/\n')
+            self.write(path/'README.md','Synthetic '+name+' source\n')
+            self.write(path/'.gitignore','ignored-output/\n')
             self.git(path,'add','.');self.git(path,'commit','-m','Synthetic upstream fixture')
             self.git(path,'config','remote.origin.url',spec['repository'])
             self.commits[name]=self.git(path,'rev-parse','HEAD').strip()
@@ -31,8 +31,14 @@ class UpstreamFixture(unittest.TestCase):
         self.metadata(self.root)
         self.calls=[]
 
+    @staticmethod
+    def write(path,text):
+        # LF bytes on every platform: the inspection compares them with system and user Git config disabled.
+        path.write_bytes(text.encode('utf-8'))
+
     def git(self,path,*args):
-        command=['git','-c','core.hooksPath=/dev/null','-c','commit.gpgsign=false',
+        # Fixture commits and checkouts do not depend on the developer's core.autocrlf.
+        command=['git','-c','core.hooksPath=/dev/null','-c','commit.gpgsign=false','-c','core.autocrlf=false',
             '-c','user.name=Synthetic fixture','-c','user.email=fixture@localhost','-C',str(path),*args]
         result=subprocess.run(command,capture_output=True,text=True,check=True)
         return result.stdout

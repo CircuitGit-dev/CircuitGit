@@ -1,4 +1,4 @@
-import concurrent.futures, http.client, json, os, shutil, subprocess, tempfile, threading, time, unittest
+import concurrent.futures, http.client, json, os, shutil, socket, subprocess, tempfile, threading, time, unittest
 from pathlib import Path
 from unittest.mock import patch
 import server,runner,workspace,ic_sim
@@ -40,6 +40,15 @@ class BackendTests(unittest.TestCase):
             trailing=b''
         self.assertEqual(trailing,b'','Rejected body must not survive on a keepalive connection')
         c.close()
+    def test_rejected_post_whose_body_arrives_late_is_still_answered(self):
+        # A client can be paused between sending headers and body. Closing
+        # before the body arrives makes Windows reset the connection, which
+        # overtakes the 403 instead of delivering it.
+        body=b'{"not_consumed":true}'
+        with socket.create_connection(('127.0.0.1',self.http.server_port),timeout=5) as c:
+            c.sendall(('POST /api/sync HTTP/1.1\r\nHost: 127.0.0.1:%d\r\nOrigin: %s\r\nContent-Type: application/json\r\nX-Workbench-Token: expired\r\nContent-Length: %d\r\n\r\n'%(self.http.server_port,self.origin,len(body))).encode())
+            time.sleep(0.05);c.sendall(body)
+            self.assertTrue(c.recv(1024).startswith(b'HTTP/1.1 403'),'The rejection must reach a client whose body arrives late')
     def test_commit_and_signed_materialization(self):
         base=self.app.workspace.head();path='projects/demo/circuit.scs';body={'base_commit':base,'changes':[{'path':path,'content':self.app.workspace.file(path)['content']+'// reviewed edit\n'}]}
         self.assertEqual(self.request('/api/changes/preview','POST',body)[0],200);status,result=self.request('/api/changes/commit','POST',body|{'message':'test edit','push':False});self.assertEqual(status,200,result)
