@@ -165,9 +165,14 @@ def open_nofollow(path, flags, mode=0o600):
 
 
 def detached_popen_kwargs():
-    """Return subprocess.Popen kwargs to launch a detached background child."""
+    """Return subprocess.Popen kwargs to launch a detached background child.
+
+    On Windows the child owns a hidden console. A child started without one
+    gives every console application it launches a console of its own, and Git
+    children then exit intermittently with STATUS_CONTROL_C_EXIT.
+    """
     if IS_WINDOWS:
-        flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) | getattr(subprocess, 'DETACHED_PROCESS', 0)
+        flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) | getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         return {'creationflags': flags}
     return {'start_new_session': True}
 
