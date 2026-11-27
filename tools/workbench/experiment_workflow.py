@@ -13,11 +13,25 @@ import json
 import math
 from pathlib import Path
 import re
+import subprocess
 import tarfile
 
 import ic_sim as core
 from runner import atomic, filehash, locked, stamp, TERMINAL
 from spiceowl_pool import ResourcePool, read_json, canonical
+
+
+def _ssh_script(site, script, timeout):
+    """Send a generated script over stdin, not as a command-line argument.
+
+    Windows limits a child process command line to about 32 KiB; the PDK audit
+    script is larger, and core.ssh's base64 wrapper would be truncated before
+    reaching the remote shell. The remote login shell may be csh, but /bin/sh -s
+    keeps the script on stdin and the command itself a single short token.
+    """
+    return subprocess.run(
+        ['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', site['ssh_target'], '/bin/sh -s'],
+        input=script.encode('utf-8'), capture_output=True, timeout=timeout)
 
 
 class PreDispatchRejected(ValueError):
@@ -84,7 +98,7 @@ class ExperimentWorkflow:
         script+='[ "$(hostname)" = '+core.q(site['expected_host'])+' ]\n'
         script+='[ "$(id -un)" = '+core.q(site['expected_user'])+' ]\n'
         script+='/usr/bin/timeout 55 '+core.q(remote_python)+' - <<\'IC_MODEL_AUDIT_PY\'\n'+code+'\nIC_MODEL_AUDIT_PY\n'
-        result=core.ssh(site,script,timeout=60)
+        result=_ssh_script(site,script,timeout=60)
         if result.returncode or len(result.stdout)>2*1024*1024:
             raise ValueError('Bounded remote model audit did not complete')
         return json.loads(result.stdout)
@@ -98,7 +112,7 @@ class ExperimentWorkflow:
         code=build_veriloga_header_probe_script(roots=original['roots'])
         script='set -eu\n[ "$(hostname)" = '+core.q(site['expected_host'])+' ]\n[ "$(id -un)" = '+core.q(site['expected_user'])+' ]\n'
         script+='/usr/bin/timeout 50 '+core.q(remote_python)+" - <<'IC_VA_HEADER_AUDIT_PY'\n"+code+'\nIC_VA_HEADER_AUDIT_PY\n'
-        reply=core.ssh(site,script,timeout=60)
+        reply=_ssh_script(site,script,timeout=60)
         if reply.returncode or len(reply.stdout)>MAX_RESULT_BYTES:raise ValueError('Bounded standard header audit did not complete')
         result=validate_veriloga_headers(json.loads(reply.stdout))
         if result!=original:raise ValueError('Standard header bytes or include closure changed after observation')
