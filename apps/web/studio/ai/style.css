@@ -237,3 +237,100 @@
 .ic-ai-studio .ic-ai-steps pre { color: var(--fg, #15222d); padding: 6px; background: var(--bg, #f5f7f9); }
 .ic-ai-studio .ic-ai-model:focus-visible,
 .ic-ai-studio .ic-ai-progress summary:focus-visible { outline: 2px solid var(--accent, #327a9c); outline-offset: -2px; }
+
+.ic-ai-studio .ic-ai-form .ic-ai-perm-badge {
+  flex: 0 1 auto;
+  height: 32px;
+  max-width: 100%;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #c7d5de);
+  background: var(--bg, #f4f7f9);
+  color: var(--muted, #465d6d);
+  font: 600 11px/30px system-ui, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-perm-badge:hover:not(:disabled) {
+  background: #eaf1f6;
+  border-color: #a9bfcc;
+  color: var(--fg, #15222d);
+}
+.ic-ai-studio .ic-ai-form .ic-ai-perm-badge.is-supervised {
+  background: #e7f4f8;
+  border-color: #7dbbd1;
+  color: #12536e;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-perm-badge.is-supervised:hover:not(:disabled) {
+  background: #d7ecf4;
+  border-color: #4f9eb9;
+  color: #0d4258;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-perm-badge.is-full-access {
+  background: linear-gradient(180deg, #fff4e0 0%, #ffeae5 100%);
+  border-color: #dfa07c;
+  color: #9c331f;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-perm-badge.is-full-access:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffe9c7 0%, #ffdcd4 100%);
+  border-color: #cf7d59;
+  color: #7f2515;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-perm-badge.is-full-access.is-pending-auth {
+  border-style: dashed;
+}
+
+.ic-ai-studio .ic-ai-full-access-confirm {
+  grid-column: 1 / -1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid #dfae82;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #fff9ee 0%, #fff4f0 100%);
+  color: #5b2b18;
+  font: 12px/1.5 system-ui, sans-serif;
+}
+.ic-ai-studio .ic-ai-full-access-confirm p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ic-ai-studio .ic-ai-full-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-full-access-approve,
+.ic-ai-studio .ic-ai-form .ic-ai-full-access-cancel {
+  height: auto;
+  min-height: 28px;
+  max-width: 100%;
+  padding: 3px 11px;
+  font: 600 12px/20px system-ui, sans-serif;
+  white-space: normal;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-full-access-approve {
+  background: #b83b24;
+  border-color: #962c19;
+  color: #fff;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-full-access-approve:hover:not(:disabled) {
+  background: #9f301c;
+  border-color: #7e2212;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-full-access-cancel {
+  background: #fff;
+  border-color: #d4bfb2;
+  color: #5b483e;
+  font-weight: 500;
+}
+.ic-ai-studio .ic-ai-form .ic-ai-full-access-cancel:hover:not(:disabled) {
+  background: #faf4f0;
+  border-color: #bda394;
+}

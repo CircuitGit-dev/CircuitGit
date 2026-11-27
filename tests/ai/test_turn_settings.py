@@ -103,7 +103,8 @@ class TurnSettingsTests(unittest.TestCase):
 
     def test_invalid_settings_reject_before_key_rpc_or_source_reservation(self):
         cases = [({'reasoning_effort': value}, 'invalid_reasoning_effort') for value in ([], {}, True, 4, '', 'LOW', 'x' * 33)]
-        cases += [({'permission_mode': value}, 'invalid_permission_mode') for value in (None, False, [], 'full_access', 'auto')]
+        cases += [({'permission_mode': value}, 'invalid_permission_mode') for value in (None, False, [], 'yolo', 'auto')]
+        cases += [({'permission_mode': 'full_access'}, 'full_access_not_authorized')]
         session = self.ai()
         for index, (settings, code) in enumerate(cases):
             with self.subTest(settings=settings), self.assertRaises(Failure) as failure:

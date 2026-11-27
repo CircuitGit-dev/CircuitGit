@@ -125,6 +125,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
   const appendImages=createImageHistory({document:doc,sessionId,read,alive:()=>!destroyed});
   let currentRun=null, modelSelect=null, nextModel='', modelChoices=new Map(), catalogReady=false, catalogGeneration=0, catalogAttempted=false, historyReady=!clean, panelVisible=false;
   let defaultModel='',nextEffort='',nextPermission='manual',permissionExplicit=false,effortSelect=null,permissionSelect=null,settingsButton=null,settingsBox=null,settingsNote=null;
+  let fullAccessAuthorized=false,fullAccessConfirmOpen=false,authorizingFullAccess=false,permBadge=null,fullAccessConfirmBox=null,fullAccessConfirmButton=null,fullAccessCancelButton=null;
   let development={available:false,workspace:null,reason:null,access:'manual',can_configure:false},developmentState='unread',developmentLoading=null,developerOption=null,developmentInfo=null,developmentNote=null,developmentDetails=null,developmentPath=null,configureDevelopment=null,configuringDevelopment=false,settingsStateNote=null,settingsStateActions=null,newSessionButton=null,deleteSessionButton=null;
   const developmentAccessLabel=access=>access==='full'?'完全访问':'人工批准';
   const nativeApprovalMethods=new Set(['item/commandExecution/requestApproval','item/fileChange/requestApproval']);
@@ -133,13 +134,14 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
   function selectedModel(models=[...modelChoices.values()],fallback=defaultModel){return nextModel?models.find(m=>m.id===nextModel):models.find(m=>m.id===fallback||m.model===fallback);}
   function supportedEfforts(model){return new Map((Array.isArray(model?.supportedReasoningEfforts)?model.supportedReasoningEfforts:[]).flatMap(item=>{const value=typeof item==='string'?item:item?.reasoningEffort;return typeof value==='string'&&value&&value!=='model_default'?[[value,typeof item==='object'?item.description||'':'']]:[];}));}
   function settingsIssue(model=selectedModel()){
-    if(!['manual','read_only','developer'].includes(nextPermission))return '请选择操作权限。';
+    if(!['manual','read_only','supervised','full_access','developer'].includes(nextPermission))return '请选择操作权限。';
+    if(nextPermission==='full_access'&&!fullAccessAuthorized)return '请先在下方确认开启「满血全权」本地授权。';
     if(nextPermission==='developer'&&(developmentState!=='ready'||!development.available))return developmentState==='loading'?'正在读取开发环境，请稍候。':'开发者模式当前不可用；请选择其他模式，或重新读取开发环境。';
     if(!nextEffort)return '';
     const supported=supportedEfforts(model),value=nextEffort==='model_default'?model?.defaultReasoningEffort:nextEffort;
     return typeof value==='string'&&supported.has(value)?'':'所选模型不支持当前思考强度；原选择已保留，请重新选择。';
   }
-  function settingsLocked(){const state=getState();return !historyReady||posting||Boolean(uncertain)||reconciling||resuming||configuringDevelopment||['starting','running','suspended'].includes(phase)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0;}
+  function settingsLocked(){const state=getState();return !historyReady||posting||Boolean(uncertain)||reconciling||resuming||configuringDevelopment||authorizingFullAccess||['starting','running','suspended'].includes(phase)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0;}
   function refreshEfforts(){
     if(!effortSelect)return;
     const model=selectedModel(),supported=supportedEfforts(model),options=[new Option('沿用会话','')];options[0].title='保留本会话的思考设置';
@@ -152,11 +154,28 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     if(!clean)return;
     const locked=settingsLocked(),issue=settingsIssue();effortSelect.disabled=locked||!catalogReady;permissionSelect.disabled=locked;
     permissionSelect.value=nextPermission;effortSelect.title=nextEffort||'保留本会话的思考设置';
-    const permissionLabel=nextPermission==='developer'?'开发者 · '+developmentAccessLabel(development.access):nextPermission==='read_only'?'只读':'人工批准';
-    let permissionNote=nextPermission==='developer'?(development.access==='full'?'可读写本机文件、执行命令及联网，无需逐项审批。':'可开发工作台源码；写入和扩展执行权限需人工批准。'):nextPermission==='read_only'?'只读：查看电路和已有结果。':'人工批准：允许准备修改和仿真，执行变更前批准。';
+    const permissionLabel=nextPermission==='developer'?'开发者 · '+developmentAccessLabel(development.access):nextPermission==='read_only'?'只读':nextPermission==='supervised'?'满血受控':nextPermission==='full_access'?'满血全权'+(fullAccessAuthorized?' · 已授权':' · 待授权'):'人工批准';
+    let permissionNote=nextPermission==='developer'?(development.access==='full'?'可读写本机文件、执行命令及联网，无需逐项审批。':'可开发工作台源码；写入和扩展执行权限需人工批准。'):nextPermission==='read_only'?'只读：查看电路和已有结果。':nextPermission==='supervised'?'满血受控：可使用 Shell、Python 及全部电路工具；高危命令与文件修改前将弹出人工审批。':nextPermission==='full_access'?(fullAccessAuthorized?'满血全权（已授权）：Codex 拥有完整 Shell / Python / 文件 / 电路工具权限并自动执行，随时可点「停止」急停。':'满血全权：需先确认本机授权后才可自动执行。'):'人工批准：允许准备修改和仿真，执行变更前批准。';
     if(nextPermission==='developer'&&currentRun?.permissionMode==='developer'&&['starting','running','suspended'].includes(phase)&&currentRun.developmentAccess!==development.access)permissionNote='本回合按'+developmentAccessLabel(currentRun.developmentAccess)+'配置；新消息将使用'+developmentAccessLabel(development.access)+'。';
     settingsButton.title='AI设置：'+(selectedModel()?.displayName||nextModel||defaultModel||'跟随默认')+' · '+effortLabel(nextEffort)+' · '+permissionLabel+'；'+(issue||permissionNote);
     settingsButton.classList.toggle('error',Boolean(issue));
+    if(permBadge){
+      permBadge.textContent=nextPermission==='full_access'?'🚀 满血全权':nextPermission==='supervised'?'⚡ 满血受控':nextPermission==='developer'?'开发者 · '+developmentAccessLabel(development.access):nextPermission==='read_only'?'🔒 只读':'🔒 人工批准';
+      permBadge.dataset.permission=nextPermission;
+      permBadge.title='当前操作权限：'+permissionLabel+'（点击调整）';
+      permBadge.classList.toggle('is-supervised',nextPermission==='supervised');
+      permBadge.classList.toggle('is-full-access',nextPermission==='full_access');
+      permBadge.classList.toggle('is-developer',nextPermission==='developer');
+      permBadge.classList.toggle('is-pending-auth',nextPermission==='full_access'&&!fullAccessAuthorized);
+    }
+    if(fullAccessConfirmBox){
+      const showFullAccessConfirm=fullAccessConfirmOpen&&nextPermission==='full_access'&&!fullAccessAuthorized;
+      fullAccessConfirmBox.hidden=!showFullAccessConfirm;
+      if(showFullAccessConfirm&&settingsBox.hidden){if(fullAccessConfirmBox.parentElement!==form)form.insertBefore(fullAccessConfirmBox,row);}
+      else if(fullAccessConfirmBox.parentElement!==settingsBox){settingsBox.insertBefore(fullAccessConfirmBox,developmentInfo);}
+      fullAccessConfirmButton.disabled=locked;fullAccessCancelButton.disabled=locked;
+      fullAccessConfirmButton.textContent=authorizingFullAccess?'正在开启满血全权…':'🚀 确认开启满血全权';
+    }
     settingsNote.textContent=issue||permissionNote;settingsNote.classList.toggle('error',Boolean(issue));
     const state=getState();settingsStateNote.hidden=!locked;
     settingsStateNote.textContent=phase==='suspended'?(recovery.can_resume?'此回合已暂停；先恢复输入，再调整下一条消息的设置。':'此对话已暂停，原请求和历史保留。可删除此对话，或新建独立对话后选择模型和权限。'):state.pendingApprovalCount||state.suspendedApprovalCount?'请先处理当前审批。':'当前回合正在处理，结束后可调整下一条消息的设置。';
@@ -179,25 +198,35 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     }catch{if(!destroyed){development={available:false,workspace:null,reason:null,access:'manual',can_configure:false};developmentState='error';}}
     finally{developmentLoading=null;if(!destroyed)changed();}return development;})();return developmentLoading;
   }
-  function restoreSettings(turn){if(!turn)return;nextEffort=typeof turn.reasoning_effort==='string'?turn.reasoning_effort:'';nextPermission=['read_only','developer'].includes(turn.permission_mode)?turn.permission_mode:'manual';permissionExplicit=Object.hasOwn(turn,'permission_mode');refreshEfforts();if(nextPermission==='developer')loadDevelopment();}
+  function restoreSettings(turn){if(!turn)return;nextEffort=typeof turn.reasoning_effort==='string'?turn.reasoning_effort:'';nextPermission=['read_only','supervised','full_access','developer'].includes(turn.permission_mode)?turn.permission_mode:'manual';permissionExplicit=Object.hasOwn(turn,'permission_mode');fullAccessConfirmOpen=nextPermission==='full_access'&&!fullAccessAuthorized;refreshEfforts();if(nextPermission==='developer')loadDevelopment();}
   if(clean){
     modelSelect=make('select','ic-ai-model');modelSelect.setAttribute('aria-label','下一条消息的模型');
     modelSelect.append(new Option('跟随默认',''));modelSelect.disabled=true;
     modelSelect.onchange=()=>{if(settingsLocked()){modelSelect.value=nextModel;return;}nextModel=modelSelect.value;modelSelect.title=modelChoices.get(nextModel)?.description||'跟随本会话原默认模型';imageComposer?.message('');refreshEfforts();if(settingsIssue()){settingsBox.hidden=false;settingsButton.setAttribute('aria-expanded','true');}changed();};
     settingsButton=make('button','ic-ai-settings-button');settingsButton.type='button';settingsButton.setAttribute('aria-label','AI设置');settingsButton.setAttribute('aria-expanded','false');row.insertBefore(settingsButton,input);
     const settingsIcon=make('span','','⚙');settingsIcon.setAttribute('aria-hidden','true');settingsButton.append(settingsIcon);
+    permBadge=make('button','ic-ai-perm-badge','🔒 人工批准');permBadge.type='button';permBadge.setAttribute('aria-label','切换操作权限');row.insertBefore(permBadge,input);
     settingsBox=make('div','ic-ai-settings');settingsBox.hidden=true;settingsBox.id='ic-ai-settings-'+crypto.randomUUID();settingsBox.setAttribute('role','group');settingsBox.setAttribute('aria-label','AI设置选项');settingsButton.setAttribute('aria-controls',settingsBox.id);
     const modelField=make('label','ic-ai-setting'),effortField=make('label','ic-ai-setting'),permissionField=make('label','ic-ai-setting');
     effortSelect=make('select','ic-ai-effort');effortSelect.setAttribute('aria-label','思考强度');permissionSelect=make('select','ic-ai-permission');permissionSelect.setAttribute('aria-label','操作权限');
-    developerOption=new Option('开发者模式 · 暂不可用','developer');developerOption.disabled=true;permissionSelect.append(new Option('人工批准','manual'),new Option('只读','read_only'),developerOption);settingsNote=make('p','ic-ai-settings-note');settingsNote.setAttribute('aria-live','polite');
+    developerOption=new Option('开发者模式 · 暂不可用','developer');developerOption.disabled=true;permissionSelect.append(new Option('人工批准','manual'),new Option('只读','read_only'),new Option('⚡ 满血受控（Shell + 工具，高危审批）','supervised'),new Option('🚀 满血全权（Shell + 自动执行）','full_access'),developerOption);settingsNote=make('p','ic-ai-settings-note');settingsNote.setAttribute('aria-live','polite');
+    fullAccessConfirmBox=make('div','ic-ai-full-access-confirm');fullAccessConfirmBox.hidden=true;fullAccessConfirmBox.setAttribute('role','region');fullAccessConfirmBox.setAttribute('aria-label','满血全权本地授权确认');
+    const fullAccessText=make('p','','开启「满血全权（Full Access）」后，网页端 Codex 将拥有与本机终端一致的 Shell / Python / 文件 / 电路操作权限并自动执行（随时可点「停止」急停）。仅限本机受信任环境使用。');
+    const fullAccessActions=make('div','ic-ai-full-access-actions');
+    fullAccessConfirmButton=make('button','ic-ai-full-access-approve','🚀 确认开启满血全权');fullAccessConfirmButton.type='button';
+    fullAccessCancelButton=make('button','ic-ai-full-access-cancel','取消');fullAccessCancelButton.type='button';
+    fullAccessConfirmButton.onclick=async()=>{if(authorizingFullAccess||settingsLocked())return;authorizingFullAccess=true;changed();try{const result=await post('/permission',{enabled:true,confirmed_full_access:true});if(destroyed)return;if(result?.full_access_authorized!==true)throw Error('未能确认开启「满血全权」本地授权。');fullAccessAuthorized=true;fullAccessConfirmOpen=false;imageComposer?.message('');}catch(error){if(!destroyed)imageComposer?.message(error.message||'开启满血全权失败。',true);}finally{authorizingFullAccess=false;if(!destroyed)changed();}};
+    fullAccessCancelButton.onclick=()=>{if(authorizingFullAccess||settingsLocked())return;nextPermission='manual';permissionExplicit=true;fullAccessConfirmOpen=false;imageComposer?.message('');changed();};
+    fullAccessActions.append(fullAccessConfirmButton,fullAccessCancelButton);fullAccessConfirmBox.append(fullAccessText,fullAccessActions);
     developmentInfo=make('div','ic-ai-development');developmentNote=make('p','ic-ai-development-note');developmentDetails=make('details','ic-ai-development-details');developmentPath=make('pre');developmentDetails.append(make('summary','','开发工作目录 / 详情'),developmentPath);developmentInfo.append(developmentNote,developmentDetails);
     configureDevelopment=make('button','ic-ai-configure-development','配置本机开发权限…');configureDevelopment.type='button';configureDevelopment.hidden=true;configureDevelopment.onclick=async()=>{if(configureDevelopment.disabled)return;configuringDevelopment=true;changed();try{await onConfigureDevelopment?.();if(!destroyed)await loadDevelopment();}catch(error){if(!destroyed)imageComposer?.message(error.message,true);}finally{configuringDevelopment=false;if(!destroyed)changed();}};developmentInfo.append(configureDevelopment);
     settingsStateNote=make('p','ic-ai-settings-state-note');settingsStateNote.setAttribute('role','status');settingsStateActions=make('div','ic-ai-settings-state-actions');settingsStateActions.hidden=true;newSessionButton=make('button','ic-ai-settings-new-session','新建对话并配置');newSessionButton.type='button';newSessionButton.hidden=true;newSessionButton.onclick=()=>onNewSession?.();deleteSessionButton=make('button','ic-ai-settings-delete-session ic-ai-delete','删除此对话');deleteSessionButton.type='button';deleteSessionButton.hidden=true;deleteSessionButton.onclick=()=>onDeleteSession?.();settingsStateActions.append(newSessionButton,deleteSessionButton);
-    modelField.append(make('span','','模型'),modelSelect);effortField.append(make('span','','思考强度'),effortSelect);permissionField.append(make('span','','操作权限'),permissionSelect);settingsBox.append(settingsStateNote,settingsStateActions,modelField,effortField,permissionField,settingsNote,developmentInfo);form.append(settingsBox);
-    settingsButton.onclick=()=>{settingsBox.hidden=!settingsBox.hidden;settingsButton.setAttribute('aria-expanded',String(!settingsBox.hidden));if(!settingsBox.hidden){syncSettings();loadDevelopment();if(!catalogReady)loadModels({preserveSelection:true});}};
-    form.addEventListener('keydown',event=>{if(event.key==='Escape'&&!settingsBox.hidden){event.preventDefault();event.stopPropagation();settingsBox.hidden=true;settingsButton.setAttribute('aria-expanded','false');settingsButton.focus();}});
+    modelField.append(make('span','','模型'),modelSelect);effortField.append(make('span','','思考强度'),effortSelect);permissionField.append(make('span','','操作权限'),permissionSelect);settingsBox.append(settingsStateNote,settingsStateActions,modelField,effortField,permissionField,settingsNote,fullAccessConfirmBox,developmentInfo);form.append(settingsBox);
+    permBadge.onclick=()=>{settingsBox.hidden=false;settingsButton.setAttribute('aria-expanded','true');syncSettings();loadDevelopment();if(!catalogReady)loadModels({preserveSelection:true});if(!permissionSelect.disabled)permissionSelect.focus();};
+    settingsButton.onclick=()=>{settingsBox.hidden=!settingsBox.hidden;settingsButton.setAttribute('aria-expanded',String(!settingsBox.hidden));syncSettings();if(!settingsBox.hidden){loadDevelopment();if(!catalogReady)loadModels({preserveSelection:true});}};
+    form.addEventListener('keydown',event=>{if(event.key==='Escape'&&!settingsBox.hidden){event.preventDefault();event.stopPropagation();settingsBox.hidden=true;settingsButton.setAttribute('aria-expanded','false');syncSettings();settingsButton.focus();}});
     effortSelect.onchange=()=>{if(settingsLocked()){effortSelect.value=nextEffort;return;}nextEffort=effortSelect.value;changed();};
-    permissionSelect.onchange=()=>{if(settingsLocked()||permissionSelect.value==='developer'&&(!development.available||developmentState!=='ready')){permissionSelect.value=nextPermission;return;}nextPermission=permissionSelect.value;permissionExplicit=true;changed();};refreshEfforts();
+    permissionSelect.onchange=()=>{if(settingsLocked()||permissionSelect.value==='developer'&&(!development.available||developmentState!=='ready')){permissionSelect.value=nextPermission;return;}nextPermission=permissionSelect.value;permissionExplicit=true;fullAccessConfirmOpen=nextPermission==='full_access'&&!fullAccessAuthorized;changed();};refreshEfforts();
     const refreshModels=make('button','','刷新模型目录');refreshModels.type='button';refreshModels.onclick=()=>loadModels();bar.append(refreshModels);
   }
   async function loadModels({preserveSelection=false}={}){
@@ -313,7 +342,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     resumeButton.disabled=!recovery.can_resume||phase!=='suspended'||composeLocked||!historyReady||state.pendingApprovalCount>0||state.suspendedApprovalCount>0;
     resumeButton.textContent=resuming?'正在恢复输入…':'恢复输入 / 更换模型';
     syncSettings();
-    send.disabled=!historyReady||composeLocked||configuringDevelopment||Boolean(imageComposer?.getState().busy)||['starting','running','suspended'].includes(phase)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0||Boolean(settingsIssue());
+    send.disabled=!historyReady||composeLocked||configuringDevelopment||authorizingFullAccess||Boolean(imageComposer?.getState().busy)||['starting','running','suspended'].includes(phase)||state.pendingApprovalCount>0||state.suspendedApprovalCount>0||Boolean(settingsIssue());
     try{onStateChange(getState());}catch(e){console.error('AI dock state consumer failed',e);}
   }
   function suspendPending(){for(const [id,s] of approvalStates)if(s==='pending')approvalStates.set(id,'suspended');}
@@ -456,6 +485,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
       if(result?.resumed!==true||result.state!=='complete'||result.automatic_retry!==false||result.history_retained!==true||result.session_id&&result.session_id!==sessionId)throw Error('恢复回执不完整，请核对会话状态。');
       const history=await read('/history');if(destroyed)return;
       if(history.session_id!==sessionId)throw Error('恢复后的会话身份不匹配。');
+      if(typeof history.full_access_authorized==='boolean')fullAccessAuthorized=history.full_access_authorized;
       phase=history.state;updateRecovery(history.recovery);
       if(phase!=='complete'||history.pending?.some(p=>p.status!=='resolved'))throw Error('会话仍在运行或有待处理审批，输入保持暂停。');
       clearFailure();status.textContent='输入已恢复 · 原请求未重发，请选择模型并输入新消息。';
@@ -479,6 +509,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     try{
       const history=await read('/history');if(destroyed||uncertain!==submission)return;
       if(history.session_id!==sessionId)throw Error('会话身份不匹配');
+      if(typeof history.full_access_authorized==='boolean')fullAccessAuthorized=history.full_access_authorized;
       updateRecovery(history.recovery);
       const receipt=history.turns?.find(turn=>turn.key===submission.key);
       if(receipt&&acceptSubmission(submission,receipt)){
@@ -510,6 +541,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     if((!message&&!items.length)||send.disabled||!historyReady||posting||uncertain)return;
     const selected=nextModel;posting=true;changed();let submission=null;
     try{
+      if(nextPermission==='full_access'&&!fullAccessAuthorized){fullAccessConfirmOpen=true;throw Error('请先在下方确认开启「满血全权」本地授权。');}
       if(nextPermission==='developer'){const {workspace,access}=development;await loadDevelopment();if(destroyed)return;if(!development.available)throw Error('开发者模式当前不可用，草稿已保留。');if(workspace!==development.workspace||access!==development.access)throw Error(workspace!==development.workspace?'开发工作目录已变化，请核对设置后重新发送。':'开发访问权限已变化，请核对设置后重新发送。');}
       if(items.length||nextEffort){
         const fresh=await read('/models');if(destroyed)return;
@@ -531,7 +563,8 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     }catch(error){
       if(destroyed)return;
       if(submission){
-        submission.definitiveRejection=['invalid_image','unsupported_image','image_limit','image_preflight_rejected','model_image_unsupported','model_image_capability_unknown','invalid_input','invalid_model','invalid_reasoning_effort','invalid_permission_mode','development_unavailable','manual_approval_unavailable','forbidden'].includes(error.data?.code);
+        if(error.data?.code==='full_access_not_authorized'){fullAccessAuthorized=false;if(nextPermission==='full_access')fullAccessConfirmOpen=true;}
+        submission.definitiveRejection=['invalid_image','unsupported_image','image_limit','image_preflight_rejected','model_image_unsupported','model_image_capability_unknown','invalid_input','invalid_model','invalid_reasoning_effort','invalid_permission_mode','full_access_not_authorized','development_unavailable','manual_approval_unavailable','forbidden'].includes(error.data?.code);
         uncertain=submission;submission.delivery.textContent='发送失败或结果未知';showError(error);
         imageComposer.message('发送未确认，文字和图片已保留。请点击“核对发送结果”；不会换 key 重试。',true);
       }else imageComposer.message(error.message||'暂时无法发送。',true);
@@ -541,6 +574,7 @@ export function mountAI(root, {contextAdapter, apiBase='/api/ai', healthPath='/a
     send.disabled=true;
     try{
       const h=await read('/history');if(destroyed)return;
+      fullAccessAuthorized=h.full_access_authorized===true;
       cursor=h.cursor;const messages=h.messages||[];
       for(const turn of h.turns||[]){
         for(const message of messages.filter(m=>m.request_key===turn.key&&m.role==='user')){const node=add('你',message.text||'','','user');appendImages(node,message.images);}

@@ -112,6 +112,8 @@ class AiRoutes:
         session = self.sessions.get(ids[0] if ids is not None else 'default')
         if path == '/api/ai/history':
             check(not query, 'Unexpected history query'); return session.history()
+        if path == '/api/ai/permission':
+            check(not query, 'Unexpected permission query'); return session.permission_state()
         if path == '/api/ai/models':
             check(not query, 'Model catalog does not accept provider overrides or query fields')
             return session.models()
@@ -133,6 +135,9 @@ class AiRoutes:
             check(set(body) == {'session_id', 'expected_turn_id'}, 'Input recovery requires explicit session_id and expected_turn_id')
             return self.sessions.get(body['session_id']).resume(body['expected_turn_id'])
         body = dict(body); session = self.sessions.get(body.pop('session_id', 'default'))
+        if path == '/api/ai/permission':
+            check({'enabled'} <= set(body) <= {'enabled', 'confirmed_full_access'}, 'Unexpected permission fields')
+            return session.set_full_access(body['enabled'], body.get('confirmed_full_access', False))
         if path == '/api/ai/turn':
             check({'message', 'context', 'idempotency_key'} <= set(body) <= {'message', 'context', 'idempotency_key', 'model', 'images', 'reasoning_effort', 'permission_mode'}, 'Unexpected turn fields')
             check('images' not in body or isinstance(body['images'], list), 'Images must be an array')

@@ -24,9 +24,10 @@ from platform_compat import is_owner_private_file, lock_file, unlock_file
 
 MAX_BODY = 16 * 1024 * 1024
 GET_ROUTES = {'catalog', 'context', 'history', 'events', 'models', 'sessions',
-              'image', 'development', 'discovery', 'connection', 'auth/status'}
+              'image', 'development', 'discovery', 'connection', 'auth/status', 'permission'}
 POST_ROUTES = {'sessions', 'sessions/rename', 'sessions/delete', 'connect',
-               'resume', 'turn', 'approval', 'interrupt', 'doctor', 'auth/login', 'development/settings-request'}
+               'resume', 'turn', 'approval', 'interrupt', 'doctor', 'auth/login',
+               'development/settings-request', 'permission'}
 LIBRARY_ROUTES = {'/api/library/read', '/api/library/prepare', '/api/library/review-request', '/api/library/execute'}
 SIMULATION_ROUTE = '/api/simulation/execute'
 ONBOARDING_PREFIX = '/api/simulation/onboarding/'
