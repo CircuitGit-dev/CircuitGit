@@ -36,3 +36,11 @@
 .ic-ai-development-details { margin-top: 4px; color: var(--muted,#526778); font: 11px/1.5 system-ui,sans-serif; }
 .ic-ai-development-details summary, .ic-ai-native-request summary { cursor: pointer; }
 .ic-ai .ic-ai-development-details pre { margin: 5px 0 0; font-size: 11px; max-height: 80px; }
+.ic-ai-table-wrap { margin: 8px 0; overflow-x: auto; max-width: 100%; border: 1px solid var(--line, #dce3ec); border-radius: 6px; }
+.ic-ai-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.45; }
+.ic-ai-table th, .ic-ai-table td { padding: 5px 9px; border-bottom: 1px solid var(--line, #e5ecef); text-align: left; vertical-align: top; }
+.ic-ai-table [data-align="right"] { text-align: right; }
+.ic-ai-table [data-align="center"] { text-align: center; }
+.ic-ai-table th { background: var(--bg, #f4f7f9); font-weight: 600; color: var(--fg, #203a4a); }
+.ic-ai-table tbody tr:last-child td { border-bottom: 0; }
+.ic-ai-table tbody tr:nth-child(even) td { background: rgba(15, 40, 58, 0.025); }

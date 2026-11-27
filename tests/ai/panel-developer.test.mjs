@@ -167,3 +167,21 @@ test('full_access mode requires explicit local confirmation, stays visible when 
   await f.root.querySelector('.ic-ai-image-reconcile').click();await tick();
   assert.equal(f.c().input.readOnly,false);assert.equal(f.c().send.disabled,true);assert.equal(f.root.querySelector('.ic-ai-full-access-confirm').hidden,false);
 });
+
+test('assistant markdown tables render as safe DOM tables with alignment and inline code',async t=>{
+  const f=fixture(t,{history:{state:'complete',turns:[{key:'t-table',state:'complete',input_resumed_at_ms:1}],messages:[
+    {id:'m-table',request_key:'t-table',role:'assistant',text:'汇总如下：\n| 指标 | 实测结果 |\n|---|---:|\n| 差分增益 | **7.38x** (`VOP - VON`) |\n| 功耗 | 2.593 mW |'},
+  ]}});
+  await f.ready();await tick();
+  const table=f.root.querySelector('.ic-ai-table');
+  assert.ok(table);
+  const headers=table.querySelectorAll('th');
+  assert.equal(headers.length,2);
+  assert.equal(headers[0].textContent,'指标');
+  assert.equal(headers[1].textContent,'实测结果');
+  assert.equal(headers[1].getAttribute('data-align'),'right');
+  const rows=table.querySelectorAll('tr');
+  assert.equal(rows.length,3);
+  assert.equal(rows[1].querySelector('strong').textContent,'7.38x');
+  assert.equal(rows[1].querySelector('code').textContent,'VOP - VON');
+});

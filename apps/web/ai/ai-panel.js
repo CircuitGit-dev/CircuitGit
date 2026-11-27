@@ -31,12 +31,67 @@ function renderAnswer(target, text) {
   function flush() {
     if (paragraph.length) { const p = doc.createElement('p'); inline(p, paragraph.join('\n')); fragment.append(p); paragraph = []; }
   }
-  for (const line of text.split('\n')) {
+  function splitTableRow(raw) {
+    const trimmed = raw.trim().replace(/^\|/, '').replace(/\|$/, '');
+    return trimmed.split('|').map(cell => cell.trim());
+  }
+  function parseTableAlignments(raw) {
+    if (!raw || !raw.includes('|')) return null;
+    const cells = splitTableRow(raw);
+    if (!cells.length || !cells.every(cell => /^:?-{3,}:?$/.test(cell))) return null;
+    return cells.map(cell => (cell.startsWith(':') && cell.endsWith(':')) ? 'center' : (cell.endsWith(':') ? 'right' : 'left'));
+  }
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
     if (/^\s*```/.test(line)) {
       flush(); list = null;
       if (code) { code = null; } else { const pre = doc.createElement('pre'); code = doc.createElement('code'); pre.append(code); fragment.append(pre); }
     } else if (code) { code.append(doc.createTextNode((code.childNodes.length ? '\n' : '') + line)); }
     else if (!line.trim()) { flush(); list = null; }
+    else if (line.includes('|') && parseTableAlignments(lines[i + 1])) {
+      flush(); list = null;
+      const aligns = parseTableAlignments(lines[i + 1]);
+      const headers = splitTableRow(line);
+      const wrap = doc.createElement('div');
+      wrap.className = 'ic-ai-table-wrap';
+      const table = doc.createElement('table');
+      table.className = 'ic-ai-table';
+      const thead = doc.createElement('thead');
+      const headRow = doc.createElement('tr');
+      headers.forEach((cell, col) => {
+        const th = doc.createElement('th');
+        if (aligns[col] && aligns[col] !== 'left') {
+          th.setAttribute('data-align', aligns[col]);
+          if (th.style) th.style.textAlign = aligns[col];
+        }
+        inline(th, cell);
+        headRow.append(th);
+      });
+      thead.append(headRow);
+      table.append(thead);
+      const tbody = doc.createElement('tbody');
+      i += 1;
+      while (i + 1 < lines.length && lines[i + 1].trim() && lines[i + 1].includes('|')) {
+        i += 1;
+        const tr = doc.createElement('tr');
+        const cells = splitTableRow(lines[i]);
+        const count = Math.max(headers.length, cells.length);
+        for (let col = 0; col < count; col += 1) {
+          const td = doc.createElement('td');
+          if (aligns[col] && aligns[col] !== 'left') {
+            td.setAttribute('data-align', aligns[col]);
+            if (td.style) td.style.textAlign = aligns[col];
+          }
+          inline(td, cells[col] ?? '');
+          tr.append(td);
+        }
+        tbody.append(tr);
+      }
+      table.append(tbody);
+      wrap.append(table);
+      fragment.append(wrap);
+    }
     else {
       const item = /^\s*(?:([-*])|\d+\.)\s+(.+)$/.exec(line), heading = /^#{1,3}\s+(.+)$/.exec(line);
       if (item) {
