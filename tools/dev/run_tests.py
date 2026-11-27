@@ -147,6 +147,7 @@ def build_plan(*, quick=False, include_spiceowl=False, has_node=True):
         ('tools/workbench/test_local_opensource_sim.py', _py_unit('tools/workbench/test_local_opensource_sim.py')),
         ('tools/workbench/test_rnl_sync_and_probes.py', _py_unit('tools/workbench/test_rnl_sync_and_probes.py')),
         ('tools/workbench/test_backend.py', _py_unit('tools/workbench/test_backend.py')),
+        ('tools/workbench/test_audit_transport_and_dispatch_log.py', _py_unit('tools/workbench/test_audit_transport_and_dispatch_log.py')),
         ('tests/waveforms/test_dataset_routes.py', _py_script('tests/waveforms/test_dataset_routes.py')),
     ]
     if not quick:

@@ -18,6 +18,14 @@ from runner import atomic, locked, stamp, filehash
 from spiceowl_pool import read_json, canonical, MAX_RECORD_BYTES
 from workspace import Conflict
 
+
+def _failure_line(error):
+    """One bounded local log line; never a full traceback or private stack."""
+    cause = error.__cause__ if getattr(error, '__cause__', None) is not None else error
+    text = f'{type(cause).__name__}: {cause}'
+    return ' '.join(text.split())[:800]
+
+
 PREFIX = '/api/simulation/onboarding'
 READS = {'ssh-hosts','session','source','submission','waveforms/catalog','waveforms/mapping','waveforms/window','agent-tb','agent-tb/draft','agent-tb/review','pdk-scopes'}
 WRITES = {'netlist','ssh-browse','ssh-import','ssh-export-schematic','probe','discover-pdk','veriloga-headers','prepare','run','inspect','agent-tb/draft','agent-tb/prepare','analysis','select-pdk-scope'}
@@ -947,6 +955,7 @@ class OnboardingRuntime:
                 job=child.simulation.control('run',{'project_id':plan['project_id'],'plan_id':plan['plan_id']},
                     plan['submission_key'],'local-studio')
             except PreDispatchRejected as error:
+                print('pre-dispatch rejected: ' + _failure_line(error), flush=True)
                 rejection={'schema':'ic.experiment.pre-dispatch-rejection.v1','plan_id':plan['plan_id'],
                     'project_id':plan['project_id'],'source_commit':plan['source_commit'],
                     'submission_key':plan['submission_key'],'phase':'before_runner_reserve',
@@ -957,6 +966,7 @@ class OnboardingRuntime:
                     'replay_permitted':False,'job':None,'rejection':rejection}
                 return self._finish(folder,state,state='pre_dispatch_rejected',plans=state['plans'],job=None,submission=submission)
             except Exception as error:
+                print('submission uncertain: ' + _failure_line(error), flush=True)
                 plan['dispatch_outcome']='unknown';atomic(folder/'submission-error.json',{'message':str(error)[:2000]})
                 self._finish(folder,state,state='submission_uncertain',plans=state['plans'])
                 raise
