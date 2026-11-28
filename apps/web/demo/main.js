@@ -370,6 +370,9 @@ export async function mountStudio({ui:providedUI}={}) {
   libraryManager=mountLibraryManager({
     toolbar:$('studio-toolbar'),
     libraryPane:$('pane-files'),
+    bridge:host.libraryBridge,
+    onConnect:()=>void connectDirect(),
+    onMutated:()=>{syncAvailableVerilogA();schematicSidebar?.refresh();},
     onOpen:openLibrary,
     onOpenVerilogA:async value=>{
       syncAvailableVerilogA();

@@ -448,6 +448,8 @@ export async function mountStudio({ui:providedUI}={}){
       toolbar:$('studio-toolbar'),
       libraryPane:$('pane-files'),
       client,
+      bridge:libraryBridge,
+      onMutated:()=>{syncStudioVerilogA();schematicSidebar?.refresh();},
       onSelection:value=>{activeLibrarySelection=value;emitLibrarySelection();},
       onOpenVerilogA:async value=>{
         syncStudioVerilogA();

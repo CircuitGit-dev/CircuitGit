@@ -117,3 +117,17 @@ test('isDiffLimitError detects 413 diff_limit responses for oversized import com
  assert.equal(isDiffLimitError(Error('Commit diff exceeds review bounds')),true);
  assert.equal(isDiffLimitError(Error('Network timeout')),false);
 });
+test('bridge allows catalog read and create_view execute with mutation event',async()=>{
+ const calls=[],events=[],bridge=createLibraryBridge();
+ bridge.bind({request:async(path,options)=>(calls.push({path,...options}),options.body?.operation==='catalog'?{base_commit:'c'.repeat(40),libraries:[]}:{state:'complete',view_id:'veriloga'})});
+ bridge.subscribeMutation(event=>events.push(event));
+ const cat=await bridge.request('catalog',{});
+ assert.equal(cat.base_commit,'c'.repeat(40));
+ assert.equal(calls[0].path,'/library/read');
+ const res=await bridge.request('execute',{operation:'create_view',args:{library_id:'demo',cell_id:'gain',view_id:'veriloga',base_commit:'c'.repeat(40)},idempotency_key:'create-view-bridge-001'});
+ assert.equal(res.state,'complete');
+ assert.equal(res.view_id,'veriloga');
+ assert.equal(events.length,1);
+ assert.equal(events[0].operation,'create_view');
+ bridge.unbind();
+});

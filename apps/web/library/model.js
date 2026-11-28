@@ -6,6 +6,78 @@ const VIEW_KINDS=new Set(['rnl','veriloga','spectre','json','markdown']);
 const CELL_KINDS=new Set(['circuit','testbench','primitive']);
 export const ARCHIVED_LIBRARY_IDS=new Set(['pipetisar-research','pipesar-original']);
 
+export const LIBRARY_VIEW_TYPES=Object.freeze([
+  Object.freeze({id:'schematic',kind:'rnl',label:'原理图 (schematic)',defaultLabel:'Schematic',subdir:'schematic',defaultExt:'.scs',defaultFilename:cellId=>`${cellId}.scs`}),
+  Object.freeze({id:'symbol',kind:'rnl',label:'符号 (symbol)',defaultLabel:'Symbol',subdir:'symbol',defaultExt:'.rnl',defaultFilename:cellId=>`${cellId}.rnl`}),
+  Object.freeze({id:'veriloga',kind:'veriloga',label:'Verilog-A 行为模型 (veriloga)',defaultLabel:'Verilog-A',subdir:'veriloga',defaultExt:'.va',defaultFilename:cellId=>`${cellId}.va`}),
+  Object.freeze({id:'netlist',kind:'spectre',label:'网表 (netlist)',defaultLabel:'Netlist',subdir:'netlist',defaultExt:'.scs',defaultFilename:cellId=>`${cellId}.scs`}),
+  Object.freeze({id:'simulation',kind:'json',label:'仿真配置 (simulation)',defaultLabel:'Simulation',subdir:'simulation',defaultExt:'.json',defaultFilename:()=>'config.json'}),
+  Object.freeze({id:'docs',kind:'markdown',label:'说明与依赖文档 (docs)',defaultLabel:'Documentation',subdir:'docs',defaultExt:'.md',defaultFilename:()=>'notes.md'}),
+]);
+const VIEW_TYPE_BY_ID=new Map(LIBRARY_VIEW_TYPES.map(spec=>[spec.id,spec]));
+
+export function availableViewTypesForCell(cell){
+  const rawIds=new Set((Array.isArray(cell?.views)?cell.views:[]).map(v=>v?.id).filter(Boolean));
+  return LIBRARY_VIEW_TYPES.map(spec=>({...spec,exists:rawIds.has(spec.id)}));
+}
+
+export function normalizeLiveCatalog(liveCatalog,fallbackLibraries=[]){
+  const fallbackByLib=new Map();
+  for(const lib of Array.isArray(fallbackLibraries)?fallbackLibraries:[]){
+    if(!lib?.id)continue;
+    const cellMap=new Map((lib.cells||[]).map(c=>[c.id,c]));
+    fallbackByLib.set(lib.id,{lib,cellMap});
+  }
+  const libraries=(Array.isArray(liveCatalog?.libraries)?liveCatalog.libraries:[]).map(lib=>{
+    const fb=fallbackByLib.get(lib.id);
+    const cells=(Array.isArray(lib.cells)?lib.cells:[]).map(cell=>{
+      const fbCell=fb?.cellMap.get(cell.id);
+      const directory=cell.directory||fbCell?.directory||`lib/${lib.id}/${cell.id}`;
+      return {
+        id:cell.id,
+        name:cell.name||fbCell?.name||cell.id,
+        description:cell.description??fbCell?.description??'',
+        directory,
+        kind:cell.kind||fbCell?.kind||'circuit',
+        readme:cell.readme||fbCell?.readme||`${directory}/README.md`,
+        project_id:cell.project_id!==undefined?cell.project_id:(fbCell?.project_id??null),
+        requires_external_models:Boolean(cell.requires_external_models??fbCell?.requires_external_models),
+        source_path:cell.source_path??fbCell?.source_path??null,
+        views:Array.isArray(cell.views)?cell.views:[],
+      };
+    });
+    return {
+      id:lib.id,
+      name:lib.name||fb?.lib?.name||lib.id,
+      description:lib.description??fb?.lib?.description??'',
+      cells,
+    };
+  });
+  return {baseCommit:liveCatalog?.base_commit||null,libraries};
+}
+
+export function buildCreateViewArgs({libraryId,cellId,viewId,baseCommit,label='',filename='',level=''}={}){
+  const lid=String(libraryId||'').trim();
+  const cid=String(cellId||'').trim();
+  const vid=String(viewId||'').trim();
+  const commit=String(baseCommit||'').trim();
+  if(!lid||!cid)throw Error('请先选择目标电路库和单元。');
+  const spec=VIEW_TYPE_BY_ID.get(vid);
+  if(!spec)throw Error('不支持的视图类型：'+(vid||'(空)'));
+  if(!commit)throw Error('缺少当前 Git 基线提交，请先刷新目录。');
+  const args={library_id:lid,cell_id:cid,view_id:vid,kind:spec.kind,base_commit:commit};
+  const cleanLabel=String(label||'').trim();
+  if(cleanLabel)args.label=cleanLabel;
+  const cleanFilename=String(filename||'').trim();
+  if(cleanFilename)args.filename=cleanFilename;
+  const cleanLevel=String(level||'').trim();
+  if(cleanLevel){
+    if(spec.kind!=='rnl')throw Error('只有 RNL 原理图或符号视图才支持设置原生层级 (level)。');
+    args.level=cleanLevel;
+  }
+  return args;
+}
+
 export function isArchivedLibrary(library){
   const id=typeof library==='string'?library:library?.id;
   return Boolean(id&&ARCHIVED_LIBRARY_IDS.has(id));
