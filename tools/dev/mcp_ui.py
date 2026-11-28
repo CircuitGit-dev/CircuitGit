@@ -106,10 +106,10 @@ def render_document(root,kind):
         if kind in ('schematic','workbench') and name.startswith('apps/web/vendor/rnl-viewer/') and not name.endswith(('.js','.mjs')):asset(name)
     payload={'schema':'ic.ui.bundle.v1','kind':kind,'entry':entry if entry in assets else None,'modules':modules,'assets':local_assets}
     payload_bytes=json.dumps(payload,separators=(',',':')).encode()
-    host=(root/'apps/codex/ui/host.js').read_text()
+    host=(root/'apps/codex/ui/host.js').read_text(encoding='utf-8')
     host=re.sub(r'(?m)^export\s+','',host)
-    shell=(root/'apps/codex/ui/shell.css').read_text()
-    runtime=(root/'apps/codex/ui/bootstrap.js').read_text()
+    shell=(root/'apps/codex/ui/shell.css').read_text(encoding='utf-8')
+    runtime=(root/'apps/codex/ui/bootstrap.js').read_text(encoding='utf-8')
     # The first script completes initialize before parsing/importing any large renderer payload.
     prefix='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IC '+kind+'</title><style>'+shell+'</style></head><body><main class="ic-app-shell"><header class="ic-app-header"><strong>IC '+kind+'</strong><button id="ic-display" hidden>全屏</button></header><div id="ic-status" class="ic-app-status" role="status">连接宿主…</div><div id="ic-root" class="ic-app-root"></div></main><script>'+host+'\n'+runtime.replace('__IC_KIND__',json.dumps(kind))+'</script>'
     # inert base64 contains no executable tags, HTML or private runtime state

@@ -19,12 +19,14 @@ import bootstrap_python as bootstrap
 from upstream_sources import ensure_upstreams,UpstreamError
 
 EXTRAS = ('adctools', 'mcp')
+# -X utf8 keeps every step reading repository sources as UTF-8 regardless of the console
+# codepage (GBK on Chinese Windows); -E only blocks UTF-8 mode through environment variables.
 STEPS = (
     ('dependencies', ['-I', '-B', '-m', 'pip', 'check'], 120),
-    ('build', ['-E', '-s', '-B', 'tools/dev/build.py', 'all'], 180),
-    ('pages', ['-E', '-s', '-B', 'tools/dev/build_pages.py'], 180),
-    ('structure', ['-E', '-s', '-B', 'tools/dev/check_structure.py'], 120),
-    ('links', ['-E', '-s', '-B', 'tools/dev/check_links.py'], 120),
+    ('build', ['-X', 'utf8', '-E', '-s', '-B', 'tools/dev/build.py', 'all'], 180),
+    ('pages', ['-X', 'utf8', '-E', '-s', '-B', 'tools/dev/build_pages.py'], 180),
+    ('structure', ['-X', 'utf8', '-E', '-s', '-B', 'tools/dev/check_structure.py'], 120),
+    ('links', ['-X', 'utf8', '-E', '-s', '-B', 'tools/dev/check_links.py'], 120),
 )
 
 
