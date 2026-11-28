@@ -1,6 +1,6 @@
 // The paired transport owns its credential. This bridge accepts only finite library operations.
-const reads=new Set(['capability','describe','read_file','current','history','commit_detail','checkpoints','get_ci','receipt','pr_status','get_testbenches','get_testbench_result','review_testbench','review_status','branches']);
-const writes=new Set(['save','save_files','commit','restore','pr','ci','create_library','create_cell','clone_cell','create_branch','switch_branch']);
+const reads=new Set(['capability','catalog','describe','read_file','current','history','commit_detail','checkpoints','get_ci','receipt','pr_status','get_testbenches','get_testbench_result','review_testbench','review_status','branches']);
+const writes=new Set(['save','save_files','commit','restore','pr','ci','create_library','create_cell','clone_cell','create_view','create_branch','switch_branch']);
 const complete=result=>['complete','completed','succeeded'].includes(result?.state||result?.status);
 export const cellFingerprint=value=>value?.fingerprint||JSON.stringify([value?.base_commit,value?.branch,(value?.changes||[]).map(item=>[item.path,item.status,item.sha256]).sort((a,b)=>a[0].localeCompare(b[0]))]);
 export function createLibraryBridge({pollInterval=2500}={}){

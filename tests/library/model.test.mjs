@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createLibraryClient,repositoryPath,validateCatalog,validateLibrary,filterLibraries,classifyLibraryHierarchy,primaryProjectEntry,formatLibraryName,formatViewLabel,displayViewsForCell,isArchivedLibrary,visibleLibraries} from '../../apps/web/library/model.js';
+import {createLibraryClient,repositoryPath,validateCatalog,validateLibrary,filterLibraries,classifyLibraryHierarchy,primaryProjectEntry,formatLibraryName,formatViewLabel,displayViewsForCell,isArchivedLibrary,visibleLibraries,LIBRARY_VIEW_TYPES,availableViewTypesForCell,normalizeLiveCatalog,buildCreateViewArgs} from '../../apps/web/library/model.js';
 const entry='lib/synthetic/cell/schematic/view.scs',dependency='lib/synthetic/cell/schematic/support/circuit.scs';
 const view={id:'schematic',label:'Synthetic native schematic',kind:'rnl',entry,files:[entry,dependency],level:'@top'};
 const library={schema:'circuitgit.library.v1',id:'synthetic',name:'Synthetic library',description:'Test only',cells:[{id:'cell',name:'Synthetic cell',kind:'circuit',directory:'lib/synthetic/cell',readme:'lib/synthetic/cell/README.md',project_id:null,requires_external_models:false,views:[view,{id:'docs',label:'Readme',kind:'markdown',entry:'lib/synthetic/cell/README.md',files:['lib/synthetic/cell/README.md']}]}]};
@@ -122,4 +122,57 @@ test('visibleLibraries hides archived research libraries by default while preser
   assert.deepEqual(visibleLibraries(all,{includeArchived:true}).map(l=>l.id),['pipetisar-real','pipetisar-research','pipesar-original','basics']);
   assert.equal(formatLibraryName(all[0]),'1G 12-bit PIPE–TI–SAR ADC');
   assert.equal(formatLibraryName(all[3]),'基础示例电路');
+});
+
+test('availableViewTypesForCell ignores synthetic views and buildCreateViewArgs validates inputs',()=>{
+  assert.equal(LIBRARY_VIEW_TYPES.length,6);
+  const cell={
+    id:'ota',kind:'circuit',
+    views:[
+      {id:'schematic',label:'Schematic',kind:'rnl',entry:'lib/demo/ota/schematic/ota.scs',files:['lib/demo/ota/schematic/ota.scs']},
+      {id:'docs',label:'Documentation',kind:'markdown',entry:'lib/demo/ota/README.md',files:['lib/demo/ota/README.md']},
+    ],
+  };
+  const choices=availableViewTypesForCell(cell);
+  assert.equal(choices.find(v=>v.id==='schematic').exists,true);
+  assert.equal(choices.find(v=>v.id==='docs').exists,true);
+  assert.equal(choices.find(v=>v.id==='symbol').exists,false);
+  assert.equal(choices.find(v=>v.id==='veriloga').exists,false);
+  assert.equal(choices.find(v=>v.id==='simulation').defaultFilename('ota'),'config.json');
+
+  const args=buildCreateViewArgs({
+    libraryId:'demo',cellId:'ota',viewId:'symbol',baseCommit:'a'.repeat(40),
+    label:'OTA Symbol',filename:'ota.rnl',level:'OTA_SYM',
+  });
+  assert.deepEqual(args,{
+    library_id:'demo',cell_id:'ota',view_id:'symbol',kind:'rnl',base_commit:'a'.repeat(40),
+    label:'OTA Symbol',filename:'ota.rnl',level:'OTA_SYM',
+  });
+  assert.throws(()=>buildCreateViewArgs({libraryId:'demo',cellId:'ota',viewId:'veriloga',baseCommit:'a'.repeat(40),level:'BAD'}),/原生层级/);
+  assert.throws(()=>buildCreateViewArgs({libraryId:'demo',cellId:'ota',viewId:'unknown',baseCommit:'a'.repeat(40)}),/不支持/);
+});
+
+test('normalizeLiveCatalog merges fallback metadata and preserves live views',()=>{
+  const live={
+    base_commit:'b'.repeat(40),
+    libraries:[{
+      id:'demo',
+      name:'Demo Live',
+      cells:[{
+        id:'ota',name:'OTA',directory:'lib/demo/ota',kind:'circuit',
+        project_id:null,requires_external_models:false,source_path:'lib/demo/ota/schematic/ota.scs',
+        views:[{id:'schematic',label:'Schematic',kind:'rnl',entry:'lib/demo/ota/schematic/ota.scs',files:['lib/demo/ota/schematic/ota.scs']}],
+      }],
+    }],
+  };
+  const fallback=[{
+    id:'demo',name:'Demo',description:'Demo description',
+    cells:[{id:'ota',description:'Two-stage OTA',readme:'lib/demo/ota/README.md'}],
+  }];
+  const normalized=normalizeLiveCatalog(live,fallback);
+  assert.equal(normalized.baseCommit,'b'.repeat(40));
+  assert.equal(normalized.libraries[0].description,'Demo description');
+  assert.equal(normalized.libraries[0].cells[0].description,'Two-stage OTA');
+  assert.equal(normalized.libraries[0].cells[0].readme,'lib/demo/ota/README.md');
+  assert.equal(normalized.libraries[0].cells[0].views.length,1);
 });

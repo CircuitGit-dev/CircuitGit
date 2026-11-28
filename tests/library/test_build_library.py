@@ -342,6 +342,21 @@ class BuildLibraryTest(unittest.TestCase):
             BUILD.publish(self.root, self.output)
         self.assertEqual(self.inventory(external), {})
 
+    def test_veriloga_view_is_collected_and_published(self):
+        va_path = self.directory + "/veriloga/gain.va"
+        self.write(va_path, '`include "disciplines.vams"\nmodule gain(in, out); inout in, out; electrical in, out; endmodule\n')
+        self.cell["views"].append({
+            "id": "veriloga",
+            "label": "Verilog-A",
+            "kind": "veriloga",
+            "entry": va_path,
+            "files": [va_path],
+        })
+        self.save()
+        report = BUILD.publish(self.root, self.output)
+        self.assertEqual(report["views"], 2)
+        self.assertTrue((self.output / "library-files" / va_path).is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
