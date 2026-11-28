@@ -10,6 +10,9 @@ from .rpc import Rpc
 from .service import Failure, check
 
 
+WINDOWS_PACKAGES_KEY = r'Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages'
+
+
 def _text(value, maximum=240):
     check(isinstance(value, str) and 0 < len(value) <= maximum
           and not any(ord(c) < 32 for c in value)
@@ -39,24 +42,75 @@ def metadata_error(error, method):
             'exit_code': exit_code, 'details': details}
 
 
-def discover_runtime(config, *, search_path=None, app_roots=None):
-    """Return public metadata plus a private executable. Stat/PATH lookup only; no subprocess."""
+def _windows_msix_roots(registry=None):
+    """Read current-user MSIX package roots without enumerating restricted WindowsApps."""
+    if registry is None:
+        if os.name != 'nt':
+            return []
+        try:
+            import winreg as registry
+        except ImportError:
+            return []
+    rows, seen = [], set()
+    try:
+        packages = registry.OpenKey(registry.HKEY_CURRENT_USER, WINDOWS_PACKAGES_KEY, 0, registry.KEY_READ)
+    except OSError:
+        return []
+    try:
+        index = 0
+        while True:
+            try:
+                name = registry.EnumKey(packages, index)
+            except OSError:
+                break
+            index += 1
+            if not name.lower().startswith('openai.codex_'):
+                continue
+            package = None
+            try:
+                package = registry.OpenKey(packages, name, 0, registry.KEY_READ)
+                value = registry.QueryValueEx(package, 'PackageRootFolder')[0]
+                root = Path(value)
+                normalized = os.path.normcase(str(root))
+                if root.is_absolute() and normalized not in seen:
+                    rows.append((name, root))
+                    seen.add(normalized)
+            except (OSError, TypeError, ValueError):
+                continue
+            finally:
+                if package is not None:
+                    registry.CloseKey(package)
+    finally:
+        registry.CloseKey(packages)
+    return [root for _, root in sorted(rows, reverse=True)]
+
+
+def discover_runtime(config, *, search_path=None, app_roots=None, msix_roots=None):
+    """Return public metadata plus a private executable from files and package metadata only."""
     is_win = os.name == 'nt'
     if app_roots is not None:
         roots = [Path(p) for p in app_roots]
+        desktop_roots = list(roots)
     elif is_win:
         local_app = os.environ.get('LOCALAPPDATA')
         app_data = os.environ.get('APPDATA')
-        roots = [p for p in (
+        desktop_roots = [p for p in (
             Path(local_app) / 'Programs' / 'Codex' if local_app else None,
             Path(local_app) / 'Codex' if local_app else None,
+        ) if p is not None]
+        npm_roots = [p for p in (
             Path(app_data) / 'npm' if app_data else None,
         ) if p is not None]
+        roots = [*desktop_roots, *npm_roots]
     else:
         roots = [
             Path('/Applications/Codex.app'), Path.home() / 'Applications/Codex.app',
             Path('/Applications/ChatGPT.app'), Path.home() / 'Applications/ChatGPT.app',
         ]
+        desktop_roots = list(roots)
+    package_roots = ([Path(p) for p in msix_roots] if msix_roots is not None
+                     else _windows_msix_roots() if is_win and app_roots is None else [])
+    roots = [*roots, *package_roots]
     # Ignore relative PATH entries, including the empty entry denoting the project cwd.
     env_path = os.environ.get('PATH', '') if search_path is None else search_path
     path = os.pathsep.join(p for p in env_path.split(os.pathsep) if p and Path(p).is_absolute())
@@ -109,10 +163,11 @@ def discover_runtime(config, *, search_path=None, app_roots=None):
             source, reason = 'path', None
         else:
             entries = (
-                ('codex.exe', 'resources/codex.exe', 'codex.cmd',
+                ('codex.exe', 'resources/codex.exe', 'app/resources/codex.exe', 'codex.cmd',
                  'Contents/Resources/codex', 'Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex')
                 if is_win
-                else ('Contents/Resources/codex', 'Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex')
+                else ('app/resources/codex.exe', 'Contents/Resources/codex',
+                      'Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex')
             )
             for root in roots:
                 for entry in entries:
@@ -123,7 +178,8 @@ def discover_runtime(config, *, search_path=None, app_roots=None):
                     source, reason = 'official_app', None
                     break
     try:
-        installed = True if any(root.is_dir() for root in roots) else 'unknown'
+        installed = True if (any(root.is_dir() for root in desktop_roots)
+                             or any(root.is_dir() for root in package_roots)) else 'unknown'
     except OSError:
         installed = 'unknown'
     return {'schema': 'ic.ai.discovery.v1',

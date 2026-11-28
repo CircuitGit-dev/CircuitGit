@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'apps/codex'))
+import icwb.connection_metadata as connection_metadata
 from icwb.ai import AiSession
 from icwb.connection_metadata import (MetadataRpc, discover_runtime, empty_connection,
                                       metadata_error, probe_metadata, project_account, project_usage)
@@ -112,6 +113,51 @@ class DiscoveryTests(unittest.TestCase):
                     public, selected = self.discover(apps=[app])
                     self.assertEqual(selected, str(binary)); self.assertEqual(public['codex']['source'], 'official_app')
                     self.assertIs(public['desktop']['installed'], True)
+
+    def test_windows_msix_registered_package_root_is_discovered(self):
+        package = self.root / 'WindowsApps/OpenAI.Codex_26.1120.6357.0_x64__publisher'
+        binary = self.exe(package / 'app/resources/codex.exe')
+        public, selected = discover_runtime({}, search_path='', app_roots=None, msix_roots=[package])
+        self.assertEqual(selected, str(binary))
+        self.assertEqual(public['codex']['source'], 'official_app')
+        self.assertIsNone(public['codex']['reason'])
+        self.assertIs(public['desktop']['installed'], True)
+        self.assertEqual(public['desktop']['running'], 'unknown')
+
+    def test_windows_system_package_registry_only_returns_codex_roots(self):
+        package = self.root / 'WindowsApps/OpenAI.Codex_26.1120.6357.0_x64__publisher'
+        other = self.root / 'WindowsApps/Something.Else_1.0.0.0_x64__publisher'
+        package.mkdir(parents=True); other.mkdir()
+        values = {
+            package.name: {'PackageRootFolder': str(package)},
+            other.name: {'PackageRootFolder': str(other)},
+        }
+
+        class Registry:
+            HKEY_CURRENT_USER = object()
+            KEY_READ = 1
+
+            @staticmethod
+            def OpenKey(_root, name, _reserved=0, _access=0):
+                return 'packages' if name == connection_metadata.WINDOWS_PACKAGES_KEY else name
+
+            @staticmethod
+            def EnumKey(key, index):
+                if key != 'packages' or index >= len(values):
+                    raise OSError
+                return list(values)[index]
+
+            @staticmethod
+            def QueryValueEx(key, name):
+                if name not in values[key]:
+                    raise OSError
+                return values[key][name], 1
+
+            @staticmethod
+            def CloseKey(_key):
+                return None
+
+        self.assertEqual(connection_metadata._windows_msix_roots(Registry()), [package])
 
     def test_routes_discovery_does_not_construct_session(self):
         routes = object.__new__(AiRoutes); routes.service = Mock(config={'codex_bin': '/definitely/missing/codex'})
