@@ -375,6 +375,142 @@ class LibraryCrudBranchesPrTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(as_json(body)["data"]["library_id"], "live-lib")
 
+        status, body = call_post(
+            "/api/library/execute",
+            {
+                "operation": "create_view",
+                "args": {"library_id": "demo", "cell_id": "gain", "view_id": "netlist", "base_commit": self.head()},
+                "idempotency_key": "live-view-001",
+            },
+        )
+        self.assertEqual(status, 200)
+        view_data = as_json(body)["data"]
+        self.assertEqual(view_data["state"], "complete")
+        self.assertEqual(view_data["view_id"], "netlist")
+        self.assertEqual(view_data["entry"], "lib/demo/gain/netlist/gain.scs")
+
+    def test_create_view_workflow_guards_pr_and_bridges(self):
+        desc0 = self.workflow.describe("demo", "gain")
+        self.assertTrue(desc0["capabilities"]["create_view"])
+
+        # 1. Create symbol, veriloga, simulation, and docs views on existing cell demo/gain.
+        sym_base = self.head()
+        sym_res = self.workflow.execute(
+            "create_view",
+            {"library_id": "demo", "cell_id": "gain", "view_id": "symbol", "base_commit": sym_base, "level": "GAIN_SYM"},
+            "create-view-sym-001",
+        )
+        self.assertEqual(sym_res["state"], "complete")
+        self.assertEqual(sym_res["view_id"], "symbol")
+        self.assertEqual(sym_res["entry"], "lib/demo/gain/symbol/gain.rnl")
+        self.assertEqual(sym_res["view"]["level"], "GAIN_SYM")
+        # Idempotent replay with the original request args returns exact receipt.
+        self.assertEqual(
+            self.workflow.execute(
+                "create_view",
+                {"library_id": "demo", "cell_id": "gain", "view_id": "symbol", "base_commit": sym_base, "level": "GAIN_SYM"},
+                "create-view-sym-001",
+            ),
+            sym_res,
+        )
+
+        va_res = self.workflow.execute(
+            "create_view",
+            {"library_id": "demo", "cell_id": "gain", "view_id": "veriloga", "label": "Behavioral VA", "base_commit": self.head()},
+            "create-view-va-001",
+        )
+        self.assertEqual(va_res["entry"], "lib/demo/gain/veriloga/gain.va")
+        self.assertIn("module gain(", (self.root / va_res["entry"]).read_text(encoding="utf-8"))
+
+        sim_res = self.workflow.execute(
+            "create_view",
+            {"library_id": "demo", "cell_id": "gain", "view_id": "simulation", "base_commit": self.head()},
+            "create-view-sim-001",
+        )
+        self.assertEqual(sim_res["entry"], "lib/demo/gain/simulation/config.json")
+
+        # 2. Verify describe() and catalog() reflect new editable views.
+        desc = self.workflow.describe("demo", "gain")
+        editable_by_path = {f["path"]: f["editable"] for f in desc["files"]}
+        self.assertTrue(editable_by_path["lib/demo/gain/symbol/gain.rnl"])
+        self.assertTrue(editable_by_path["lib/demo/gain/veriloga/gain.va"])
+        self.assertTrue(editable_by_path["lib/demo/gain/simulation/config.json"])
+        gain_cat = next(c for c in self.workflow.catalog()["libraries"][0]["cells"] if c["id"] == "gain")
+        self.assertEqual([v["id"] for v in gain_cat["views"]], ["schematic", "symbol", "veriloga", "simulation"])
+
+        # 3. Verify build_library.collect accepts the updated repo including veriloga view.
+        spec = importlib.util.spec_from_file_location("circuitgit_build_library", ROOT / "tools/dev/build_library.py")
+        build_lib = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(build_lib)
+        report = build_lib.collect(self.root)
+        self.assertGreaterEqual(report["views"], 6)
+
+        # 4. Cell-scoped PR succeeds for existing cell demo/gain after create_view, while editing another cell stays out_of_scope.
+        pr_preview = self.workflow.preview_pr("demo", "gain", self.head(), "Add symbol/veriloga/simulation views to gain")
+        self.assertIn("lib/demo/library.json", pr_preview["payload"]["files"])
+        self.assertIn("lib/demo/gain/veriloga/gain.va", pr_preview["payload"]["files"])
+
+        f_other = self.workflow.read_file("demo", "other", "lib/demo/other/schematic/other.scs")
+        self.workflow.execute(
+            "save",
+            {"library_id": "demo", "cell_id": "other", "path": f_other["path"], "content": f_other["content"].replace("5k", "6k"), "base_sha256": f_other["sha256"]},
+            "view-other-save",
+        )
+        self.workflow.execute("commit", {"library_id": "demo", "cell_id": "other", "base_commit": self.head(), "title": "Edit other"}, "view-other-commit")
+        with self.assertRaises(MOD.WorkflowError) as out_exc:
+            self.workflow.preview_pr("demo", "gain", self.head(), "Should fail when other cell changed")
+        self.assertEqual(out_exc.exception.code, "out_of_scope")
+
+        # 5. Validation and conflict guards.
+        for bad_args, expected_code in [
+            ({"library_id": "demo", "cell_id": "gain", "view_id": "symbol", "base_commit": self.head()}, "conflict"),
+            ({"library_id": "demo", "cell_id": "gain", "view_id": "netlist", "base_commit": self.base}, "conflict"),
+            ({"library_id": "demo", "cell_id": "gain", "view_id": "unknown", "base_commit": self.head()}, "invalid_request"),
+            ({"library_id": "demo", "cell_id": "gain", "view_id": "netlist", "kind": "json", "base_commit": self.head()}, "invalid_request"),
+            ({"library_id": "demo", "cell_id": "gain", "view_id": "netlist", "filename": "../evil.scs", "base_commit": self.head()}, "invalid_request"),
+            ({"library_id": "demo", "cell_id": "gain", "view_id": "netlist", "filename": "wrong.va", "base_commit": self.head()}, "invalid_request"),
+            ({"library_id": "demo", "cell_id": "gain", "view_id": "netlist", "level": "TOP", "base_commit": self.head()}, "invalid_request"),
+            ({"library_id": "demo", "cell_id": "gain", "view_id": "docs", "filename": "bad.md", "base_commit": "0" * 40}, "conflict"),
+        ]:
+            with self.subTest(bad_args=bad_args), self.assertRaises(MOD.WorkflowError) as err:
+                self.workflow.preview_create_view(**bad_args)
+            self.assertEqual(err.exception.code, expected_code)
+
+        # Simulation view rejects non-object JSON.
+        self.workflow.execute(
+            "create_view",
+            {"library_id": "demo", "cell_id": "top", "view_id": "netlist", "base_commit": self.head()},
+            "create-view-top-net",
+        )
+        with self.assertRaises(MOD.WorkflowError) as json_err:
+            self.workflow.preview_create_view("demo", "top", "simulation", self.head(), content="[1, 2, 3]")
+        self.assertEqual(json_err.exception.code, "invalid_json")
+
+        # 6. MCP adapter and browser_library bridges both expose and execute create_view.
+        svc = FakeService(self.root, self.workflow)
+        cap = library_adapter.call(svc, "ic_library_read", {"operation": "capability", "arguments": {}})
+        self.assertIn("create_view", cap["operations"])
+        mcp_res = library_adapter.call(svc, "ic_library_execute", {
+            "operation": "create_view",
+            "arguments": {"library_id": "demo", "cell_id": "top", "view_id": "docs", "filename": "notes.md", "base_commit": self.head()},
+            "idempotency_key": "mcp-create-view-001",
+        })
+        self.assertEqual(mcp_res["state"], "complete")
+        self.assertEqual(mcp_res["entry"], "lib/demo/top/docs/notes.md")
+
+        local = browser_library.LocalLibrary(self.workflow, FakePairing(), "http://127.0.0.1:8766")
+        b_cap = local.read("capability", {}, "ok-token", "http://127.0.0.1:8766")
+        self.assertIn("create_view", b_cap["execute_operations"])
+        b_res = local.execute(
+            "create_view",
+            {"library_id": "demo", "cell_id": "other", "view_id": "simulation", "base_commit": self.head()},
+            "browser-create-view-001",
+            "ok-token",
+            "http://127.0.0.1:8766",
+        )
+        self.assertEqual(b_res["state"], "complete")
+        self.assertEqual(b_res["view_id"], "simulation")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

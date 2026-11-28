@@ -116,7 +116,7 @@ def collect(root):
                 vid = view.get('id')
                 check(isinstance(vid, str) and ID.fullmatch(vid) and vid not in view_ids, 'Invalid or duplicate view')
                 view_ids.add(vid);view_count += 1
-                check(view.get('kind') in {'rnl', 'spectre', 'json', 'markdown'}, 'Unsupported view kind')
+                check(view.get('kind') in {'rnl', 'veriloga', 'spectre', 'json', 'markdown'}, 'Unsupported view kind')
                 level = view.get('level')
                 check(level is None or (isinstance(level, str) and 0 < len(level) <= 256
                                        and not any(ord(c) < 32 for c in level)), 'Invalid native view level')

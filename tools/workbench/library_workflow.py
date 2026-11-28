@@ -35,6 +35,15 @@ MAX_FILE = 1024 * 1024
 MAX_DIFF = 256 * 1024
 MAX_OUTPUT = 4 * 1024 * 1024
 
+VIEW_SPECS = {
+    "schematic":  {"kind": "rnl",      "default_label": "Schematic",     "subdir": "schematic",  "default_ext": ".scs",  "allowed_exts": {".scs", ".rnl"}},
+    "symbol":     {"kind": "rnl",      "default_label": "Symbol",        "subdir": "symbol",     "default_ext": ".rnl",  "allowed_exts": {".rnl", ".scs"}},
+    "veriloga":   {"kind": "veriloga", "default_label": "Verilog-A",     "subdir": "veriloga",   "default_ext": ".va",   "allowed_exts": {".va"}},
+    "netlist":    {"kind": "spectre",  "default_label": "Netlist",       "subdir": "netlist",    "default_ext": ".scs",  "allowed_exts": {".scs", ".txt"}},
+    "simulation": {"kind": "json",     "default_label": "Simulation",    "subdir": "simulation", "default_ext": ".json", "allowed_exts": {".json"}},
+    "docs":       {"kind": "markdown", "default_label": "Documentation", "subdir": "docs",       "default_ext": ".md",   "allowed_exts": {".md", ".txt"}},
+}
+
 
 class WorkflowError(ValueError):
     def __init__(self, code, message, status=400, details=None):
@@ -83,9 +92,9 @@ def branch_name(value):
 
 class LibraryWorkflow:
     READ_OPERATIONS = frozenset({"catalog", "describe", "read_file", "current", "history", "commit_detail", "checkpoints", "get_ci", "get_testbenches", "get_testbench_result", "review", "receipt", "pr_status", "branches"})
-    PREPARE_OPERATIONS = frozenset({"preview_save", "preview_commit", "preview_restore", "preview_pr", "preview_ci", "preview_testbench", "preview_create_library", "preview_create_cell", "preview_clone_cell", "preview_create_branch", "preview_switch_branch"})
-    EXECUTE_OPERATIONS = frozenset({"save", "save_files", "commit", "restore", "pr", "ci", "create_library", "create_cell", "clone_cell", "create_branch", "switch_branch"})
-    REPO_OPERATIONS = frozenset({"create_library", "create_cell", "clone_cell", "create_branch", "switch_branch"})
+    PREPARE_OPERATIONS = frozenset({"preview_save", "preview_commit", "preview_restore", "preview_pr", "preview_ci", "preview_testbench", "preview_create_library", "preview_create_cell", "preview_clone_cell", "preview_create_view", "preview_create_branch", "preview_switch_branch"})
+    EXECUTE_OPERATIONS = frozenset({"save", "save_files", "commit", "restore", "pr", "ci", "create_library", "create_cell", "clone_cell", "create_view", "create_branch", "switch_branch"})
+    REPO_OPERATIONS = frozenset({"create_library", "create_cell", "clone_cell", "create_view", "create_branch", "switch_branch"})
 
     def __init__(self, root, repository, base_branch="main", state_dir=None, ci_registry=None, gh_bin="gh"):
         self.root = Path(root).resolve(strict=True)
@@ -345,7 +354,8 @@ class LibraryWorkflow:
                 "capabilities": {"read": True, "save": True, "save_files": True, "execute": True, "commit": self._branch() is not None,
                                  "restore": True, "pr": True, "ci": bool(self._cell_testbenches(scope)), "testbench_review": self._branch() is not None,
                                  "branches": True, "create_library": self._branch() is not None, "create_cell": self._branch() is not None,
-                                 "clone_cell": self._branch() is not None, "create_branch": True, "switch_branch": True},
+                                 "clone_cell": self._branch() is not None, "create_view": self._branch() is not None,
+                                 "create_branch": True, "switch_branch": True},
                 "provenance_note": "Recorded import provenance remains historical; saved source edits are new working revisions."}
 
     def catalog(self):
@@ -1203,6 +1213,149 @@ class LibraryWorkflow:
             cell_id=dst_cid,
         )
 
+    def _default_view_content(self, library_id, cell_id, cell_name, view_id):
+        safe_name = re.sub(r"[^A-Za-z0-9_]", "_", cell_id)
+        if not safe_name or not safe_name[0].isalpha():
+            safe_name = "CELL_" + safe_name
+        if view_id == "schematic":
+            return self._default_cell_netlist(cell_id)
+        if view_id == "symbol":
+            sym_name = safe_name.upper()
+            return (
+                '@RNL(type="header") { @VERSION("0.3"); }\n'
+                "@RNL {\n"
+                f"  ${sym_name} = @DEFINE-SYMBOL(box=[-4, -3, 4, 3]) {{\n"
+                "    @LINE {(-3, -2) (3, -2) (3, 2) (-3, 2) (-3, -2)};\n"
+                '    (-4, 0) @PIN(terminal=1, direction="left");\n'
+                '    (4, 0) @PIN(terminal=2, direction="right");\n'
+                '    ? @TEXT("${name}", key="name", halign="middle") => @PLACE(0, 3);\n'
+                "  };\n"
+                "}\n"
+            )
+        if view_id == "veriloga":
+            return (
+                '`include "disciplines.vams"\n'
+                '`include "constants.vams"\n\n'
+                f"module {safe_name}(in, out);\n"
+                "  inout in, out;\n"
+                "  electrical in, out;\n"
+                "  analog begin\n"
+                "    V(out) <+ V(in);\n"
+                "  end\n"
+                "endmodule\n"
+            )
+        if view_id == "netlist":
+            return (
+                "simulator lang=spectre\n"
+                f"subckt {safe_name} IN OUT VDD VSS\n"
+                "    R0 (IN OUT) resistor r=1k\n"
+                f"ends {safe_name}\n"
+            )
+        if view_id == "simulation":
+            return json.dumps({
+                "parameters": {},
+                "analysis": {},
+                "description": f"Simulation configuration for {cell_id}",
+            }, indent=2, ensure_ascii=False) + "\n"
+        return f"# {cell_name}\n\nDocumentation for `{library_id}/{cell_id}`.\n"
+
+    def preview_create_view(self, library_id, cell_id, view_id, base_commit, kind=None, label=None, filename=None, content=None, level=None):
+        lid, cid, vid = identifier(library_id), identifier(cell_id), identifier(view_id)
+        require(vid in VIEW_SPECS, "Unsupported view id: " + vid)
+        spec = VIEW_SPECS[vid]
+        resolved_kind = spec["kind"] if kind is None else kind
+        require(resolved_kind == spec["kind"], f"View {vid} requires kind {spec['kind']}")
+        raw_label = spec["default_label"] if label is None else label
+        require(isinstance(raw_label, str), "Invalid view label")
+        resolved_label = raw_label.strip()
+        require(0 < len(resolved_label) <= 120 and not any(ord(c) < 32 for c in resolved_label), "Invalid view label")
+        resolved_level = None
+        if level is not None:
+            require(resolved_kind == "rnl", "Native level is only supported for RNL views")
+            require(isinstance(level, str), "Invalid native view level")
+            resolved_level = level.strip()
+            require(0 < len(resolved_level) <= 256 and not any(ord(c) < 32 for c in resolved_level), "Invalid native view level")
+
+        head = self._head()
+        require(base_commit == head and self._branch() is not None, "Base commit changed or checkout is detached", "conflict", 409)
+        catalog, catalog_hash = self._json_blob(head, "lib/catalog.json")
+        manifest_path = "lib/" + lid + "/library.json"
+        require(any(isinstance(item, dict) and item.get("id") == lid and item.get("manifest") == manifest_path for item in catalog.get("libraries", [])), "Library is not registered", "not_found", 404)
+        manifest, manifest_hash = self._json_blob(head, manifest_path)
+        require(manifest.get("schema") == "circuitgit.library.v1" and manifest.get("id") == lid and isinstance(manifest.get("cells"), list), "Invalid library manifest")
+        require(self._file(manifest_path) == self._blob(head, manifest_path), "Library manifest has uncommitted edits; commit or revert first", "conflict", 409)
+
+        cell_idx = next((idx for idx, item in enumerate(manifest["cells"]) if isinstance(item, dict) and item.get("id") == cid), None)
+        require(cell_idx is not None, "Cell is not registered in library", "not_found", 404)
+        cell = manifest["cells"][cell_idx]
+        views = cell.get("views", [])
+        require(isinstance(views, list), "Invalid cell views manifest")
+        require(len(views) < 32, "Cell already reached the maximum number of views", "conflict", 409)
+        require(not any(isinstance(v, dict) and v.get("id") == vid for v in views), "View already exists in cell: " + vid, "conflict", 409)
+
+        if filename is None:
+            resolved_filename = "config.json" if vid == "simulation" else "notes.md" if vid == "docs" else f"{cid}{spec['default_ext']}"
+        else:
+            require(isinstance(filename, str) and "/" not in filename and "\\" not in filename and ".." not in filename, "Invalid view filename")
+            resolved_filename = identifier(filename)
+            require(PurePosixPath(resolved_filename).suffix.lower() in spec["allowed_exts"], "Unsupported file extension for view " + vid)
+
+        directory = cell["directory"]
+        entry_path = relative_path(f"{directory}/{spec['subdir']}/{resolved_filename}")
+        require(self._blob(head, entry_path) is None and self._file(entry_path) is None, "Target view file already exists: " + entry_path, "conflict", 409)
+
+        view_text = self._default_view_content(lid, cid, cell.get("name") or cid, vid) if content is None else content
+        self._content(entry_path, view_text)
+        if resolved_kind == "json":
+            require(isinstance(json.loads(view_text), dict), "Simulation view JSON must be an object", "invalid_json", 400)
+
+        new_view = {
+            "id": vid,
+            "label": resolved_label,
+            "kind": resolved_kind,
+            "entry": entry_path,
+            "files": [entry_path],
+        }
+        if resolved_level is not None:
+            new_view["level"] = resolved_level
+
+        updated_cell = {**cell, "views": [*views, new_view]}
+        updated_cells = [*manifest["cells"][:cell_idx], updated_cell, *manifest["cells"][cell_idx + 1:]]
+        updated_manifest = {**manifest, "cells": updated_cells}
+        manifest_text = json.dumps(updated_manifest, indent=2, ensure_ascii=False) + "\n"
+        self._content(manifest_path, manifest_text)
+        snapshots = [
+            {"path": manifest_path, "base_sha256": manifest_hash, "sha256": digest(manifest_text.encode()), "content": manifest_text},
+            {"path": entry_path, "base_sha256": None, "sha256": digest(view_text.encode()), "content": view_text},
+        ]
+        diff = (
+            self._diff(manifest_path, self._blob(head, manifest_path), manifest_text.encode())
+            + self._diff(entry_path, None, view_text.encode())
+        )
+        require(len(diff.encode()) <= MAX_DIFF, "View creation diff exceeds review limit", "diff_limit", 413)
+        return self._repo_review(
+            "create_view",
+            head,
+            digest([catalog_hash, manifest_hash, "create_view", lid, cid, vid, entry_path]),
+            {
+                "library_id": lid,
+                "cell_id": cid,
+                "view_id": vid,
+                "view_kind": resolved_kind,
+                "view": new_view,
+                "directory": directory,
+                "entry": entry_path,
+                "files": [s["path"] for s in snapshots],
+                "snapshots": snapshots,
+                "message": f"Create view {vid} in {lid}/{cid}",
+                "committer": self._identity(),
+            },
+            diff=diff,
+            summary=f"Create view {vid} ({resolved_kind}) in {lid}/{cid} and commit it to the current branch",
+            library_id=lid,
+            cell_id=cid,
+        )
+
     def preview_create_branch(self, branch, base_commit, from_ref=None, checkout=True):
         target = branch_name(branch)
         head = self._head()
@@ -1280,11 +1433,27 @@ class LibraryWorkflow:
                 allowed_files.add(lib_manifest)
             else:
                 try:
-                    base_cells = {c.get("id") for c in json.loads(base_manifest).get("cells", []) if isinstance(c, dict)}
+                    base_doc = json.loads(base_manifest)
+                    base_cells = {c.get("id"): c for c in base_doc.get("cells", []) if isinstance(c, dict) and isinstance(c.get("id"), str)}
                 except ValueError:
-                    base_cells = set()
+                    base_doc, base_cells = None, {}
                 if item_scope["cell_id"] not in base_cells:
                     allowed_files.add(lib_manifest)
+                else:
+                    commit_manifest = self._blob(commit, lib_manifest)
+                    if commit_manifest is not None and commit_manifest != base_manifest:
+                        try:
+                            commit_doc = json.loads(commit_manifest)
+                        except ValueError:
+                            commit_doc = None
+                        if isinstance(base_doc, dict) and isinstance(commit_doc, dict):
+                            scoped_cids = {s["cell_id"] for s in all_scopes if s["library_id"] == item_scope["library_id"]}
+                            base_other = [c for c in base_doc.get("cells", []) if not (isinstance(c, dict) and c.get("id") in scoped_cids)]
+                            commit_other = [c for c in commit_doc.get("cells", []) if not (isinstance(c, dict) and c.get("id") in scoped_cids)]
+                            meta_same = all(base_doc.get(k) == commit_doc.get(k) for k in ("schema", "id", "name", "description"))
+                            keys_same = set(base_doc) == set(commit_doc)
+                            if meta_same and keys_same and base_other == commit_other:
+                                allowed_files.add(lib_manifest)
         files = self._git("diff", "--no-ext-diff", "--no-textconv", "--name-only", "-z", base, commit).stdout.decode().rstrip("\0").split("\0")
         require(files != [""] and set(files) <= allowed_files, "PR contains changes outside the selected cell(s); declare related_cells or prepare a scoped branch first", "out_of_scope", 409)
         for item_scope in all_scopes:
@@ -1416,7 +1585,7 @@ class LibraryWorkflow:
             if operation in self.REPO_OPERATIONS:
                 require(self._head() == review["base_commit"] and self._branch() == review["branch"],
                         "Repository state changed after request preparation; prepare again", "conflict", 409)
-                if operation in {"create_library", "create_cell", "clone_cell"}:
+                if operation in {"create_library", "create_cell", "clone_cell", "create_view"}:
                     for item in payload["snapshots"]:
                         before = self._file(item["path"])
                         require((digest(before) if before is not None else None) == item["base_sha256"],
@@ -1465,7 +1634,7 @@ class LibraryWorkflow:
                     result = self._apply_commit(review, oid)
                 elif operation == "register_testbench":
                     result = self._apply_register_testbench(review, oid)
-                elif operation in {"create_library", "create_cell", "clone_cell"}:
+                elif operation in {"create_library", "create_cell", "clone_cell", "create_view"}:
                     result = self._apply_crud_commit(review, oid)
                 elif operation == "create_branch":
                     result = self._apply_create_branch(review, oid)
@@ -1613,6 +1782,11 @@ class LibraryWorkflow:
         if saved.get("state", "complete") != "complete":
             return {**saved, "operation": review["operation"]}
         committed = self._apply_commit(review, oid)
+        extra = {}
+        if "view_id" in payload:
+            extra["view_id"] = payload["view_id"]
+        if "view" in payload:
+            extra["view"] = payload["view"]
         return {
             **committed,
             "operation": review["operation"],
@@ -1620,6 +1794,7 @@ class LibraryWorkflow:
             "cell_id": review.get("cell_id"),
             "directory": payload.get("directory"),
             "entry": payload.get("entry"),
+            **extra,
             "checkpoint_ids": saved["checkpoint_ids"],
         }
 
