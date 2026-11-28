@@ -87,7 +87,7 @@ def check():
             resolved=urlsplit(urljoin('http://build/'+name,value)).path.lstrip('/')
             if resolved not in output:raise ValueError('Broken built import: '+name+' -> '+value)
     from subprocess import check_call
-    check_call([sys.executable,'-B',str(ROOT/'tools/dev/export_contracts.py'),'--check'])
+    check_call([sys.executable,'-X','utf8','-B',str(ROOT/'tools/dev/export_contracts.py'),'--check'])
     registry=json.loads((ROOT/'contracts/modules.v1.json').read_text())
     for module in registry['modules']:
         if not (ROOT/module['entry']).is_file():raise ValueError('Missing module entry: '+module['id'])

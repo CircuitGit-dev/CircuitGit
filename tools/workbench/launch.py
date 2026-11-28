@@ -65,8 +65,8 @@ def main():
         elif a.runtime_root:p.error('Existing config preserved; edit it explicitly to change runtime-root')
     if a.write_config_only:
         print(json.dumps({'config':str(config),'server_started':False}));return
-    subprocess.run([sys.executable,'-B',str(repo/'tools/dev/build.py'),'web'],check=True)
-    command=[sys.executable,'-B',str(Path(__file__).with_name('server.py')),
+    subprocess.run([sys.executable,'-X','utf8','-B',str(repo/'tools/dev/build.py'),'web'],check=True)
+    command=[sys.executable,'-X','utf8','-B',str(Path(__file__).with_name('server.py')),
              '--config',str(config),'--web-root',str(repo/'web'),'--port',str(a.port)]
     raise SystemExit(subprocess.call(command))
 if __name__=='__main__':

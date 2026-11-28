@@ -16,6 +16,10 @@ from simulation_runtime import SimulationRuntime
 from spiceowl_readonly import SpiceReadAdapter,SpiceReadError
 from library_workflow import LibraryWorkflow,WorkflowError,relative_path as library_relative_path
 
+def asset_mime(path):
+    """Static-asset MIME independent of host file associations (Windows maps .js to text/plain)."""
+    return {'.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.wasm':'application/wasm'}.get(Path(path).suffix.lower(),mimetypes.guess_type(path.name)[0] or 'application/octet-stream')
+
 def simulation_backend_info(site):
     """Non-secret summary of the configured simulator backend for health/project views."""
     if not isinstance(site,dict):return None
@@ -424,7 +428,7 @@ class Handler(BaseHTTPRequestHandler):
             for parent in p.parents:
                 if parent==self.app.web:break
                 if parent.is_symlink():raise PermissionError('symlink static path denied')
-            return self.send(200,p.read_bytes(),mimetypes.guess_type(p.name)[0] or 'application/octet-stream')
+            return self.send(200,p.read_bytes(),asset_mime(p))
         except (BrokenPipeError,ConnectionResetError):pass
         except Exception as e:self.error(e)
     def do_POST(self):

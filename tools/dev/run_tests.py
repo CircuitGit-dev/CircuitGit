@@ -92,11 +92,11 @@ def _collect_node_tests(patterns):
 
 
 def _py_unit(rel_path):
-    return [sys.executable, '-B', '-m', 'unittest', '-v', rel_path]
+    return [sys.executable, '-X', 'utf8', '-B', '-m', 'unittest', '-v', rel_path]
 
 
 def _py_script(rel_path, *args):
-    return [sys.executable, '-B', rel_path, *args]
+    return [sys.executable, '-X', 'utf8', '-B', rel_path, *args]
 
 
 def build_plan(*, quick=False, include_spiceowl=False, has_node=True):
